@@ -1,0 +1,248 @@
+// src/pages/AnimalHealthPage.tsx
+import { useState } from 'react'
+import { useParams, Link } from 'react-router-dom'
+import { format } from 'date-fns'
+import { fr } from 'date-fns/locale'
+import Navbar from '@/components/ui/Navbar'
+import {
+  useAnimal,
+  useVaccines,
+  useWeightTracking,
+  useHealthRecords,
+  useCreateVaccine,
+  useCreateWeight,
+  useCreateHealthRecord,
+} from '@/hooks/useData'
+
+export default function AnimalHealthPage() {
+  const { id } = useParams<{ id: string }>()
+  const { data: animal, isLoading } = useAnimal(id!)
+  const { data: vaccines = [] } = useVaccines(id!)
+  const { data: weights = [] } = useWeightTracking(id!)
+  const { data: records = [] } = useHealthRecords(id!)
+
+  const createVaccine = useCreateVaccine()
+  const createWeight = useCreateWeight()
+  const createRecord = useCreateHealthRecord()
+
+  const [tab, setTab] = useState<'overview' | 'vaccines' | 'weight' | 'records'>('overview')
+  const [showVaccineForm, setShowVaccineForm] = useState(false)
+  const [showWeightForm, setShowWeightForm] = useState(false)
+  const [showRecordForm, setShowRecordForm] = useState(false)
+
+  const [vaccineForm, setVaccineForm] = useState({ name: '', date_administered: '', next_due_date: '', veterinarian: '' })
+  const [weightForm, setWeightForm] = useState({ weight_kg: '', date: '', notes: '' })
+  const [recordForm, setRecordForm] = useState({ date: '', type: 'Consultation', title: '', description: '', professional_name: '' })
+
+  if (isLoading) return <div className="min-h-screen bg-gray-50"><Navbar /><div className="flex items-center justify-center h-64"><p className="text-gray-400">Chargement...</p></div></div>
+  if (!animal) return <div className="min-h-screen bg-gray-50"><Navbar /><div className="flex items-center justify-center h-64"><p className="text-gray-400">Animal introuvable</p></div></div>
+
+  const lastWeight = weights.length > 0 ? weights[weights.length - 1] : null
+  const nextVaccine = vaccines.find(v => v.next_due_date)
+
+  const speciesEmoji: Record<string, string> = {
+    Chien: '🐕', Chat: '🐈', Lapin: '🐇', Oiseau: '🐦',
+    Reptile: '🦎', Rongeur: '🐹', Cheval: '🐴', Autre: '🐾'
+  }
+  const emoji = speciesEmoji[animal.species] ?? '🐾'
+
+  async function submitVaccine() {
+    if (!vaccineForm.name || !vaccineForm.date_administered) return
+    await createVaccine.mutateAsync({ ...vaccineForm, animal_id: id! })
+    setVaccineForm({ name: '', date_administered: '', next_due_date: '', veterinarian: '' })
+    setShowVaccineForm(false)
+  }
+
+  async function submitWeight() {
+    if (!weightForm.weight_kg || !weightForm.date) return
+    await createWeight.mutateAsync({ animal_id: id!, weight_kg: parseFloat(weightForm.weight_kg), date: weightForm.date, notes: weightForm.notes })
+    setWeightForm({ weight_kg: '', date: '', notes: '' })
+    setShowWeightForm(false)
+  }
+
+  async function submitRecord() {
+    if (!recordForm.title || !recordForm.date) return
+    await createRecord.mutateAsync({ ...recordForm, animal_id: id! })
+    setRecordForm({ date: '', type: 'Consultation', title: '', description: '', professional_name: '' })
+    setShowRecordForm(false)
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
+      <div className="max-w-4xl mx-auto px-4 py-8">
+
+        <div className="card p-6 mb-6 flex items-center gap-5">
+          <div className="w-20 h-20 rounded-2xl bg-sage-50 flex items-center justify-center text-4xl flex-shrink-0">
+            {animal.avatar_url ? <img src={animal.avatar_url} className="w-full h-full object-cover rounded-2xl" alt={animal.name} /> : emoji}
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-1">
+              <h1 className="text-2xl font-bold text-gray-900">{animal.name}</h1>
+              <span className="text-xs bg-sage-100 text-sage-700 px-2 py-1 rounded-full">{animal.species}</span>
+              {animal.gender && <span className="text-gray-400 text-sm">{animal.gender}</span>}
+            </div>
+            <p className="text-gray-500 text-sm">{animal.breed ?? 'Race non renseignée'}</p>
+            <div className="flex gap-4 mt-2 text-sm text-gray-500">
+              {animal.date_of_birth && <span>🎂 {format(new Date(animal.date_of_birth), 'd MMM yyyy', { locale: fr })}</span>}
+              {lastWeight && <span>⚖️ {lastWeight.weight_kg} kg</span>}
+              {animal.microchip_number && <span>📡 {animal.microchip_number}</span>}
+            </div>
+          </div>
+          <Link to="/dashboard/patient" className="text-sm text-gray-500 hover:text-gray-700">← Retour</Link>
+        </div>
+
+        <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-6 w-fit">
+          {([['overview', '📋 Résumé'], ['vaccines', '💉 Vaccins'], ['weight', '⚖️ Poids'], ['records', '📁 Dossier']] as const).map(([t, label]) => (
+            <button key={t} onClick={() => setTab(t)}
+              className={`px-4 py-2 text-xs font-medium rounded-lg transition-colors ${tab === t ? 'bg-white text-sage-600 shadow-sm' : 'text-gray-500'}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'overview' && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="card p-5">
+              <h3 className="font-semibold text-sm text-gray-700 mb-3">💉 Vaccins</h3>
+              <p className="text-3xl font-bold text-sage-600 mb-1">{vaccines.length}</p>
+              <p className="text-xs text-gray-400">vaccins enregistrés</p>
+              {nextVaccine && <p className="text-xs text-amber-600 mt-2">⏰ Rappel : {format(new Date(nextVaccine.next_due_date!), 'd MMM yyyy', { locale: fr })}</p>}
+            </div>
+            <div className="card p-5">
+              <h3 className="font-semibold text-sm text-gray-700 mb-3">⚖️ Poids actuel</h3>
+              <p className="text-3xl font-bold text-blue-600 mb-1">{lastWeight ? `${lastWeight.weight_kg} kg` : '—'}</p>
+              <p className="text-xs text-gray-400">{lastWeight ? format(new Date(lastWeight.date), 'd MMM yyyy', { locale: fr }) : 'Aucune mesure'}</p>
+            </div>
+            <div className="card p-5">
+              <h3 className="font-semibold text-sm text-gray-700 mb-3">📁 Événements</h3>
+              <p className="text-3xl font-bold text-purple-600 mb-1">{records.length}</p>
+              <p className="text-xs text-gray-400">dans le dossier</p>
+            </div>
+          </div>
+        )}
+
+        {tab === 'vaccines' && (
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="font-semibold text-gray-900">Vaccins de {animal.name}</h2>
+              <button onClick={() => setShowVaccineForm(true)} className="btn-primary text-sm">+ Ajouter</button>
+            </div>
+            {showVaccineForm && (
+              <div className="card p-5 mb-4 border-2 border-sage-200">
+                <h3 className="font-semibold text-sm mb-3">Nouveau vaccin</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className="text-xs text-gray-500">Nom du vaccin *</label><input className="input text-sm mt-1" value={vaccineForm.name} onChange={e => setVaccineForm(f => ({...f, name: e.target.value}))} placeholder="Ex: Rage, Carré..." /></div>
+                  <div><label className="text-xs text-gray-500">Date administration *</label><input type="date" className="input text-sm mt-1" value={vaccineForm.date_administered} onChange={e => setVaccineForm(f => ({...f, date_administered: e.target.value}))} /></div>
+                  <div><label className="text-xs text-gray-500">Prochain rappel</label><input type="date" className="input text-sm mt-1" value={vaccineForm.next_due_date} onChange={e => setVaccineForm(f => ({...f, next_due_date: e.target.value}))} /></div>
+                  <div><label className="text-xs text-gray-500">Vétérinaire</label><input className="input text-sm mt-1" value={vaccineForm.veterinarian} onChange={e => setVaccineForm(f => ({...f, veterinarian: e.target.value}))} placeholder="Dr..." /></div>
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <button onClick={submitVaccine} className="btn-primary text-sm">Enregistrer</button>
+                  <button onClick={() => setShowVaccineForm(false)} className="btn-secondary text-sm">Annuler</button>
+                </div>
+              </div>
+            )}
+            {vaccines.length === 0
+              ? <div className="card p-10 text-center"><p className="text-gray-400 text-sm">Aucun vaccin enregistré.</p></div>
+              : <div className="space-y-3">{vaccines.map(v => (
+                  <div key={v.id} className="card p-4 flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-lg">💉</div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm text-gray-900">{v.name}</p>
+                      <p className="text-xs text-gray-500">Le {format(new Date(v.date_administered), 'd MMM yyyy', { locale: fr })}{v.veterinarian ? ` · ${v.veterinarian}` : ''}</p>
+                    </div>
+                    {v.next_due_date && <div className="text-right"><p className="text-xs text-amber-600 font-medium">Rappel</p><p className="text-xs text-gray-500">{format(new Date(v.next_due_date), 'd MMM yyyy', { locale: fr })}</p></div>}
+                  </div>
+                ))}</div>
+            }
+          </div>
+        )}
+
+        {tab === 'weight' && (
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="font-semibold text-gray-900">Suivi du poids</h2>
+              <button onClick={() => setShowWeightForm(true)} className="btn-primary text-sm">+ Ajouter</button>
+            </div>
+            {showWeightForm && (
+              <div className="card p-5 mb-4 border-2 border-sage-200">
+                <h3 className="font-semibold text-sm mb-3">Nouvelle mesure</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className="text-xs text-gray-500">Poids (kg) *</label><input type="number" step="0.1" className="input text-sm mt-1" value={weightForm.weight_kg} onChange={e => setWeightForm(f => ({...f, weight_kg: e.target.value}))} placeholder="Ex: 4.5" /></div>
+                  <div><label className="text-xs text-gray-500">Date *</label><input type="date" className="input text-sm mt-1" value={weightForm.date} onChange={e => setWeightForm(f => ({...f, date: e.target.value}))} /></div>
+                  <div className="col-span-2"><label className="text-xs text-gray-500">Notes</label><input className="input text-sm mt-1" value={weightForm.notes} onChange={e => setWeightForm(f => ({...f, notes: e.target.value}))} placeholder="Ex: après repas..." /></div>
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <button onClick={submitWeight} className="btn-primary text-sm">Enregistrer</button>
+                  <button onClick={() => setShowWeightForm(false)} className="btn-secondary text-sm">Annuler</button>
+                </div>
+              </div>
+            )}
+            {weights.length === 0
+              ? <div className="card p-10 text-center"><p className="text-gray-400 text-sm">Aucune mesure enregistrée.</p></div>
+              : <div className="space-y-3">{[...weights].reverse().map((w, i) => (
+                  <div key={w.id} className="card p-4 flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-lg">⚖️</div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm text-gray-900">{w.weight_kg} kg</p>
+                      <p className="text-xs text-gray-500">{format(new Date(w.date), 'd MMM yyyy', { locale: fr })}{w.notes ? ` · ${w.notes}` : ''}</p>
+                    </div>
+                    {i === 0 && <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">Dernier</span>}
+                  </div>
+                ))}</div>
+            }
+          </div>
+        )}
+
+        {tab === 'records' && (
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="font-semibold text-gray-900">Dossier de santé</h2>
+              <button onClick={() => setShowRecordForm(true)} className="btn-primary text-sm">+ Ajouter</button>
+            </div>
+            {showRecordForm && (
+              <div className="card p-5 mb-4 border-2 border-sage-200">
+                <h3 className="font-semibold text-sm mb-3">Nouvel événement</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div><label className="text-xs text-gray-500">Type</label>
+                    <select className="input text-sm mt-1" value={recordForm.type} onChange={e => setRecordForm(f => ({...f, type: e.target.value}))}>
+                      {['Consultation', 'Chirurgie', 'Traitement', 'Toilettage', 'Ostéopathie', 'Analyse', 'Autre'].map(t => <option key={t}>{t}</option>)}
+                    </select>
+                  </div>
+                  <div><label className="text-xs text-gray-500">Date *</label><input type="date" className="input text-sm mt-1" value={recordForm.date} onChange={e => setRecordForm(f => ({...f, date: e.target.value}))} /></div>
+                  <div className="col-span-2"><label className="text-xs text-gray-500">Titre *</label><input className="input text-sm mt-1" value={recordForm.title} onChange={e => setRecordForm(f => ({...f, title: e.target.value}))} placeholder="Ex: Consultation annuelle..." /></div>
+                  <div><label className="text-xs text-gray-500">Professionnel</label><input className="input text-sm mt-1" value={recordForm.professional_name} onChange={e => setRecordForm(f => ({...f, professional_name: e.target.value}))} placeholder="Dr..." /></div>
+                  <div><label className="text-xs text-gray-500">Description</label><input className="input text-sm mt-1" value={recordForm.description} onChange={e => setRecordForm(f => ({...f, description: e.target.value}))} placeholder="Notes..." /></div>
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <button onClick={submitRecord} className="btn-primary text-sm">Enregistrer</button>
+                  <button onClick={() => setShowRecordForm(false)} className="btn-secondary text-sm">Annuler</button>
+                </div>
+              </div>
+            )}
+            {records.length === 0
+              ? <div className="card p-10 text-center"><p className="text-gray-400 text-sm">Aucun événement enregistré.</p></div>
+              : <div className="space-y-3">{records.map(r => {
+                  const typeEmoji: Record<string, string> = { Consultation: '🩺', Chirurgie: '🔬', Traitement: '💊', Toilettage: '✂️', Ostéopathie: '🤲', Analyse: '🧪', Autre: '📋' }
+                  return (
+                    <div key={r.id} className="card p-4 flex items-start gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-lg">{typeEmoji[r.type] ?? '📋'}</div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-semibold text-sm text-gray-900">{r.title}</p>
+                          <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{r.type}</span>
+                        </div>
+                        <p className="text-xs text-gray-500">{format(new Date(r.date), 'd MMM yyyy', { locale: fr })}{r.professional_name ? ` · ${r.professional_name}` : ''}</p>
+                        {r.description && <p className="text-xs text-gray-400 mt-1">{r.description}</p>}
+                      </div>
+                    </div>
+                  )
+                })}</div>
+            }
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

@@ -1,0 +1,200 @@
+// src/pages/BookPage.tsx
+import { useState } from 'react'
+import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useDoctor } from '@/hooks/useData'
+import { useCreateAppointment } from '@/hooks/useData'
+import Navbar from '@/components/ui/Navbar'
+import AvailabilityCalendar from '@/components/appointment/AvailabilityCalendar'
+import { format, addMinutes } from 'date-fns'
+import { fr } from 'date-fns/locale'
+
+type Step = 1 | 2 | 3
+
+export default function BookPage() {
+  const { doctorId } = useParams<{ doctorId: string }>()
+  const navigate = useNavigate()
+  const { data: doctor } = useDoctor(doctorId!)
+  const createAppt = useCreateAppointment()
+
+  const [step, setStep] = useState<Step>(1)
+  const [selectedSlot, setSelectedSlot] = useState<Date | null>(null)
+  const [reason, setReason] = useState('')
+
+  const REASONS = [
+    'Consultation générale', 'Renouvellement ordonnance',
+    'Bilan annuel', 'Suivi de traitement', 'Urgence', 'Autre',
+  ]
+
+  const name = doctor?.profiles
+    ? `${doctor.profiles.first_name} ${doctor.profiles.last_name}`
+    : 'Praticien'
+
+  async function confirm() {
+    if (!selectedSlot || !doctorId) return
+    const start = selectedSlot
+    const end   = addMinutes(start, 30)
+    await createAppt.mutateAsync({
+      doctor_id: doctorId,
+      start_at:  start.toISOString(),
+      end_at:    end.toISOString(),
+      reason,
+    })
+    setStep(3)
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
+      <div className="max-w-2xl mx-auto px-4 py-8">
+
+        {/* Fil d'Ariane médecin */}
+        {doctor && (
+          <div className="card p-4 flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-sage-100 flex items-center justify-center text-sage-700 font-bold">
+              {name[0]}
+            </div>
+            <div>
+              <p className="font-semibold text-sm text-gray-900">{name}</p>
+              <p className="text-xs text-sage-600">{doctor.specialty} · {doctor.consultation_price}€</p>
+            </div>
+            <Link to={`/doctor/${doctorId}`} className="ml-auto text-xs text-gray-400 hover:underline">Modifier</Link>
+          </div>
+        )}
+
+        {/* Indicateur d'étape */}
+        <div className="flex items-center gap-2 mb-8">
+          {[
+            { n: 1, label: 'Créneau' },
+            { n: 2, label: 'Motif' },
+            { n: 3, label: 'Confirmation' },
+          ].map((s, i) => (
+            <div key={s.n} className="flex items-center gap-2 flex-1">
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0
+                ${step >= s.n ? 'bg-sage-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                {step > s.n ? '✓' : s.n}
+              </div>
+              <span className={`text-xs font-medium ${step >= s.n ? 'text-sage-600' : 'text-gray-400'}`}>
+                {s.label}
+              </span>
+              {i < 2 && <div className={`flex-1 h-0.5 ${step > s.n ? 'bg-sage-400' : 'bg-gray-200'}`} />}
+            </div>
+          ))}
+        </div>
+
+        {/* ÉTAPE 1 — Choix du créneau */}
+        {step === 1 && (
+          <div className="card p-6">
+            <h2 className="font-semibold text-gray-900 mb-5">Choisissez un créneau</h2>
+            <AvailabilityCalendar
+              doctorId={doctorId!}
+              selected={selectedSlot}
+              onSelect={setSelectedSlot}
+            />
+            {selectedSlot && (
+              <div className="mt-5 pt-5 border-t border-gray-100 flex items-center justify-between">
+                <p className="text-sm text-sage-700 font-medium">
+                  ✓ {format(selectedSlot, "EEEE d MMMM 'à' HH:mm", { locale: fr })}
+                </p>
+                <button className="btn-primary" onClick={() => setStep(2)}>
+                  Continuer →
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ÉTAPE 2 — Motif */}
+        {step === 2 && (
+          <div className="card p-6">
+            <h2 className="font-semibold text-gray-900 mb-1">Motif de la consultation</h2>
+            <p className="text-sm text-gray-500 mb-5">
+              RDV prévu le{' '}
+              <strong>{selectedSlot && format(selectedSlot, "EEEE d MMMM 'à' HH:mm", { locale: fr })}</strong>
+            </p>
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              {REASONS.map(r => (
+                <button key={r}
+                  onClick={() => setReason(r)}
+                  className={`p-3 text-sm rounded-xl border text-left transition-colors
+                    ${reason === r ? 'border-sage-400 bg-sage-50 text-sage-700 font-medium' : 'border-gray-200 hover:border-sage-300'}`}>
+                  {r}
+                </button>
+              ))}
+            </div>
+            <textarea value={reason} onChange={e => setReason(e.target.value)}
+              className="input resize-none" rows={2}
+              placeholder="Précisez si nécessaire (facultatif)..." />
+            <div className="flex gap-3 mt-5">
+              <button className="btn-secondary flex-1" onClick={() => setStep(1)}>← Retour</button>
+              <button className="btn-primary flex-1" onClick={() => setStep(3)}>Récapitulatif →</button>
+            </div>
+          </div>
+        )}
+
+        {/* ÉTAPE 3 — Confirmation */}
+        {step === 3 && !createAppt.isSuccess && (
+          <div className="card p-6">
+            <h2 className="font-semibold text-gray-900 mb-5">Confirmer le rendez-vous</h2>
+            <div className="bg-sage-50 rounded-xl p-4 space-y-2 mb-5">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Praticien</span>
+                <span className="font-medium">{name}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Spécialité</span>
+                <span>{doctor?.specialty}</span>
+              </div>
+              {selectedSlot && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Date & heure</span>
+                  <span className="font-medium">
+                    {format(selectedSlot, "EEEE d MMM 'à' HH:mm", { locale: fr })}
+                  </span>
+                </div>
+              )}
+              {reason && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Motif</span>
+                  <span>{reason}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-sm pt-2 border-t border-sage-200">
+                <span className="text-gray-500">Tarif</span>
+                <span className="font-bold text-sage-700">{doctor?.consultation_price}€</span>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button className="btn-secondary flex-1" onClick={() => setStep(2)}>← Modifier</button>
+              <button className="btn-primary flex-1" onClick={confirm} disabled={createAppt.isPending}>
+                {createAppt.isPending ? 'Confirmation...' : '✓ Confirmer'}
+              </button>
+            </div>
+            {createAppt.isError && (
+              <p className="text-red-500 text-sm mt-3 text-center">
+                Ce créneau est déjà pris. Veuillez en choisir un autre.
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Succès */}
+        {createAppt.isSuccess && (
+          <div className="card p-10 text-center">
+            <div className="text-5xl mb-4">🎉</div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Rendez-vous confirmé !</h2>
+            <p className="text-gray-500 text-sm mb-2">
+              Votre rendez-vous avec <strong>{name}</strong> est enregistré.
+            </p>
+            <p className="text-gray-400 text-xs mb-6">
+              Un email de confirmation vous a été envoyé.
+            </p>
+            <div className="flex gap-3 justify-center">
+              <Link to="/dashboard/patient" className="btn-primary">Voir mes RDV</Link>
+              <Link to="/search" className="btn-secondary">Retour à la recherche</Link>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

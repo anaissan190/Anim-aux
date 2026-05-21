@@ -1,0 +1,80 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --or: #F97316;
+  --or-light: #FED7AA;
+  --or-pale: #FFF7ED;
+  --or-mid: #FFEDD5;
+  --terra: #C2410C;
+  --brown: #78350F;
+  --muted: #92400E;
+  --cream: #FFFBF5;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: 'Nunito', sans-serif;
+  background-color: var(--cream);
+  color: #1C0A00;
+}
+
+h1, h2, h3 {
+  font-family: 'Fredoka One', cursive;
+  color: var(--terra);
+}
+
+.btn-primary {
+  background-color: var(--or);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  padding: 12px 24px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-primary:hover { background-color: var(--terra); }
+
+.btn-secondary {
+  background-color: var(--or-mid);
+  color: var(--terra);
+  border: 2px solid var(--or-light);
+  border-radius: 14px;
+  padding: 10px 22px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.btn-secondary:hover { background-color: var(--or-light); }
+
+.card {
+  background: white;
+  border: 1.5px solid var(--or-light);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--or-mid);
+  color: var(--terra);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--or-pale); }
+::-webkit-scrollbar-thumb { background: var(--or-light); border-radius: 999px; }
