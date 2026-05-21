@@ -31,10 +31,10 @@ export default function LoginPage() {
       .eq('id', data.user.id)
       .single()
 
-    setUser({ ...data.user, role: userData?.role || 'patient' })
+    setUser({ ...data.user, email: data.user.email ?? '', role: userData?.role || 'patient' })
     setProfile(profileData)
 
-    navigate(`/dashboard/${userData?.role || 'patient'}`)
+   setUser({ ...data.user, email: data.user.email ?? '', role: userData?.role || 'patient' })
     setLoading(false)
   }
 

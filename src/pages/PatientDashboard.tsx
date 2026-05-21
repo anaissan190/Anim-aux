@@ -5,8 +5,8 @@ import { usePatientAppointments, useAnimals } from '@/hooks/useData'
 export default function PatientDashboard() {
   const navigate = useNavigate()
   const { user, profile } = useAuthStore()
-  const { data: appointments = [] } = usePatientAppointments(user?.id)
-  const { data: animals = [] } = useAnimals(user?.id)
+const { data: appointments = [] } = usePatientAppointments()
+const { data: animals = [] } = useAnimals()
 
   const upcoming = appointments.filter(a => a.status !== 'cancelled' && new Date(a.start_at) > new Date())
   const past = appointments.filter(a => new Date(a.start_at) < new Date())
