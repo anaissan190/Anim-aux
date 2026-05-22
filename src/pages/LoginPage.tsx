@@ -17,13 +17,12 @@ export default function LoginPage() {
     setError('')
 
     const { data, error: err } = await supabase.auth.signInWithPassword({ email, password })
-    if (err) { setError(err.message); setLoading(false); return }
-
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_id', data.user.id)
-      .single()
+    
+    if (err || !data.user) {
+      setError(err?.message || 'Erreur de connexion')
+      setLoading(false)
+      return
+    }
 
     const { data: userData } = await supabase
       .from('users')
@@ -31,18 +30,29 @@ export default function LoginPage() {
       .eq('id', data.user.id)
       .single()
 
-    setUser({ ...data.user, email: data.user.email ?? '', role: userData?.role || 'patient' })
-    setProfile(profileData)
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('user_id', data.user.id)
+      .single()
 
-   setUser({ ...data.user, email: data.user.email ?? '', role: userData?.role || 'patient' })
+    const role = userData?.role || 'patient'
+
+    setUser({ 
+      id: data.user.id, 
+      email: data.user.email || '', 
+      role, 
+      created_at: data.user.created_at 
+    })
+    setProfile(profileData ?? null)
     setLoading(false)
+    navigate(`/dashboard/${role}`)
   }
 
   return (
     <div style={{ minHeight: '100vh', background: '#FFF7ED', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Nunito, sans-serif' }}>
       <div style={{ width: '100%', maxWidth: '440px', padding: '0 20px' }}>
 
-        {/* LOGO */}
         <div onClick={() => navigate('/')} style={{ fontFamily: 'Fredoka One, cursive', fontSize: '32px', color: '#C2410C', textAlign: 'center', marginBottom: '8px', cursor: 'pointer' }}>
           Animéaux 🐾
         </div>
@@ -50,7 +60,6 @@ export default function LoginPage() {
           Bon retour parmi nous !
         </p>
 
-        {/* CARTE */}
         <div style={{ background: 'white', border: '1.5px solid #FED7AA', borderRadius: '20px', padding: '32px' }}>
           <h2 style={{ fontFamily: 'Fredoka One, cursive', fontSize: '26px', color: '#C2410C', marginBottom: '24px', textAlign: 'center' }}>
             Connexion
@@ -58,30 +67,26 @@ export default function LoginPage() {
 
           <form onSubmit={handleLogin}>
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#92400E', marginBottom: '6px' }}>
-                Email
-              </label>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#92400E', marginBottom: '6px' }}>Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="ton@email.com"
                 required
-                style={{ width: '100%', border: '1.5px solid #FED7AA', borderRadius: '12px', padding: '12px 16px', fontFamily: 'Nunito, sans-serif', fontSize: '14px', color: '#1C0A00', outline: 'none', background: '#FFFBF5' }}
+                style={{ width: '100%', border: '1.5px solid #FED7AA', borderRadius: '12px', padding: '12px 16px', fontFamily: 'Nunito, sans-serif', fontSize: '14px', outline: 'none', background: '#FFFBF5' }}
               />
             </div>
 
             <div style={{ marginBottom: '8px' }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#92400E', marginBottom: '6px' }}>
-                Mot de passe
-              </label>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#92400E', marginBottom: '6px' }}>Mot de passe</label>
               <input
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                style={{ width: '100%', border: '1.5px solid #FED7AA', borderRadius: '12px', padding: '12px 16px', fontFamily: 'Nunito, sans-serif', fontSize: '14px', color: '#1C0A00', outline: 'none', background: '#FFFBF5' }}
+                style={{ width: '100%', border: '1.5px solid #FED7AA', borderRadius: '12px', padding: '12px 16px', fontFamily: 'Nunito, sans-serif', fontSize: '14px', outline: 'none', background: '#FFFBF5' }}
               />
             </div>
 
