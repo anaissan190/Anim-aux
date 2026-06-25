@@ -1,5 +1,6 @@
 // src/pages/AnimalHealthPage.tsx
 import { useState } from 'react'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { useParams, Link } from 'react-router-dom'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -12,7 +13,10 @@ import {
   useCreateVaccine,
   useCreateWeight,
   useCreateHealthRecord,
+  useUpdateAnimal,
 } from '@/hooks/useData'
+import { supabase } from '@/lib/supabase'
+import { SPECIES_EMOJI, SPECIES_MAX_WEIGHT } from '@/lib/animalSpecies'
 
 export default function AnimalHealthPage() {
   const { id } = useParams<{ id: string }>()
@@ -22,16 +26,28 @@ export default function AnimalHealthPage() {
   const { data: records = [] } = useHealthRecords(id!)
 
   const createVaccine = useCreateVaccine()
-  const createWeight = useCreateWeight()
-  const createRecord = useCreateHealthRecord()
+  const createWeight  = useCreateWeight()
+  const createRecord  = useCreateHealthRecord()
+  const updateAnimal  = useUpdateAnimal()
+  const [photoUploading, setPhotoUploading] = useState(false)
+
+  async function handlePhotoUpload(file: File) {
+    setPhotoUploading(true)
+    const ext  = file.name.split('.').pop()
+    const path = `animals/${id}-${Date.now()}.${ext}`
+    await supabase.storage.from('avatars').upload(path, file, { upsert: true })
+    const { data } = supabase.storage.from('avatars').getPublicUrl(path)
+    await updateAnimal.mutateAsync({ id: id!, avatar_url: data.publicUrl })
+    setPhotoUploading(false)
+  }
 
   const [tab, setTab] = useState<'overview' | 'vaccines' | 'weight' | 'records'>('overview')
   const [showVaccineForm, setShowVaccineForm] = useState(false)
   const [showWeightForm, setShowWeightForm] = useState(false)
   const [showRecordForm, setShowRecordForm] = useState(false)
 
-  const [vaccineForm, setVaccineForm] = useState({ name: '', date_administered: '', next_due_date: '', veterinarian: '' })
-  const [weightForm, setWeightForm] = useState({ weight_kg: '', date: '', notes: '' })
+  const [vaccineForm, setVaccineForm] = useState({ name: '', date_administered: '', next_due_date: '', administered_by: '' })
+  const [weightForm, setWeightForm] = useState({ weight_kg: '', measured_at: '', notes: '' })
   const [recordForm, setRecordForm] = useState({ date: '', type: 'Consultation', title: '', description: '', professional_name: '' })
 
   if (isLoading) return <div className="min-h-screen bg-gray-50"><Navbar /><div className="flex items-center justify-center h-64"><p className="text-gray-400">Chargement...</p></div></div>
@@ -40,23 +56,19 @@ export default function AnimalHealthPage() {
   const lastWeight = weights.length > 0 ? weights[weights.length - 1] : null
   const nextVaccine = vaccines.find(v => v.next_due_date)
 
-  const speciesEmoji: Record<string, string> = {
-    Chien: '🐕', Chat: '🐈', Lapin: '🐇', Oiseau: '🐦',
-    Reptile: '🦎', Rongeur: '🐹', Cheval: '🐴', Autre: '🐾'
-  }
-  const emoji = speciesEmoji[animal.species] ?? '🐾'
+  const emoji = SPECIES_EMOJI[animal.species] ?? '🐾'
 
   async function submitVaccine() {
     if (!vaccineForm.name || !vaccineForm.date_administered) return
     await createVaccine.mutateAsync({ ...vaccineForm, animal_id: id! })
-    setVaccineForm({ name: '', date_administered: '', next_due_date: '', veterinarian: '' })
+    setVaccineForm({ name: '', date_administered: '', next_due_date: '', administered_by: '' })
     setShowVaccineForm(false)
   }
 
   async function submitWeight() {
-    if (!weightForm.weight_kg || !weightForm.date) return
-    await createWeight.mutateAsync({ animal_id: id!, weight_kg: parseFloat(weightForm.weight_kg), date: weightForm.date, notes: weightForm.notes })
-    setWeightForm({ weight_kg: '', date: '', notes: '' })
+    if (!weightForm.weight_kg || !weightForm.measured_at) return
+    await createWeight.mutateAsync({ animal_id: id!, weight_kg: parseFloat(weightForm.weight_kg), measured_at: weightForm.measured_at, notes: weightForm.notes })
+    setWeightForm({ weight_kg: '', measured_at: '', notes: '' })
     setShowWeightForm(false)
   }
 
@@ -73,8 +85,19 @@ export default function AnimalHealthPage() {
       <div className="max-w-4xl mx-auto px-4 py-8">
 
         <div className="card p-6 mb-6 flex items-center gap-5">
-          <div className="w-20 h-20 rounded-2xl bg-sage-50 flex items-center justify-center text-4xl flex-shrink-0">
-            {animal.avatar_url ? <img src={animal.avatar_url} className="w-full h-full object-cover rounded-2xl" alt={animal.name} /> : emoji}
+          <div className="relative w-20 h-20 flex-shrink-0 group">
+            <div className="w-20 h-20 rounded-2xl bg-sage-50 flex items-center justify-center text-4xl overflow-hidden">
+              {animal.avatar_url
+                ? <img src={animal.avatar_url} className="w-full h-full object-cover" alt={animal.name} />
+                : emoji}
+            </div>
+            <label className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
+              <span className="text-white text-xs font-medium">
+                {photoUploading ? '...' : '📷'}
+              </span>
+              <input type="file" accept="image/*" className="hidden"
+                onChange={e => { const f = e.target.files?.[0]; if (f) handlePhotoUpload(f) }} />
+            </label>
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-1">
@@ -112,7 +135,7 @@ export default function AnimalHealthPage() {
             <div className="card p-5">
               <h3 className="font-semibold text-sm text-gray-700 mb-3">⚖️ Poids actuel</h3>
               <p className="text-3xl font-bold text-blue-600 mb-1">{lastWeight ? `${lastWeight.weight_kg} kg` : '—'}</p>
-              <p className="text-xs text-gray-400">{lastWeight ? format(new Date(lastWeight.date), 'd MMM yyyy', { locale: fr }) : 'Aucune mesure'}</p>
+              <p className="text-xs text-gray-400">{lastWeight ? format(new Date(lastWeight.measured_at), 'd MMM yyyy', { locale: fr }) : 'Aucune mesure'}</p>
             </div>
             <div className="card p-5">
               <h3 className="font-semibold text-sm text-gray-700 mb-3">📁 Événements</h3>
@@ -135,7 +158,7 @@ export default function AnimalHealthPage() {
                   <div><label className="text-xs text-gray-500">Nom du vaccin *</label><input className="input text-sm mt-1" value={vaccineForm.name} onChange={e => setVaccineForm(f => ({...f, name: e.target.value}))} placeholder="Ex: Rage, Carré..." /></div>
                   <div><label className="text-xs text-gray-500">Date administration *</label><input type="date" className="input text-sm mt-1" value={vaccineForm.date_administered} onChange={e => setVaccineForm(f => ({...f, date_administered: e.target.value}))} /></div>
                   <div><label className="text-xs text-gray-500">Prochain rappel</label><input type="date" className="input text-sm mt-1" value={vaccineForm.next_due_date} onChange={e => setVaccineForm(f => ({...f, next_due_date: e.target.value}))} /></div>
-                  <div><label className="text-xs text-gray-500">Vétérinaire</label><input className="input text-sm mt-1" value={vaccineForm.veterinarian} onChange={e => setVaccineForm(f => ({...f, veterinarian: e.target.value}))} placeholder="Dr..." /></div>
+                  <div><label className="text-xs text-gray-500">Administré par</label><input className="input text-sm mt-1" value={vaccineForm.administered_by} onChange={e => setVaccineForm(f => ({...f, administered_by: e.target.value}))} placeholder="Dr..." /></div>
                 </div>
                 <div className="flex gap-2 mt-3">
                   <button onClick={submitVaccine} className="btn-primary text-sm">Enregistrer</button>
@@ -170,7 +193,7 @@ export default function AnimalHealthPage() {
                 <h3 className="font-semibold text-sm mb-3">Nouvelle mesure</h3>
                 <div className="grid grid-cols-2 gap-3">
                   <div><label className="text-xs text-gray-500">Poids (kg) *</label><input type="number" step="0.1" className="input text-sm mt-1" value={weightForm.weight_kg} onChange={e => setWeightForm(f => ({...f, weight_kg: e.target.value}))} placeholder="Ex: 4.5" /></div>
-                  <div><label className="text-xs text-gray-500">Date *</label><input type="date" className="input text-sm mt-1" value={weightForm.date} onChange={e => setWeightForm(f => ({...f, date: e.target.value}))} /></div>
+                  <div><label className="text-xs text-gray-500">Date *</label><input type="date" className="input text-sm mt-1" value={weightForm.measured_at} onChange={e => setWeightForm(f => ({...f, measured_at: e.target.value}))} /></div>
                   <div className="col-span-2"><label className="text-xs text-gray-500">Notes</label><input className="input text-sm mt-1" value={weightForm.notes} onChange={e => setWeightForm(f => ({...f, notes: e.target.value}))} placeholder="Ex: après repas..." /></div>
                 </div>
                 <div className="flex gap-2 mt-3">
@@ -179,6 +202,28 @@ export default function AnimalHealthPage() {
                 </div>
               </div>
             )}
+            {/* Courbe de poids */}
+            {weights.length >= 2 && (
+              <div className="card p-5 mb-4">
+                <h3 className="text-sm font-semibold text-gray-700 mb-4">📈 Courbe de poids</h3>
+                <ResponsiveContainer width="100%" height={200}>
+                  <LineChart data={weights.map(w => ({
+                    date: format(new Date(w.measured_at), 'd MMM', { locale: fr }),
+                    poids: w.weight_kg,
+                  }))}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} unit=" kg" domain={[
+                      0,
+                      (dataMax: number) => Math.max(dataMax, SPECIES_MAX_WEIGHT[animal.species] ?? 50)
+                    ]} />
+                    <Tooltip formatter={(v: any) => [`${v} kg`, 'Poids']} />
+                    <Line type="monotone" dataKey="poids" stroke="#6b9e7a" strokeWidth={2} dot={{ fill: '#6b9e7a', r: 4 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
             {weights.length === 0
               ? <div className="card p-10 text-center"><p className="text-gray-400 text-sm">Aucune mesure enregistrée.</p></div>
               : <div className="space-y-3">{[...weights].reverse().map((w, i) => (
@@ -186,7 +231,7 @@ export default function AnimalHealthPage() {
                     <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-lg">⚖️</div>
                     <div className="flex-1">
                       <p className="font-semibold text-sm text-gray-900">{w.weight_kg} kg</p>
-                      <p className="text-xs text-gray-500">{format(new Date(w.date), 'd MMM yyyy', { locale: fr })}{w.notes ? ` · ${w.notes}` : ''}</p>
+                      <p className="text-xs text-gray-500">{format(new Date(w.measured_at), 'd MMM yyyy', { locale: fr })}{w.notes ? ` · ${w.notes}` : ''}</p>
                     </div>
                     {i === 0 && <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">Dernier</span>}
                   </div>

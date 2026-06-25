@@ -1,80 +1,39 @@
-@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --or: #F97316;
-  --or-light: #FED7AA;
-  --or-pale: #FFF7ED;
-  --or-mid: #FFEDD5;
-  --terra: #C2410C;
-  --brown: #78350F;
-  --muted: #92400E;
-  --cream: #FFFBF5;
+@layer base {
+  html { font-family: 'Inter', system-ui, sans-serif; }
+  body { @apply bg-gray-50 text-gray-900 antialiased; }
 }
 
-* { box-sizing: border-box; }
-
-body {
-  font-family: 'Nunito', sans-serif;
-  background-color: var(--cream);
-  color: #1C0A00;
+@layer components {
+  .btn-primary {
+    @apply bg-sage-500 hover:bg-sage-600 text-white font-medium px-4 py-2.5 rounded-xl
+           transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply bg-white hover:bg-gray-50 text-gray-700 font-medium px-4 py-2.5 rounded-xl
+           border border-gray-200 transition-colors duration-200;
+  }
+  .btn-danger {
+    @apply bg-red-500 hover:bg-red-600 text-white font-medium px-4 py-2.5 rounded-xl
+           transition-colors duration-200;
+  }
+  .input {
+    @apply w-full border border-gray-200 rounded-xl px-4 py-3 text-sm
+           focus:outline-none focus:ring-2 focus:ring-sage-400 focus:border-transparent
+           transition-shadow placeholder:text-gray-400;
+  }
+  .card {
+    @apply bg-white rounded-2xl border border-gray-100 shadow-sm;
+  }
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  .badge-green  { @apply badge bg-green-100 text-green-800; }
+  .badge-blue   { @apply badge bg-blue-100 text-blue-800; }
+  .badge-yellow { @apply badge bg-yellow-100 text-yellow-800; }
+  .badge-red    { @apply badge bg-red-100 text-red-800; }
+  .badge-gray   { @apply badge bg-gray-100 text-gray-600; }
 }
-
-h1, h2, h3 {
-  font-family: 'Fredoka One', cursive;
-  color: var(--terra);
-}
-
-.btn-primary {
-  background-color: var(--or);
-  color: white;
-  border: none;
-  border-radius: 14px;
-  padding: 12px 24px;
-  font-family: 'Nunito', sans-serif;
-  font-weight: 800;
-  font-size: 15px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.btn-primary:hover { background-color: var(--terra); }
-
-.btn-secondary {
-  background-color: var(--or-mid);
-  color: var(--terra);
-  border: 2px solid var(--or-light);
-  border-radius: 14px;
-  padding: 10px 22px;
-  font-family: 'Nunito', sans-serif;
-  font-weight: 700;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.btn-secondary:hover { background-color: var(--or-light); }
-
-.card {
-  background: white;
-  border: 1.5px solid var(--or-light);
-  border-radius: 14px;
-  padding: 16px;
-}
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: var(--or-mid);
-  color: var(--terra);
-  border-radius: 999px;
-  padding: 4px 12px;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--or-pale); }
-::-webkit-scrollbar-thumb { background: var(--or-light); border-radius: 999px; }

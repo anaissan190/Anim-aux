@@ -1,34 +1,41 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
       colors: {
-        orange: {
-          50:  '#FFF7ED',
-          100: '#FFEDD5',
-          200: '#FED7AA',
-          300: '#FDBA74',
-          400: '#FB923C',
-          500: '#F97316',
-          600: '#EA580C',
-          700: '#C2410C',
-          800: '#9A3412',
-          900: '#78350F',
+        primary: {
+          50:  '#f0fdf4',
+          100: '#dcfce7',
+          200: '#bbf7d0',
+          300: '#86efac',
+          400: '#4ade80',
+          500: '#22c55e',
+          600: '#16a34a',
+          700: '#15803d',
+          800: '#166534',
+          900: '#14532d',
         },
-        cream: '#FFFBF5',
+        sage: {
+          50:  '#f2f7f2',
+          100: '#e0ece0',
+          200: '#c1d8c1',
+          300: '#93bc93',
+          400: '#5f9960',
+          500: '#4a7c59',
+          600: '#3a6347',
+          700: '#2d5038',
+          800: '#253f2d',
+          900: '#1e3325',
+        }
       },
       fontFamily: {
-        fredoka: ['"Fredoka One"', 'cursive'],
-        nunito: ['"Nunito"', 'sans-serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
-        xl:  '14px',
-        '2xl': '20px',
-      },
+        '2xl': '1rem',
+        '3xl': '1.5rem',
+      }
     },
   },
   plugins: [],

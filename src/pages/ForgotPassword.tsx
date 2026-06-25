@@ -22,7 +22,7 @@ export default function ForgotPassword() {
     <div className="min-h-screen bg-sage-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/" className="text-2xl font-bold text-sage-600">🌿 PawCare</Link>
+          <Link to="/" className="text-2xl font-bold text-sage-600">🌿 Animéaux</Link>
         </div>
         <div className="card p-8">
           {sent ? (

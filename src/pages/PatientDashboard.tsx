@@ -1,148 +1,257 @@
-import { useNavigate } from 'react-router-dom'
+// src/pages/PatientDashboard.tsx
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import Navbar from '@/components/ui/Navbar'
+import AppointmentCard from '@/components/appointment/AppointmentCard'
+import { usePatientAppointments, useAnimals, useCreateAnimal } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
-import { usePatientAppointments, useAnimals } from '@/hooks/useData'
+import { isFuture, isPast } from 'date-fns'
+import { SPECIES_GROUPS, SPECIES_EMOJI, BREED_PLACEHOLDER, SPECIES_MAX_WEIGHT } from '@/lib/animalSpecies'
 
 export default function PatientDashboard() {
-  const navigate = useNavigate()
-  const { user, profile } = useAuthStore()
-const { data: appointments = [] } = usePatientAppointments()
-const { data: animals = [] } = useAnimals()
+  const { profile } = useAuthStore()
+  const { data: appointments = [], isLoading } = usePatientAppointments()
+  const { data: animals = [] } = useAnimals()
+  const createAnimal = useCreateAnimal()
 
-  const upcoming = appointments.filter(a => a.status !== 'cancelled' && new Date(a.start_at) > new Date())
-  const past = appointments.filter(a => new Date(a.start_at) < new Date())
+  const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming')
+  const [showAnimalForm, setShowAnimalForm] = useState(false)
+  const [animalForm, setAnimalForm] = useState({
+    name: '', species: 'Chien', breed: '', gender: '', date_of_birth: '', microchip_number: '', avatar_url: ''
+  })
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [photoUploading, setPhotoUploading] = useState(false)
 
-  const statusColor = (status: string) => {
-    if (status === 'confirmed') return { bg: '#DCFCE7', color: '#16A34A' }
-    if (status === 'cancelled') return { bg: '#FEE2E2', color: '#DC2626' }
-    return { bg: '#FFEDD5', color: '#C2410C' }
+  const upcoming = appointments.filter(a => isFuture(new Date(a.start_at)) && a.status !== 'cancelled')
+  const past = appointments.filter(a => isPast(new Date(a.start_at)) || a.status === 'cancelled')
+  const display = tab === 'upcoming' ? upcoming : past
+
+  const speciesEmoji = SPECIES_EMOJI
+  const breedPlaceholder = BREED_PLACEHOLDER
+
+  async function uploadAnimalPhoto(file: File): Promise<string | null> {
+    const ext = file.name.split('.').pop()
+    const path = `animals/${Date.now()}.${ext}`
+    const { error } = await import('@/lib/supabase').then(m =>
+      m.supabase.storage.from('avatars').upload(path, file, { upsert: true })
+    )
+    if (error) return null
+    const { data } = await import('@/lib/supabase').then(m =>
+      m.supabase.storage.from('avatars').getPublicUrl(path)
+    )
+    return data.publicUrl
   }
 
-  const statusLabel = (status: string) => {
-    if (status === 'confirmed') return 'Confirmé'
-    if (status === 'cancelled') return 'Annulé'
-    if (status === 'completed') return 'Terminé'
-    return 'En attente'
+  async function submitAnimal() {
+    if (!animalForm.name || !animalForm.species) return
+    await createAnimal.mutateAsync(animalForm)
+    setAnimalForm({ name: '', species: 'Chien', breed: '', gender: '', date_of_birth: '', microchip_number: '', avatar_url: '' })
+    setPhotoPreview(null)
+    setShowAnimalForm(false)
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#FFF7ED', fontFamily: 'Nunito, sans-serif' }}>
-      <div style={{ maxWidth: '900px', margin: '0 auto', padding: '40px 20px' }}>
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
+      <div className="max-w-3xl mx-auto px-4 py-8">
 
-        {/* HEADER */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-          <div>
-            <h1 style={{ fontFamily: 'Fredoka One, cursive', fontSize: '36px', color: '#C2410C', marginBottom: '4px' }}>
-              Bonjour {profile?.first_name || 'là'} 👋
-            </h1>
-            <p style={{ fontSize: '14px', color: '#92400E' }}>Bienvenue sur votre espace Animéaux 🐾</p>
-          </div>
-          <button onClick={() => navigate('/search')} style={{ background: '#F97316', color: 'white', border: 'none', borderRadius: '14px', padding: '14px 24px', fontFamily: 'Nunito, sans-serif', fontWeight: 900, fontSize: '15px', cursor: 'pointer' }}>
-            + Prendre RDV
-          </button>
+        {/* Bienvenue */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900">
+            Bonjour, {profile?.first_name ?? 'Patient'} 👋
+          </h1>
+          <p className="text-gray-500 text-sm mt-1">Gérez vos animaux et vos rendez-vous.</p>
         </div>
 
-        {/* KPIs */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '32px' }}>
-          {[
-            { n: animals.length, l: 'Mes animaux', icon: '🐾' },
-            { n: upcoming.length, l: 'Prochains RDV', icon: '📅' },
-            { n: past.length, l: 'Consultations passées', icon: '✅' },
-          ].map(k => (
-            <div key={k.l} style={{ background: 'white', border: '1.5px solid #FED7AA', borderRadius: '16px', padding: '20px', textAlign: 'center' }}>
-              <div style={{ fontSize: '28px', marginBottom: '6px' }}>{k.icon}</div>
-              <div style={{ fontFamily: 'Fredoka One, cursive', fontSize: '32px', color: '#F97316' }}>{k.n}</div>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: '#92400E' }}>{k.l}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* MES ANIMAUX */}
-        <div style={{ background: 'white', border: '1.5px solid #FED7AA', borderRadius: '20px', padding: '24px', marginBottom: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h2 style={{ fontFamily: 'Fredoka One, cursive', fontSize: '22px', color: '#C2410C' }}>Mes animaux 🐾</h2>
+        {/* Mes animaux */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-gray-900">🐾 Mes animaux</h2>
+            <button onClick={() => setShowAnimalForm(true)} className="btn-primary text-sm">+ Ajouter</button>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '12px' }}>
-            {animals.map(animal => (
-              <div key={animal.id} onClick={() => navigate(`/animal/${animal.id}`)}
-                style={{ background: '#FFF7ED', border: '1.5px solid #FED7AA', borderRadius: '14px', padding: '16px', textAlign: 'center', cursor: 'pointer' }}
-                onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-3px)')}
-                onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}>
-                <div style={{ fontSize: '36px', marginBottom: '8px' }}>
-                  {animal.species === 'chat' ? '🐱' : animal.species === 'chien' ? '🐶' : animal.species === 'lapin' ? '🐇' : animal.species === 'oiseau' ? '🐦' : '🐾'}
+
+          {showAnimalForm && (
+            <div className="card p-5 mb-4 border-2 border-sage-200">
+              <h3 className="font-semibold text-sm mb-4">Nouvel animal</h3>
+
+              {/* Photo de profil */}
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                  {photoPreview
+                    ? <img src={photoPreview} alt="preview" className="w-full h-full object-cover" />
+                    : <span className="text-3xl">{speciesEmoji[animalForm.species] ?? '🐾'}</span>
+                  }
                 </div>
-                <div style={{ fontWeight: 900, fontSize: '14px', color: '#C2410C' }}>{animal.name}</div>
-                <div style={{ fontSize: '11px', color: '#92400E', marginTop: '2px' }}>{animal.species}</div>
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">Photo de profil</label>
+                  <label className="cursor-pointer btn-secondary text-xs px-3 py-1.5 inline-block">
+                    {photoUploading ? 'Envoi...' : 'Choisir une photo'}
+                    <input type="file" accept="image/*" className="hidden"
+                      onChange={async e => {
+                        const file = e.target.files?.[0]
+                        if (!file) return
+                        setPhotoPreview(URL.createObjectURL(file))
+                        setPhotoUploading(true)
+                        const url = await uploadAnimalPhoto(file)
+                        if (url) setAnimalForm(f => ({ ...f, avatar_url: url }))
+                        setPhotoUploading(false)
+                      }} />
+                  </label>
+                  {photoPreview && (
+                    <button onClick={() => { setPhotoPreview(null); setAnimalForm(f => ({ ...f, avatar_url: '' })) }}
+                      className="text-xs text-red-400 hover:text-red-500 ml-2">Supprimer</button>
+                  )}
+                </div>
               </div>
-            ))}
-            <div onClick={() => {}} style={{ background: '#FFFBF5', border: '1.5px dashed #FED7AA', borderRadius: '14px', padding: '16px', textAlign: 'center', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100px' }}>
-              <div style={{ fontSize: '24px', color: '#F97316' }}>+</div>
-              <div style={{ fontSize: '12px', fontWeight: 800, color: '#92400E', marginTop: '4px' }}>Ajouter</div>
-            </div>
-          </div>
-        </div>
 
-        {/* PROCHAINS RDV */}
-        <div style={{ background: 'white', border: '1.5px solid #FED7AA', borderRadius: '20px', padding: '24px', marginBottom: '24px' }}>
-          <h2 style={{ fontFamily: 'Fredoka One, cursive', fontSize: '22px', color: '#C2410C', marginBottom: '16px' }}>Prochains rendez-vous 📅</h2>
-          {upcoming.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '32px', color: '#92400E' }}>
-              <div style={{ fontSize: '40px', marginBottom: '8px' }}>📭</div>
-              <p style={{ fontWeight: 700 }}>Aucun rendez-vous à venir</p>
-              <button onClick={() => navigate('/search')} style={{ marginTop: '12px', background: '#F97316', color: 'white', border: 'none', borderRadius: '12px', padding: '10px 20px', fontFamily: 'Nunito, sans-serif', fontWeight: 800, fontSize: '14px', cursor: 'pointer' }}>
-                Prendre un RDV
-              </button>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-500">Nom *</label>
+                  <input className="input text-sm mt-1" value={animalForm.name}
+                    onChange={e => setAnimalForm(f => ({...f, name: e.target.value}))}
+                    placeholder="Ex: Luna" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500">Espèce *</label>
+                  <select className="input text-sm mt-1" value={animalForm.species}
+                    onChange={e => setAnimalForm(f => ({...f, species: e.target.value, breed: ''}))}>
+                    {SPECIES_GROUPS.map(g => (
+                      <optgroup key={g.group} label={g.group}>
+                        {g.species.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
+                      </optgroup>
+                    ))}
+                    <optgroup label="Autre">
+                      <option value="Autre">Autre</option>
+                    </optgroup>
+                  </select>
+                </div>
+                {animalForm.species === 'Autre' && (
+                  <div>
+                    <label className="text-xs text-gray-500">Précisez l'espèce *</label>
+                    <input className="input text-sm mt-1"
+                      placeholder="Ex: Axolotl, Wallaby..."
+                      onChange={e => setAnimalForm(f => ({...f, species: e.target.value || 'Autre'}))} />
+                  </div>
+                )}
+                <div>
+                  <label className="text-xs text-gray-500">Race</label>
+                  <input className="input text-sm mt-1" value={animalForm.breed}
+                    onChange={e => setAnimalForm(f => ({...f, breed: e.target.value}))}
+                    placeholder={breedPlaceholder[animalForm.species] ?? 'Ex: ...'} />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500">Genre</label>
+                  <select className="input text-sm mt-1" value={animalForm.gender}
+                    onChange={e => setAnimalForm(f => ({...f, gender: e.target.value}))}>
+                    <option value="">Non renseigné</option>
+                    <option>Mâle</option>
+                    <option>Femelle</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500">Date de naissance</label>
+                  <input type="date" className="input text-sm mt-1" value={animalForm.date_of_birth}
+                    onChange={e => setAnimalForm(f => ({...f, date_of_birth: e.target.value}))} />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500">N° puce électronique</label>
+                  <input className="input text-sm mt-1" value={animalForm.microchip_number}
+                    onChange={e => setAnimalForm(f => ({...f, microchip_number: e.target.value}))}
+                    placeholder="Ex: 250268500000000" />
+                </div>
+              </div>
+              <div className="flex gap-2 mt-4">
+                <button onClick={submitAnimal} disabled={createAnimal.isPending || photoUploading}
+                  className="btn-primary text-sm">
+                  {createAnimal.isPending ? 'Enregistrement...' : 'Enregistrer'}
+                </button>
+                <button onClick={() => { setShowAnimalForm(false); setPhotoPreview(null) }}
+                  className="btn-secondary text-sm">Annuler</button>
+              </div>
+            </div>
+          )}
+
+          {animals.length === 0 ? (
+            <div className="card p-8 text-center">
+              <div className="text-4xl mb-3">🐾</div>
+              <p className="text-gray-500 text-sm">Aucun animal enregistré. Ajoutez votre premier compagnon !</p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {upcoming.map(appt => (
-                <div key={appt.id} style={{ background: '#FFF7ED', border: '1.5px solid #FED7AA', borderRadius: '14px', padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ width: '42px', height: '42px', background: '#FFEDD5', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>🩺</div>
-                    <div>
-                      <div style={{ fontWeight: 900, fontSize: '14px', color: '#1C0A00' }}>
-                        {appt.doctors?.profiles?.first_name} {appt.doctors?.profiles?.last_name}
-                      </div>
-                      <div style={{ fontSize: '12px', color: '#92400E' }}>
-                        📅 {new Date(appt.start_at).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })} à {new Date(appt.start_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {animals.map(a => (
+                <Link key={a.id} to={`/animal/${a.id}`}
+                  className="card p-4 text-center hover:shadow-md transition-shadow">
+                  <div className="w-14 h-14 rounded-xl mx-auto mb-2 overflow-hidden bg-gray-100 flex items-center justify-center">
+                    {a.avatar_url
+                      ? <img src={a.avatar_url} alt={a.name} className="w-full h-full object-cover" />
+                      : <span className="text-3xl">{speciesEmoji[a.species] ?? '🐾'}</span>
+                    }
                   </div>
-                  <div style={{ ...statusColor(appt.status), borderRadius: '8px', padding: '4px 10px', fontSize: '12px', fontWeight: 700 }}>
-                    {statusLabel(appt.status)}
-                  </div>
-                </div>
+                  <p className="font-semibold text-sm text-gray-900">{a.name}</p>
+                  <p className="text-xs text-gray-400">{a.breed ?? a.species}</p>
+                </Link>
               ))}
             </div>
           )}
         </div>
 
-        {/* RDV PASSÉS */}
-        {past.length > 0 && (
-          <div style={{ background: 'white', border: '1.5px solid #FED7AA', borderRadius: '20px', padding: '24px' }}>
-            <h2 style={{ fontFamily: 'Fredoka One, cursive', fontSize: '22px', color: '#C2410C', marginBottom: '16px' }}>Historique 📋</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {past.slice(0, 5).map(appt => (
-                <div key={appt.id} style={{ background: '#F9F9F9', border: '1.5px solid #F3F4F6', borderRadius: '14px', padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: 0.8 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ width: '42px', height: '42px', background: '#F3F4F6', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}>🩺</div>
-                    <div>
-                      <div style={{ fontWeight: 900, fontSize: '14px', color: '#1C0A00' }}>
-                        {appt.doctors?.profiles?.first_name} {appt.doctors?.profiles?.last_name}
-                      </div>
-                      <div style={{ fontSize: '12px', color: '#92400E' }}>
-                        {new Date(appt.start_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ ...statusColor(appt.status), borderRadius: '8px', padding: '4px 10px', fontSize: '12px', fontWeight: 700 }}>
-                    {statusLabel(appt.status)}
-                  </div>
+        {/* Actions rapides */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
+          <Link to="/search" className="card p-4 text-center hover:shadow-md transition-shadow">
+            <div className="text-3xl mb-2">🔍</div>
+            <p className="text-sm font-medium text-gray-700">Nouveau RDV</p>
+          </Link>
+          <Link to="/messages" className="card p-4 text-center hover:shadow-md transition-shadow">
+            <div className="text-3xl mb-2">💬</div>
+            <p className="text-sm font-medium text-gray-700">Messages</p>
+          </Link>
+          <div className="card p-4 text-center opacity-60 cursor-not-allowed">
+            <div className="text-3xl mb-2">📋</div>
+            <p className="text-sm font-medium text-gray-700">Ordonnances</p>
+            <p className="text-xs text-gray-400">Bientôt</p>
+          </div>
+        </div>
+
+        {/* Onglets RDV */}
+        <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-5 w-fit">
+          {(['upcoming', 'past'] as const).map(t => (
+            <button key={t} onClick={() => setTab(t)}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors
+                ${tab === t ? 'bg-white text-sage-600 shadow-sm' : 'text-gray-500'}`}>
+              {t === 'upcoming' ? `À venir (${upcoming.length})` : `Passés (${past.length})`}
+            </button>
+          ))}
+        </div>
+
+        {isLoading ? (
+          <div className="space-y-3">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="card p-4 flex gap-4 animate-pulse">
+                <div className="w-14 h-16 bg-gray-100 rounded-xl flex-shrink-0" />
+                <div className="flex-1 space-y-2 py-1">
+                  <div className="h-4 bg-gray-100 rounded w-1/3" />
+                  <div className="h-3 bg-gray-100 rounded w-1/4" />
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
+          </div>
+        ) : display.length === 0 ? (
+          <div className="card p-12 text-center">
+            <div className="text-4xl mb-4">{tab === 'upcoming' ? '📅' : '📂'}</div>
+            <p className="font-medium text-gray-700 mb-2">
+              {tab === 'upcoming' ? 'Aucun rendez-vous à venir' : 'Aucun rendez-vous passé'}
+            </p>
+            {tab === 'upcoming' && (
+              <Link to="/search" className="btn-primary inline-block mt-2 text-sm">
+                Prendre un rendez-vous
+              </Link>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {display.map(a => <AppointmentCard key={a.id} appointment={a as any} />)}
           </div>
         )}
-
       </div>
     </div>
   )

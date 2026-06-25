@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/authStore'
 
@@ -8,116 +8,96 @@ export default function LoginPage() {
   const { setUser, setProfile } = useAuthStore()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  const handleLogin = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true)
     setError('')
+    setLoading(true)
 
-    const { data, error: err } = await supabase.auth.signInWithPassword({ email, password })
-    
-    if (err || !data.user) {
-      setError(err?.message || 'Erreur de connexion')
+    let data: any, authError: any
+    try {
+      const result = await Promise.race([
+        supabase.auth.signInWithPassword({ email, password }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout connexion Supabase')), 10000))
+      ]) as any
+      data = result.data
+      authError = result.error
+    } catch (e: any) {
+      setError(`Erreur réseau : ${e.message}`)
       setLoading(false)
       return
     }
 
-    const { data: userData } = await supabase
-      .from('users')
-      .select('role')
-      .eq('id', data.user.id)
-      .single()
+    if (authError) {
+      setError('Email ou mot de passe incorrect')
+      setLoading(false)
+      return
+    }
 
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_id', data.user.id)
-      .single()
+    if (data.user) {
+      const { data: userData } = await supabase
+        .from('users').select('*').eq('id', data.user.id).single()
 
-    const role = userData?.role || 'patient'
+      const { data: profileData } = await supabase
+        .from('profiles').select('*').eq('user_id', data.user.id).single()
 
-    setUser({ 
-      id: data.user.id, 
-      email: data.user.email || '', 
-      role, 
-      created_at: data.user.created_at 
-    })
-    setProfile(profileData ?? null)
+      const finalUser = userData ?? { id: data.user.id, email: data.user.email!, role: 'patient', created_at: '' }
+      
+      setUser(finalUser)
+      setProfile(profileData ?? null)
+
+      await new Promise(r => setTimeout(r, 100))
+
+      if (finalUser.role === 'doctor') {
+        navigate('/dashboard/doctor', { replace: true })
+      } else {
+        navigate('/dashboard/patient', { replace: true })
+      }
+    }
+
     setLoading(false)
-    navigate(`/dashboard/${role}`)
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#FFF7ED', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Nunito, sans-serif' }}>
-      <div style={{ width: '100%', maxWidth: '440px', padding: '0 20px' }}>
-
-        <div onClick={() => navigate('/')} style={{ fontFamily: 'Fredoka One, cursive', fontSize: '32px', color: '#C2410C', textAlign: 'center', marginBottom: '8px', cursor: 'pointer' }}>
-          Animéaux 🐾
+    <div className="min-h-screen bg-sage-50 flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <Link to="/" className="text-2xl font-bold text-sage-600">🐾 Animéaux</Link>
+          <h1 className="text-xl font-bold text-gray-900 mt-4">Connexion</h1>
         </div>
-        <p style={{ textAlign: 'center', color: '#92400E', fontSize: '14px', marginBottom: '32px' }}>
-          Bon retour parmi nous !
-        </p>
-
-        <div style={{ background: 'white', border: '1.5px solid #FED7AA', borderRadius: '20px', padding: '32px' }}>
-          <h2 style={{ fontFamily: 'Fredoka One, cursive', fontSize: '26px', color: '#C2410C', marginBottom: '24px', textAlign: 'center' }}>
-            Connexion
-          </h2>
-
-          <form onSubmit={handleLogin}>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#92400E', marginBottom: '6px' }}>Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="ton@email.com"
-                required
-                style={{ width: '100%', border: '1.5px solid #FED7AA', borderRadius: '12px', padding: '12px 16px', fontFamily: 'Nunito, sans-serif', fontSize: '14px', outline: 'none', background: '#FFFBF5' }}
-              />
+        <div className="card p-8">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+                className="input" placeholder="vous@email.fr" required />
             </div>
-
-            <div style={{ marginBottom: '8px' }}>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#92400E', marginBottom: '6px' }}>Mot de passe</label>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                style={{ width: '100%', border: '1.5px solid #FED7AA', borderRadius: '12px', padding: '12px 16px', fontFamily: 'Nunito, sans-serif', fontSize: '14px', outline: 'none', background: '#FFFBF5' }}
-              />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+                className="input" placeholder="••••••••" required />
             </div>
-
-            <div style={{ textAlign: 'right', marginBottom: '20px' }}>
-              <span onClick={() => navigate('/forgot-password')} style={{ fontSize: '12px', fontWeight: 700, color: '#F97316', cursor: 'pointer' }}>
+            <div className="flex justify-end">
+              <Link to="/forgot-password" className="text-xs text-sage-600 hover:underline">
                 Mot de passe oublié ?
-              </span>
+              </Link>
             </div>
-
             {error && (
-              <div style={{ background: '#FEE2E2', border: '1.5px solid #FECACA', borderRadius: '10px', padding: '10px 14px', fontSize: '13px', color: '#DC2626', marginBottom: '16px' }}>
+              <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">
                 {error}
               </div>
             )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              style={{ width: '100%', background: loading ? '#FED7AA' : '#F97316', color: 'white', border: 'none', borderRadius: '14px', padding: '14px', fontFamily: 'Nunito, sans-serif', fontWeight: 900, fontSize: '16px', cursor: loading ? 'not-allowed' : 'pointer' }}>
-              {loading ? 'Connexion...' : 'Se connecter 🐾'}
+            <button type="submit" disabled={loading} className="btn-primary w-full">
+              {loading ? 'Connexion...' : 'Se connecter'}
             </button>
           </form>
+          <p className="text-center text-sm text-gray-500 mt-6">
+            Pas encore de compte ?{' '}
+            <Link to="/register" className="text-sage-600 font-medium hover:underline">S'inscrire</Link>
+          </p>
         </div>
-
-        <p style={{ textAlign: 'center', fontSize: '13px', color: '#92400E', marginTop: '20px' }}>
-          Pas encore de compte ?{' '}
-          <span onClick={() => navigate('/register')} style={{ fontWeight: 800, color: '#F97316', cursor: 'pointer' }}>
-            Créer un compte
-          </span>
-        </p>
-
       </div>
     </div>
   )

@@ -1,77 +1,56 @@
-import { useNavigate, useLocation } from 'react-router-dom'
+// src/components/ui/Navbar.tsx
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/lib/authStore'
 import NotificationBell from './NotificationBell'
 
 export default function Navbar() {
+  const { user, profile, signOut } = useAuthStore()
   const navigate = useNavigate()
-  const location = useLocation()
-const { user, profile, signOut } = useAuthStore()
 
-const handleLogout = async () => {
-    await signOut()
-    navigate('/login')
-  }
+  const dashboardPath =
+    user?.role === 'doctor' ? '/dashboard/doctor' :
+    user?.role === 'admin'  ? '/dashboard/admin'  :
+    '/dashboard/patient'
 
   return (
-    <nav style={{ background: 'white', borderBottom: '1.5px solid #FED7AA', padding: '12px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 100 }}>
-      
-      {/* LOGO */}
-      <div onClick={() => navigate('/')} style={{ fontFamily: 'Fredoka One, cursive', fontSize: '24px', color: '#C2410C', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-        Animéaux 🐾
-      </div>
+    <nav className="bg-white border-b border-gray-100 sticky top-0 z-50">
+      <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-2 font-bold text-xl text-sage-600">
+          <span className="text-2xl">🌿</span>
+          <span>Animéaux</span>
+        </Link>
 
-      {/* LIENS */}
-      <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
-        <span
-          onClick={() => navigate('/search')}
-          style={{ fontSize: '14px', fontWeight: 700, color: location.pathname === '/search' ? '#F97316' : '#92400E', cursor: 'pointer' }}>
-          Trouver un praticien
-        </span>
+        <div className="hidden md:flex items-center gap-6 text-sm text-gray-600">
+          {user?.role !== 'doctor' && (
+            <>
+              <Link to="/search" className="hover:text-sage-600 transition-colors">Trouver un praticien</Link>
+              {user && <Link to={dashboardPath} className="hover:text-sage-600 transition-colors">Mon espace</Link>}
+              {user && <Link to="/messages" className="hover:text-sage-600 transition-colors">Messages</Link>}
+            </>
+          )}
+        </div>
 
-        {user && (
-          <span
-            onClick={() => navigate(`/dashboard/${user.role}`)}
-            style={{ fontSize: '14px', fontWeight: 700, color: location.pathname.includes('/dashboard') ? '#F97316' : '#92400E', cursor: 'pointer' }}>
-            Mon espace
-          </span>
-        )}
-
-        {user && (
-          <span
-            onClick={() => navigate('/messages')}
-            style={{ fontSize: '14px', fontWeight: 700, color: location.pathname === '/messages' ? '#F97316' : '#92400E', cursor: 'pointer' }}>
-            Messages
-          </span>
-        )}
-      </div>
-
-      {/* DROITE */}
-      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-        {user ? (
-          <>
-            <NotificationBell />
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#FFEDD5', border: '2px solid #FED7AA', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '14px', color: '#C2410C' }}>
-                {profile?.first_name?.[0] || user.email?.[0]?.toUpperCase()}
+        <div className="flex items-center gap-3">
+          {user ? (
+            <>
+              <NotificationBell />
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-sage-100 flex items-center justify-center text-sage-700 font-medium text-sm">
+                  {profile?.first_name?.[0]?.toUpperCase() ?? user.email[0].toUpperCase()}
+                </div>
+                <button onClick={() => signOut().then(() => navigate('/'))}
+                  className="text-sm text-gray-500 hover:text-red-500 transition-colors hidden md:block">
+                  Déconnexion
+                </button>
               </div>
-              <span style={{ fontSize: '13px', fontWeight: 700, color: '#92400E' }}>
-                {profile?.first_name || 'Mon compte'}
-              </span>
+            </>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Link to="/login" className="btn-secondary text-sm py-2">Connexion</Link>
+              <Link to="/register" className="btn-primary text-sm py-2">S'inscrire</Link>
             </div>
-            <button onClick={handleLogout} style={{ background: 'transparent', color: '#92400E', border: '1.5px solid #FED7AA', borderRadius: '10px', padding: '8px 16px', fontFamily: 'Nunito, sans-serif', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>
-              Déconnexion
-            </button>
-          </>
-        ) : (
-          <>
-            <span onClick={() => navigate('/login')} style={{ fontSize: '14px', fontWeight: 700, color: '#92400E', cursor: 'pointer' }}>
-              Connexion
-            </span>
-            <button onClick={() => navigate('/register')} style={{ background: '#F97316', color: 'white', border: 'none', borderRadius: '12px', padding: '10px 20px', fontFamily: 'Nunito, sans-serif', fontWeight: 800, fontSize: '14px', cursor: 'pointer' }}>
-              Inscription
-            </button>
-          </>
-        )}
+          )}
+        </div>
       </div>
     </nav>
   )

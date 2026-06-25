@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/authStore'
-import Navbar from '@/components/ui/Navbar'
+
 import LandingPage from '@/pages/LandingPage'
 import SearchPage from '@/pages/SearchPage'
 import DoctorPage from '@/pages/DoctorPage'
@@ -16,16 +16,41 @@ import AdminDashboard from '@/pages/AdminDashboard'
 import MessagesPage from '@/pages/MessagesPage'
 import AnimalHealthPage from '@/pages/AnimalHealthPage'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
+import LogoPreview from '@/pages/LogoPreview'
 
-const HIDE_NAVBAR = ['/', '/login', '/register', '/forgot-password']
+export default function App() {
+  const { setUser, setProfile, setLoading } = useAuthStore()
 
-function Layout() {
-  const location = useLocation()
-  const hideNavbar = HIDE_NAVBAR.includes(location.pathname)
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session?.user) {
+          const { data: userData } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single()
+
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .single()
+
+          setUser(userData ?? { id: session.user.id, email: session.user.email!, role: 'patient', created_at: '' })
+          setProfile(profileData ?? null)
+        } else {
+          setUser(null)
+          setProfile(null)
+        }
+        setLoading(false)
+      }
+    )
+    return () => subscription.unsubscribe()
+  }, [])
 
   return (
-    <>
-      {!hideNavbar && <Navbar />}
+    <BrowserRouter>
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/search" element={<SearchPage />} />
@@ -51,44 +76,9 @@ function Layout() {
         <Route path="/animal/:id" element={
           <ProtectedRoute role="patient"><AnimalHealthPage /></ProtectedRoute>
         } />
+        <Route path="/logo-preview" element={<LogoPreview />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </>
-  )
-}
-
-export default function App() {
-  const { setUser, setProfile, setLoading } = useAuthStore()
-
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session?.user) {
-          const { data: userData } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('user_id', session.user.id)
-            .single()
-          setUser(userData ?? { id: session.user.id, email: session.user.email!, role: 'patient', created_at: '' })
-          setProfile(profileData ?? null)
-        } else {
-          setUser(null)
-          setProfile(null)
-        }
-        setLoading(false)
-      }
-    )
-    return () => subscription.unsubscribe()
-  }, [])
-
-  return (
-    <BrowserRouter>
-      <Layout />
     </BrowserRouter>
   )
 }

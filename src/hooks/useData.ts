@@ -11,7 +11,7 @@ export function useDoctors(filters: SearchFilters = {}) {
     queryFn: async () => {
       let q = supabase
         .from('doctors')
-        .select('*, profiles!user_id(first_name, last_name, avatar_url)')
+        .select('*, profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url)')
       if (filters.specialty) q = q.ilike('specialty', `%${filters.specialty}%`)
       if (filters.city)      q = q.ilike('city', `%${filters.city}%`)
       if (filters.maxPrice)  q = q.lte('consultation_price', filters.maxPrice)
@@ -29,7 +29,7 @@ export function useDoctor(id: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('doctors')
-        .select('*, profiles!user_id(first_name, last_name, avatar_url, phone)')
+        .select('*, profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url, phone)')
         .eq('id', id)
         .single()
       if (error) throw error
@@ -121,7 +121,7 @@ export function usePatientAppointments() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('appointments')
-        .select('*, doctors!inner(specialty, city, profiles!user_id(first_name, last_name, avatar_url))')
+        .select('*, doctors!inner(specialty, city, profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url))')
         .eq('patient_id', user!.id)
         .order('start_at', { ascending: false })
       if (error) throw error
@@ -138,7 +138,7 @@ export function useDoctorAppointments(doctorId?: string) {
       console.log('Fetching appointments for doctorId:', doctorId)
       const { data, error } = await supabase
         .from('appointments')
-        .select('*, profiles!patient_id(first_name, last_name, avatar_url, phone)')
+        .select('*, users!patient_id(id, email, profiles(first_name, last_name, avatar_url, phone))')
         .eq('doctor_id', doctorId!)
         .order('start_at', { ascending: true })
       console.log('appointments data:', data, 'error:', JSON.stringify(error))
@@ -194,7 +194,7 @@ export function useDoctorReviews(doctorId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('reviews')
-        .select('*, profiles!patient_id(first_name, last_name, avatar_url)')
+        .select('*, profiles!reviews_patient_id_profiles_fkey(first_name, last_name, avatar_url)')
         .eq('doctor_id', doctorId)
         .order('created_at', { ascending: false })
       if (error) throw error
@@ -396,8 +396,8 @@ export function useCreateVaccine() {
       name: string
       date_administered: string
       next_due_date?: string
-      batch_number?: string
-      veterinarian?: string
+      administered_by?: string
+      notes?: string
     }) => {
       const { error } = await supabase.from('vaccines').insert(vaccine)
       if (error) throw error
@@ -414,7 +414,7 @@ export function useWeightTracking(animalId: string) {
         .from('weight_tracking')
         .select('*')
         .eq('animal_id', animalId)
-        .order('date', { ascending: true })
+        .order('measured_at', { ascending: true })
       if (error) throw error
       return data
     },
@@ -428,7 +428,7 @@ export function useCreateWeight() {
     mutationFn: async (entry: {
       animal_id: string
       weight_kg: number
-      date: string
+      measured_at: string
       notes?: string
     }) => {
       const { error } = await supabase.from('weight_tracking').insert(entry)
@@ -451,6 +451,168 @@ export function useHealthRecords(animalId: string) {
       return data
     },
     enabled: !!animalId,
+  })
+}
+
+// ── CLINICS ──────────────────────────────────────────────────────────────────
+
+export function useMyClinic(doctorId?: string) {
+  return useQuery({
+    queryKey: ['clinic', doctorId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('clinic_members')
+        .select('clinic_id, clinics(id, name, address, city, invite_code, owner_id)')
+        .eq('doctor_id', doctorId!)
+        .single()
+      if (error) return null
+      return (data?.clinics ?? null) as any
+    },
+    enabled: !!doctorId,
+  })
+}
+
+export function useClinicMembers(clinicId?: string) {
+  return useQuery({
+    queryKey: ['clinic_members', clinicId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('clinic_members')
+        .select(`
+          id, doctor_id, joined_at,
+          doctors(id, specialty, user_id,
+            profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url)
+          )
+        `)
+        .eq('clinic_id', clinicId!)
+      if (error) throw error
+      return data ?? []
+    },
+    enabled: !!clinicId,
+  })
+}
+
+export function useClinicAppointments(clinicId?: string) {
+  return useQuery({
+    queryKey: ['clinic_appointments', clinicId],
+    queryFn: async () => {
+      // Récupère tous les doctor_ids du cabinet
+      const { data: members } = await supabase
+        .from('clinic_members')
+        .select('doctor_id')
+        .eq('clinic_id', clinicId!)
+      if (!members || members.length === 0) return []
+      const doctorIds = members.map(m => m.doctor_id)
+      const { data, error } = await supabase
+        .from('appointments')
+        .select(`*, doctors!inner(specialty, user_id, profiles!doctors_user_id_profiles_fkey(first_name, last_name))`)
+        .in('doctor_id', doctorIds)
+        .order('start_at')
+      if (error) throw error
+      return data ?? []
+    },
+    enabled: !!clinicId,
+  })
+}
+
+export function useCreateClinic() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ name, address, city, doctorId }: { name: string; address?: string; city?: string; doctorId: string }) => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Non authentifié')
+
+      const inviteCode = Math.random().toString(36).substring(2, 6).toUpperCase() +
+                         Math.random().toString(36).substring(2, 6).toUpperCase()
+
+      const { data: clinic, error } = await supabase
+        .from('clinics')
+        .insert({ name, address, city, owner_id: user.id, invite_code: inviteCode })
+        .select()
+        .single()
+      if (error) throw new Error(error.message)
+
+      const { error: memberError } = await supabase
+        .from('clinic_members')
+        .insert({ clinic_id: clinic.id, doctor_id: doctorId })
+      if (memberError) throw new Error(memberError.message)
+
+      return clinic
+    },
+    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['clinic', vars.doctorId] }),
+  })
+}
+
+export function useJoinClinic() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ inviteCode, doctorId }: { inviteCode: string; doctorId: string }) => {
+      const { data: clinic, error } = await supabase
+        .from('clinics')
+        .select('id')
+        .eq('invite_code', inviteCode.toUpperCase())
+        .single()
+      if (error || !clinic) throw new Error('Code invalide ou cabinet introuvable')
+      const { error: memberError } = await supabase
+        .from('clinic_members')
+        .insert({ clinic_id: clinic.id, doctor_id: doctorId })
+      if (memberError) throw new Error('Vous êtes déjà membre de ce cabinet')
+    },
+    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['clinic', vars.doctorId] }),
+  })
+}
+
+export function useClinicServices(clinicId?: string) {
+  return useQuery({
+    queryKey: ['clinic_services', clinicId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('clinic_services')
+        .select('*')
+        .eq('clinic_id', clinicId!)
+        .order('created_at')
+      if (error) throw error
+      return data ?? []
+    },
+    enabled: !!clinicId,
+  })
+}
+
+export function useAddClinicService() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ clinicId, name, price, duration }: { clinicId: string; name: string; price: number | null; duration: string }) => {
+      const { error } = await supabase
+        .from('clinic_services')
+        .insert({ clinic_id: clinicId, name, price, duration })
+      if (error) throw new Error(error.message)
+    },
+    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['clinic_services', vars.clinicId] }),
+  })
+}
+
+export function useDeleteClinicService() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, clinicId }: { id: string; clinicId: string }) => {
+      const { error } = await supabase.from('clinic_services').delete().eq('id', id)
+      if (error) throw new Error(error.message)
+    },
+    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['clinic_services', vars.clinicId] }),
+  })
+}
+
+export function useUpdateClinic() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, name, address, city }: { id: string; name: string; address?: string; city?: string }) => {
+      const { error } = await supabase
+        .from('clinics')
+        .update({ name, address, city })
+        .eq('id', id)
+      if (error) throw new Error(error.message)
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['clinic'] }),
   })
 }
 
