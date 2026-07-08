@@ -25,15 +25,16 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 // sans retry, ça faisait basculer silencieusement le rôle sur 'patient' et
 // envoyait les praticiens sur le mauvais dashboard.
 export async function getMyUserDataWithRetry(timeoutMs = 8000): Promise<{ role: UserRole; profile: Profile | null } | null> {
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeoutMs))
       const rpcCall = supabase.rpc('get_my_user_data')
       const { data, error } = (await Promise.race([rpcCall, timeout])) as any
       if (!error && data) return data
     } catch {
-      // on retente une fois avant d'abandonner
+      // on retente avant d'abandonner
     }
+    if (attempt < 2) await new Promise(r => setTimeout(r, 800))
   }
   return null
 }
