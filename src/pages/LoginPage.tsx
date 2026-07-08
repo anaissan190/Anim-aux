@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { supabase } from '@/lib/supabase'
+import { supabase, getMyUserDataWithRetry } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/authStore'
 import type { User } from '@/types'
 
@@ -41,20 +41,12 @@ export default function LoginPage() {
       const fallbackUser: User = { id: data.user.id, email: data.user.email!, role: 'patient', created_at: '' }
       let finalUser: User = fallbackUser
 
-      try {
-        const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
-        const rpcCall = supabase.rpc('get_my_user_data')
-        const { data: userData, error: rpcError } = (await Promise.race([rpcCall, timeout])) as Awaited<typeof rpcCall>
-
-        if (rpcError || !userData) {
-          setUser(fallbackUser)
-          setProfile(null)
-        } else {
-          finalUser = { ...fallbackUser, role: userData.role ?? 'patient' }
-          setUser(finalUser)
-          setProfile(userData.profile ?? null)
-        }
-      } catch {
+      const userData = await getMyUserDataWithRetry()
+      if (userData) {
+        finalUser = { ...fallbackUser, role: userData.role ?? 'patient' }
+        setUser(finalUser)
+        setProfile(userData.profile ?? null)
+      } else {
         setUser(fallbackUser)
         setProfile(null)
       }

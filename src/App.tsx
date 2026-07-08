@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { supabase } from '@/lib/supabase'
+import { supabase, getMyUserDataWithRetry } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/authStore'
 
 import LandingPage from '@/pages/LandingPage'
@@ -27,20 +27,12 @@ export default function App() {
       async (event, session) => {
         if (session?.user) {
           const fallbackUser = { id: session.user.id, email: session.user.email!, role: 'patient' as const, created_at: '' }
-          try {
-            const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
-            const rpcCall = supabase.rpc('get_my_user_data')
-            const { data, error } = (await Promise.race([rpcCall, timeout])) as Awaited<typeof rpcCall>
-
-            if (error || !data) {
-              setUser(fallbackUser)
-              setProfile(null)
-            } else {
-              setUser({ ...fallbackUser, role: data.role ?? 'patient' })
-              setProfile(data.profile ?? null)
-            }
-          } catch {
-            // Timeout ou RPC indisponible : on ne bloque jamais l'utilisateur
+          const data = await getMyUserDataWithRetry()
+          if (data) {
+            setUser({ ...fallbackUser, role: data.role ?? 'patient' })
+            setProfile(data.profile ?? null)
+          } else {
+            // Timeout ou RPC indisponible même après retry : on ne bloque jamais l'utilisateur
             setUser(fallbackUser)
             setProfile(null)
           }
