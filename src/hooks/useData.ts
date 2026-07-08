@@ -114,6 +114,36 @@ export function useAvailableSlots(doctorId: string, date: Date | null) {
   })
 }
 
+export function useCreateAvailability() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (avail: {
+      doctor_id: string
+      day_of_week: number
+      start_time: string
+      end_time: string
+      slot_duration_minutes?: number
+    }) => {
+      const { error } = await supabase
+        .from('availabilities')
+        .insert({ slot_duration_minutes: 30, is_active: true, ...avail })
+      if (error) throw error
+    },
+    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['availabilities', vars.doctor_id] }),
+  })
+}
+
+export function useDeleteAvailability() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id }: { id: string; doctorId: string }) => {
+      const { error } = await supabase.from('availabilities').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['availabilities', vars.doctorId] }),
+  })
+}
+
 export function usePatientAppointments() {
   const { user } = useAuthStore()
   return useQuery({

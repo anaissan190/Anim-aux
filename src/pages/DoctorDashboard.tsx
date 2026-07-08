@@ -7,7 +7,7 @@ import Navbar from '@/components/ui/Navbar'
 import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
-import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useUpdateClinic, useConversation, useSendMessage, useDoctorPatientAnimals } from '@/hooks/useData'
+import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useUpdateClinic, useConversation, useSendMessage, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { PRACTITIONER_TYPES, getPractitionerType } from '@/lib/practitionerTypes'
 import { SPECIES_EMOJI } from '@/lib/animalSpecies'
@@ -35,6 +35,11 @@ export default function DoctorDashboard() {
   const { data: reviews = [] } = useDoctorReviews(doctor?.id ?? '')
 
   const { data: patientAnimals = [] } = useDoctorPatientAnimals(doctor?.id)
+  const createAvailability = useCreateAvailability()
+  const deleteAvailability = useDeleteAvailability()
+  const [showAddSlot, setShowAddSlot] = useState(false)
+  const [slotForm, setSlotForm] = useState({ day_of_week: 1, start_time: '09:00', end_time: '18:00' })
+  const [slotError, setSlotError] = useState('')
   const { data: clinic }              = useMyClinic(doctor?.id)
   const { data: clinicMembers = [] }  = useClinicMembers(clinic?.id)
   const { data: clinicAppts = [] }    = useClinicAppointments(clinic?.id)
@@ -500,34 +505,90 @@ export default function DoctorDashboard() {
 
             {/* Mes disponibilités personnelles */}
             {dispoTab === 'personal' && (
-              availabilities.length === 0 ? (
-                <div className="bg-white rounded-2xl p-10 text-center border border-gray-100">
-                  <p className="text-3xl mb-3">🗓️</p>
-                  <p className="text-gray-500 text-sm mb-4">Vous n'avez pas encore renseigné vos disponibilités.</p>
-                  <button className="btn-primary text-sm px-4 py-2">Ajouter des créneaux</button>
+              <div>
+                <div className="flex justify-end mb-4">
+                  <button onClick={() => { setShowAddSlot(true); setSlotError('') }} className="btn-primary text-sm px-4 py-2">
+                    + Ajouter un créneau
+                  </button>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {DAYS.map((day, i) => {
-                    const slots = availabilities.filter((a: any) => a.day_of_week === (i + 1) % 7)
-                    return (
-                      <div key={day} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center justify-between">
-                        <span className="font-medium text-gray-700 w-24">{day}</span>
-                        <div className="flex-1">
-                          {slots.length === 0 ? (
-                            <span className="text-sm text-gray-400">Indisponible</span>
-                          ) : slots.map((s: any) => (
-                            <span key={s.id} className="inline-block bg-sage-50 text-sage-700 text-xs px-3 py-1 rounded-full mr-2">
-                              {s.start_time.slice(0, 5)} – {s.end_time.slice(0, 5)}
-                            </span>
+
+                {showAddSlot && (
+                  <div className="bg-white rounded-2xl p-5 mb-4 border-2 border-sage-200">
+                    <h3 className="font-semibold text-sm text-gray-800 mb-3">Nouveau créneau</h3>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Jour</label>
+                        <select className="input text-sm" value={slotForm.day_of_week}
+                          onChange={e => setSlotForm(f => ({ ...f, day_of_week: Number(e.target.value) }))}>
+                          {DAYS.map((day, i) => (
+                            <option key={day} value={(i + 1) % 7}>{day}</option>
                           ))}
-                        </div>
-                        <button className="text-sm text-sage-600 hover:underline">Modifier</button>
+                        </select>
                       </div>
-                    )
-                  })}
-                </div>
-              )
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Début</label>
+                        <input type="time" className="input text-sm" value={slotForm.start_time}
+                          onChange={e => setSlotForm(f => ({ ...f, start_time: e.target.value }))} />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Fin</label>
+                        <input type="time" className="input text-sm" value={slotForm.end_time}
+                          onChange={e => setSlotForm(f => ({ ...f, end_time: e.target.value }))} />
+                      </div>
+                    </div>
+                    {slotError && <p className="text-red-500 text-sm mt-3">{slotError}</p>}
+                    <div className="flex gap-2 mt-4">
+                      <button onClick={async () => {
+                        if (!doctor?.id) return
+                        if (slotForm.start_time >= slotForm.end_time) {
+                          setSlotError("L'heure de fin doit être après l'heure de début.")
+                          return
+                        }
+                        setSlotError('')
+                        try {
+                          await createAvailability.mutateAsync({ doctor_id: doctor.id, ...slotForm })
+                          setShowAddSlot(false)
+                        } catch (e: any) {
+                          setSlotError(e.message ?? "Erreur lors de l'ajout du créneau.")
+                        }
+                      }} disabled={createAvailability.isPending} className="btn-primary text-sm px-4 py-2">
+                        {createAvailability.isPending ? 'Ajout...' : 'Ajouter'}
+                      </button>
+                      <button onClick={() => setShowAddSlot(false)} className="btn-secondary text-sm px-4 py-2">Annuler</button>
+                    </div>
+                  </div>
+                )}
+
+                {availabilities.length === 0 && !showAddSlot ? (
+                  <div className="bg-white rounded-2xl p-10 text-center border border-gray-100">
+                    <p className="text-3xl mb-3">🗓️</p>
+                    <p className="text-gray-500 text-sm">Vous n'avez pas encore renseigné vos disponibilités.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {DAYS.map((day, i) => {
+                      const slots = availabilities.filter((a: any) => a.day_of_week === (i + 1) % 7)
+                      return (
+                        <div key={day} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center justify-between">
+                          <span className="font-medium text-gray-700 w-24">{day}</span>
+                          <div className="flex-1 flex flex-wrap gap-2">
+                            {slots.length === 0 ? (
+                              <span className="text-sm text-gray-400">Indisponible</span>
+                            ) : slots.map((s: any) => (
+                              <span key={s.id} className="inline-flex items-center gap-1 bg-sage-50 text-sage-700 text-xs px-3 py-1 rounded-full">
+                                {s.start_time.slice(0, 5)} – {s.end_time.slice(0, 5)}
+                                <button
+                                  onClick={() => deleteAvailability.mutate({ id: s.id, doctorId: doctor!.id })}
+                                  className="text-sage-400 hover:text-red-500 transition-colors ml-1">✕</button>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Agenda partagé */}
