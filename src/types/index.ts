@@ -72,6 +72,7 @@ export interface Appointment {
   id: string
   patient_id: string
   doctor_id: string
+  animal_id?: string
   start_at: string
   end_at: string
   status: AppointmentStatus
@@ -82,6 +83,7 @@ export interface Appointment {
   // Jointures
   doctors?: Doctor & { profiles?: Profile }
   profiles?: Profile // profil du patient
+  animals?: { id: string; name: string; species: string; avatar_url?: string }
 }
 
 export interface Review {

@@ -44,7 +44,7 @@ Public : `/`, `/search`, `/doctor/:id`, `/login`, `/register`, `/forgot-password
 
 ### Base de données (Supabase)
 
-Le schéma est dans `supabase/migrations/001_schema.sql`. Tables principales : `users`, `profiles`, `doctors`, `availabilities`, `appointments`, `reviews`, `messages`, `notifications`, `animals`, `vaccines`, `weight_tracking`, `health_records`, `specialties`.
+Le schéma est dans `supabase/migrations/001_schema.sql`. 17 tables confirmées présentes en production (vérifié le 08/07/2026) : `animals`, `appointments`, `availabilities`, `blocked_slots`, `clinic_members`, `clinic_services`, `clinics`, `doctors`, `health_records`, `messages`, `notifications`, `profiles`, `reviews`, `specialties`, `users`, `vaccines`, `weight_tracking`.
 
 **Fonctions RPC créées dans Supabase (SECURITY DEFINER — contournent le RLS) :**
 - `get_my_user_data()` → retourne `{ role, profile }` pour l'utilisateur connecté. Utilisée à la connexion ET dans `onAuthStateChange`. **Ne jamais remplacer par des requêtes directes sur `users`/`profiles`.**
@@ -80,9 +80,11 @@ Les requêtes directes sur `users` et `profiles` depuis le client **causent des 
 - ✅ Page "Mon profil" (`/profil`) : modification prénom/nom/téléphone + infos pro (spécialité, bio, ville, tarif, adresse)
 - ✅ Lien vers Mon profil en cliquant sur le prénom dans la navbar
 - ✅ Hooks `useUpdateProfile` et `useUpdateDoctor` ajoutés dans `useData.ts`
+- ✅ Vérifié en production (08/07/2026) : les 17 tables existent bien dans Supabase, y compris `animals`, `vaccines`, `weight_tracking`, `health_records`, `clinics`, `clinic_members`, `clinic_services`
+- ✅ Lien dossier animal ↔ dashboard praticien (08/07/2026) : `appointments.animal_id` (nullable, choisi par le patient à la réservation) ; RLS ajoutée sur `animals`/`vaccines`/`weight_tracking`/`health_records`/`profiles` pour donner au praticien un accès lecture + ajout au dossier des animaux de ses patients dès que le RDV est `confirmed`/`completed` (voir `supabase/migrations/002_doctor_animal_access.sql`, **à exécuter manuellement dans Supabase → SQL Editor**) ; nouvel onglet "Mes patients" dans `DoctorDashboard` ; route `/animal/:id` désormais accessible aux patients ET aux praticiens (`ProtectedRoute` accepte un tableau de rôles) ; `AnimalHealthPage` adapte l'affichage selon le rôle (upload photo réservé au propriétaire, nom du praticien pré-rempli dans les formulaires vaccin/dossier) ; corrigé au passage : le nom du vétérinaire ne s'affichait jamais sur un vaccin (`v.veterinarian` au lieu de `v.administered_by`) et le nom du patient ne s'affichait pas sur les RDV côté praticien (mauvaise imbrication `users.profiles`)
 
 ### Bugs connus
-- ⚠️ Les tables `animals`, `vaccines`, `weight_tracking`, `health_records` ne sont peut-être pas créées dans Supabase (absentes du schéma SQL)
+- (aucun bug connu bloquant à ce jour)
 
 ### À continuer avec l'utilisatrice
 - Modifications à définir sur l'appli (dashboard patient, recherche, page praticien...)

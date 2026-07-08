@@ -79,7 +79,7 @@ export default function App() {
           <ProtectedRoute><MessagesPage /></ProtectedRoute>
         } />
         <Route path="/animal/:id" element={
-          <ProtectedRoute role="patient"><AnimalHealthPage /></ProtectedRoute>
+          <ProtectedRoute role={['patient', 'doctor']}><AnimalHealthPage /></ProtectedRoute>
         } />
         <Route path="/profil" element={
           <ProtectedRoute><ProfilPage /></ProtectedRoute>

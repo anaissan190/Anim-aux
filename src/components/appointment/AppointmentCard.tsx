@@ -1,6 +1,7 @@
 // src/components/appointment/AppointmentCard.tsx
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { Link } from 'react-router-dom'
 import { useUpdateAppointmentStatus } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import type { Appointment, AppointmentStatus } from '@/types'
@@ -53,6 +54,12 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
             <p className="text-sm text-sage-600">{(appointment.doctors as any)?.specialty ?? ''}</p>
             {appointment.reason && (
               <p className="text-xs text-gray-500 mt-1 truncate">Motif : {appointment.reason}</p>
+            )}
+            {showPatient && appointment.animals && ['confirmed', 'completed'].includes(appointment.status) && (
+              <Link to={`/animal/${appointment.animals.id}`}
+                className="inline-flex items-center gap-1 text-xs text-sage-600 hover:underline mt-1">
+                🐾 Dossier de {appointment.animals.name}
+              </Link>
             )}
           </div>
           <span className={STATUS_CLASSES[appointment.status]}>

@@ -135,15 +135,14 @@ export function useDoctorAppointments(doctorId?: string) {
   return useQuery({
     queryKey: ['appointments', 'doctor', doctorId],
     queryFn: async () => {
-      console.log('Fetching appointments for doctorId:', doctorId)
       const { data, error } = await supabase
         .from('appointments')
-        .select('*, users!patient_id(id, email, profiles(first_name, last_name, avatar_url, phone))')
+        .select('*, users!patient_id(id, email, profiles(first_name, last_name, avatar_url, phone)), animals(id, name, species, avatar_url)')
         .eq('doctor_id', doctorId!)
         .order('start_at', { ascending: true })
-      console.log('appointments data:', data, 'error:', JSON.stringify(error))
       if (error) throw error
-      return data
+      // Aligne la forme des données sur le type Appointment (profiles au niveau racine)
+      return (data ?? []).map((a: any) => ({ ...a, profiles: a.users?.profiles }))
     },
     enabled: !!doctorId,
   })
@@ -158,6 +157,7 @@ export function useCreateAppointment() {
       start_at: string
       end_at: string
       reason?: string
+      animal_id?: string
     }) => {
       const { data: appt, error } = await supabase
         .from('appointments')
@@ -171,6 +171,56 @@ export function useCreateAppointment() {
       qc.invalidateQueries({ queryKey: ['appointments'] })
       qc.invalidateQueries({ queryKey: ['slots'] })
     },
+  })
+}
+
+// Tous les animaux des patients d'un praticien (RDV confirmé ou terminé)
+export function useDoctorPatientAnimals(doctorId?: string) {
+  return useQuery({
+    queryKey: ['doctor-patient-animals', doctorId],
+    queryFn: async () => {
+      const { data: appts, error: apptErr } = await supabase
+        .from('appointments')
+        .select('patient_id, users!patient_id(profiles(first_name, last_name))')
+        .eq('doctor_id', doctorId!)
+        .in('status', ['confirmed', 'completed'])
+      if (apptErr) throw apptErr
+
+      const ownerNames = new Map<string, string>()
+      ;(appts ?? []).forEach((a: any) => {
+        const p = a.users?.profiles
+        if (p) ownerNames.set(a.patient_id, `${p.first_name} ${p.last_name}`.trim())
+      })
+      const patientIds = [...ownerNames.keys()]
+      if (patientIds.length === 0) return []
+
+      const { data: animals, error: animalErr } = await supabase
+        .from('animals')
+        .select('*')
+        .in('owner_id', patientIds)
+        .order('name')
+      if (animalErr) throw animalErr
+
+      return (animals ?? []).map((an: any) => ({ ...an, ownerName: ownerNames.get(an.owner_id) ?? '' }))
+    },
+    enabled: !!doctorId,
+  })
+}
+
+// Profil du propriétaire d'un animal (accessible au praticien via RLS)
+export function useAnimalOwner(userId?: string) {
+  return useQuery({
+    queryKey: ['animal-owner-profile', userId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('first_name, last_name, phone')
+        .eq('user_id', userId!)
+        .single()
+      if (error) throw error
+      return data
+    },
+    enabled: !!userId,
   })
 }
 

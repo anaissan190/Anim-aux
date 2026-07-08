@@ -1,19 +1,22 @@
 // src/pages/DoctorDashboard.tsx
 import { useState, useEffect, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import { format, startOfWeek, addDays, isSameDay, isThisWeek } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import Navbar from '@/components/ui/Navbar'
 import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
-import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useUpdateClinic, useConversation, useSendMessage } from '@/hooks/useData'
+import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useUpdateClinic, useConversation, useSendMessage, useDoctorPatientAnimals } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { PRACTITIONER_TYPES, getPractitionerType } from '@/lib/practitionerTypes'
+import { SPECIES_EMOJI } from '@/lib/animalSpecies'
 
-type Tab = 'home' | 'tarifs' | 'disponibilites' | 'profil' | 'avis' | 'messages'
+type Tab = 'home' | 'patients' | 'tarifs' | 'disponibilites' | 'profil' | 'avis' | 'messages'
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'home',           label: 'Accueil',         icon: '🏠' },
+  { id: 'patients',       label: 'Mes patients',    icon: '🐾' },
   { id: 'tarifs',         label: 'Tarifs',           icon: '💰' },
   { id: 'disponibilites', label: 'Disponibilités',   icon: '🗓️' },
   { id: 'profil',         label: 'Mon profil',       icon: '👤' },
@@ -31,6 +34,7 @@ export default function DoctorDashboard() {
   const { data: availabilities = [] } = useAvailabilities(doctor?.id ?? '')
   const { data: reviews = [] } = useDoctorReviews(doctor?.id ?? '')
 
+  const { data: patientAnimals = [] } = useDoctorPatientAnimals(doctor?.id)
   const { data: clinic }              = useMyClinic(doctor?.id)
   const { data: clinicMembers = [] }  = useClinicMembers(clinic?.id)
   const { data: clinicAppts = [] }    = useClinicAppointments(clinic?.id)
@@ -294,6 +298,41 @@ export default function DoctorDashboard() {
               </div>
             </div>
           </>
+        )}
+
+        {/* ── MES PATIENTS ── */}
+        {tab === 'patients' && (
+          <div>
+            <div className="mb-6">
+              <h2 className="text-xl font-bold text-gray-900">Mes patients</h2>
+              <p className="text-sm text-gray-500 mt-1">
+                Animaux des patients ayant un rendez-vous confirmé ou terminé avec vous.
+              </p>
+            </div>
+            {patientAnimals.length === 0 ? (
+              <div className="bg-white rounded-2xl p-10 text-center border border-gray-100">
+                <p className="text-3xl mb-3">🐾</p>
+                <p className="text-gray-500 text-sm">Aucun animal suivi pour l'instant.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {patientAnimals.map((a: any) => (
+                  <Link key={a.id} to={`/animal/${a.id}`}
+                    className="bg-white rounded-2xl p-4 text-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                    <div className="w-14 h-14 rounded-xl mx-auto mb-2 overflow-hidden bg-gray-100 flex items-center justify-center">
+                      {a.avatar_url
+                        ? <img src={a.avatar_url} alt={a.name} className="w-full h-full object-cover" />
+                        : <span className="text-3xl">{SPECIES_EMOJI[a.species] ?? '🐾'}</span>
+                      }
+                    </div>
+                    <p className="font-semibold text-sm text-gray-900">{a.name}</p>
+                    <p className="text-xs text-gray-400">{a.breed ?? a.species}</p>
+                    <p className="text-xs text-sage-600 mt-1">{a.ownerName}</p>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         {/* ── TARIFS ── */}

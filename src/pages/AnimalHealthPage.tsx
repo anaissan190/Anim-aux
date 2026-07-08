@@ -1,5 +1,5 @@
 // src/pages/AnimalHealthPage.tsx
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { useParams, Link } from 'react-router-dom'
 import { format } from 'date-fns'
@@ -14,16 +14,23 @@ import {
   useCreateWeight,
   useCreateHealthRecord,
   useUpdateAnimal,
+  useAnimalOwner,
 } from '@/hooks/useData'
+import { useAuthStore } from '@/lib/authStore'
 import { supabase } from '@/lib/supabase'
 import { SPECIES_EMOJI, SPECIES_MAX_WEIGHT } from '@/lib/animalSpecies'
 
 export default function AnimalHealthPage() {
   const { id } = useParams<{ id: string }>()
+  const { user, profile } = useAuthStore()
+  const isDoctor = user?.role === 'doctor'
   const { data: animal, isLoading } = useAnimal(id!)
   const { data: vaccines = [] } = useVaccines(id!)
   const { data: weights = [] } = useWeightTracking(id!)
   const { data: records = [] } = useHealthRecords(id!)
+  const { data: owner } = useAnimalOwner(isDoctor ? animal?.owner_id : undefined)
+
+  const doctorName = profile ? `${profile.first_name} ${profile.last_name}`.trim() : ''
 
   const createVaccine = useCreateVaccine()
   const createWeight  = useCreateWeight()
@@ -50,6 +57,13 @@ export default function AnimalHealthPage() {
   const [weightForm, setWeightForm] = useState({ weight_kg: '', measured_at: '', notes: '' })
   const [recordForm, setRecordForm] = useState({ date: '', type: 'Consultation', title: '', description: '', professional_name: '' })
 
+  // Pré-remplit le nom du praticien connecté dans les formulaires
+  useEffect(() => {
+    if (!isDoctor || !doctorName) return
+    setVaccineForm(f => f.administered_by ? f : { ...f, administered_by: doctorName })
+    setRecordForm(f => f.professional_name ? f : { ...f, professional_name: doctorName })
+  }, [isDoctor, doctorName])
+
   if (isLoading) return <div className="min-h-screen bg-gray-50"><Navbar /><div className="flex items-center justify-center h-64"><p className="text-gray-400">Chargement...</p></div></div>
   if (!animal) return <div className="min-h-screen bg-gray-50"><Navbar /><div className="flex items-center justify-center h-64"><p className="text-gray-400">Animal introuvable</p></div></div>
 
@@ -61,7 +75,7 @@ export default function AnimalHealthPage() {
   async function submitVaccine() {
     if (!vaccineForm.name || !vaccineForm.date_administered) return
     await createVaccine.mutateAsync({ ...vaccineForm, animal_id: id! })
-    setVaccineForm({ name: '', date_administered: '', next_due_date: '', administered_by: '' })
+    setVaccineForm({ name: '', date_administered: '', next_due_date: '', administered_by: isDoctor ? doctorName : '' })
     setShowVaccineForm(false)
   }
 
@@ -75,7 +89,7 @@ export default function AnimalHealthPage() {
   async function submitRecord() {
     if (!recordForm.title || !recordForm.date) return
     await createRecord.mutateAsync({ ...recordForm, animal_id: id! })
-    setRecordForm({ date: '', type: 'Consultation', title: '', description: '', professional_name: '' })
+    setRecordForm({ date: '', type: 'Consultation', title: '', description: '', professional_name: isDoctor ? doctorName : '' })
     setShowRecordForm(false)
   }
 
@@ -91,13 +105,15 @@ export default function AnimalHealthPage() {
                 ? <img src={animal.avatar_url} className="w-full h-full object-cover" alt={animal.name} />
                 : emoji}
             </div>
-            <label className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
-              <span className="text-white text-xs font-medium">
-                {photoUploading ? '...' : '📷'}
-              </span>
-              <input type="file" accept="image/*" className="hidden"
-                onChange={e => { const f = e.target.files?.[0]; if (f) handlePhotoUpload(f) }} />
-            </label>
+            {!isDoctor && (
+              <label className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
+                <span className="text-white text-xs font-medium">
+                  {photoUploading ? '...' : '📷'}
+                </span>
+                <input type="file" accept="image/*" className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handlePhotoUpload(f) }} />
+              </label>
+            )}
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-1">
@@ -111,8 +127,11 @@ export default function AnimalHealthPage() {
               {lastWeight && <span>⚖️ {lastWeight.weight_kg} kg</span>}
               {animal.microchip_number && <span>📡 {animal.microchip_number}</span>}
             </div>
+            {isDoctor && owner && (
+              <p className="text-xs text-sage-600 mt-2">👤 Propriétaire : {owner.first_name} {owner.last_name}</p>
+            )}
           </div>
-          <Link to="/dashboard/patient" className="text-sm text-gray-500 hover:text-gray-700">← Retour</Link>
+          <Link to={isDoctor ? '/dashboard/doctor' : '/dashboard/patient'} className="text-sm text-gray-500 hover:text-gray-700">← Retour</Link>
         </div>
 
         <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-6 w-fit">
@@ -173,7 +192,7 @@ export default function AnimalHealthPage() {
                     <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-lg">💉</div>
                     <div className="flex-1">
                       <p className="font-semibold text-sm text-gray-900">{v.name}</p>
-                      <p className="text-xs text-gray-500">Le {format(new Date(v.date_administered), 'd MMM yyyy', { locale: fr })}{v.veterinarian ? ` · ${v.veterinarian}` : ''}</p>
+                      <p className="text-xs text-gray-500">Le {format(new Date(v.date_administered), 'd MMM yyyy', { locale: fr })}{v.administered_by ? ` · ${v.administered_by}` : ''}</p>
                     </div>
                     {v.next_due_date && <div className="text-right"><p className="text-xs text-amber-600 font-medium">Rappel</p><p className="text-xs text-gray-500">{format(new Date(v.next_due_date), 'd MMM yyyy', { locale: fr })}</p></div>}
                   </div>

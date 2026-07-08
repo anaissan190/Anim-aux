@@ -1,12 +1,13 @@
 // src/pages/BookPage.tsx
 import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { useDoctor } from '@/hooks/useData'
+import { useDoctor, useAnimals } from '@/hooks/useData'
 import { useCreateAppointment } from '@/hooks/useData'
 import Navbar from '@/components/ui/Navbar'
 import AvailabilityCalendar from '@/components/appointment/AvailabilityCalendar'
 import { format, addMinutes } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { SPECIES_EMOJI } from '@/lib/animalSpecies'
 
 type Step = 1 | 2 | 3
 
@@ -14,11 +15,13 @@ export default function BookPage() {
   const { doctorId } = useParams<{ doctorId: string }>()
   const navigate = useNavigate()
   const { data: doctor } = useDoctor(doctorId!)
+  const { data: animals = [] } = useAnimals()
   const createAppt = useCreateAppointment()
 
   const [step, setStep] = useState<Step>(1)
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null)
   const [reason, setReason] = useState('')
+  const [animalId, setAnimalId] = useState<string>('')
 
   const REASONS = [
     'Consultation générale', 'Renouvellement ordonnance',
@@ -38,6 +41,7 @@ export default function BookPage() {
       start_at:  start.toISOString(),
       end_at:    end.toISOString(),
       reason,
+      animal_id: animalId || undefined,
     })
     setStep(3)
   }
@@ -111,6 +115,27 @@ export default function BookPage() {
               RDV prévu le{' '}
               <strong>{selectedSlot && format(selectedSlot, "EEEE d MMMM 'à' HH:mm", { locale: fr })}</strong>
             </p>
+
+            {animals.length > 0 && (
+              <div className="mb-5">
+                <p className="text-sm font-medium text-gray-700 mb-2">Pour quel animal ? (facultatif)</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {animals.map(a => (
+                    <button key={a.id} type="button"
+                      onClick={() => setAnimalId(id => id === a.id ? '' : a.id)}
+                      className={`p-3 text-sm rounded-xl border text-center transition-colors
+                        ${animalId === a.id ? 'border-sage-400 bg-sage-50 text-sage-700 font-medium' : 'border-gray-200 hover:border-sage-300'}`}>
+                      <span className="block text-xl mb-1">{SPECIES_EMOJI[a.species] ?? '🐾'}</span>
+                      {a.name}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-400 mt-2">
+                  Le praticien pourra retrouver directement le dossier de l'animal choisi.
+                </p>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-2 mb-4">
               {REASONS.map(r => (
                 <button key={r}
@@ -156,6 +181,12 @@ export default function BookPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Motif</span>
                   <span>{reason}</span>
+                </div>
+              )}
+              {animalId && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Animal</span>
+                  <span>{animals.find(a => a.id === animalId)?.name}</span>
                 </div>
               )}
               <div className="flex justify-between text-sm pt-2 border-t border-sage-200">
