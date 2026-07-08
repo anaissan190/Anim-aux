@@ -15,6 +15,7 @@ import DoctorDashboard from '@/pages/DoctorDashboard'
 import AdminDashboard from '@/pages/AdminDashboard'
 import MessagesPage from '@/pages/MessagesPage'
 import AnimalHealthPage from '@/pages/AnimalHealthPage'
+import ProfilPage from '@/pages/ProfilPage'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import LogoPreview from '@/pages/LogoPreview'
 
@@ -25,20 +26,24 @@ export default function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (session?.user) {
-          const { data: userData } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
+          const fallbackUser = { id: session.user.id, email: session.user.email!, role: 'patient' as const, created_at: '' }
+          try {
+            const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000))
+            const rpcCall = supabase.rpc('get_my_user_data')
+            const { data, error } = (await Promise.race([rpcCall, timeout])) as Awaited<typeof rpcCall>
 
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('user_id', session.user.id)
-            .single()
-
-          setUser(userData ?? { id: session.user.id, email: session.user.email!, role: 'patient', created_at: '' })
-          setProfile(profileData ?? null)
+            if (error || !data) {
+              setUser(fallbackUser)
+              setProfile(null)
+            } else {
+              setUser({ ...fallbackUser, role: data.role ?? 'patient' })
+              setProfile(data.profile ?? null)
+            }
+          } catch {
+            // Timeout ou RPC indisponible : on ne bloque jamais l'utilisateur
+            setUser(fallbackUser)
+            setProfile(null)
+          }
         } else {
           setUser(null)
           setProfile(null)
@@ -75,6 +80,9 @@ export default function App() {
         } />
         <Route path="/animal/:id" element={
           <ProtectedRoute role="patient"><AnimalHealthPage /></ProtectedRoute>
+        } />
+        <Route path="/profil" element={
+          <ProtectedRoute><ProfilPage /></ProtectedRoute>
         } />
         <Route path="/logo-preview" element={<LogoPreview />} />
         <Route path="*" element={<Navigate to="/" replace />} />

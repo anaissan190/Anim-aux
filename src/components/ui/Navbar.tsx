@@ -22,12 +22,10 @@ export default function Navbar() {
 
         <div className="hidden md:flex items-center gap-6 text-sm text-gray-600">
           {user?.role !== 'doctor' && (
-            <>
-              <Link to="/search" className="hover:text-sage-600 transition-colors">Trouver un praticien</Link>
-              {user && <Link to={dashboardPath} className="hover:text-sage-600 transition-colors">Mon espace</Link>}
-              {user && <Link to="/messages" className="hover:text-sage-600 transition-colors">Messages</Link>}
-            </>
+            <Link to="/search" className="hover:text-sage-600 transition-colors">Trouver un praticien</Link>
           )}
+          {user && <Link to={dashboardPath} className="hover:text-sage-600 transition-colors">Mon espace</Link>}
+          {user && <Link to="/messages" className="hover:text-sage-600 transition-colors">Messages</Link>}
         </div>
 
         <div className="flex items-center gap-3">
@@ -35,9 +33,9 @@ export default function Navbar() {
             <>
               <NotificationBell />
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-sage-100 flex items-center justify-center text-sage-700 font-medium text-sm">
+                <Link to="/profil" title="Mon profil" className="w-8 h-8 rounded-full bg-sage-100 flex items-center justify-center text-sage-700 font-medium text-sm hover:bg-sage-200 transition-colors">
                   {profile?.first_name?.[0]?.toUpperCase() ?? user.email[0].toUpperCase()}
-                </div>
+                </Link>
                 <button onClick={() => signOut().then(() => navigate('/'))}
                   className="text-sm text-gray-500 hover:text-red-500 transition-colors hidden md:block">
                   Déconnexion

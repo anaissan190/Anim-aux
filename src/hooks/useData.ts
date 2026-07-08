@@ -633,3 +633,50 @@ export function useCreateHealthRecord() {
     onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['health_records', vars.animal_id] }),
   })
 }
+
+export function useUpdateProfile() {
+  const qc = useQueryClient()
+  const { profile, setProfile } = useAuthStore()
+  return useMutation({
+    mutationFn: async (updates: { first_name?: string; last_name?: string; phone?: string }) => {
+      if (!profile) throw new Error('Profil non chargé')
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('user_id', profile.user_id)
+        .select()
+        .single()
+      if (error) throw error
+      return data
+    },
+    onSuccess: (data) => {
+      setProfile(data)
+      qc.invalidateQueries({ queryKey: ['profile'] })
+    },
+  })
+}
+
+export function useUpdateDoctor() {
+  const qc = useQueryClient()
+  const { user } = useAuthStore()
+  return useMutation({
+    mutationFn: async (updates: {
+      specialty?: string
+      bio?: string
+      city?: string
+      address?: string
+      consultation_price?: number
+    }) => {
+      if (!user) throw new Error('Utilisateur non connecté')
+      const { error } = await supabase
+        .from('doctors')
+        .update(updates)
+        .eq('user_id', user.id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['currentDoctor'] })
+      qc.invalidateQueries({ queryKey: ['doctors'] })
+    },
+  })
+}
