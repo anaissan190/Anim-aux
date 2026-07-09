@@ -60,17 +60,25 @@ export default function DoctorDashboard() {
   const { user } = useAuthStore()
   const isClinicAdmin = clinic?.owner_id === user?.id
 
-  // Préremplit le formulaire "Mon profil" une fois le profil/praticien chargés
+  // Préremplit le formulaire "Mon profil" une seule fois au chargement.
+  // Sans le garde-fou `profileInitialized`, ce useEffect se redéclenchait à
+  // chaque rafraîchissement en arrière-plan de `profile`/`doctor` (ex: retour
+  // sur l'onglet du navigateur) et effaçait ce que le praticien était en
+  // train de taper (la bio, notamment).
+  const profileInitialized = useRef(false)
   useEffect(() => {
+    if (profileInitialized.current) return
+    if (!profile || !doctor) return
     setProfileForm({
-      first_name: profile?.first_name ?? '',
-      last_name: profile?.last_name ?? '',
-      specialty: doctor?.specialty ?? '',
-      city: doctor?.city ?? '',
-      address: doctor?.address ?? '',
-      bio: doctor?.bio ?? '',
-      phone: profile?.phone ?? '',
+      first_name: profile.first_name ?? '',
+      last_name: profile.last_name ?? '',
+      specialty: doctor.specialty ?? '',
+      city: doctor.city ?? '',
+      address: doctor.address ?? '',
+      bio: doctor.bio ?? '',
+      phone: profile.phone ?? '',
     })
+    profileInitialized.current = true
   }, [profile, doctor])
 
   async function submitProfile() {
