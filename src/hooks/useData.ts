@@ -151,7 +151,7 @@ export function usePatientAppointments() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('appointments')
-        .select('*, doctors!inner(specialty, city, profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url))')
+        .select('*, doctors!inner(specialty, city, profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url)), reviews(id, rating, comment)')
         .eq('patient_id', user!.id)
         .order('start_at', { ascending: false })
       if (error) throw error
@@ -281,6 +281,32 @@ export function useDoctorReviews(doctorId: string) {
       return data
     },
     enabled: !!doctorId,
+  })
+}
+
+export function useCreateReview() {
+  const qc = useQueryClient()
+  const { user } = useAuthStore()
+  return useMutation({
+    mutationFn: async ({ appointmentId, doctorId, rating, comment }: {
+      appointmentId: string
+      doctorId: string
+      rating: number
+      comment?: string
+    }) => {
+      const { error } = await supabase.from('reviews').insert({
+        appointment_id: appointmentId,
+        doctor_id: doctorId,
+        patient_id: user!.id,
+        rating,
+        comment: comment || undefined,
+      })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['appointments'] })
+      qc.invalidateQueries({ queryKey: ['reviews'] })
+    },
   })
 }
 
@@ -481,6 +507,37 @@ export function useCreateVaccine() {
       notes?: string
     }) => {
       const { error } = await supabase.from('vaccines').insert(vaccine)
+      if (error) throw error
+    },
+    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['vaccines', vars.animal_id] }),
+  })
+}
+
+export function useUpdateVaccine() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, animal_id, ...updates }: {
+      id: string
+      animal_id: string
+      name?: string
+      date_administered?: string
+      next_due_date?: string
+      administered_by?: string
+      notes?: string
+    }) => {
+      const { error } = await supabase.from('vaccines').update(updates).eq('id', id)
+      if (error) throw error
+      return animal_id
+    },
+    onSuccess: (animalId) => qc.invalidateQueries({ queryKey: ['vaccines', animalId] }),
+  })
+}
+
+export function useDeleteVaccine() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id }: { id: string; animal_id: string }) => {
+      const { error } = await supabase.from('vaccines').delete().eq('id', id)
       if (error) throw error
     },
     onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['vaccines', vars.animal_id] }),
@@ -738,6 +795,37 @@ export function useCreateHealthRecord() {
       professional_name?: string
     }) => {
       const { error } = await supabase.from('health_records').insert(record)
+      if (error) throw error
+    },
+    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['health_records', vars.animal_id] }),
+  })
+}
+
+export function useUpdateHealthRecord() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, animal_id, ...updates }: {
+      id: string
+      animal_id: string
+      date?: string
+      type?: string
+      title?: string
+      description?: string
+      professional_name?: string
+    }) => {
+      const { error } = await supabase.from('health_records').update(updates).eq('id', id)
+      if (error) throw error
+      return animal_id
+    },
+    onSuccess: (animalId) => qc.invalidateQueries({ queryKey: ['health_records', animalId] }),
+  })
+}
+
+export function useDeleteHealthRecord() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id }: { id: string; animal_id: string }) => {
+      const { error } = await supabase.from('health_records').delete().eq('id', id)
       if (error) throw error
     },
     onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['health_records', vars.animal_id] }),

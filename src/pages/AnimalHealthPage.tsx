@@ -11,10 +11,14 @@ import {
   useWeightTracking,
   useHealthRecords,
   useCreateVaccine,
+  useUpdateVaccine,
+  useDeleteVaccine,
   useCreateWeight,
   useUpdateWeight,
   useDeleteWeight,
   useCreateHealthRecord,
+  useUpdateHealthRecord,
+  useDeleteHealthRecord,
   useUpdateAnimal,
   useDeleteAnimal,
   useAnimalOwner,
@@ -37,10 +41,14 @@ export default function AnimalHealthPage() {
   const doctorName = profile ? `${profile.first_name} ${profile.last_name}`.trim() : ''
 
   const createVaccine = useCreateVaccine()
+  const updateVaccine = useUpdateVaccine()
+  const deleteVaccine = useDeleteVaccine()
   const createWeight  = useCreateWeight()
   const updateWeight  = useUpdateWeight()
   const deleteWeight  = useDeleteWeight()
   const createRecord  = useCreateHealthRecord()
+  const updateRecord  = useUpdateHealthRecord()
+  const deleteRecord  = useDeleteHealthRecord()
   const updateAnimal  = useUpdateAnimal()
   const deleteAnimal  = useDeleteAnimal()
   const [photoUploading, setPhotoUploading] = useState(false)
@@ -113,6 +121,14 @@ export default function AnimalHealthPage() {
   const [editWeightForm, setEditWeightForm] = useState({ weight_kg: '', measured_at: '', notes: '' })
   const [weightError, setWeightError] = useState('')
 
+  const [editingVaccineId, setEditingVaccineId] = useState<string | null>(null)
+  const [editVaccineForm, setEditVaccineForm] = useState({ name: '', date_administered: '', next_due_date: '', administered_by: '' })
+  const [vaccineError, setVaccineError] = useState('')
+
+  const [editingRecordId, setEditingRecordId] = useState<string | null>(null)
+  const [editRecordForm, setEditRecordForm] = useState({ date: '', type: 'Consultation', title: '', description: '', professional_name: '' })
+  const [recordError, setRecordError] = useState('')
+
   // Pré-remplit le nom du praticien connecté dans les formulaires
   useEffect(() => {
     if (!isDoctor || !doctorName) return
@@ -133,6 +149,37 @@ export default function AnimalHealthPage() {
     await createVaccine.mutateAsync({ ...vaccineForm, animal_id: id! })
     setVaccineForm({ name: '', date_administered: '', next_due_date: '', administered_by: isDoctor ? doctorName : '' })
     setShowVaccineForm(false)
+  }
+
+  function startEditVaccine(v: any) {
+    setEditingVaccineId(v.id)
+    setEditVaccineForm({
+      name: v.name ?? '',
+      date_administered: v.date_administered ?? '',
+      next_due_date: v.next_due_date ?? '',
+      administered_by: v.administered_by ?? '',
+    })
+    setVaccineError('')
+  }
+
+  async function submitEditVaccine() {
+    if (!editingVaccineId || !editVaccineForm.name || !editVaccineForm.date_administered) return
+    setVaccineError('')
+    try {
+      await updateVaccine.mutateAsync({ id: editingVaccineId, animal_id: id!, ...editVaccineForm })
+      setEditingVaccineId(null)
+    } catch (e: any) {
+      setVaccineError(e.message ?? "Erreur lors de l'enregistrement.")
+    }
+  }
+
+  async function removeVaccine(v: any) {
+    setVaccineError('')
+    try {
+      await deleteVaccine.mutateAsync({ id: v.id, animal_id: id! })
+    } catch (e: any) {
+      setVaccineError(e.message ?? "Erreur lors de la suppression.")
+    }
   }
 
   async function submitWeight() {
@@ -179,6 +226,38 @@ export default function AnimalHealthPage() {
     await createRecord.mutateAsync({ ...recordForm, animal_id: id! })
     setRecordForm({ date: '', type: 'Consultation', title: '', description: '', professional_name: isDoctor ? doctorName : '' })
     setShowRecordForm(false)
+  }
+
+  function startEditRecord(r: any) {
+    setEditingRecordId(r.id)
+    setEditRecordForm({
+      date: r.date ?? '',
+      type: r.type ?? 'Consultation',
+      title: r.title ?? '',
+      description: r.description ?? '',
+      professional_name: r.professional_name ?? '',
+    })
+    setRecordError('')
+  }
+
+  async function submitEditRecord() {
+    if (!editingRecordId || !editRecordForm.title || !editRecordForm.date) return
+    setRecordError('')
+    try {
+      await updateRecord.mutateAsync({ id: editingRecordId, animal_id: id!, ...editRecordForm })
+      setEditingRecordId(null)
+    } catch (e: any) {
+      setRecordError(e.message ?? "Erreur lors de l'enregistrement.")
+    }
+  }
+
+  async function removeRecord(r: any) {
+    setRecordError('')
+    try {
+      await deleteRecord.mutateAsync({ id: r.id, animal_id: id! })
+    } catch (e: any) {
+      setRecordError(e.message ?? "Erreur lors de la suppression.")
+    }
   }
 
   return (
@@ -349,17 +428,39 @@ export default function AnimalHealthPage() {
                 </div>
               </div>
             )}
+            {vaccineError && <p className="text-red-500 text-sm mb-3">{vaccineError}</p>}
             {vaccines.length === 0
               ? <div className="card p-10 text-center"><p className="text-gray-400 text-sm">Aucun vaccin enregistré.</p></div>
               : <div className="space-y-3">{vaccines.map(v => (
-                  <div key={v.id} className="card p-4 flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-lg">💉</div>
-                    <div className="flex-1">
-                      <p className="font-semibold text-sm text-gray-900">{v.name}</p>
-                      <p className="text-xs text-gray-500">Le {format(new Date(v.date_administered), 'd MMM yyyy', { locale: fr })}{v.administered_by ? ` · ${v.administered_by}` : ''}</p>
+                  editingVaccineId === v.id ? (
+                    <div key={v.id} className="card p-5 border-2 border-sage-200">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div><label className="text-xs text-gray-500">Nom du vaccin *</label><input className="input text-sm mt-1" value={editVaccineForm.name} onChange={e => setEditVaccineForm(f => ({...f, name: e.target.value}))} /></div>
+                        <div><label className="text-xs text-gray-500">Date administration *</label><input type="date" className="input text-sm mt-1" value={editVaccineForm.date_administered} onChange={e => setEditVaccineForm(f => ({...f, date_administered: e.target.value}))} /></div>
+                        <div><label className="text-xs text-gray-500">Prochain rappel</label><input type="date" className="input text-sm mt-1" value={editVaccineForm.next_due_date} onChange={e => setEditVaccineForm(f => ({...f, next_due_date: e.target.value}))} /></div>
+                        <div><label className="text-xs text-gray-500">Administré par</label><input className="input text-sm mt-1" value={editVaccineForm.administered_by} onChange={e => setEditVaccineForm(f => ({...f, administered_by: e.target.value}))} /></div>
+                      </div>
+                      <div className="flex gap-2 mt-3">
+                        <button onClick={submitEditVaccine} disabled={updateVaccine.isPending} className="btn-primary text-sm">
+                          {updateVaccine.isPending ? 'Enregistrement...' : 'Enregistrer'}
+                        </button>
+                        <button onClick={() => setEditingVaccineId(null)} className="btn-secondary text-sm">Annuler</button>
+                      </div>
                     </div>
-                    {v.next_due_date && <div className="text-right"><p className="text-xs text-amber-600 font-medium">Rappel</p><p className="text-xs text-gray-500">{format(new Date(v.next_due_date), 'd MMM yyyy', { locale: fr })}</p></div>}
-                  </div>
+                  ) : (
+                    <div key={v.id} className="card p-4 flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-lg">💉</div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-sm text-gray-900">{v.name}</p>
+                        <p className="text-xs text-gray-500">Le {format(new Date(v.date_administered), 'd MMM yyyy', { locale: fr })}{v.administered_by ? ` · ${v.administered_by}` : ''}</p>
+                      </div>
+                      {v.next_due_date && <div className="text-right"><p className="text-xs text-amber-600 font-medium">Rappel</p><p className="text-xs text-gray-500">{format(new Date(v.next_due_date), 'd MMM yyyy', { locale: fr })}</p></div>}
+                      <div className="flex gap-2 flex-shrink-0">
+                        <button onClick={() => startEditVaccine(v)} className="text-xs text-sage-600 hover:underline">✏️</button>
+                        <button onClick={() => removeVaccine(v)} disabled={deleteVaccine.isPending} className="text-xs text-red-400 hover:underline">🗑️</button>
+                      </div>
+                    </div>
+                  )
                 ))}</div>
             }
           </div>
@@ -483,10 +584,34 @@ export default function AnimalHealthPage() {
                 </div>
               </div>
             )}
+            {recordError && <p className="text-red-500 text-sm mb-3">{recordError}</p>}
             {records.length === 0
               ? <div className="card p-10 text-center"><p className="text-gray-400 text-sm">Aucun événement enregistré.</p></div>
               : <div className="space-y-3">{records.map(r => {
                   const typeEmoji: Record<string, string> = { Consultation: '🩺', Chirurgie: '🔬', Traitement: '💊', Toilettage: '✂️', Ostéopathie: '🤲', Analyse: '🧪', Autre: '📋' }
+                  if (editingRecordId === r.id) {
+                    return (
+                      <div key={r.id} className="card p-5 border-2 border-sage-200">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div><label className="text-xs text-gray-500">Type</label>
+                            <select className="input text-sm mt-1" value={editRecordForm.type} onChange={e => setEditRecordForm(f => ({...f, type: e.target.value}))}>
+                              {['Consultation', 'Chirurgie', 'Traitement', 'Toilettage', 'Ostéopathie', 'Analyse', 'Autre'].map(t => <option key={t}>{t}</option>)}
+                            </select>
+                          </div>
+                          <div><label className="text-xs text-gray-500">Date *</label><input type="date" className="input text-sm mt-1" value={editRecordForm.date} onChange={e => setEditRecordForm(f => ({...f, date: e.target.value}))} /></div>
+                          <div className="col-span-2"><label className="text-xs text-gray-500">Titre *</label><input className="input text-sm mt-1" value={editRecordForm.title} onChange={e => setEditRecordForm(f => ({...f, title: e.target.value}))} /></div>
+                          <div><label className="text-xs text-gray-500">Professionnel</label><input className="input text-sm mt-1" value={editRecordForm.professional_name} onChange={e => setEditRecordForm(f => ({...f, professional_name: e.target.value}))} /></div>
+                          <div><label className="text-xs text-gray-500">Description</label><input className="input text-sm mt-1" value={editRecordForm.description} onChange={e => setEditRecordForm(f => ({...f, description: e.target.value}))} /></div>
+                        </div>
+                        <div className="flex gap-2 mt-3">
+                          <button onClick={submitEditRecord} disabled={updateRecord.isPending} className="btn-primary text-sm">
+                            {updateRecord.isPending ? 'Enregistrement...' : 'Enregistrer'}
+                          </button>
+                          <button onClick={() => setEditingRecordId(null)} className="btn-secondary text-sm">Annuler</button>
+                        </div>
+                      </div>
+                    )
+                  }
                   return (
                     <div key={r.id} className="card p-4 flex items-start gap-4">
                       <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-lg">{typeEmoji[r.type] ?? '📋'}</div>
@@ -497,6 +622,10 @@ export default function AnimalHealthPage() {
                         </div>
                         <p className="text-xs text-gray-500">{format(new Date(r.date), 'd MMM yyyy', { locale: fr })}{r.professional_name ? ` · ${r.professional_name}` : ''}</p>
                         {r.description && <p className="text-xs text-gray-400 mt-1">{r.description}</p>}
+                      </div>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <button onClick={() => startEditRecord(r)} className="text-xs text-sage-600 hover:underline">✏️</button>
+                        <button onClick={() => removeRecord(r)} disabled={deleteRecord.isPending} className="text-xs text-red-400 hover:underline">🗑️</button>
                       </div>
                     </div>
                   )

@@ -84,6 +84,7 @@ export interface Appointment {
   doctors?: Doctor & { profiles?: Profile }
   profiles?: Profile // profil du patient
   animals?: { id: string; name: string; species: string; avatar_url?: string }
+  reviews?: { id: string; rating: number; comment?: string }[]
 }
 
 export interface Review {

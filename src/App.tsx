@@ -10,6 +10,7 @@ import BookPage from '@/pages/BookPage'
 import LoginPage from '@/pages/LoginPage'
 import RegisterPage from '@/pages/RegisterPage'
 import ForgotPassword from '@/pages/ForgotPassword'
+import ResetPassword from '@/pages/ResetPassword'
 import PatientDashboard from '@/pages/PatientDashboard'
 import DoctorDashboard from '@/pages/DoctorDashboard'
 import AdminDashboard from '@/pages/AdminDashboard'
@@ -55,6 +56,7 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/book/:doctorId" element={
           <ProtectedRoute role="patient"><BookPage /></ProtectedRoute>
         } />

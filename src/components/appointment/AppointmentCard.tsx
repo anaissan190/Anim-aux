@@ -1,8 +1,9 @@
 // src/components/appointment/AppointmentCard.tsx
+import { useState } from 'react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { Link } from 'react-router-dom'
-import { useUpdateAppointmentStatus } from '@/hooks/useData'
+import { useUpdateAppointmentStatus, useCreateReview } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import type { Appointment, AppointmentStatus } from '@/types'
 
@@ -27,7 +28,29 @@ interface Props {
 export default function AppointmentCard({ appointment, showPatient }: Props) {
   const { user } = useAuthStore()
   const update = useUpdateAppointmentStatus()
+  const createReview = useCreateReview()
   const start = new Date(appointment.start_at)
+
+  const [showReviewForm, setShowReviewForm] = useState(false)
+  const [rating, setRating] = useState(5)
+  const [comment, setComment] = useState('')
+  const [reviewError, setReviewError] = useState('')
+  const existingReview = appointment.reviews?.[0]
+
+  async function submitReview() {
+    setReviewError('')
+    try {
+      await createReview.mutateAsync({
+        appointmentId: appointment.id,
+        doctorId: appointment.doctor_id,
+        rating,
+        comment: comment.trim() || undefined,
+      })
+      setShowReviewForm(false)
+    } catch (e: any) {
+      setReviewError(e.message ?? "Erreur lors de l'envoi de l'avis.")
+    }
+  }
 
   const name = showPatient
     ? `${appointment.profiles?.first_name ?? ''} ${appointment.profiles?.last_name ?? ''}`
@@ -60,6 +83,40 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
                 className="inline-flex items-center gap-1 text-xs text-sage-600 hover:underline mt-1">
                 🐾 Dossier de {appointment.animals.name}
               </Link>
+            )}
+
+            {/* Avis (patient uniquement, RDV terminé) */}
+            {!showPatient && appointment.status === 'completed' && (
+              existingReview ? (
+                <p className="text-xs text-amber-500 mt-1">
+                  {'★'.repeat(existingReview.rating)}{'☆'.repeat(5 - existingReview.rating)} Avis envoyé
+                </p>
+              ) : !showReviewForm ? (
+                <button onClick={() => setShowReviewForm(true)} className="text-xs text-sage-600 hover:underline mt-1">
+                  ⭐ Laisser un avis
+                </button>
+              ) : (
+                <div className="mt-2 p-3 bg-gray-50 rounded-xl">
+                  <div className="flex gap-1 mb-2">
+                    {[1, 2, 3, 4, 5].map(n => (
+                      <button key={n} type="button" onClick={() => setRating(n)}
+                        className={`text-lg leading-none ${n <= rating ? 'text-amber-400' : 'text-gray-300'}`}>
+                        ★
+                      </button>
+                    ))}
+                  </div>
+                  <textarea value={comment} onChange={e => setComment(e.target.value)}
+                    className="input text-sm resize-none" rows={2}
+                    placeholder="Votre commentaire (facultatif)..." />
+                  {reviewError && <p className="text-red-500 text-xs mt-1">{reviewError}</p>}
+                  <div className="flex gap-2 mt-2">
+                    <button onClick={submitReview} disabled={createReview.isPending} className="btn-primary text-xs px-3 py-1.5">
+                      {createReview.isPending ? 'Envoi...' : 'Envoyer'}
+                    </button>
+                    <button onClick={() => setShowReviewForm(false)} className="btn-secondary text-xs px-3 py-1.5">Annuler</button>
+                  </div>
+                </div>
+              )
             )}
           </div>
           <span className={STATUS_CLASSES[appointment.status]}>
