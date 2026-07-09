@@ -20,6 +20,7 @@ export default function PatientDashboard() {
     name: '', species: 'Chien', breed: '', gender: '', date_of_birth: '', microchip_number: '', avatar_url: ''
   })
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoUploading, setPhotoUploading] = useState(false)
   const [animalError, setAnimalError] = useState('')
 
@@ -33,19 +34,39 @@ export default function PatientDashboard() {
   async function uploadAnimalPhoto(file: File): Promise<string | null> {
     const ext = file.name.split('.').pop()
     const path = `animals/${Date.now()}.${ext}`
-    const { error } = await import('@/lib/supabase').then(m =>
-      m.supabase.storage.from('avatars').upload(path, file, { upsert: true })
+    const { supabase } = await import('@/lib/supabase')
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), 15000)
     )
+    const { error } = await Promise.race([
+      supabase.storage.from('avatars').upload(path, file, { upsert: true }),
+      timeout,
+    ])
     if (error) return null
-    const { data } = await import('@/lib/supabase').then(m =>
-      m.supabase.storage.from('avatars').getPublicUrl(path)
-    )
+    const { data } = supabase.storage.from('avatars').getPublicUrl(path)
     return data.publicUrl
   }
 
   async function submitAnimal() {
     if (!animalForm.name || !animalForm.species) return
     setAnimalError('')
+
+    // La photo n'est envoyée qu'au moment d'enregistrer (pas à la sélection),
+    // pour ne jamais bloquer l'utilisateur pendant qu'il remplit le formulaire.
+    let avatarUrl = animalForm.avatar_url || undefined
+    if (photoFile) {
+      setPhotoUploading(true)
+      try {
+        const url = await uploadAnimalPhoto(photoFile)
+        if (url) avatarUrl = url
+        else setAnimalError("La photo n'a pas pu être envoyée, l'animal a été enregistré sans elle.")
+      } catch {
+        setAnimalError("La photo n'a pas pu être envoyée, l'animal a été enregistré sans elle.")
+      } finally {
+        setPhotoUploading(false)
+      }
+    }
+
     try {
       await createAnimal.mutateAsync({
         ...animalForm,
@@ -56,10 +77,11 @@ export default function PatientDashboard() {
         gender: animalForm.gender || undefined,
         date_of_birth: animalForm.date_of_birth || undefined,
         microchip_number: animalForm.microchip_number || undefined,
-        avatar_url: animalForm.avatar_url || undefined,
+        avatar_url: avatarUrl,
       })
       setAnimalForm({ name: '', species: 'Chien', breed: '', gender: '', date_of_birth: '', microchip_number: '', avatar_url: '' })
       setPhotoPreview(null)
+      setPhotoFile(null)
       setShowAnimalForm(false)
     } catch (e: any) {
       setAnimalError(e.message ?? "Erreur lors de l'enregistrement de l'animal.")
@@ -101,31 +123,20 @@ export default function PatientDashboard() {
                 <div>
                   <label className="text-xs text-gray-500 block mb-1">Photo de profil</label>
                   <label className="cursor-pointer btn-secondary text-xs px-3 py-1.5 inline-block">
-                    {photoUploading ? 'Envoi...' : 'Choisir une photo'}
+                    Choisir une photo
                     <input type="file" accept="image/*" className="hidden"
-                      onChange={async e => {
+                      onChange={e => {
                         const file = e.target.files?.[0]
                         if (!file) return
+                        // Aperçu local instantané uniquement : la photo n'est
+                        // envoyée qu'à l'enregistrement (voir submitAnimal).
                         setPhotoPreview(URL.createObjectURL(file))
-                        setPhotoUploading(true)
+                        setPhotoFile(file)
                         setAnimalError('')
-                        try {
-                          const url = await uploadAnimalPhoto(file)
-                          if (url) {
-                            setAnimalForm(f => ({ ...f, avatar_url: url }))
-                          } else {
-                            setAnimalError("La photo n'a pas pu être envoyée, mais vous pouvez enregistrer l'animal sans elle.")
-                          }
-                        } catch {
-                          setAnimalError("La photo n'a pas pu être envoyée, mais vous pouvez enregistrer l'animal sans elle.")
-                        } finally {
-                          // Toujours débloquer le bouton "Enregistrer", même si l'envoi échoue
-                          setPhotoUploading(false)
-                        }
                       }} />
                   </label>
                   {photoPreview && (
-                    <button onClick={() => { setPhotoPreview(null); setAnimalForm(f => ({ ...f, avatar_url: '' })) }}
+                    <button onClick={() => { setPhotoPreview(null); setPhotoFile(null); setAnimalForm(f => ({ ...f, avatar_url: '' })) }}
                       className="text-xs text-red-400 hover:text-red-500 ml-2">Supprimer</button>
                   )}
                 </div>
@@ -193,9 +204,9 @@ export default function PatientDashboard() {
               <div className="flex gap-2 mt-4">
                 <button onClick={submitAnimal} disabled={createAnimal.isPending || photoUploading}
                   className="btn-primary text-sm">
-                  {createAnimal.isPending ? 'Enregistrement...' : 'Enregistrer'}
+                  {photoUploading ? 'Envoi de la photo...' : createAnimal.isPending ? 'Enregistrement...' : 'Enregistrer'}
                 </button>
-                <button onClick={() => { setShowAnimalForm(false); setPhotoPreview(null); setAnimalError('') }}
+                <button onClick={() => { setShowAnimalForm(false); setPhotoPreview(null); setPhotoFile(null); setAnimalError('') }}
                   className="btn-secondary text-sm">Annuler</button>
               </div>
             </div>
