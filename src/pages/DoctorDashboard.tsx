@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { format, startOfWeek, addDays, isSameDay, isThisWeek } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import Navbar from '@/components/ui/Navbar'
+import RichTextEditor from '@/components/ui/RichTextEditor'
 import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
@@ -903,8 +904,8 @@ export default function DoctorDashboard() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Bio / Présentation</label>
-                      <textarea className="input h-28 resize-none" value={profileForm.bio}
-                        onChange={e => setProfileForm(f => ({ ...f, bio: e.target.value }))}
+                      <RichTextEditor value={profileForm.bio}
+                        onChange={bio => setProfileForm(f => ({ ...f, bio }))}
                         placeholder="Décrivez votre activité, votre expérience..." />
                     </div>
                   </>

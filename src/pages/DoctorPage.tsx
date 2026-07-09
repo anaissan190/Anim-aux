@@ -4,6 +4,7 @@ import { useDoctor, useDoctorReviews } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import Navbar from '@/components/ui/Navbar'
 import StarRating from '@/components/ui/StarRating'
+import { sanitizeHtml } from '@/lib/sanitizeHtml'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
@@ -72,7 +73,10 @@ export default function DoctorPage() {
             {doctor.bio && (
               <div className="card p-6">
                 <h2 className="font-semibold text-gray-900 mb-3">À propos</h2>
-                <p className="text-gray-600 text-sm leading-relaxed">{doctor.bio}</p>
+                <div
+                  className="text-gray-600 text-sm leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-2"
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(doctor.bio) }}
+                />
               </div>
             )}
 

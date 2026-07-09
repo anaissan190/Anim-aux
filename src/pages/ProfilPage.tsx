@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/lib/authStore'
 import { useCurrentDoctor, useUpdateProfile, useUpdateDoctor } from '@/hooks/useData'
+import RichTextEditor from '@/components/ui/RichTextEditor'
 
 export default function ProfilPage() {
   const navigate = useNavigate()
@@ -137,7 +138,7 @@ export default function ProfilPage() {
               </div>
               <div style={{ marginBottom: '14px' }}>
                 <label style={labelStyle}>Bio / Présentation</label>
-                <textarea value={bio} onChange={e => setBio(e.target.value)} style={{ ...inputStyle, resize: 'vertical', minHeight: '90px' }} placeholder="Décris ton activité, ton expérience…" />
+                <RichTextEditor value={bio} onChange={setBio} placeholder="Décris ton activité, ton expérience…" />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
                 <div>
