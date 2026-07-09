@@ -191,7 +191,7 @@ export function useCreateAppointment() {
     }) => {
       const { data: appt, error } = await supabase
         .from('appointments')
-        .insert({ ...data, patient_id: user!.id, status: 'pending' })
+        .insert({ ...data, patient_id: user!.id, status: 'confirmed' })
         .select()
         .single()
       if (error) throw error
