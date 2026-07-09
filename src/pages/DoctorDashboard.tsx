@@ -7,7 +7,7 @@ import Navbar from '@/components/ui/Navbar'
 import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
-import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useUpdateClinic, useConversation, useSendMessage, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability } from '@/hooks/useData'
+import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useUpdateClinic, useConversation, useSendMessage, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useUpdateProfile, useUpdateDoctor } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { PRACTITIONER_TYPES, getPractitionerType } from '@/lib/practitionerTypes'
 import { SPECIES_EMOJI } from '@/lib/animalSpecies'
@@ -40,6 +40,14 @@ export default function DoctorDashboard() {
   const [showAddSlot, setShowAddSlot] = useState(false)
   const [slotForm, setSlotForm] = useState({ day_of_week: 1, start_time: '09:00', end_time: '18:00' })
   const [slotError, setSlotError] = useState('')
+
+  const updateProfile = useUpdateProfile()
+  const updateDoctorInfo = useUpdateDoctor()
+  const [profileForm, setProfileForm] = useState({
+    first_name: '', last_name: '', specialty: '', city: '', address: '', bio: '', phone: '',
+  })
+  const [profileError, setProfileError] = useState('')
+  const [profileSaved, setProfileSaved] = useState(false)
   const { data: clinic }              = useMyClinic(doctor?.id)
   const { data: clinicMembers = [] }  = useClinicMembers(clinic?.id)
   const { data: clinicAppts = [] }    = useClinicAppointments(clinic?.id)
@@ -51,6 +59,43 @@ export default function DoctorDashboard() {
   const updateClinic      = useUpdateClinic()
   const { user } = useAuthStore()
   const isClinicAdmin = clinic?.owner_id === user?.id
+
+  // Préremplit le formulaire "Mon profil" une fois le profil/praticien chargés
+  useEffect(() => {
+    setProfileForm({
+      first_name: profile?.first_name ?? '',
+      last_name: profile?.last_name ?? '',
+      specialty: doctor?.specialty ?? '',
+      city: doctor?.city ?? '',
+      address: doctor?.address ?? '',
+      bio: doctor?.bio ?? '',
+      phone: profile?.phone ?? '',
+    })
+  }, [profile, doctor])
+
+  async function submitProfile() {
+    setProfileError('')
+    setProfileSaved(false)
+    try {
+      await Promise.all([
+        updateProfile.mutateAsync({
+          first_name: profileForm.first_name,
+          last_name: profileForm.last_name,
+          phone: profileForm.phone,
+        }),
+        updateDoctorInfo.mutateAsync({
+          specialty: profileForm.specialty,
+          city: profileForm.city,
+          address: profileForm.address,
+          bio: profileForm.bio,
+        }),
+      ])
+      setProfileSaved(true)
+      setTimeout(() => setProfileSaved(false), 3000)
+    } catch (e: any) {
+      setProfileError(e.message ?? "Erreur lors de l'enregistrement.")
+    }
+  }
 
   const [tab, setTab] = useState<Tab>('home')
   const [apptTab, setApptTab] = useState<'today' | 'week' | 'all'>('today')
@@ -820,41 +865,52 @@ export default function DoctorDashboard() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Prénom</label>
-                    <input className="input" defaultValue={profile?.first_name ?? ''} />
+                    <input className="input" value={profileForm.first_name}
+                      onChange={e => setProfileForm(f => ({ ...f, first_name: e.target.value }))} />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
-                    <input className="input" defaultValue={profile?.last_name ?? ''} />
+                    <input className="input" value={profileForm.last_name}
+                      onChange={e => setProfileForm(f => ({ ...f, last_name: e.target.value }))} />
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Spécialité / Métier</label>
-                  <input className="input" defaultValue={doctor?.specialty ?? ''} />
+                  <input className="input" value={profileForm.specialty}
+                    onChange={e => setProfileForm(f => ({ ...f, specialty: e.target.value }))} />
                 </div>
                 {!clinic && (
                   <>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Ville</label>
-                        <input className="input" defaultValue={doctor?.city ?? ''} />
+                        <input className="input" value={profileForm.city}
+                          onChange={e => setProfileForm(f => ({ ...f, city: e.target.value }))} />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
-                        <input className="input" defaultValue={doctor?.address ?? ''} />
+                        <input className="input" value={profileForm.address}
+                          onChange={e => setProfileForm(f => ({ ...f, address: e.target.value }))} />
                       </div>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Bio / Présentation</label>
-                      <textarea className="input h-28 resize-none" defaultValue={doctor?.bio ?? ''}
+                      <textarea className="input h-28 resize-none" value={profileForm.bio}
+                        onChange={e => setProfileForm(f => ({ ...f, bio: e.target.value }))}
                         placeholder="Décrivez votre activité, votre expérience..." />
                     </div>
                   </>
                 )}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
-                  <input className="input" defaultValue={profile?.phone ?? ''} />
+                  <input className="input" value={profileForm.phone}
+                    onChange={e => setProfileForm(f => ({ ...f, phone: e.target.value }))} />
                 </div>
-                <button className="btn-primary w-full">Enregistrer mes informations</button>
+                {profileError && <p className="text-red-500 text-sm">{profileError}</p>}
+                {profileSaved && <p className="text-sage-600 text-sm">✓ Informations enregistrées.</p>}
+                <button onClick={submitProfile} disabled={updateProfile.isPending || updateDoctorInfo.isPending} className="btn-primary w-full">
+                  {(updateProfile.isPending || updateDoctorInfo.isPending) ? 'Enregistrement...' : 'Enregistrer mes informations'}
+                </button>
               </div>
             </div>
           </div>
