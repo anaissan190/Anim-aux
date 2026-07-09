@@ -1,7 +1,7 @@
 // src/pages/AnimalHealthPage.tsx
 import { useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import Navbar from '@/components/ui/Navbar'
@@ -14,14 +14,16 @@ import {
   useCreateWeight,
   useCreateHealthRecord,
   useUpdateAnimal,
+  useDeleteAnimal,
   useAnimalOwner,
 } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { supabase } from '@/lib/supabase'
-import { SPECIES_EMOJI, SPECIES_MAX_WEIGHT } from '@/lib/animalSpecies'
+import { SPECIES_GROUPS, SPECIES_EMOJI, SPECIES_MAX_WEIGHT, BREED_PLACEHOLDER } from '@/lib/animalSpecies'
 
 export default function AnimalHealthPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const { user, profile } = useAuthStore()
   const isDoctor = user?.role === 'doctor'
   const { data: animal, isLoading } = useAnimal(id!)
@@ -36,7 +38,53 @@ export default function AnimalHealthPage() {
   const createWeight  = useCreateWeight()
   const createRecord  = useCreateHealthRecord()
   const updateAnimal  = useUpdateAnimal()
+  const deleteAnimal  = useDeleteAnimal()
   const [photoUploading, setPhotoUploading] = useState(false)
+
+  const [showEditForm, setShowEditForm] = useState(false)
+  const [editForm, setEditForm] = useState({
+    name: '', species: 'Chien', breed: '', gender: '', date_of_birth: '', microchip_number: ''
+  })
+  const [editError, setEditError] = useState('')
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
+  function openEditForm() {
+    if (!animal) return
+    setEditForm({
+      name: animal.name ?? '',
+      species: animal.species ?? 'Chien',
+      breed: animal.breed ?? '',
+      gender: animal.gender ?? '',
+      date_of_birth: animal.date_of_birth ?? '',
+      microchip_number: animal.microchip_number ?? '',
+    })
+    setEditError('')
+    setShowEditForm(true)
+  }
+
+  async function submitEdit() {
+    if (!editForm.name || !editForm.species) return
+    setEditError('')
+    try {
+      await updateAnimal.mutateAsync({
+        id: id!,
+        name: editForm.name,
+        species: editForm.species,
+        breed: editForm.breed || undefined,
+        gender: editForm.gender || undefined,
+        date_of_birth: editForm.date_of_birth || undefined,
+        microchip_number: editForm.microchip_number || undefined,
+      })
+      setShowEditForm(false)
+    } catch (e: any) {
+      setEditError(e.message ?? "Erreur lors de l'enregistrement.")
+    }
+  }
+
+  async function handleDelete() {
+    await deleteAnimal.mutateAsync(id!)
+    navigate('/dashboard/patient')
+  }
 
   async function handlePhotoUpload(file: File) {
     setPhotoUploading(true)
@@ -130,9 +178,85 @@ export default function AnimalHealthPage() {
             {isDoctor && owner && (
               <p className="text-xs text-sage-600 mt-2">👤 Propriétaire : {owner.first_name} {owner.last_name}</p>
             )}
+            {!isDoctor && (
+              <div className="flex gap-3 mt-2">
+                <button onClick={openEditForm} className="text-xs text-sage-600 hover:underline">✏️ Modifier</button>
+                {!confirmDelete ? (
+                  <button onClick={() => setConfirmDelete(true)} className="text-xs text-red-400 hover:underline">🗑️ Supprimer</button>
+                ) : (
+                  <span className="text-xs text-red-500 flex items-center gap-2">
+                    Confirmer la suppression ?
+                    <button onClick={handleDelete} disabled={deleteAnimal.isPending} className="underline font-medium">
+                      {deleteAnimal.isPending ? 'Suppression...' : 'Oui'}
+                    </button>
+                    <button onClick={() => setConfirmDelete(false)} className="underline text-gray-400">Annuler</button>
+                  </span>
+                )}
+              </div>
+            )}
           </div>
           <Link to={isDoctor ? '/dashboard/doctor' : '/dashboard/patient'} className="text-sm text-gray-500 hover:text-gray-700">← Retour</Link>
         </div>
+
+        {!isDoctor && showEditForm && (
+          <div className="card p-5 mb-6 border-2 border-sage-200">
+            <h3 className="font-semibold text-sm mb-4">Modifier {animal.name}</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-gray-500">Nom *</label>
+                <input className="input text-sm mt-1" value={editForm.name}
+                  onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500">Espèce *</label>
+                <select className="input text-sm mt-1" value={editForm.species}
+                  onChange={e => setEditForm(f => ({ ...f, species: e.target.value, breed: '' }))}>
+                  {SPECIES_GROUPS.map(g => (
+                    <optgroup key={g.group} label={g.group}>
+                      {g.species.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
+                    </optgroup>
+                  ))}
+                  <optgroup label="Autre">
+                    <option value="Autre">Autre</option>
+                  </optgroup>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500">Race</label>
+                <input className="input text-sm mt-1" value={editForm.breed}
+                  onChange={e => setEditForm(f => ({ ...f, breed: e.target.value }))}
+                  placeholder={BREED_PLACEHOLDER[editForm.species] ?? 'Ex: ...'} />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500">Genre</label>
+                <select className="input text-sm mt-1" value={editForm.gender}
+                  onChange={e => setEditForm(f => ({ ...f, gender: e.target.value }))}>
+                  <option value="">Non renseigné</option>
+                  <option>Mâle</option>
+                  <option>Femelle</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500">Date de naissance</label>
+                <input type="date" className="input text-sm mt-1" value={editForm.date_of_birth}
+                  onChange={e => setEditForm(f => ({ ...f, date_of_birth: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500">N° puce électronique</label>
+                <input className="input text-sm mt-1" value={editForm.microchip_number}
+                  onChange={e => setEditForm(f => ({ ...f, microchip_number: e.target.value }))}
+                  placeholder="Ex: 250268500000000" />
+              </div>
+            </div>
+            {editError && <p className="text-red-500 text-sm mt-3">{editError}</p>}
+            <div className="flex gap-2 mt-4">
+              <button onClick={submitEdit} disabled={updateAnimal.isPending} className="btn-primary text-sm">
+                {updateAnimal.isPending ? 'Enregistrement...' : 'Enregistrer'}
+              </button>
+              <button onClick={() => setShowEditForm(false)} className="btn-secondary text-sm">Annuler</button>
+            </div>
+          </div>
+        )}
 
         <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-6 w-fit">
           {([['overview', '📋 Résumé'], ['vaccines', '💉 Vaccins'], ['weight', '⚖️ Poids'], ['records', '📁 Dossier']] as const).map(([t, label]) => (
