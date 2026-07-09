@@ -12,6 +12,8 @@ import {
   useHealthRecords,
   useCreateVaccine,
   useCreateWeight,
+  useUpdateWeight,
+  useDeleteWeight,
   useCreateHealthRecord,
   useUpdateAnimal,
   useDeleteAnimal,
@@ -36,6 +38,8 @@ export default function AnimalHealthPage() {
 
   const createVaccine = useCreateVaccine()
   const createWeight  = useCreateWeight()
+  const updateWeight  = useUpdateWeight()
+  const deleteWeight  = useDeleteWeight()
   const createRecord  = useCreateHealthRecord()
   const updateAnimal  = useUpdateAnimal()
   const deleteAnimal  = useDeleteAnimal()
@@ -105,6 +109,10 @@ export default function AnimalHealthPage() {
   const [weightForm, setWeightForm] = useState({ weight_kg: '', measured_at: '', notes: '' })
   const [recordForm, setRecordForm] = useState({ date: '', type: 'Consultation', title: '', description: '', professional_name: '' })
 
+  const [editingWeightId, setEditingWeightId] = useState<string | null>(null)
+  const [editWeightForm, setEditWeightForm] = useState({ weight_kg: '', measured_at: '', notes: '' })
+  const [weightError, setWeightError] = useState('')
+
   // Pré-remplit le nom du praticien connecté dans les formulaires
   useEffect(() => {
     if (!isDoctor || !doctorName) return
@@ -132,6 +140,38 @@ export default function AnimalHealthPage() {
     await createWeight.mutateAsync({ animal_id: id!, weight_kg: parseFloat(weightForm.weight_kg), measured_at: weightForm.measured_at, notes: weightForm.notes })
     setWeightForm({ weight_kg: '', measured_at: '', notes: '' })
     setShowWeightForm(false)
+  }
+
+  function startEditWeight(w: any) {
+    setEditingWeightId(w.id)
+    setEditWeightForm({ weight_kg: String(w.weight_kg), measured_at: w.measured_at, notes: w.notes ?? '' })
+    setWeightError('')
+  }
+
+  async function submitEditWeight() {
+    if (!editingWeightId || !editWeightForm.weight_kg || !editWeightForm.measured_at) return
+    setWeightError('')
+    try {
+      await updateWeight.mutateAsync({
+        id: editingWeightId,
+        animal_id: id!,
+        weight_kg: parseFloat(editWeightForm.weight_kg),
+        measured_at: editWeightForm.measured_at,
+        notes: editWeightForm.notes,
+      })
+      setEditingWeightId(null)
+    } catch (e: any) {
+      setWeightError(e.message ?? "Erreur lors de l'enregistrement.")
+    }
+  }
+
+  async function removeWeight(w: any) {
+    setWeightError('')
+    try {
+      await deleteWeight.mutateAsync({ id: w.id, animal_id: id! })
+    } catch (e: any) {
+      setWeightError(e.message ?? "Erreur lors de la suppression.")
+    }
   }
 
   async function submitRecord() {
@@ -367,17 +407,51 @@ export default function AnimalHealthPage() {
               </div>
             )}
 
+            {weightError && <p className="text-red-500 text-sm mb-3">{weightError}</p>}
+
             {weights.length === 0
               ? <div className="card p-10 text-center"><p className="text-gray-400 text-sm">Aucune mesure enregistrée.</p></div>
               : <div className="space-y-3">{[...weights].reverse().map((w, i) => (
-                  <div key={w.id} className="card p-4 flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-lg">⚖️</div>
-                    <div className="flex-1">
-                      <p className="font-semibold text-sm text-gray-900">{w.weight_kg} kg</p>
-                      <p className="text-xs text-gray-500">{format(new Date(w.measured_at), 'd MMM yyyy', { locale: fr })}{w.notes ? ` · ${w.notes}` : ''}</p>
+                  editingWeightId === w.id ? (
+                    <div key={w.id} className="card p-4 border-2 border-sage-200">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-gray-500">Poids (kg) *</label>
+                          <input type="number" step="0.1" className="input text-sm mt-1" value={editWeightForm.weight_kg}
+                            onChange={e => setEditWeightForm(f => ({ ...f, weight_kg: e.target.value }))} />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500">Date *</label>
+                          <input type="date" className="input text-sm mt-1" value={editWeightForm.measured_at}
+                            onChange={e => setEditWeightForm(f => ({ ...f, measured_at: e.target.value }))} />
+                        </div>
+                        <div className="col-span-2">
+                          <label className="text-xs text-gray-500">Notes</label>
+                          <input className="input text-sm mt-1" value={editWeightForm.notes}
+                            onChange={e => setEditWeightForm(f => ({ ...f, notes: e.target.value }))} />
+                        </div>
+                      </div>
+                      <div className="flex gap-2 mt-3">
+                        <button onClick={submitEditWeight} disabled={updateWeight.isPending} className="btn-primary text-sm">
+                          {updateWeight.isPending ? 'Enregistrement...' : 'Enregistrer'}
+                        </button>
+                        <button onClick={() => setEditingWeightId(null)} className="btn-secondary text-sm">Annuler</button>
+                      </div>
                     </div>
-                    {i === 0 && <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">Dernier</span>}
-                  </div>
+                  ) : (
+                    <div key={w.id} className="card p-4 flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-lg">⚖️</div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-sm text-gray-900">{w.weight_kg} kg</p>
+                        <p className="text-xs text-gray-500">{format(new Date(w.measured_at), 'd MMM yyyy', { locale: fr })}{w.notes ? ` · ${w.notes}` : ''}</p>
+                      </div>
+                      {i === 0 && <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">Dernier</span>}
+                      <div className="flex gap-2 flex-shrink-0">
+                        <button onClick={() => startEditWeight(w)} className="text-xs text-sage-600 hover:underline">✏️</button>
+                        <button onClick={() => removeWeight(w)} disabled={deleteWeight.isPending} className="text-xs text-red-400 hover:underline">🗑️</button>
+                      </div>
+                    </div>
+                  )
                 ))}</div>
             }
           </div>

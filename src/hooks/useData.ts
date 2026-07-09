@@ -519,6 +519,35 @@ export function useCreateWeight() {
   })
 }
 
+export function useUpdateWeight() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, animal_id, ...updates }: {
+      id: string
+      animal_id: string
+      weight_kg?: number
+      measured_at?: string
+      notes?: string
+    }) => {
+      const { error } = await supabase.from('weight_tracking').update(updates).eq('id', id)
+      if (error) throw error
+      return animal_id
+    },
+    onSuccess: (animalId) => qc.invalidateQueries({ queryKey: ['weight', animalId] }),
+  })
+}
+
+export function useDeleteWeight() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id }: { id: string; animal_id: string }) => {
+      const { error } = await supabase.from('weight_tracking').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['weight', vars.animal_id] }),
+  })
+}
+
 export function useHealthRecords(animalId: string) {
   return useQuery({
     queryKey: ['health_records', animalId],
