@@ -414,6 +414,7 @@ export function useCreateAnimal() {
       gender?: string
       weight_kg?: number
       microchip_number?: string
+      avatar_url?: string
     }) => {
       const { data, error } = await supabase
         .from('animals')

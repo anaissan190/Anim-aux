@@ -21,6 +21,7 @@ export default function PatientDashboard() {
   })
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [photoUploading, setPhotoUploading] = useState(false)
+  const [animalError, setAnimalError] = useState('')
 
   const upcoming = appointments.filter(a => isFuture(new Date(a.start_at)) && a.status !== 'cancelled')
   const past = appointments.filter(a => isPast(new Date(a.start_at)) || a.status === 'cancelled')
@@ -44,10 +45,25 @@ export default function PatientDashboard() {
 
   async function submitAnimal() {
     if (!animalForm.name || !animalForm.species) return
-    await createAnimal.mutateAsync(animalForm)
-    setAnimalForm({ name: '', species: 'Chien', breed: '', gender: '', date_of_birth: '', microchip_number: '', avatar_url: '' })
-    setPhotoPreview(null)
-    setShowAnimalForm(false)
+    setAnimalError('')
+    try {
+      await createAnimal.mutateAsync({
+        ...animalForm,
+        // Les champs facultatifs vides doivent partir en NULL, pas en chaîne
+        // vide : une chaîne vide peut heurter une contrainte d'unicité ou de
+        // format sur microchip_number et faire échouer l'enregistrement.
+        breed: animalForm.breed || undefined,
+        gender: animalForm.gender || undefined,
+        date_of_birth: animalForm.date_of_birth || undefined,
+        microchip_number: animalForm.microchip_number || undefined,
+        avatar_url: animalForm.avatar_url || undefined,
+      })
+      setAnimalForm({ name: '', species: 'Chien', breed: '', gender: '', date_of_birth: '', microchip_number: '', avatar_url: '' })
+      setPhotoPreview(null)
+      setShowAnimalForm(false)
+    } catch (e: any) {
+      setAnimalError(e.message ?? "Erreur lors de l'enregistrement de l'animal.")
+    }
   }
 
   return (
@@ -92,9 +108,20 @@ export default function PatientDashboard() {
                         if (!file) return
                         setPhotoPreview(URL.createObjectURL(file))
                         setPhotoUploading(true)
-                        const url = await uploadAnimalPhoto(file)
-                        if (url) setAnimalForm(f => ({ ...f, avatar_url: url }))
-                        setPhotoUploading(false)
+                        setAnimalError('')
+                        try {
+                          const url = await uploadAnimalPhoto(file)
+                          if (url) {
+                            setAnimalForm(f => ({ ...f, avatar_url: url }))
+                          } else {
+                            setAnimalError("La photo n'a pas pu être envoyée, mais vous pouvez enregistrer l'animal sans elle.")
+                          }
+                        } catch {
+                          setAnimalError("La photo n'a pas pu être envoyée, mais vous pouvez enregistrer l'animal sans elle.")
+                        } finally {
+                          // Toujours débloquer le bouton "Enregistrer", même si l'envoi échoue
+                          setPhotoUploading(false)
+                        }
                       }} />
                   </label>
                   {photoPreview && (
@@ -160,12 +187,15 @@ export default function PatientDashboard() {
                     placeholder="Ex: 250268500000000" />
                 </div>
               </div>
+              {animalError && (
+                <p className="text-red-500 text-sm mt-3">{animalError}</p>
+              )}
               <div className="flex gap-2 mt-4">
                 <button onClick={submitAnimal} disabled={createAnimal.isPending || photoUploading}
                   className="btn-primary text-sm">
                   {createAnimal.isPending ? 'Enregistrement...' : 'Enregistrer'}
                 </button>
-                <button onClick={() => { setShowAnimalForm(false); setPhotoPreview(null) }}
+                <button onClick={() => { setShowAnimalForm(false); setPhotoPreview(null); setAnimalError('') }}
                   className="btn-secondary text-sm">Annuler</button>
               </div>
             </div>
