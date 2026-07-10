@@ -292,24 +292,45 @@ export function useCreateReview() {
   const { user } = useAuthStore()
   return useMutation({
     mutationFn: async ({ appointmentId, doctorId, rating, comment }: {
-      appointmentId: string
+      appointmentId?: string
       doctorId: string
       rating: number
       comment?: string
     }) => {
-      const { error } = await supabase.from('reviews').insert({
+      // Un avis par (patient, praticien) : un nouvel envoi met à jour l'avis
+      // existant au lieu d'en créer un second (indépendant de tout RDV précis).
+      const { error } = await supabase.from('reviews').upsert({
         appointment_id: appointmentId,
         doctor_id: doctorId,
         patient_id: user!.id,
         rating,
         comment: comment || undefined,
-      })
+      }, { onConflict: 'patient_id,doctor_id' })
       if (error) throw error
     },
-    onSuccess: () => {
+    onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ['appointments'] })
       qc.invalidateQueries({ queryKey: ['reviews'] })
+      qc.invalidateQueries({ queryKey: ['my-review', vars.doctorId] })
     },
+  })
+}
+
+export function useMyReviewForDoctor(doctorId: string) {
+  const { user } = useAuthStore()
+  return useQuery({
+    queryKey: ['my-review', doctorId, user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('reviews')
+        .select('*')
+        .eq('doctor_id', doctorId)
+        .eq('patient_id', user!.id)
+        .maybeSingle()
+      if (error) throw error
+      return data
+    },
+    enabled: !!doctorId && !!user && user.role === 'patient',
   })
 }
 

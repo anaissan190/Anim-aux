@@ -794,8 +794,11 @@ export default function DoctorDashboard() {
                               <span className={`text-xs px-2 py-0.5 rounded-full font-medium
                                 ${a.status === 'confirmed' ? 'bg-green-100 text-green-700' :
                                   a.status === 'pending'   ? 'bg-amber-100 text-amber-700' :
+                                  a.status === 'cancelled' || a.status === 'no_show' ? 'bg-red-100 text-red-700' :
                                   'bg-gray-100 text-gray-500'}`}>
-                                {a.status === 'confirmed' ? 'Confirmé' : a.status === 'pending' ? 'En attente' : a.status}
+                                {a.status === 'confirmed' ? 'Confirmé' : a.status === 'pending' ? 'En attente' :
+                                  a.status === 'completed' ? 'Terminé' : a.status === 'no_show' ? 'Absent(e)' :
+                                  a.status === 'cancelled' ? 'Annulé' : a.status}
                               </span>
                             </div>
                           ))}
