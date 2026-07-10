@@ -50,10 +50,14 @@ export default function MessagesPage() {
     c.name.toLowerCase().includes(contactSearch.trim().toLowerCase())
   )
 
-  function handleDeleteConversation(otherUserId: string) {
-    deleteConversation.mutate(otherUserId)
-    if (selectedUserId === otherUserId) setSelectedUserId(null)
-    setConfirmDeleteId(null)
+  async function handleDeleteConversation(otherUserId: string) {
+    try {
+      await deleteConversation.mutateAsync(otherUserId)
+      if (selectedUserId === otherUserId) setSelectedUserId(null)
+      setConfirmDeleteId(null)
+    } catch (e: any) {
+      alert("Erreur lors de la suppression : " + (e?.message ?? 'inconnue'))
+    }
   }
 
   // Marque la conversation comme lue dès qu'on l'ouvre
@@ -128,15 +132,13 @@ export default function MessagesPage() {
         <aside className="w-64 flex-shrink-0 card overflow-y-auto">
           <div className="p-3 border-b border-gray-100">
             <p className="text-sm font-semibold text-gray-900 mb-2">Conversations</p>
-            {sortedContacts.length > 0 && (
-              <input
-                type="text"
-                value={contactSearch}
-                onChange={e => setContactSearch(e.target.value)}
-                placeholder="Rechercher..."
-                className="input text-xs py-1.5"
-              />
-            )}
+            <input
+              type="text"
+              value={contactSearch}
+              onChange={e => setContactSearch(e.target.value)}
+              placeholder="Rechercher..."
+              className="input text-xs py-1.5"
+            />
           </div>
           {sortedContacts.length === 0 ? (
             <p className="text-xs text-gray-400 p-4 text-center">Aucune conversation — prenez un RDV pour commencer à échanger.</p>

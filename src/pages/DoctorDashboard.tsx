@@ -176,10 +176,14 @@ export default function DoctorDashboard() {
     return patientAnimals.some((a: any) => a.owner_id === c.user_id && a.name?.toLowerCase().includes(q))
   })
 
-  function handleDeleteConversation(otherUserId: string) {
-    deleteConversation.mutate(otherUserId)
-    if (selectedUserId === otherUserId) setSelectedUserId(null)
-    setConfirmDeleteConvId(null)
+  async function handleDeleteConversation(otherUserId: string) {
+    try {
+      await deleteConversation.mutateAsync(otherUserId)
+      if (selectedUserId === otherUserId) setSelectedUserId(null)
+      setConfirmDeleteConvId(null)
+    } catch (e: any) {
+      alert("Erreur lors de la suppression : " + (e?.message ?? 'inconnue'))
+    }
   }
 
   useEffect(() => {
@@ -1173,17 +1177,15 @@ export default function DoctorDashboard() {
                 </div>
               )}
 
-              {sortedContacts.length > 0 && (
-                <div className="p-3 border-b border-gray-100">
-                  <input
-                    type="text"
-                    value={messageSearch}
-                    onChange={e => setMessageSearch(e.target.value)}
-                    placeholder="Chercher par nom (patient ou animal)..."
-                    className="input text-xs py-1.5"
-                  />
-                </div>
-              )}
+              <div className="p-3 border-b border-gray-100">
+                <input
+                  type="text"
+                  value={messageSearch}
+                  onChange={e => setMessageSearch(e.target.value)}
+                  placeholder="Chercher par nom (patient ou animal)..."
+                  className="input text-xs py-1.5"
+                />
+              </div>
 
               <div className="flex-1 overflow-y-auto">
                 {sortedContacts.length === 0 ? (
