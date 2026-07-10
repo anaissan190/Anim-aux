@@ -15,15 +15,19 @@ import { SPECIES_EMOJI } from '@/lib/animalSpecies'
 
 type Tab = 'home' | 'patients' | 'tarifs' | 'disponibilites' | 'profil' | 'avis' | 'messages'
 
+// Onglets affichés dans la barre. "Mon profil" et "Messages" restent des
+// Tab valides (contenu inchangé, accessible via ?tab=...) mais ne sont plus
+// listés ici : ils sont désormais accessibles via les icônes à côté de la
+// cloche de notifications, dans la Navbar, pour désencombrer la barre.
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'home',           label: 'Accueil',         icon: '🏠' },
   { id: 'patients',       label: 'Mes patients',    icon: '🐾' },
   { id: 'tarifs',         label: 'Tarifs',           icon: '💰' },
   { id: 'disponibilites', label: 'Disponibilités',   icon: '🗓️' },
-  { id: 'profil',         label: 'Mon profil',       icon: '👤' },
   { id: 'avis',           label: 'Avis',             icon: '⭐' },
-  { id: 'messages',       label: 'Messages',         icon: '💬' },
 ]
+
+const ALL_TAB_IDS: Tab[] = ['home', 'patients', 'tarifs', 'disponibilites', 'profil', 'avis', 'messages']
 
 
 const DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
@@ -122,7 +126,7 @@ export default function DoctorDashboard() {
   const [searchParams] = useSearchParams()
   const initialTab = searchParams.get('tab')
   const [tab, setTab] = useState<Tab>(
-    TABS.some(t => t.id === initialTab) ? (initialTab as Tab) : 'home'
+    ALL_TAB_IDS.includes(initialTab as Tab) ? (initialTab as Tab) : 'home'
   )
   const [apptTab, setApptTab] = useState<'today' | 'week' | 'all'>('today')
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }))

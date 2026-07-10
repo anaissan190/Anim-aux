@@ -35,6 +35,21 @@ export default function Navbar() {
         <div className="flex items-center gap-3">
           {user ? (
             <>
+              {/* Praticien : accès rapide Messages / Profil sous forme
+                  d'icônes à côté de la cloche, pour libérer de la place
+                  dans la barre d'onglets du dashboard. */}
+              {user.role === 'doctor' && (
+                <>
+                  <Link to="/dashboard/doctor?tab=messages" title="Messages"
+                    className="p-2 rounded-xl hover:bg-gray-50 transition-colors text-lg leading-none">
+                    ✉️
+                  </Link>
+                  <Link to="/dashboard/doctor?tab=profil" title="Mon profil"
+                    className="p-2 rounded-xl hover:bg-gray-50 transition-colors text-lg leading-none">
+                    😊
+                  </Link>
+                </>
+              )}
               <NotificationBell />
               <div className="flex items-center gap-2">
                 <Link to="/profil" title="Mon profil" className="w-8 h-8 rounded-full bg-sage-100 flex items-center justify-center text-sage-700 font-medium text-sm hover:bg-sage-200 transition-colors">
