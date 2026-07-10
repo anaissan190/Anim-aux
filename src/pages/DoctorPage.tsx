@@ -1,7 +1,7 @@
 // src/pages/DoctorPage.tsx
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { useDoctor, useDoctorReviews, useMyReviewForDoctor, useCreateReview } from '@/hooks/useData'
+import { useDoctor, useDoctorReviews, useCreateReview } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import Navbar from '@/components/ui/Navbar'
 import StarRating from '@/components/ui/StarRating'
@@ -14,26 +14,23 @@ export default function DoctorPage() {
   const { user } = useAuthStore()
   const { data: doctor, isLoading } = useDoctor(id!)
   const { data: reviews = [] } = useDoctorReviews(id!)
-  const { data: myReview } = useMyReviewForDoctor(id!)
   const createReview = useCreateReview()
 
   const [showReviewForm, setShowReviewForm] = useState(false)
   const [rating, setRating] = useState(5)
   const [comment, setComment] = useState('')
   const [reviewError, setReviewError] = useState('')
-
-  useEffect(() => {
-    if (myReview) {
-      setRating(myReview.rating)
-      setComment(myReview.comment ?? '')
-    }
-  }, [myReview])
+  const [reviewSent, setReviewSent] = useState(false)
 
   async function submitReview() {
     setReviewError('')
     try {
       await createReview.mutateAsync({ doctorId: id!, rating, comment: comment.trim() || undefined })
       setShowReviewForm(false)
+      setRating(5)
+      setComment('')
+      setReviewSent(true)
+      setTimeout(() => setReviewSent(false), 4000)
     } catch (e: any) {
       setReviewError(e.message ?? "Erreur lors de l'envoi de l'avis.")
     }
@@ -123,25 +120,16 @@ export default function DoctorPage() {
                 Avis patients ({reviews.length})
               </h2>
 
-              {/* Laisser / modifier son avis : indépendant de tout RDV */}
+              {/* Laisser un avis : indépendant de tout RDV, sans limite */}
               {user?.role === 'patient' && (
                 <div className="mb-5 pb-5 border-b border-gray-100">
+                  {reviewSent && (
+                    <p className="text-sm text-green-600 font-medium mb-2">✓ Votre avis a bien été envoyé, merci !</p>
+                  )}
                   {!showReviewForm ? (
-                    myReview ? (
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm text-gray-600">
-                          <StarRating rating={myReview.rating} size="sm" /> Votre avis
-                          {myReview.comment && <span className="text-gray-400"> — {myReview.comment}</span>}
-                        </p>
-                        <button onClick={() => setShowReviewForm(true)} className="text-xs text-sage-600 hover:underline flex-shrink-0 ml-3">
-                          Modifier
-                        </button>
-                      </div>
-                    ) : (
-                      <button onClick={() => setShowReviewForm(true)} className="btn-secondary text-sm">
-                        ⭐ Laisser un avis
-                      </button>
-                    )
+                    <button onClick={() => setShowReviewForm(true)} className="btn-secondary text-sm">
+                      ⭐ Laisser un avis
+                    </button>
                   ) : (
                     <div className="p-3 bg-gray-50 rounded-xl">
                       <div className="flex gap-1 mb-2">
@@ -158,7 +146,7 @@ export default function DoctorPage() {
                       {reviewError && <p className="text-red-500 text-xs mt-1">{reviewError}</p>}
                       <div className="flex gap-2 mt-2">
                         <button onClick={submitReview} disabled={createReview.isPending} className="btn-primary text-xs px-3 py-1.5">
-                          {createReview.isPending ? 'Envoi...' : myReview ? 'Mettre à jour' : 'Envoyer'}
+                          {createReview.isPending ? 'Envoi...' : 'Envoyer'}
                         </button>
                         <button onClick={() => setShowReviewForm(false)} className="btn-secondary text-xs px-3 py-1.5">Annuler</button>
                       </div>

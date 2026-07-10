@@ -312,15 +312,15 @@ export function useCreateReview() {
       rating: number
       comment?: string
     }) => {
-      // Un avis par (patient, praticien) : un nouvel envoi met à jour l'avis
-      // existant au lieu d'en créer un second (indépendant de tout RDV précis).
-      const { error } = await supabase.from('reviews').upsert({
+      // Un patient peut laisser plusieurs avis sur un même praticien
+      // (indépendant de tout RDV précis) : simple insertion à chaque envoi.
+      const { error } = await supabase.from('reviews').insert({
         appointment_id: appointmentId,
         doctor_id: doctorId,
         patient_id: user!.id,
         rating,
         comment: comment || undefined,
-      }, { onConflict: 'patient_id,doctor_id' })
+      })
       if (error) throw error
     },
     onSuccess: (_, vars) => {
@@ -331,23 +331,6 @@ export function useCreateReview() {
   })
 }
 
-export function useMyReviewForDoctor(doctorId: string) {
-  const { user } = useAuthStore()
-  return useQuery({
-    queryKey: ['my-review', doctorId, user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('reviews')
-        .select('*')
-        .eq('doctor_id', doctorId)
-        .eq('patient_id', user!.id)
-        .maybeSingle()
-      if (error) throw error
-      return data
-    },
-    enabled: !!doctorId && !!user && user.role === 'patient',
-  })
-}
 
 export function useConversation(otherUserId: string) {
   const { user } = useAuthStore()
