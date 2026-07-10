@@ -265,7 +265,7 @@ export function useCreateAppointment() {
       end_at: string
       reason?: string
       animal_ids?: string[]
-      documents?: File[]
+      documents?: { file_name: string; file_url: string; file_type: string }[]
     }) => {
       const { animal_ids, documents, ...apptData } = data
       const { data: appt, error } = await supabase
@@ -283,23 +283,20 @@ export function useCreateAppointment() {
         if (linkError) throw linkError
       }
 
-      // Pièces jointes (documents/photos) fournies par le patient à la prise de RDV
+      // Pièces jointes (documents/photos) : déjà uploadées vers le storage au
+      // moment de la sélection (étape 2), il ne reste qu'à créer les lignes
+      // qui les lient à ce RDV.
       if (documents && documents.length > 0) {
-        for (const file of documents) {
-          const ext = file.name.split('.').pop()
-          const path = `appointments/${appt.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
-          const { error: uploadError } = await supabase.storage.from('documents').upload(path, file)
-          if (uploadError) throw uploadError
-          const { data: pub } = supabase.storage.from('documents').getPublicUrl(path)
-          const { error: docError } = await supabase.from('appointment_documents').insert({
+        const { error: docError } = await supabase.from('appointment_documents').insert(
+          documents.map(d => ({
             appointment_id: appt.id,
             uploaded_by: user!.id,
-            file_url: pub.publicUrl,
-            file_name: file.name,
-            file_type: file.type,
-          })
-          if (docError) throw docError
-        }
+            file_url: d.file_url,
+            file_name: d.file_name,
+            file_type: d.file_type,
+          }))
+        )
+        if (docError) throw docError
       }
 
       return appt

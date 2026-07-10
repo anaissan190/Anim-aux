@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useDoctor, useAnimals } from '@/hooks/useData'
 import { useCreateAppointment } from '@/hooks/useData'
+import { supabase } from '@/lib/supabase'
 import Navbar from '@/components/ui/Navbar'
 import AvailabilityCalendar from '@/components/appointment/AvailabilityCalendar'
 import { format, addMinutes } from 'date-fns'
@@ -23,11 +24,33 @@ export default function BookPage() {
   const [reason, setReason] = useState('')
   const [animalIds, setAnimalIds] = useState<string[]>([])
   const [animalSearch, setAnimalSearch] = useState('')
-  const [documents, setDocuments] = useState<File[]>([])
+  const [documents, setDocuments] = useState<{ file_name: string; file_url: string; file_type: string }[]>([])
+  const [docUploading, setDocUploading] = useState(false)
+  const [docError, setDocError] = useState('')
 
-  function addDocuments(files: FileList | null) {
-    if (!files) return
-    setDocuments(docs => [...docs, ...Array.from(files)])
+  // Envoi immédiat vers Supabase Storage dès la sélection (au lieu de garder
+  // les File[] en mémoire jusqu'à la confirmation finale) : on obtient une
+  // erreur claire tout de suite si l'upload échoue, plutôt qu'un échec
+  // silencieux plus tard, et l'état porté entre les étapes reste léger
+  // (juste l'URL/nom du fichier déjà envoyé).
+  async function addDocuments(files: FileList | null) {
+    if (!files || files.length === 0) return
+    setDocError('')
+    setDocUploading(true)
+    try {
+      for (const file of Array.from(files)) {
+        const ext = file.name.split('.').pop()
+        const path = `appointments/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+        const { error: uploadError } = await supabase.storage.from('documents').upload(path, file)
+        if (uploadError) throw uploadError
+        const { data: pub } = supabase.storage.from('documents').getPublicUrl(path)
+        setDocuments(docs => [...docs, { file_name: file.name, file_url: pub.publicUrl, file_type: file.type }])
+      }
+    } catch (e: any) {
+      setDocError(e.message ?? "Erreur lors de l'envoi du fichier.")
+    } finally {
+      setDocUploading(false)
+    }
   }
 
   function removeDocument(index: number) {
@@ -188,18 +211,20 @@ export default function BookPage() {
 
             <div className="mt-5">
               <p className="text-sm font-medium text-gray-700 mb-2">Documents ou photos à joindre (facultatif)</p>
-              <input type="file"
+              <input type="file" disabled={docUploading}
                 className="block w-full text-sm text-gray-600 cursor-pointer
                   file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0
                   file:bg-sage-500 file:text-white file:text-sm file:font-medium
-                  hover:file:bg-sage-600 file:cursor-pointer"
+                  hover:file:bg-sage-600 file:cursor-pointer disabled:opacity-50"
                 onChange={e => { addDocuments(e.target.files); e.target.value = '' }} />
+              {docUploading && <p className="text-xs text-sage-600 mt-2">Envoi en cours...</p>}
+              {docError && <p className="text-xs text-red-500 mt-2">{docError}</p>}
               {documents.length > 0 && (
                 <>
                   <ul className="mt-2 space-y-1">
-                    {documents.map((f, i) => (
+                    {documents.map((d, i) => (
                       <li key={i} className="flex items-center justify-between text-xs bg-gray-50 rounded-lg px-3 py-2">
-                        <span className="truncate">📄 {f.name}</span>
+                        <span className="truncate">📄 {d.file_name}</span>
                         <button type="button" onClick={() => removeDocument(i)}
                           className="text-red-400 hover:underline ml-2 flex-shrink-0">Retirer</button>
                       </li>
