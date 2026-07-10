@@ -178,7 +178,9 @@ export default function DoctorPage() {
                           {(r as any).profiles?.first_name?.[0] ?? '?'}
                         </div>
                         <span className="text-sm font-medium text-gray-700">
-                          {(r as any).profiles?.first_name ?? 'Patient anonyme'}
+                          {(r as any).profiles?.first_name
+                            ? `${(r as any).profiles.first_name}${(r as any).profiles.last_name ? ' ' + (r as any).profiles.last_name[0].toUpperCase() + '.' : ''}`
+                            : 'Patient anonyme'}
                         </span>
                         <StarRating rating={r.rating} size="sm" />
                         <span className="text-xs text-gray-400 ml-auto">
