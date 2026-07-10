@@ -48,7 +48,7 @@ export default function Navbar() {
                 {user.role === 'doctor' ? (
                   <Link to="/dashboard/doctor?tab=profil" title="Mon profil"
                     className="w-8 h-8 rounded-full bg-sage-100 flex items-center justify-center text-lg hover:bg-sage-200 transition-colors">
-                    😊
+                    👤
                   </Link>
                 ) : (
                   <Link to="/profil" title="Mon profil" className="w-8 h-8 rounded-full bg-sage-100 flex items-center justify-center text-sage-700 font-medium text-sm hover:bg-sage-200 transition-colors">

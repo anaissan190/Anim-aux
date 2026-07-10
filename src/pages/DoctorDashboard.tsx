@@ -1049,47 +1049,43 @@ export default function DoctorDashboard() {
         {tab === 'profil' && (
           <div className="max-w-2xl space-y-6">
 
-            {/* Profil du cabinet (si membre) */}
-            {clinic && (
+            {/* Profil du cabinet — réservé à l'admin (créateur) du cabinet.
+                Un simple membre n'a pas à voir cette section : il ne peut
+                de toute façon rien y modifier. */}
+            {clinic && isClinicAdmin && (
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between mb-5">
-                  <div>
-                    <h2 className="text-lg font-bold text-gray-900">Profil du cabinet</h2>
-                    <p className="text-sm text-gray-500 mt-0.5">Visible par les patients sur la fiche du cabinet</p>
-                  </div>
-                  {!isClinicAdmin && (
-                    <span className="text-xs bg-amber-100 text-amber-700 px-3 py-1 rounded-full">Modification réservée à l'admin</span>
-                  )}
+                <div className="mb-5">
+                  <h2 className="text-lg font-bold text-gray-900">Profil du cabinet</h2>
+                  <p className="text-sm text-gray-500 mt-0.5">Visible par les patients sur la fiche du cabinet</p>
                 </div>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Nom du cabinet</label>
-                    <input className="input" defaultValue={clinic.name}
-                      disabled={!isClinicAdmin}
-                      id="clinic-name" />
+                    <input className="input" defaultValue={clinic.name} id="clinic-name" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Ville</label>
-                      <input className="input" defaultValue={clinic.city ?? ''}
-                        disabled={!isClinicAdmin} id="clinic-city" />
+                      <input className="input" defaultValue={clinic.city ?? ''} id="clinic-city" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
-                      <input className="input" defaultValue={clinic.address ?? ''}
-                        disabled={!isClinicAdmin} id="clinic-address" />
+                      <input className="input" defaultValue={clinic.address ?? ''} id="clinic-address" />
                     </div>
                   </div>
-                  {isClinicAdmin && (
-                    <button onClick={async () => {
-                      const name    = (document.getElementById('clinic-name') as HTMLInputElement).value
-                      const city    = (document.getElementById('clinic-city') as HTMLInputElement).value
-                      const address = (document.getElementById('clinic-address') as HTMLInputElement).value
-                      await updateClinic.mutateAsync({ id: clinic.id, name, city, address })
-                    }} className="btn-primary w-full">
-                      {updateClinic.isPending ? 'Enregistrement...' : 'Enregistrer les modifications du cabinet'}
-                    </button>
-                  )}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone du cabinet</label>
+                    <input className="input" defaultValue={clinic.phone ?? ''} id="clinic-phone" />
+                  </div>
+                  <button onClick={async () => {
+                    const name    = (document.getElementById('clinic-name') as HTMLInputElement).value
+                    const city    = (document.getElementById('clinic-city') as HTMLInputElement).value
+                    const address = (document.getElementById('clinic-address') as HTMLInputElement).value
+                    const phone   = (document.getElementById('clinic-phone') as HTMLInputElement).value
+                    await updateClinic.mutateAsync({ id: clinic.id, name, city, address, phone })
+                  }} className="btn-primary w-full">
+                    {updateClinic.isPending ? 'Enregistrement...' : 'Enregistrer les modifications du cabinet'}
+                  </button>
                 </div>
               </div>
             )}
@@ -1125,27 +1121,28 @@ export default function DoctorDashboard() {
                     onChange={e => setProfileForm(f => ({ ...f, specialty: e.target.value }))} />
                 </div>
                 {!clinic && (
-                  <>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Ville</label>
-                        <input className="input" value={profileForm.city}
-                          onChange={e => setProfileForm(f => ({ ...f, city: e.target.value }))} />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
-                        <input className="input" value={profileForm.address}
-                          onChange={e => setProfileForm(f => ({ ...f, address: e.target.value }))} />
-                      </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Ville</label>
+                      <input className="input" value={profileForm.city}
+                        onChange={e => setProfileForm(f => ({ ...f, city: e.target.value }))} />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Bio / Présentation</label>
-                      <RichTextEditor value={profileForm.bio}
-                        onChange={bio => setProfileForm(f => ({ ...f, bio }))}
-                        placeholder="Décrivez votre activité, votre expérience..." />
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
+                      <input className="input" value={profileForm.address}
+                        onChange={e => setProfileForm(f => ({ ...f, address: e.target.value }))} />
                     </div>
-                  </>
+                  </div>
                 )}
+                {/* La bio reste éditable même pour un membre de cabinet — seules
+                    ville/adresse dépendent du cabinet, pas la présentation
+                    personnelle du praticien. */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Bio / Présentation</label>
+                  <RichTextEditor value={profileForm.bio}
+                    onChange={bio => setProfileForm(f => ({ ...f, bio }))}
+                    placeholder="Décrivez votre activité, votre expérience..." />
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
                   <input className="input" value={profileForm.phone}

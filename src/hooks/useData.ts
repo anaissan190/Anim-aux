@@ -824,7 +824,7 @@ export function useMyClinic(doctorId?: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('clinic_members')
-        .select('clinic_id, clinics(id, name, address, city, invite_code, owner_id)')
+        .select('clinic_id, clinics(id, name, address, city, phone, invite_code, owner_id)')
         .eq('doctor_id', doctorId!)
         .single()
       if (error) return null
@@ -843,7 +843,7 @@ export function useDoctorPublicClinic(doctorId?: string) {
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_doctor_clinic', { p_doctor_id: doctorId })
       if (error) throw error
-      return (data?.[0] ?? null) as { clinic_id: string; clinic_name: string; address: string | null; city: string | null } | null
+      return (data?.[0] ?? null) as { clinic_id: string; clinic_name: string; address: string | null; city: string | null; phone: string | null } | null
     },
     enabled: !!doctorId,
   })
@@ -980,10 +980,10 @@ export function useDeleteClinicService() {
 export function useUpdateClinic() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, name, address, city }: { id: string; name: string; address?: string; city?: string }) => {
+    mutationFn: async ({ id, name, address, city, phone }: { id: string; name: string; address?: string; city?: string; phone?: string }) => {
       const { error } = await supabase
         .from('clinics')
-        .update({ name, address, city })
+        .update({ name, address, city, phone })
         .eq('id', id)
       if (error) throw new Error(error.message)
     },

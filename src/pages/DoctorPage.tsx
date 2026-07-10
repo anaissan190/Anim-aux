@@ -217,6 +217,12 @@ export default function DoctorPage() {
                   📞 {doctor.profiles.phone}
                 </a>
               )}
+              {clinic?.phone && (
+                <a href={`tel:${clinic.phone}`}
+                  className="btn-secondary block text-center text-sm mt-2">
+                  📞 Cabinet : {clinic.phone}
+                </a>
+              )}
             </div>
           </div>
         </div>
