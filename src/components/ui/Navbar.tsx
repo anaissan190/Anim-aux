@@ -20,17 +20,17 @@ export default function Navbar() {
           <span>Animéaux</span>
         </Link>
 
-        <div className="hidden md:flex items-center gap-6 text-sm text-gray-600">
-          {user?.role !== 'doctor' && (
+        {/* Pour le praticien, ces liens font double emploi avec les onglets
+            de son dashboard (Accueil/Mon espace, Messages, Mon profil) —
+            on ne les affiche donc que pour les autres rôles. */}
+        {user?.role !== 'doctor' && (
+          <div className="hidden md:flex items-center gap-6 text-sm text-gray-600">
             <Link to="/search" className="hover:text-sage-600 transition-colors">Trouver un praticien</Link>
-          )}
-          {user && <Link to={dashboardPath} className="hover:text-sage-600 transition-colors">Mon espace</Link>}
-          {user && (
-            <Link to={user.role === 'doctor' ? '/dashboard/doctor?tab=messages' : '/messages'}
-              className="hover:text-sage-600 transition-colors">Messages</Link>
-          )}
-          {user && <Link to="/profil" className="hover:text-sage-600 transition-colors">Profil</Link>}
-        </div>
+            {user && <Link to={dashboardPath} className="hover:text-sage-600 transition-colors">Mon espace</Link>}
+            {user && <Link to="/messages" className="hover:text-sage-600 transition-colors">Messages</Link>}
+            {user && <Link to="/profil" className="hover:text-sage-600 transition-colors">Profil</Link>}
+          </div>
+        )}
 
         <div className="flex items-center gap-3">
           {user ? (
