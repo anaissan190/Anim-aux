@@ -35,13 +35,13 @@ export default function Navbar() {
             Tarifs, Disponibilités, Avis) sont affichées ici, à la suite du
             logo — visibles dès la page d'accueil, sans clic supplémentaire. */}
         {user?.role === 'doctor' && (
-          <div className="flex-1 min-w-0 flex items-center gap-1 overflow-x-auto scrollbar-hide">
+          <div className="flex-1 min-w-0 flex items-center justify-center gap-1.5 overflow-x-auto scrollbar-hide">
             {DOCTOR_TABS.map(t => (
               <Link key={t.id} to={`/dashboard/doctor?tab=${t.id}`}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors
                   ${onDoctorDashboard && activeDoctorTab === t.id
-                    ? 'bg-sage-50 text-sage-600'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}>
+                    ? 'bg-sage-500 text-white'
+                    : 'bg-sage-50 text-sage-600 hover:bg-sage-100'}`}>
                 <span>{t.icon}</span>
                 <span className="hidden lg:inline">{t.label}</span>
               </Link>
