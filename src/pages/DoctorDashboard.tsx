@@ -493,6 +493,10 @@ export default function DoctorDashboard() {
         {/* ── MES PATIENTS ── */}
         {tab === 'patients' && (
           <div>
+            <Link to="/dashboard/doctor?tab=home"
+              className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors mb-4">
+              ← Mon espace
+            </Link>
             <div className="mb-6">
               <h2 className="text-xl font-bold text-gray-900">Mes patients</h2>
               <p className="text-sm text-gray-500 mt-1">
@@ -542,6 +546,10 @@ export default function DoctorDashboard() {
         {/* ── TARIFS ── */}
         {tab === 'tarifs' && (
           <div className="max-w-2xl">
+            <Link to="/dashboard/doctor?tab=home"
+              className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors mb-4">
+              ← Mon espace
+            </Link>
             {/* En cabinet */}
             {clinic ? (
               <>
@@ -691,6 +699,10 @@ export default function DoctorDashboard() {
         {/* ── DISPONIBILITÉS ── */}
         {tab === 'disponibilites' && (
           <div className="max-w-3xl">
+            <Link to="/dashboard/doctor?tab=home"
+              className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors mb-4">
+              ← Mon espace
+            </Link>
             <div className="mb-6">
               <h2 className="text-xl font-bold text-gray-900">Disponibilités</h2>
             </div>
@@ -1075,6 +1087,10 @@ export default function DoctorDashboard() {
         {/* ── MON PROFIL ── */}
         {tab === 'profil' && (
           <div className="max-w-2xl space-y-6">
+            <Link to="/dashboard/doctor?tab=home"
+              className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors">
+              ← Mon espace
+            </Link>
 
             {/* Profil du cabinet — réservé à l'admin (créateur) du cabinet.
                 Un simple membre n'a pas à voir cette section : il ne peut
@@ -1216,7 +1232,12 @@ export default function DoctorDashboard() {
 
         {/* ── MESSAGES ── */}
         {tab === 'messages' && (
-          <div className="flex gap-4" style={{ height: 'calc(100vh - 12rem)' }}>
+          <div>
+            <Link to="/dashboard/doctor?tab=home"
+              className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors mb-4">
+              ← Mon espace
+            </Link>
+            <div className="flex gap-4" style={{ height: 'calc(100vh - 12rem)' }}>
             {/* Contacts */}
             <aside className="w-64 flex-shrink-0 bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col overflow-hidden">
               <div className="p-4 border-b border-gray-100 flex items-center justify-between">
@@ -1368,12 +1389,17 @@ export default function DoctorDashboard() {
                 </>
               )}
             </div>
+            </div>
           </div>
         )}
 
         {/* ── AVIS ── */}
         {tab === 'avis' && (
           <div className="max-w-2xl">
+            <Link to="/dashboard/doctor?tab=home"
+              className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors mb-4">
+              ← Mon espace
+            </Link>
             <div className="mb-6 flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-bold text-gray-900">Avis patients</h2>
