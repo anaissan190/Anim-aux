@@ -229,18 +229,29 @@ export function useDoctorPatientAnimals(doctorId?: string) {
     queryFn: async () => {
       const { data: appts, error: apptErr } = await supabase
         .from('appointments')
-        .select('patient_id, users!patient_id(profiles(first_name, last_name))')
+        .select('patient_id')
         .eq('doctor_id', doctorId!)
         .in('status', ['confirmed', 'completed'])
       if (apptErr) throw apptErr
 
-      const ownerNames = new Map<string, string>()
-      ;(appts ?? []).forEach((a: any) => {
-        const p = a.users?.profiles
-        if (p) ownerNames.set(a.patient_id, `${p.first_name} ${p.last_name}`.trim())
-      })
-      const patientIds = [...ownerNames.keys()]
+      const patientIds = [...new Set((appts ?? []).map((a: any) => a.patient_id))]
       if (patientIds.length === 0) return []
+
+      // Requête directe sur `profiles` (policy RLS "médecin voit ses
+      // patients") plutôt qu'un embed via `users` : aucune policy RLS ne
+      // permet à un praticien de lire la ligne `users` d'un autre
+      // utilisateur, donc l'embed users!patient_id(...) renvoyait null
+      // silencieusement et aucun animal ne remontait jamais.
+      const { data: profilesData, error: profErr } = await supabase
+        .from('profiles')
+        .select('user_id, first_name, last_name')
+        .in('user_id', patientIds)
+      if (profErr) throw profErr
+
+      const ownerNames = new Map<string, string>()
+      ;(profilesData ?? []).forEach((p: any) => {
+        ownerNames.set(p.user_id, `${p.first_name} ${p.last_name}`.trim())
+      })
 
       const { data: animals, error: animalErr } = await supabase
         .from('animals')
