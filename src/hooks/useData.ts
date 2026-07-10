@@ -840,7 +840,14 @@ export function useUpdateProfile() {
   const qc = useQueryClient()
   const { profile, setProfile } = useAuthStore()
   return useMutation({
-    mutationFn: async (updates: { first_name?: string; last_name?: string; phone?: string }) => {
+    mutationFn: async (updates: {
+      first_name?: string
+      last_name?: string
+      phone?: string
+      address?: string
+      emergency_contact_name?: string
+      emergency_contact_phone?: string
+    }) => {
       if (!profile) throw new Error('Profil non chargé')
       const { data, error } = await supabase
         .from('profiles')

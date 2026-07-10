@@ -16,6 +16,9 @@ export default function ProfilPage() {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName]   = useState('')
   const [phone, setPhone]         = useState('')
+  const [homeAddress, setHomeAddress] = useState('')
+  const [emergencyName, setEmergencyName]   = useState('')
+  const [emergencyPhone, setEmergencyPhone] = useState('')
 
   // Champs praticien
   const [specialty, setSpecialty]   = useState('')
@@ -33,6 +36,9 @@ export default function ProfilPage() {
       setFirstName(profile.first_name || '')
       setLastName(profile.last_name || '')
       setPhone(profile.phone || '')
+      setHomeAddress(profile.address || '')
+      setEmergencyName(profile.emergency_contact_name || '')
+      setEmergencyPhone(profile.emergency_contact_phone || '')
     }
   }, [profile])
 
@@ -51,7 +57,14 @@ export default function ProfilPage() {
     setLoading(true)
     setSuccess(false)
     try {
-      await updateProfile.mutateAsync({ first_name: firstName, last_name: lastName, phone })
+      await updateProfile.mutateAsync({
+        first_name: firstName,
+        last_name: lastName,
+        phone,
+        address: homeAddress,
+        emergency_contact_name: emergencyName,
+        emergency_contact_phone: emergencyPhone,
+      })
       if (isDoctor) {
         await updateDoctor.mutateAsync({
           specialty,
@@ -100,10 +113,40 @@ export default function ProfilPage() {
                   onChange={e => setLastName(e.target.value)} placeholder="Ton nom" required />
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <label className="text-xs text-gray-500">Email</label>
+                <input className="input text-sm mt-1 bg-gray-50 text-gray-500" value={user?.email ?? ''}
+                  disabled readOnly />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500">Téléphone</label>
+                <input className="input text-sm mt-1" value={phone}
+                  onChange={e => setPhone(e.target.value)} placeholder="06 00 00 00 00" type="tel" />
+              </div>
+            </div>
             <div>
-              <label className="text-xs text-gray-500">Téléphone</label>
-              <input className="input text-sm mt-1" value={phone}
-                onChange={e => setPhone(e.target.value)} placeholder="06 00 00 00 00" type="tel" />
+              <label className="text-xs text-gray-500">Adresse postale</label>
+              <input className="input text-sm mt-1" value={homeAddress}
+                onChange={e => setHomeAddress(e.target.value)} placeholder="12 rue des Lilas, 75001 Paris" />
+            </div>
+          </div>
+
+          {/* CONTACT D'URGENCE */}
+          <div className="card p-6">
+            <h2 className="font-semibold text-gray-900 mb-1">🚨 Contact d'urgence</h2>
+            <p className="text-xs text-gray-400 mb-4">Facultatif — une personne à prévenir en cas d'urgence.</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-gray-500">Nom</label>
+                <input className="input text-sm mt-1" value={emergencyName}
+                  onChange={e => setEmergencyName(e.target.value)} placeholder="Ex: Marie Dupont" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500">Téléphone</label>
+                <input className="input text-sm mt-1" value={emergencyPhone}
+                  onChange={e => setEmergencyPhone(e.target.value)} placeholder="06 00 00 00 00" type="tel" />
+              </div>
             </div>
           </div>
 
