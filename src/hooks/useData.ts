@@ -170,12 +170,17 @@ export function useDoctorAppointments(doctorId?: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('appointments')
-        .select('*, users!patient_id(id, email, profiles(first_name, last_name, avatar_url, phone)), animals(id, name, species, avatar_url)')
+        .select('*, users!patient_id(id, email, profiles(first_name, last_name, avatar_url, phone)), appointment_animals(animals(id, name, species, avatar_url))')
         .eq('doctor_id', doctorId!)
         .order('start_at', { ascending: true })
       if (error) throw error
-      // Aligne la forme des données sur le type Appointment (profiles au niveau racine)
-      return (data ?? []).map((a: any) => ({ ...a, profiles: a.users?.profiles }))
+      // Aligne la forme des données sur le type Appointment : profiles au
+      // niveau racine, et animaux à plat (un RDV peut concerner plusieurs animaux).
+      return (data ?? []).map((a: any) => ({
+        ...a,
+        profiles: a.users?.profiles,
+        animals: (a.appointment_animals ?? []).map((link: any) => link.animals).filter(Boolean),
+      }))
     },
     enabled: !!doctorId,
   })
@@ -190,14 +195,24 @@ export function useCreateAppointment() {
       start_at: string
       end_at: string
       reason?: string
-      animal_id?: string
+      animal_ids?: string[]
     }) => {
+      const { animal_ids, ...apptData } = data
       const { data: appt, error } = await supabase
         .from('appointments')
-        .insert({ ...data, patient_id: user!.id, status: 'confirmed' })
+        .insert({ ...apptData, patient_id: user!.id, status: 'confirmed' })
         .select()
         .single()
       if (error) throw error
+
+      // Lie le(s) animal(aux) choisi(s) au RDV (table de liaison many-to-many)
+      if (animal_ids && animal_ids.length > 0) {
+        const { error: linkError } = await supabase
+          .from('appointment_animals')
+          .insert(animal_ids.map(animal_id => ({ appointment_id: appt.id, animal_id })))
+        if (linkError) throw linkError
+      }
+
       return appt
     },
     onSuccess: () => {

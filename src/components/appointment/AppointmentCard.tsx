@@ -57,11 +57,15 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
             {appointment.reason && (
               <p className="text-xs text-gray-500 mt-1 truncate">Motif : {appointment.reason}</p>
             )}
-            {showPatient && appointment.animals && ['confirmed', 'completed'].includes(appointment.status) && (
-              <Link to={`/animal/${appointment.animals.id}`}
-                className="inline-flex items-center gap-1 text-xs text-sage-600 hover:underline mt-1">
-                🐾 Dossier de {appointment.animals.name}
-              </Link>
+            {showPatient && appointment.animals && appointment.animals.length > 0 && ['confirmed', 'completed'].includes(appointment.status) && (
+              <div className="flex flex-wrap gap-2 mt-1">
+                {appointment.animals.map(a => (
+                  <Link key={a.id} to={`/animal/${a.id}`}
+                    className="inline-flex items-center gap-1 text-xs text-sage-600 hover:underline">
+                    🐾 Dossier de {a.name}
+                  </Link>
+                ))}
+              </div>
             )}
 
             {/* Avis : indépendant du RDV, se laisse depuis la fiche du praticien */}

@@ -21,8 +21,12 @@ export default function BookPage() {
   const [step, setStep] = useState<Step>(1)
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null)
   const [reason, setReason] = useState('')
-  const [animalId, setAnimalId] = useState<string>('')
+  const [animalIds, setAnimalIds] = useState<string[]>([])
   const [animalSearch, setAnimalSearch] = useState('')
+
+  function toggleAnimal(id: string) {
+    setAnimalIds(ids => ids.includes(id) ? ids.filter(i => i !== id) : [...ids, id])
+  }
 
   const filteredAnimals = animals.filter(a =>
     a.name.toLowerCase().includes(animalSearch.trim().toLowerCase())
@@ -46,7 +50,7 @@ export default function BookPage() {
       start_at:  start.toISOString(),
       end_at:    end.toISOString(),
       reason,
-      animal_id: animalId || undefined,
+      animal_ids: animalIds.length > 0 ? animalIds : undefined,
     })
     setStep(3)
   }
@@ -123,7 +127,7 @@ export default function BookPage() {
 
             {animals.length > 0 && (
               <div className="mb-5">
-                <p className="text-sm font-medium text-gray-700 mb-2">Pour quel animal ? (facultatif)</p>
+                <p className="text-sm font-medium text-gray-700 mb-2">Pour quel(s) animal(aux) ? (facultatif, plusieurs possibles)</p>
                 {animals.length > 5 && (
                   <input
                     type="text"
@@ -139,9 +143,12 @@ export default function BookPage() {
                   <div className="grid grid-cols-3 gap-2">
                     {filteredAnimals.map(a => (
                       <button key={a.id} type="button"
-                        onClick={() => setAnimalId(id => id === a.id ? '' : a.id)}
-                        className={`p-3 text-sm rounded-xl border text-center transition-colors
-                          ${animalId === a.id ? 'border-sage-400 bg-sage-50 text-sage-700 font-medium' : 'border-gray-200 hover:border-sage-300'}`}>
+                        onClick={() => toggleAnimal(a.id)}
+                        className={`relative p-3 text-sm rounded-xl border text-center transition-colors
+                          ${animalIds.includes(a.id) ? 'border-sage-400 bg-sage-50 text-sage-700 font-medium' : 'border-gray-200 hover:border-sage-300'}`}>
+                        {animalIds.includes(a.id) && (
+                          <span className="absolute top-1 right-1.5 text-sage-500 text-xs">✓</span>
+                        )}
                         <span className="block text-xl mb-1">{SPECIES_EMOJI[a.species] ?? '🐾'}</span>
                         {a.name}
                       </button>
@@ -149,7 +156,7 @@ export default function BookPage() {
                   </div>
                 )}
                 <p className="text-xs text-gray-400 mt-2">
-                  Le praticien pourra retrouver directement le dossier de l'animal choisi.
+                  Le praticien pourra retrouver directement le dossier des animaux choisis.
                 </p>
               </div>
             )}
@@ -201,10 +208,10 @@ export default function BookPage() {
                   <span>{reason}</span>
                 </div>
               )}
-              {animalId && (
+              {animalIds.length > 0 && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Animal</span>
-                  <span>{animals.find(a => a.id === animalId)?.name}</span>
+                  <span className="text-gray-500">{animalIds.length > 1 ? 'Animaux' : 'Animal'}</span>
+                  <span>{animals.filter(a => animalIds.includes(a.id)).map(a => a.name).join(', ')}</span>
                 </div>
               )}
               <div className="flex justify-between text-sm pt-2 border-t border-sage-200">
