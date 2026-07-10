@@ -1173,7 +1173,7 @@ export default function DoctorDashboard() {
                 </div>
               )}
 
-              {sortedContacts.length > 4 && (
+              {sortedContacts.length > 0 && (
                 <div className="p-3 border-b border-gray-100">
                   <input
                     type="text"
@@ -1209,17 +1209,17 @@ export default function DoctorDashboard() {
                       </span>
                     )}
                     {confirmDeleteConvId === c.user_id ? (
-                      <span className="flex-shrink-0 flex items-center gap-1 text-xs">
+                      <span className="flex-shrink-0 flex flex-col items-end gap-0.5 text-xs">
                         <button onClick={e => { e.stopPropagation(); handleDeleteConversation(c.user_id) }}
-                          className="text-red-500 hover:underline font-medium">Oui</button>
+                          className="text-red-500 hover:underline font-semibold">Supprimer</button>
                         <button onClick={e => { e.stopPropagation(); setConfirmDeleteConvId(null) }}
-                          className="text-gray-400 hover:underline">Non</button>
+                          className="text-gray-400 hover:underline">Annuler</button>
                       </span>
                     ) : (
                       <button onClick={e => { e.stopPropagation(); setConfirmDeleteConvId(c.user_id) }}
-                        className="flex-shrink-0 text-gray-300 hover:text-red-500 transition-colors"
+                        className="flex-shrink-0 text-xs text-gray-400 hover:text-red-500 hover:underline transition-colors"
                         title="Supprimer la conversation">
-                        🗑️
+                        Suppr.
                       </button>
                     )}
                   </div>

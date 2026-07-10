@@ -128,7 +128,7 @@ export default function MessagesPage() {
         <aside className="w-64 flex-shrink-0 card overflow-y-auto">
           <div className="p-3 border-b border-gray-100">
             <p className="text-sm font-semibold text-gray-900 mb-2">Conversations</p>
-            {sortedContacts.length > 4 && (
+            {sortedContacts.length > 0 && (
               <input
                 type="text"
                 value={contactSearch}
@@ -162,17 +162,17 @@ export default function MessagesPage() {
                 </span>
               )}
               {confirmDeleteId === c.user_id ? (
-                <span className="flex-shrink-0 flex items-center gap-1 text-xs">
+                <span className="flex-shrink-0 flex flex-col items-end gap-0.5 text-xs">
                   <button onClick={e => { e.stopPropagation(); handleDeleteConversation(c.user_id) }}
-                    className="text-red-500 hover:underline font-medium">Oui</button>
+                    className="text-red-500 hover:underline font-semibold">Supprimer</button>
                   <button onClick={e => { e.stopPropagation(); setConfirmDeleteId(null) }}
-                    className="text-gray-400 hover:underline">Non</button>
+                    className="text-gray-400 hover:underline">Annuler</button>
                 </span>
               ) : (
                 <button onClick={e => { e.stopPropagation(); setConfirmDeleteId(c.user_id) }}
-                  className="flex-shrink-0 text-gray-300 hover:text-red-500 transition-colors"
+                  className="flex-shrink-0 text-xs text-gray-400 hover:text-red-500 hover:underline transition-colors"
                   title="Supprimer la conversation">
-                  🗑️
+                  Suppr.
                 </button>
               )}
             </div>
