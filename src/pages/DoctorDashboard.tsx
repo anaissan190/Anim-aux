@@ -1073,10 +1073,17 @@ export default function DoctorDashboard() {
                 {reviews.map((r: any) => (
                   <div key={r.id} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
                     <div className="flex items-center justify-between mb-2">
-                      <div className="flex gap-0.5">
-                        {[...Array(5)].map((_, i) => (
-                          <span key={i} className={i < r.rating ? 'text-amber-400' : 'text-gray-200'}>★</span>
-                        ))}
+                      <div className="flex items-center gap-2">
+                        <div className="flex gap-0.5">
+                          {[...Array(5)].map((_, i) => (
+                            <span key={i} className={i < r.rating ? 'text-amber-400' : 'text-gray-200'}>★</span>
+                          ))}
+                        </div>
+                        <span className="text-sm font-medium text-gray-700">
+                          {r.profiles?.first_name
+                            ? `${r.profiles.first_name}${r.profiles.last_name ? ' ' + r.profiles.last_name[0].toUpperCase() + '.' : ''}`
+                            : 'Patient anonyme'}
+                        </span>
                       </div>
                       <span className="text-xs text-gray-400">{format(new Date(r.created_at), 'd MMM yyyy', { locale: fr })}</span>
                     </div>
