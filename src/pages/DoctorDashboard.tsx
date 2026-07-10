@@ -8,7 +8,7 @@ import RichTextEditor from '@/components/ui/RichTextEditor'
 import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
-import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDeleteConversation, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember } from '@/hooks/useData'
+import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { PRACTITIONER_TYPES, getPractitionerType } from '@/lib/practitionerTypes'
 import { SPECIES_EMOJI } from '@/lib/animalSpecies'
@@ -165,7 +165,6 @@ export default function DoctorDashboard() {
   const send = useSendMessage()
   const { data: partners = [] } = useConversationPartners()
   const markRead = useMarkConversationRead()
-  const deleteConversation = useDeleteConversation()
   const [messageSearch, setMessageSearch] = useState('')
   const [confirmDeleteConvId, setConfirmDeleteConvId] = useState<string | null>(null)
   // Conversations supprimées : une fois supprimée, un contact issu des RDV
@@ -212,15 +211,13 @@ export default function DoctorDashboard() {
     return patientAnimals.some((a: any) => a.owner_id === c.user_id && a.name?.toLowerCase().includes(q))
   })
 
-  async function handleDeleteConversation(otherUserId: string) {
-    try {
-      await deleteConversation.mutateAsync(otherUserId)
-      if (selectedUserId === otherUserId) setSelectedUserId(null)
-      setConfirmDeleteConvId(null)
-      persistHiddenConvIds([...new Set([...hiddenConvIds, otherUserId])])
-    } catch (e: any) {
-      alert("Erreur lors de la suppression : " + (e?.message ?? 'inconnue'))
-    }
+  // Masquage personnel uniquement : on ne touche jamais aux messages en base
+  // (ils sont partagés avec le patient). Supprimer une conversation de son
+  // côté ne doit jamais faire disparaître l'historique chez l'autre personne.
+  function handleDeleteConversation(otherUserId: string) {
+    if (selectedUserId === otherUserId) setSelectedUserId(null)
+    setConfirmDeleteConvId(null)
+    persistHiddenConvIds([...new Set([...hiddenConvIds, otherUserId])])
   }
 
   // Renvoyer un message à un contact masqué le fait réapparaître naturellement

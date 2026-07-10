@@ -499,24 +499,12 @@ export function useMarkConversationRead() {
   })
 }
 
-// Supprime l'intégralité d'une conversation (messages dans les deux sens).
-export function useDeleteConversation() {
-  const qc = useQueryClient()
-  const { user } = useAuthStore()
-  return useMutation({
-    mutationFn: async (otherUserId: string) => {
-      const { error } = await supabase
-        .from('messages')
-        .delete()
-        .or(`and(sender_id.eq.${user!.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user!.id})`)
-      if (error) throw error
-    },
-    onSuccess: (_, otherUserId) => {
-      qc.invalidateQueries({ queryKey: ['conversation-partners'] })
-      qc.invalidateQueries({ queryKey: ['messages', user?.id, otherUserId] })
-    },
-  })
-}
+// Note : il n'existe plus de suppression de conversation côté base — elle
+// supprimait les messages pour les deux personnes à la fois (une conversation
+// est une donnée partagée). "Supprimer une conversation" est désormais un
+// masquage 100% personnel (localStorage, voir hiddenIds/hiddenConvIds dans
+// MessagesPage.tsx et DoctorDashboard.tsx) : ça ne retire rien à l'autre
+// personne, qui garde tout son historique.
 
 export function useNotifications() {
   const { user } = useAuthStore()

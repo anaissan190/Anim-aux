@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import Navbar from '@/components/ui/Navbar'
-import { useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDeleteConversation } from '@/hooks/useData'
+import { useConversation, useSendMessage, useConversationPartners, useMarkConversationRead } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
@@ -39,7 +39,6 @@ export default function MessagesPage() {
   const send = useSendMessage()
   const { data: partners = [] } = useConversationPartners()
   const markRead = useMarkConversationRead()
-  const deleteConversation = useDeleteConversation()
   const [contactSearch, setContactSearch] = useState('')
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [showNewMsg, setShowNewMsg] = useState(false)
@@ -84,18 +83,16 @@ export default function MessagesPage() {
     c.name.toLowerCase().includes(newMsgSearch.trim().toLowerCase())
   )
 
-  async function handleDeleteConversation(otherUserId: string) {
-    try {
-      await deleteConversation.mutateAsync(otherUserId)
-      if (selectedUserId === otherUserId) setSelectedUserId(null)
-      setConfirmDeleteId(null)
-      if (user) {
-        const next = [...new Set([...hiddenIds, otherUserId])]
-        setHiddenIds(next)
-        saveHidden(user.id, next)
-      }
-    } catch (e: any) {
-      alert("Erreur lors de la suppression : " + (e?.message ?? 'inconnue'))
+  // Masquage personnel uniquement : on ne touche jamais aux messages en base
+  // (ils sont partagés avec l'autre personne). Supprimer une conversation
+  // de son côté ne doit jamais faire disparaître l'historique chez l'autre.
+  function handleDeleteConversation(otherUserId: string) {
+    if (selectedUserId === otherUserId) setSelectedUserId(null)
+    setConfirmDeleteId(null)
+    if (user) {
+      const next = [...new Set([...hiddenIds, otherUserId])]
+      setHiddenIds(next)
+      saveHidden(user.id, next)
     }
   }
 
