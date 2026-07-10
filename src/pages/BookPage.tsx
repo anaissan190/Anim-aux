@@ -188,11 +188,12 @@ export default function BookPage() {
 
             <div className="mt-5">
               <p className="text-sm font-medium text-gray-700 mb-2">Documents ou photos à joindre (facultatif)</p>
-              <label className="btn-secondary text-sm inline-block cursor-pointer">
-                📎 Ajouter un fichier
-                <input type="file" className="sr-only"
-                  onChange={e => { addDocuments(e.target.files); e.target.value = '' }} />
-              </label>
+              <input type="file"
+                className="block w-full text-sm text-gray-600 cursor-pointer
+                  file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0
+                  file:bg-sage-500 file:text-white file:text-sm file:font-medium
+                  hover:file:bg-sage-600 file:cursor-pointer"
+                onChange={e => { addDocuments(e.target.files); e.target.value = '' }} />
               {documents.length > 0 && (
                 <>
                   <ul className="mt-2 space-y-1">

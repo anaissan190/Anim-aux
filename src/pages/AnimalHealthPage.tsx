@@ -682,11 +682,13 @@ export default function AnimalHealthPage() {
                     placeholder="Ex: Analyse de sang, radio, ordonnance..." />
                 </div>
               </div>
-              <label className="btn-primary text-sm inline-block cursor-pointer">
-                {docUploading ? 'Envoi...' : '+ Choisir un fichier'}
-                <input type="file" className="sr-only" disabled={docUploading}
-                  onChange={e => { const f = e.target.files?.[0]; if (f) handleDocUpload(f); e.target.value = '' }} />
-              </label>
+              <input type="file" disabled={docUploading}
+                className="block w-full text-sm text-gray-600 cursor-pointer
+                  file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0
+                  file:bg-sage-500 file:text-white file:text-sm file:font-medium
+                  hover:file:bg-sage-600 file:cursor-pointer disabled:opacity-50"
+                onChange={e => { const f = e.target.files?.[0]; if (f) handleDocUpload(f); e.target.value = '' }} />
+              {docUploading && <p className="text-xs text-gray-400 mt-2">Envoi en cours...</p>}
             </div>
 
             {docError && <p className="text-red-500 text-sm mb-3">{docError}</p>}
