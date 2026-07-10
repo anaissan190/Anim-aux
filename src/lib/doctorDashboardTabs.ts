@@ -11,7 +11,7 @@ export type DoctorTab = 'home' | 'patients' | 'tarifs' | 'disponibilites' | 'pro
 // pas listés ici : ils sont accessibles via les icônes à côté de la cloche
 // de notifications.
 export const DOCTOR_TABS: { id: DoctorTab; label: string; icon: string }[] = [
-  { id: 'home',           label: 'Accueil',         icon: '🏠' },
+  { id: 'home',           label: 'Mon espace',      icon: '🏠' },
   { id: 'patients',       label: 'Mes patients',    icon: '🐾' },
   { id: 'tarifs',         label: 'Tarifs',           icon: '💰' },
   { id: 'disponibilites', label: 'Disponibilités',   icon: '🗓️' },
