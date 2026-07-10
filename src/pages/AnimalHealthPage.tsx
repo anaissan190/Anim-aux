@@ -55,7 +55,7 @@ export default function AnimalHealthPage() {
 
   const [showEditForm, setShowEditForm] = useState(false)
   const [editForm, setEditForm] = useState({
-    name: '', species: 'Chien', breed: '', gender: '', date_of_birth: '', microchip_number: ''
+    name: '', species: 'Chien', breed: '', gender: '', date_of_birth: '', microchip_number: '', tattoo_number: ''
   })
   const [editError, setEditError] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -69,6 +69,7 @@ export default function AnimalHealthPage() {
       gender: animal.gender ?? '',
       date_of_birth: animal.date_of_birth ?? '',
       microchip_number: animal.microchip_number ?? '',
+      tattoo_number: animal.tattoo_number ?? '',
     })
     setEditError('')
     setShowEditForm(true)
@@ -86,6 +87,7 @@ export default function AnimalHealthPage() {
         gender: editForm.gender || undefined,
         date_of_birth: editForm.date_of_birth || undefined,
         microchip_number: editForm.microchip_number || undefined,
+        tattoo_number: editForm.tattoo_number || undefined,
       })
       setShowEditForm(false)
     } catch (e: any) {
@@ -293,6 +295,7 @@ export default function AnimalHealthPage() {
               {animal.date_of_birth && <span>🎂 {format(new Date(animal.date_of_birth), 'd MMM yyyy', { locale: fr })}</span>}
               {lastWeight && <span>⚖️ {lastWeight.weight_kg} kg</span>}
               {animal.microchip_number && <span>📡 {animal.microchip_number}</span>}
+              {animal.tattoo_number && <span>🔖 {animal.tattoo_number}</span>}
             </div>
             {isDoctor && owner && (
               <p className="text-xs text-sage-600 mt-2">👤 Propriétaire : {owner.first_name} {owner.last_name}</p>
@@ -365,6 +368,12 @@ export default function AnimalHealthPage() {
                 <input className="input text-sm mt-1" value={editForm.microchip_number}
                   onChange={e => setEditForm(f => ({ ...f, microchip_number: e.target.value }))}
                   placeholder="Ex: 250268500000000" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500">N° de tatouage</label>
+                <input className="input text-sm mt-1" value={editForm.tattoo_number}
+                  onChange={e => setEditForm(f => ({ ...f, tattoo_number: e.target.value }))}
+                  placeholder="Si l'animal n'est pas pucé" />
               </div>
             </div>
             {editError && <p className="text-red-500 text-sm mt-3">{editError}</p>}

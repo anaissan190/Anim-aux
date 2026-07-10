@@ -17,7 +17,7 @@ export default function PatientDashboard() {
   const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming')
   const [showAnimalForm, setShowAnimalForm] = useState(false)
   const [animalForm, setAnimalForm] = useState({
-    name: '', species: 'Chien', breed: '', gender: '', date_of_birth: '', microchip_number: '', avatar_url: ''
+    name: '', species: 'Chien', breed: '', gender: '', date_of_birth: '', microchip_number: '', tattoo_number: '', avatar_url: ''
   })
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
@@ -77,9 +77,10 @@ export default function PatientDashboard() {
         gender: animalForm.gender || undefined,
         date_of_birth: animalForm.date_of_birth || undefined,
         microchip_number: animalForm.microchip_number || undefined,
+        tattoo_number: animalForm.tattoo_number || undefined,
         avatar_url: avatarUrl,
       })
-      setAnimalForm({ name: '', species: 'Chien', breed: '', gender: '', date_of_birth: '', microchip_number: '', avatar_url: '' })
+      setAnimalForm({ name: '', species: 'Chien', breed: '', gender: '', date_of_birth: '', microchip_number: '', tattoo_number: '', avatar_url: '' })
       setPhotoPreview(null)
       setPhotoFile(null)
       setShowAnimalForm(false)
@@ -196,6 +197,12 @@ export default function PatientDashboard() {
                   <input className="input text-sm mt-1" value={animalForm.microchip_number}
                     onChange={e => setAnimalForm(f => ({...f, microchip_number: e.target.value}))}
                     placeholder="Ex: 250268500000000" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500">N° de tatouage</label>
+                  <input className="input text-sm mt-1" value={animalForm.tattoo_number}
+                    onChange={e => setAnimalForm(f => ({...f, tattoo_number: e.target.value}))}
+                    placeholder="Si l'animal n'est pas pucé" />
                 </div>
               </div>
               {animalError && (

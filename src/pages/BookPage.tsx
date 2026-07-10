@@ -22,6 +22,11 @@ export default function BookPage() {
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null)
   const [reason, setReason] = useState('')
   const [animalId, setAnimalId] = useState<string>('')
+  const [animalSearch, setAnimalSearch] = useState('')
+
+  const filteredAnimals = animals.filter(a =>
+    a.name.toLowerCase().includes(animalSearch.trim().toLowerCase())
+  )
 
   const REASONS = [
     'Consultation générale', 'Renouvellement ordonnance',
@@ -119,17 +124,30 @@ export default function BookPage() {
             {animals.length > 0 && (
               <div className="mb-5">
                 <p className="text-sm font-medium text-gray-700 mb-2">Pour quel animal ? (facultatif)</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {animals.map(a => (
-                    <button key={a.id} type="button"
-                      onClick={() => setAnimalId(id => id === a.id ? '' : a.id)}
-                      className={`p-3 text-sm rounded-xl border text-center transition-colors
-                        ${animalId === a.id ? 'border-sage-400 bg-sage-50 text-sage-700 font-medium' : 'border-gray-200 hover:border-sage-300'}`}>
-                      <span className="block text-xl mb-1">{SPECIES_EMOJI[a.species] ?? '🐾'}</span>
-                      {a.name}
-                    </button>
-                  ))}
-                </div>
+                {animals.length > 5 && (
+                  <input
+                    type="text"
+                    value={animalSearch}
+                    onChange={e => setAnimalSearch(e.target.value)}
+                    placeholder="Rechercher par nom..."
+                    className="input text-sm mb-2"
+                  />
+                )}
+                {filteredAnimals.length === 0 ? (
+                  <p className="text-xs text-gray-400 py-2">Aucun animal ne correspond à cette recherche.</p>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2">
+                    {filteredAnimals.map(a => (
+                      <button key={a.id} type="button"
+                        onClick={() => setAnimalId(id => id === a.id ? '' : a.id)}
+                        className={`p-3 text-sm rounded-xl border text-center transition-colors
+                          ${animalId === a.id ? 'border-sage-400 bg-sage-50 text-sage-700 font-medium' : 'border-gray-200 hover:border-sage-300'}`}>
+                        <span className="block text-xl mb-1">{SPECIES_EMOJI[a.species] ?? '🐾'}</span>
+                        {a.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <p className="text-xs text-gray-400 mt-2">
                   Le praticien pourra retrouver directement le dossier de l'animal choisi.
                 </p>
