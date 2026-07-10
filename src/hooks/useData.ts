@@ -834,6 +834,21 @@ export function useMyClinic(doctorId?: string) {
   })
 }
 
+// Fiche praticien publique (accessible sans connexion) : passe par une RPC
+// SECURITY DEFINER car un embed direct clinic_members->clinics serait
+// bloqué par le RLS pour un visiteur qui n'est ni owner ni membre.
+export function useDoctorPublicClinic(doctorId?: string) {
+  return useQuery({
+    queryKey: ['doctor-public-clinic', doctorId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_doctor_clinic', { p_doctor_id: doctorId })
+      if (error) throw error
+      return (data?.[0] ?? null) as { clinic_id: string; clinic_name: string; address: string | null; city: string | null } | null
+    },
+    enabled: !!doctorId,
+  })
+}
+
 export function useClinicMembers(clinicId?: string) {
   return useQuery({
     queryKey: ['clinic_members', clinicId],

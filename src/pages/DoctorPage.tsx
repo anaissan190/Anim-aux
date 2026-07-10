@@ -1,7 +1,7 @@
 // src/pages/DoctorPage.tsx
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { useDoctor, useDoctorReviews, useCreateReview } from '@/hooks/useData'
+import { useDoctor, useDoctorReviews, useCreateReview, useDoctorPublicClinic } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import Navbar from '@/components/ui/Navbar'
 import StarRating from '@/components/ui/StarRating'
@@ -14,6 +14,7 @@ export default function DoctorPage() {
   const { user } = useAuthStore()
   const { data: doctor, isLoading } = useDoctor(id!)
   const { data: reviews = [] } = useDoctorReviews(id!)
+  const { data: clinic } = useDoctorPublicClinic(id)
   const createReview = useCreateReview()
 
   const [showReviewForm, setShowReviewForm] = useState(false)
@@ -80,7 +81,16 @@ export default function DoctorPage() {
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">{name}</h1>
                 <p className="text-sage-600 font-medium">{doctor.specialty}</p>
-                {doctor.city && <p className="text-sm text-gray-500 mt-1">📍 {doctor.address ?? doctor.city}</p>}
+                {clinic ? (
+                  <div className="mt-1">
+                    <p className="text-sm text-gray-700 font-medium">🏥 Membre du cabinet {clinic.clinic_name}</p>
+                    {(clinic.address || clinic.city) && (
+                      <p className="text-sm text-gray-500">📍 {clinic.address ?? clinic.city}</p>
+                    )}
+                  </div>
+                ) : (
+                  doctor.city && <p className="text-sm text-gray-500 mt-1">📍 {doctor.address ?? doctor.city}</p>
+                )}
                 <div className="flex items-center gap-2 mt-2">
                   <StarRating rating={doctor.average_rating} />
                   <span className="text-sm text-gray-500">
@@ -107,7 +117,7 @@ export default function DoctorPage() {
               <div className="card p-6">
                 <h2 className="font-semibold text-gray-900 mb-3">Localisation</h2>
                 <div className="h-48 bg-sage-50 rounded-xl flex items-center justify-center text-sage-400 text-sm">
-                  📍 {doctor.address ?? doctor.city}
+                  📍 {clinic ? (clinic.address ?? clinic.city) : (doctor.address ?? doctor.city)}
                   <br />
                   <span className="text-xs text-gray-400">(carte Leaflet — activée avec coordonnées réelles)</span>
                 </div>
