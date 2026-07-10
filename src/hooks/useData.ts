@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/authStore'
 import type { SearchFilters, Appointment, AppointmentStatus } from '@/types'
-import { addMinutes, format } from 'date-fns'
+import { addMinutes } from 'date-fns'
 
 export function useDoctors(filters: SearchFilters = {}) {
   return useQuery({
@@ -79,7 +79,6 @@ export function useAvailableSlots(doctorId: string, date: Date | null) {
     queryFn: async () => {
       if (!date || !doctorId) return []
       const dayOfWeek = date.getDay()
-      const dateStr = format(date, 'yyyy-MM-dd')
       const { data: avail } = await supabase
         .from('availabilities')
         .select('*')
@@ -87,17 +86,23 @@ export function useAvailableSlots(doctorId: string, date: Date | null) {
         .eq('day_of_week', dayOfWeek)
         .eq('is_active', true)
       if (!avail || avail.length === 0) return []
-      const { data: booked } = await supabase
-        .from('appointments')
-        .select('start_at')
-        .eq('doctor_id', doctorId)
-        .gte('start_at', `${dateStr}T00:00:00`)
-        .lte('start_at', `${dateStr}T23:59:59`)
-        .in('status', ['pending', 'confirmed'])
-      // Comparaison par timestamp (epoch ms) : Postgres renvoie les timestamptz
-      // sous une forme (ex. "...+00:00") différente de cur.toISOString() (ex.
-      // "...Z"), donc une comparaison de chaînes brutes ne matchait jamais.
-      const bookedTimes = new Set((booked || []).map(a => new Date(a.start_at).getTime()))
+
+      // Bornes de la journée en heure LOCALE, converties en instants UTC
+      // corrects via toISOString() (évite les décalages de fuseau horaire).
+      const dayStart = new Date(date); dayStart.setHours(0, 0, 0, 0)
+      const dayEnd   = new Date(date); dayEnd.setHours(23, 59, 59, 999)
+
+      // Passe par une RPC plutôt qu'une requête directe sur `appointments` :
+      // la policy RLS "patient voit les siens" limite un patient à SES
+      // propres RDV, donc il ne pouvait jamais voir les créneaux réservés
+      // par un AUTRE patient — ceux-ci réapparaissaient comme disponibles.
+      const { data: booked, error: bookedErr } = await supabase.rpc('get_booked_slots', {
+        p_doctor_id: doctorId,
+        p_from: dayStart.toISOString(),
+        p_to: dayEnd.toISOString(),
+      })
+      if (bookedErr) throw bookedErr
+      const bookedTimes = new Set((booked || []).map((a: any) => new Date(a.start_at).getTime()))
       const slots: Date[] = []
       for (const a of avail) {
         const [sh, sm] = a.start_time.split(':').map(Number)
