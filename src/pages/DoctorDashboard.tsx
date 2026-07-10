@@ -467,22 +467,22 @@ export default function DoctorDashboard() {
                     <div className="flex items-center gap-2"><span>📍</span><span>{doctor?.city || 'Ville non renseignée'}</span></div>
                     {avgRating && <div className="flex items-center gap-2"><span>⭐</span><span>{avgRating} / 5 ({reviews.length} avis)</span></div>}
                   </div>
-                  <button onClick={() => setTab('profil')} className="w-full mt-4 text-sm py-2 px-4 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+                  <Link to="/dashboard/doctor?tab=profil" className="block w-full mt-4 text-sm py-2 px-4 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors text-center">
                     Modifier mon profil
-                  </button>
+                  </Link>
                 </div>
                 <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
                   <h3 className="font-semibold text-sm text-gray-900 mb-4">Actions rapides</h3>
                   <div className="space-y-2">
-                    <button onClick={() => setTab('messages')} className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+                    <Link to="/dashboard/doctor?tab=messages" className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
                       <span>💬</span> Messages
-                    </button>
-                    <button onClick={() => setTab('disponibilites')} className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+                    </Link>
+                    <Link to="/dashboard/doctor?tab=disponibilites" className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
                       <span>🗓️</span> Mes disponibilités
-                    </button>
-                    <button onClick={() => setTab('tarifs')} className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+                    </Link>
+                    <Link to="/dashboard/doctor?tab=tarifs" className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
                       <span>💰</span> Mes tarifs
-                    </button>
+                    </Link>
                   </div>
                 </div>
               </div>
