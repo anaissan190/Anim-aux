@@ -274,9 +274,15 @@ export default function DoctorDashboard() {
   useEffect(() => {
     if (!user) return
     const channel = supabase.channel('doctor-msgs')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload: any) => {
         qc.invalidateQueries({ queryKey: ['messages'] })
         qc.invalidateQueries({ queryKey: ['conversation-partners'] })
+        // Si le patient qui vient d'écrire avait été masqué (suite à une
+        // suppression de conversation de notre côté), on le ré-affiche : un
+        // nouveau message mérite de réapparaître dans le feed, même sans
+        // réponse de notre part.
+        const m = payload.new
+        if (m && m.receiver_id === user.id) unhideConversation(m.sender_id)
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }

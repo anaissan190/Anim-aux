@@ -147,9 +147,15 @@ export default function MessagesPage() {
   useEffect(() => {
     if (!user) return
     const channel = supabase.channel('msgs')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload: any) => {
         qc.invalidateQueries({ queryKey: ['messages'] })
         qc.invalidateQueries({ queryKey: ['conversation-partners'] })
+        // Si la personne qui vient de nous écrire avait été masquée (suite à
+        // une suppression de conversation de notre côté), on la ré-affiche :
+        // un nouveau message mérite de réapparaître dans le feed, même si on
+        // ne lui a pas encore répondu nous-même.
+        const m = payload.new
+        if (m && m.receiver_id === user.id) unhideContact(m.sender_id)
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
