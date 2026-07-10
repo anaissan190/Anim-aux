@@ -94,7 +94,10 @@ export function useAvailableSlots(doctorId: string, date: Date | null) {
         .gte('start_at', `${dateStr}T00:00:00`)
         .lte('start_at', `${dateStr}T23:59:59`)
         .in('status', ['pending', 'confirmed'])
-      const bookedTimes = new Set((booked || []).map(a => a.start_at))
+      // Comparaison par timestamp (epoch ms) : Postgres renvoie les timestamptz
+      // sous une forme (ex. "...+00:00") différente de cur.toISOString() (ex.
+      // "...Z"), donc une comparaison de chaînes brutes ne matchait jamais.
+      const bookedTimes = new Set((booked || []).map(a => new Date(a.start_at).getTime()))
       const slots: Date[] = []
       for (const a of avail) {
         const [sh, sm] = a.start_time.split(':').map(Number)
@@ -104,7 +107,7 @@ export function useAvailableSlots(doctorId: string, date: Date | null) {
         const end = new Date(date)
         end.setHours(eh, em, 0, 0)
         while (cur < end) {
-          if (!bookedTimes.has(cur.toISOString())) slots.push(new Date(cur))
+          if (!bookedTimes.has(cur.getTime())) slots.push(new Date(cur))
           cur = addMinutes(cur, a.slot_duration_minutes)
         }
       }
