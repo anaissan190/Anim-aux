@@ -23,9 +23,10 @@ export default function Navbar() {
   return (
     <nav className="bg-white border-b border-gray-100 sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center gap-2">
-        {/* Connecté, le logo ramène directement au dashboard plutôt qu'à la
-            page publique. */}
-        <Link to={user ? dashboardPath : '/'} className="flex items-center gap-2 font-bold text-xl text-sage-600 flex-shrink-0">
+        {/* Le logo ramène toujours vers la page d'accueil publique (recherche
+            de praticien, etc.) — même connecté. Pour revenir à son dashboard,
+            le praticien a l'onglet "Mon espace" juste à côté. */}
+        <Link to="/" className="flex items-center gap-2 font-bold text-xl text-sage-600 flex-shrink-0">
           <span className="text-2xl">🌿</span>
           <span className="hidden sm:inline">Animéaux</span>
         </Link>
