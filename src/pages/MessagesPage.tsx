@@ -8,6 +8,15 @@ import { useAuthStore } from '@/lib/authStore'
 import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
 
+function hiddenKey(userId: string) { return `animeaux-hidden-conversations-${userId}` }
+function loadHidden(userId?: string | null): string[] {
+  if (!userId) return []
+  try { return JSON.parse(localStorage.getItem(hiddenKey(userId)) ?? '[]') } catch { return [] }
+}
+function saveHidden(userId: string, ids: string[]) {
+  localStorage.setItem(hiddenKey(userId), JSON.stringify(ids))
+}
+
 export default function MessagesPage() {
   const { user, profile } = useAuthStore()
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
@@ -23,6 +32,10 @@ export default function MessagesPage() {
   const deleteConversation = useDeleteConversation()
   const [contactSearch, setContactSearch] = useState('')
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  // Conversations supprimées : une fois supprimée, un contact issu des RDV
+  // (relation permanente) ne doit pas réapparaître tout seul dans le feed —
+  // on le masque tant qu'aucun nouveau message n'est rééchangé avec lui.
+  const [hiddenIds, setHiddenIds] = useState<string[]>(() => loadHidden(user?.id))
 
   // La liste vient en priorité de get_conversation_partners() (construite
   // directement à partir des messages échangés — fiable, avec les noms
@@ -38,12 +51,14 @@ export default function MessagesPage() {
       unread: p.unread_count,
     }))
     contacts.forEach(c => { if (!byId.has(c.user_id)) byId.set(c.user_id, c) })
-    return [...byId.values()].sort((a, b) => {
-      if (!a.lastAt && !b.lastAt) return 0
-      if (!a.lastAt) return 1
-      if (!b.lastAt) return -1
-      return new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime()
-    })
+    return [...byId.values()]
+      .filter(c => !hiddenIds.includes(c.user_id))
+      .sort((a, b) => {
+        if (!a.lastAt && !b.lastAt) return 0
+        if (!a.lastAt) return 1
+        if (!b.lastAt) return -1
+        return new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime()
+      })
   })()
 
   const filteredContacts = sortedContacts.filter((c: any) =>
@@ -55,9 +70,22 @@ export default function MessagesPage() {
       await deleteConversation.mutateAsync(otherUserId)
       if (selectedUserId === otherUserId) setSelectedUserId(null)
       setConfirmDeleteId(null)
+      if (user) {
+        const next = [...new Set([...hiddenIds, otherUserId])]
+        setHiddenIds(next)
+        saveHidden(user.id, next)
+      }
     } catch (e: any) {
       alert("Erreur lors de la suppression : " + (e?.message ?? 'inconnue'))
     }
+  }
+
+  // Renvoyer un message à un contact masqué le fait réapparaître naturellement
+  function unhideContact(otherUserId: string) {
+    if (!user || !hiddenIds.includes(otherUserId)) return
+    const next = hiddenIds.filter(id => id !== otherUserId)
+    setHiddenIds(next)
+    saveHidden(user.id, next)
   }
 
   // Marque la conversation comme lue dès qu'on l'ouvre
@@ -120,6 +148,7 @@ export default function MessagesPage() {
     e.preventDefault()
     if (!text.trim() || !selectedUserId) return
     await send.mutateAsync({ receiverId: selectedUserId, content: text.trim() })
+    unhideContact(selectedUserId)
     setText('')
   }
 

@@ -145,6 +145,17 @@ export default function DoctorDashboard() {
   const deleteConversation = useDeleteConversation()
   const [messageSearch, setMessageSearch] = useState('')
   const [confirmDeleteConvId, setConfirmDeleteConvId] = useState<string | null>(null)
+  // Conversations supprimées : une fois supprimée, un contact issu des RDV
+  // (relation permanente) ne doit pas réapparaître tout seul dans le feed —
+  // on le masque tant qu'aucun nouveau message n'est rééchangé avec lui.
+  const [hiddenConvIds, setHiddenConvIds] = useState<string[]>(() => {
+    if (!user) return []
+    try { return JSON.parse(localStorage.getItem(`animeaux-hidden-conversations-${user.id}`) ?? '[]') } catch { return [] }
+  })
+  function persistHiddenConvIds(ids: string[]) {
+    setHiddenConvIds(ids)
+    if (user) localStorage.setItem(`animeaux-hidden-conversations-${user.id}`, JSON.stringify(ids))
+  }
 
   // La liste vient en priorité de get_conversation_partners() (construite
   // directement à partir des messages échangés — fiable, avec les noms
@@ -160,12 +171,14 @@ export default function DoctorDashboard() {
       unread: p.unread_count,
     }))
     contacts.forEach(c => { if (!byId.has(c.user_id)) byId.set(c.user_id, c) })
-    return [...byId.values()].sort((a, b) => {
-      if (!a.lastAt && !b.lastAt) return 0
-      if (!a.lastAt) return 1
-      if (!b.lastAt) return -1
-      return new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime()
-    })
+    return [...byId.values()]
+      .filter(c => !hiddenConvIds.includes(c.user_id))
+      .sort((a, b) => {
+        if (!a.lastAt && !b.lastAt) return 0
+        if (!a.lastAt) return 1
+        if (!b.lastAt) return -1
+        return new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime()
+      })
   })()
 
   // Recherche par nom de contact OU nom d'un de ses animaux
@@ -181,9 +194,16 @@ export default function DoctorDashboard() {
       await deleteConversation.mutateAsync(otherUserId)
       if (selectedUserId === otherUserId) setSelectedUserId(null)
       setConfirmDeleteConvId(null)
+      persistHiddenConvIds([...new Set([...hiddenConvIds, otherUserId])])
     } catch (e: any) {
       alert("Erreur lors de la suppression : " + (e?.message ?? 'inconnue'))
     }
+  }
+
+  // Renvoyer un message à un contact masqué le fait réapparaître naturellement
+  function unhideConversation(otherUserId: string) {
+    if (!hiddenConvIds.includes(otherUserId)) return
+    persistHiddenConvIds(hiddenConvIds.filter(id => id !== otherUserId))
   }
 
   useEffect(() => {
@@ -1263,6 +1283,7 @@ export default function DoctorDashboard() {
                     e.preventDefault()
                     if (!msgText.trim() || !selectedUserId) return
                     await send.mutateAsync({ receiverId: selectedUserId, content: msgText.trim() })
+                    unhideConversation(selectedUserId)
                     setMsgText('')
                   }} className="p-4 border-t border-gray-100 flex gap-2 flex-shrink-0">
                     <input value={msgText} onChange={e => setMsgText(e.target.value)}
