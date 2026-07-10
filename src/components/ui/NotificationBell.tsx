@@ -12,6 +12,7 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
   const { user } = useAuthStore()
+  const messagesPath = user?.role === 'doctor' ? '/dashboard/doctor?tab=messages' : '/messages'
   const { data: notifications = [] } = useNotifications()
   const markRead = useMarkNotificationsRead()
   const deleteNotification = useDeleteNotification()
@@ -73,7 +74,7 @@ export default function NotificationBell() {
                 <div key={n.id}
                   className={`px-4 py-3 text-sm flex items-start gap-2 ${n.is_read ? 'bg-white' : 'bg-sage-50'}`}>
                   <div
-                    onClick={() => { if (n.type === 'new_message') { setOpen(false); navigate('/messages') } }}
+                    onClick={() => { if (n.type === 'new_message') { setOpen(false); navigate(messagesPath) } }}
                     className={`flex-1 min-w-0 ${n.type === 'new_message' ? 'cursor-pointer' : ''}`}>
                     <p className="font-medium text-gray-900">{n.title}</p>
                     <p className="text-gray-500 text-xs mt-0.5">{n.body}</p>

@@ -1,6 +1,6 @@
 // src/pages/DoctorDashboard.tsx
 import { useState, useEffect, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import Navbar from '@/components/ui/Navbar'
@@ -119,7 +119,11 @@ export default function DoctorDashboard() {
     }
   }
 
-  const [tab, setTab] = useState<Tab>('home')
+  const [searchParams] = useSearchParams()
+  const initialTab = searchParams.get('tab')
+  const [tab, setTab] = useState<Tab>(
+    TABS.some(t => t.id === initialTab) ? (initialTab as Tab) : 'home'
+  )
   const [apptTab, setApptTab] = useState<'today' | 'week' | 'all'>('today')
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }))
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)

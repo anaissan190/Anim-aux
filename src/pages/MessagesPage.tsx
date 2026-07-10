@@ -1,5 +1,6 @@
 // src/pages/MessagesPage.tsx
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import Navbar from '@/components/ui/Navbar'
@@ -19,11 +20,20 @@ function saveHidden(userId: string, ids: string[]) {
 
 export default function MessagesPage() {
   const { user, profile } = useAuthStore()
+  const navigate = useNavigate()
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [text, setText] = useState('')
   const [contacts, setContacts] = useState<any[]>([])
   const bottomRef = useRef<HTMLDivElement>(null)
   const qc = useQueryClient()
+
+  // Cette page (recherche par nom d'animal, "prenez un RDV"...) est pensée
+  // pour un propriétaire d'animal. Le praticien a sa propre expérience,
+  // adaptée, dans l'onglet Messages de son dashboard — on l'y renvoie s'il
+  // arrive ici quand même (ancien lien, favori...).
+  useEffect(() => {
+    if (user?.role === 'doctor') navigate('/dashboard/doctor?tab=messages', { replace: true })
+  }, [user])
 
   const { data: messages = [] } = useConversation(selectedUserId ?? '')
   const send = useSendMessage()
@@ -161,6 +171,10 @@ export default function MessagesPage() {
     setText('')
   }
 
+  // Le praticien est redirigé vers son propre onglet Messages (useEffect
+  // ci-dessus) ; on n'affiche rien ici le temps que la redirection s'exécute.
+  if (user?.role === 'doctor') return null
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Navbar />
@@ -191,7 +205,7 @@ export default function MessagesPage() {
               <p className="text-xs font-medium text-gray-600 mb-2">Nouveau message</p>
               <input
                 className="input text-sm w-full"
-                placeholder={user?.role === 'doctor' ? 'Rechercher parmi vos patients...' : 'Rechercher parmi vos praticiens...'}
+                placeholder="Rechercher parmi vos praticiens..."
                 value={newMsgSearch}
                 onChange={e => setNewMsgSearch(e.target.value)}
                 autoFocus
@@ -218,7 +232,7 @@ export default function MessagesPage() {
               {newMsgResults.length === 0 && (
                 <p className="text-xs text-gray-400 mt-2 text-center">
                   {contacts.length === 0
-                    ? "Aucun rendez-vous n'a encore eu lieu."
+                    ? "Vous n'avez pas encore eu de rendez-vous avec un praticien."
                     : 'Aucun résultat.'}
                 </p>
               )}

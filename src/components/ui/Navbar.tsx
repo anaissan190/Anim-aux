@@ -25,7 +25,10 @@ export default function Navbar() {
             <Link to="/search" className="hover:text-sage-600 transition-colors">Trouver un praticien</Link>
           )}
           {user && <Link to={dashboardPath} className="hover:text-sage-600 transition-colors">Mon espace</Link>}
-          {user && <Link to="/messages" className="hover:text-sage-600 transition-colors">Messages</Link>}
+          {user && (
+            <Link to={user.role === 'doctor' ? '/dashboard/doctor?tab=messages' : '/messages'}
+              className="hover:text-sage-600 transition-colors">Messages</Link>
+          )}
           {user && <Link to="/profil" className="hover:text-sage-600 transition-colors">Profil</Link>}
         </div>
 
