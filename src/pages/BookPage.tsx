@@ -23,6 +23,16 @@ export default function BookPage() {
   const [reason, setReason] = useState('')
   const [animalIds, setAnimalIds] = useState<string[]>([])
   const [animalSearch, setAnimalSearch] = useState('')
+  const [documents, setDocuments] = useState<File[]>([])
+
+  function addDocuments(files: FileList | null) {
+    if (!files) return
+    setDocuments(docs => [...docs, ...Array.from(files)])
+  }
+
+  function removeDocument(index: number) {
+    setDocuments(docs => docs.filter((_, i) => i !== index))
+  }
 
   function toggleAnimal(id: string) {
     setAnimalIds(ids => ids.includes(id) ? ids.filter(i => i !== id) : [...ids, id])
@@ -51,6 +61,7 @@ export default function BookPage() {
       end_at:    end.toISOString(),
       reason,
       animal_ids: animalIds.length > 0 ? animalIds : undefined,
+      documents: documents.length > 0 ? documents : undefined,
     })
     setStep(3)
   }
@@ -174,6 +185,30 @@ export default function BookPage() {
             <textarea value={reason} onChange={e => setReason(e.target.value)}
               className="input resize-none" rows={2}
               placeholder="Précisez si nécessaire (facultatif)..." />
+
+            <div className="mt-5">
+              <p className="text-sm font-medium text-gray-700 mb-2">Documents ou photos à joindre (facultatif)</p>
+              <label className="btn-secondary text-sm inline-block cursor-pointer">
+                📎 Ajouter un fichier
+                <input type="file" accept="image/*,.pdf" multiple className="hidden"
+                  onChange={e => { addDocuments(e.target.files); e.target.value = '' }} />
+              </label>
+              {documents.length > 0 && (
+                <ul className="mt-2 space-y-1">
+                  {documents.map((f, i) => (
+                    <li key={i} className="flex items-center justify-between text-xs bg-gray-50 rounded-lg px-3 py-2">
+                      <span className="truncate">📄 {f.name}</span>
+                      <button type="button" onClick={() => removeDocument(i)}
+                        className="text-red-400 hover:underline ml-2 flex-shrink-0">Retirer</button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className="text-xs text-gray-400 mt-2">
+                Ex : analyses, ordonnance, radios... Le praticien pourra les consulter avant le RDV.
+              </p>
+            </div>
+
             <div className="flex gap-3 mt-5">
               <button className="btn-secondary flex-1" onClick={() => setStep(1)}>← Retour</button>
               <button className="btn-primary flex-1" onClick={() => setStep(3)}>Récapitulatif →</button>
@@ -212,6 +247,12 @@ export default function BookPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">{animalIds.length > 1 ? 'Animaux' : 'Animal'}</span>
                   <span>{animals.filter(a => animalIds.includes(a.id)).map(a => a.name).join(', ')}</span>
+                </div>
+              )}
+              {documents.length > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Pièces jointes</span>
+                  <span>{documents.length} fichier{documents.length > 1 ? 's' : ''}</span>
                 </div>
               )}
               <div className="flex justify-between text-sm pt-2 border-t border-sage-200">

@@ -2,7 +2,7 @@
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { Link } from 'react-router-dom'
-import { useUpdateAppointmentStatus } from '@/hooks/useData'
+import { useUpdateAppointmentStatus, useAppointmentDocuments } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import type { Appointment, AppointmentStatus } from '@/types'
 
@@ -29,6 +29,7 @@ interface Props {
 export default function AppointmentCard({ appointment, showPatient }: Props) {
   const { user } = useAuthStore()
   const update = useUpdateAppointmentStatus()
+  const { data: attachments = [] } = useAppointmentDocuments(appointment.id)
   const start = new Date(appointment.start_at)
 
   const name = showPatient
@@ -56,6 +57,16 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
             <p className="text-sm text-sage-600">{(appointment.doctors as any)?.specialty ?? ''}</p>
             {appointment.reason && (
               <p className="text-xs text-gray-500 mt-1 truncate">Motif : {appointment.reason}</p>
+            )}
+            {attachments.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-1">
+                {attachments.map((doc: any) => (
+                  <a key={doc.id} href={doc.file_url} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-sage-600 hover:underline">
+                    📎 {doc.file_name}
+                  </a>
+                ))}
+              </div>
             )}
             {showPatient && appointment.animals && appointment.animals.length > 0 && ['confirmed', 'completed'].includes(appointment.status) && (
               <div className="flex flex-wrap gap-2 mt-1">

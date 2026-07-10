@@ -265,8 +265,9 @@ export function useCreateAppointment() {
       end_at: string
       reason?: string
       animal_ids?: string[]
+      documents?: File[]
     }) => {
-      const { animal_ids, ...apptData } = data
+      const { animal_ids, documents, ...apptData } = data
       const { data: appt, error } = await supabase
         .from('appointments')
         .insert({ ...apptData, patient_id: user!.id, status: 'confirmed' })
@@ -282,12 +283,48 @@ export function useCreateAppointment() {
         if (linkError) throw linkError
       }
 
+      // Pièces jointes (documents/photos) fournies par le patient à la prise de RDV
+      if (documents && documents.length > 0) {
+        for (const file of documents) {
+          const ext = file.name.split('.').pop()
+          const path = `appointments/${appt.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+          const { error: uploadError } = await supabase.storage.from('documents').upload(path, file)
+          if (uploadError) throw uploadError
+          const { data: pub } = supabase.storage.from('documents').getPublicUrl(path)
+          const { error: docError } = await supabase.from('appointment_documents').insert({
+            appointment_id: appt.id,
+            uploaded_by: user!.id,
+            file_url: pub.publicUrl,
+            file_name: file.name,
+            file_type: file.type,
+          })
+          if (docError) throw docError
+        }
+      }
+
       return appt
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['appointments'] })
       qc.invalidateQueries({ queryKey: ['slots'] })
     },
+  })
+}
+
+// Pièces jointes liées à un RDV (documents envoyés par le patient à la réservation)
+export function useAppointmentDocuments(appointmentId?: string) {
+  return useQuery({
+    queryKey: ['appointment_documents', appointmentId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('appointment_documents')
+        .select('*')
+        .eq('appointment_id', appointmentId!)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data ?? []
+    },
+    enabled: !!appointmentId,
   })
 }
 
@@ -801,6 +838,59 @@ export function useHealthRecords(animalId: string) {
       return data
     },
     enabled: !!animalId,
+  })
+}
+
+// ── ANIMAL DOCUMENTS (onglet Documents du dossier animal) ────────────────────
+
+export function useAnimalDocuments(animalId?: string) {
+  return useQuery({
+    queryKey: ['animal_documents', animalId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('animal_documents')
+        .select('*')
+        .eq('animal_id', animalId!)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data ?? []
+    },
+    enabled: !!animalId,
+  })
+}
+
+export function useCreateAnimalDocument() {
+  const qc = useQueryClient()
+  const { user } = useAuthStore()
+  return useMutation({
+    mutationFn: async ({ animal_id, file, label }: { animal_id: string; file: File; label?: string }) => {
+      const ext = file.name.split('.').pop()
+      const path = `animals/${animal_id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+      const { error: uploadError } = await supabase.storage.from('documents').upload(path, file)
+      if (uploadError) throw uploadError
+      const { data: pub } = supabase.storage.from('documents').getPublicUrl(path)
+      const { error } = await supabase.from('animal_documents').insert({
+        animal_id,
+        uploaded_by: user!.id,
+        file_url: pub.publicUrl,
+        file_name: file.name,
+        file_type: file.type,
+        label: label || undefined,
+      })
+      if (error) throw error
+    },
+    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['animal_documents', vars.animal_id] }),
+  })
+}
+
+export function useDeleteAnimalDocument() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id }: { id: string; animal_id: string }) => {
+      const { error } = await supabase.from('animal_documents').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['animal_documents', vars.animal_id] }),
   })
 }
 

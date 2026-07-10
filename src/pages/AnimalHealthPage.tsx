@@ -22,6 +22,9 @@ import {
   useUpdateAnimal,
   useDeleteAnimal,
   useAnimalOwner,
+  useAnimalDocuments,
+  useCreateAnimalDocument,
+  useDeleteAnimalDocument,
 } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { supabase } from '@/lib/supabase'
@@ -37,6 +40,7 @@ export default function AnimalHealthPage() {
   const { data: vaccines = [] } = useVaccines(id!)
   const { data: weights = [] } = useWeightTracking(id!)
   const { data: records = [] } = useHealthRecords(id!)
+  const { data: documents = [] } = useAnimalDocuments(id!)
   const { data: owner } = useAnimalOwner(isDoctor ? animal?.owner_id : undefined)
 
   const doctorName = profile ? `${profile.first_name} ${profile.last_name}`.trim() : ''
@@ -52,6 +56,8 @@ export default function AnimalHealthPage() {
   const deleteRecord  = useDeleteHealthRecord()
   const updateAnimal  = useUpdateAnimal()
   const deleteAnimal  = useDeleteAnimal()
+  const createDocument = useCreateAnimalDocument()
+  const deleteDocument = useDeleteAnimalDocument()
   const [photoUploading, setPhotoUploading] = useState(false)
 
   const [showEditForm, setShowEditForm] = useState(false)
@@ -111,10 +117,13 @@ export default function AnimalHealthPage() {
     setPhotoUploading(false)
   }
 
-  const [tab, setTab] = useState<'overview' | 'vaccines' | 'weight' | 'records'>('overview')
+  const [tab, setTab] = useState<'overview' | 'vaccines' | 'weight' | 'records' | 'documents'>('overview')
   const [showVaccineForm, setShowVaccineForm] = useState(false)
   const [showWeightForm, setShowWeightForm] = useState(false)
   const [showRecordForm, setShowRecordForm] = useState(false)
+  const [docLabel, setDocLabel] = useState('')
+  const [docUploading, setDocUploading] = useState(false)
+  const [docError, setDocError] = useState('')
 
   const [vaccineForm, setVaccineForm] = useState({ name: '', date_administered: '', next_due_date: '', administered_by: '' })
   const [weightForm, setWeightForm] = useState({ weight_kg: '', measured_at: '', notes: '' })
@@ -263,6 +272,28 @@ export default function AnimalHealthPage() {
     }
   }
 
+  async function handleDocUpload(file: File) {
+    setDocError('')
+    setDocUploading(true)
+    try {
+      await createDocument.mutateAsync({ animal_id: id!, file, label: docLabel })
+      setDocLabel('')
+    } catch (e: any) {
+      setDocError(e.message ?? "Erreur lors de l'envoi.")
+    } finally {
+      setDocUploading(false)
+    }
+  }
+
+  async function removeDocument(docId: string) {
+    setDocError('')
+    try {
+      await deleteDocument.mutateAsync({ id: docId, animal_id: id! })
+    } catch (e: any) {
+      setDocError(e.message ?? "Erreur lors de la suppression.")
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -379,7 +410,7 @@ export default function AnimalHealthPage() {
         )}
 
         <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-6 w-fit">
-          {([['overview', '📋 Résumé'], ['vaccines', '💉 Vaccins'], ['weight', '⚖️ Poids'], ['records', '📁 Dossier']] as const).map(([t, label]) => (
+          {([['overview', '📋 Résumé'], ['vaccines', '💉 Vaccins'], ['weight', '⚖️ Poids'], ['records', '📁 Dossier'], ['documents', '📎 Documents']] as const).map(([t, label]) => (
             <button key={t} onClick={() => setTab(t)}
               className={`px-4 py-2 text-xs font-medium rounded-lg transition-colors ${tab === t ? 'bg-white text-sage-600 shadow-sm' : 'text-gray-500'}`}>
               {label}
@@ -631,6 +662,61 @@ export default function AnimalHealthPage() {
                     </div>
                   )
                 })}</div>
+            }
+          </div>
+        )}
+
+        {tab === 'documents' && (
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="font-semibold text-gray-900">Documents & photos</h2>
+            </div>
+
+            <div className="card p-5 mb-4 border-2 border-sage-200">
+              <h3 className="font-semibold text-sm mb-3">Ajouter un document ou une photo</h3>
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div className="col-span-2">
+                  <label className="text-xs text-gray-500">Description (facultatif)</label>
+                  <input className="input text-sm mt-1" value={docLabel}
+                    onChange={e => setDocLabel(e.target.value)}
+                    placeholder="Ex: Analyse de sang, radio, ordonnance..." />
+                </div>
+              </div>
+              <label className="btn-primary text-sm inline-block cursor-pointer">
+                {docUploading ? 'Envoi...' : '+ Choisir un fichier'}
+                <input type="file" accept="image/*,.pdf" className="hidden" disabled={docUploading}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleDocUpload(f); e.target.value = '' }} />
+              </label>
+            </div>
+
+            {docError && <p className="text-red-500 text-sm mb-3">{docError}</p>}
+
+            {documents.length === 0
+              ? <div className="card p-10 text-center"><p className="text-gray-400 text-sm">Aucun document envoyé.</p></div>
+              : <div className="space-y-3">{documents.map((d: any) => (
+                  <div key={d.id} className="card p-4 flex items-center gap-4">
+                    <a href={d.file_url} target="_blank" rel="noopener noreferrer"
+                      className="w-10 h-10 rounded-xl bg-sage-50 flex items-center justify-center text-lg overflow-hidden flex-shrink-0">
+                      {d.file_type?.startsWith('image/')
+                        ? <img src={d.file_url} className="w-full h-full object-cover" alt={d.file_name} />
+                        : '📄'}
+                    </a>
+                    <div className="flex-1 min-w-0">
+                      <a href={d.file_url} target="_blank" rel="noopener noreferrer"
+                        className="font-semibold text-sm text-gray-900 hover:underline truncate block">
+                        {d.label || d.file_name}
+                      </a>
+                      <p className="text-xs text-gray-500">
+                        {format(new Date(d.created_at), 'd MMM yyyy', { locale: fr })}
+                        {d.uploaded_by === user?.id ? ' · Ajouté par vous' : isDoctor ? ' · Ajouté par le propriétaire' : ' · Ajouté par le praticien'}
+                      </p>
+                    </div>
+                    {d.uploaded_by === user?.id && (
+                      <button onClick={() => removeDocument(d.id)} disabled={deleteDocument.isPending}
+                        className="text-xs text-red-400 hover:underline flex-shrink-0">🗑️</button>
+                    )}
+                  </div>
+                ))}</div>
             }
           </div>
         )}
