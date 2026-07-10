@@ -1,7 +1,7 @@
 // src/pages/DoctorDashboard.tsx
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { format, startOfWeek, addDays, isSameDay, isThisWeek } from 'date-fns'
+import { format, startOfWeek, addDays, isSameDay } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import Navbar from '@/components/ui/Navbar'
 import RichTextEditor from '@/components/ui/RichTextEditor'
@@ -115,6 +115,7 @@ export default function DoctorDashboard() {
   const [tab, setTab] = useState<Tab>('home')
   const [apptTab, setApptTab] = useState<'today' | 'week' | 'all'>('today')
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }))
+  const [selectedDay, setSelectedDay] = useState<Date | null>(null)
   const [dispoTab, setDispoTab] = useState<'personal' | 'shared'>('personal')
   const [clinicForm, setClinicForm] = useState({ name: '', city: '' })
   const [inviteCode, setInviteCode] = useState('')
@@ -137,19 +138,21 @@ export default function DoctorDashboard() {
     if (!user || tab !== 'messages') return
     async function loadContacts() {
       const doctorRow = await supabase.from('doctors').select('id').eq('user_id', user!.id).single()
-      const { data } = await supabase
+      const { data: appts } = await supabase
         .from('appointments')
-        .select('patient_id, users!patient_id(id, profiles(first_name, last_name, user_id))')
+        .select('patient_id')
         .eq('doctor_id', doctorRow.data?.id)
-      const seen = new Set<string>()
-      const list: any[] = []
-      ;(data ?? []).forEach((a: any) => {
-        const p = a.users?.profiles
-        if (p && !seen.has(p.user_id)) {
-          seen.add(p.user_id)
-          list.push({ user_id: p.user_id, name: `${p.first_name} ${p.last_name}` })
-        }
-      })
+      const patientIds = [...new Set((appts ?? []).map((a: any) => a.patient_id))]
+      if (patientIds.length === 0) { setContacts([]); return }
+      // Requête directe sur `profiles` (policy RLS dédiée) : un embed via
+      // `users` renvoie null car aucune policy RLS ne permet à un praticien
+      // de lire la ligne `users` d'un autre utilisateur (même bug que
+      // l'onglet Mes patients).
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('user_id, first_name, last_name')
+        .in('user_id', patientIds)
+      const list = (profilesData ?? []).map((p: any) => ({ user_id: p.user_id, name: `${p.first_name} ${p.last_name}` }))
       setContacts(list)
       if (list.length > 0 && !selectedUserId) setSelectedUserId(list[0].user_id)
     }
@@ -192,12 +195,20 @@ export default function DoctorDashboard() {
 
   const today     = new Date()
   const todayAppts = appointments.filter(a => isSameDay(new Date(a.start_at), today))
-  const weekAppts  = appointments.filter(a => isThisWeek(new Date(a.start_at), { weekStartsOn: 1 }))
-  const pending    = appointments.filter(a => a.status === 'pending').length
   const weekDays   = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
+  // Basé sur la semaine actuellement affichée dans le mini calendrier
+  // (navigable via ‹ ›), pas sur la semaine réelle en cours : sinon l'onglet
+  // "Semaine" et le mini calendrier pouvaient se désynchroniser.
+  const weekEnd    = addDays(weekStart, 7)
+  const weekAppts  = appointments.filter(a => {
+    const d = new Date(a.start_at)
+    return d >= weekStart && d < weekEnd
+  })
+  const pending    = appointments.filter(a => a.status === 'pending').length
   const nextAppt   = todayAppts.find(a => new Date(a.start_at) >= today)
 
   const displayAppts =
+    selectedDay ? appointments.filter(a => isSameDay(new Date(a.start_at), selectedDay)) :
     apptTab === 'today' ? todayAppts :
     apptTab === 'week'  ? weekAppts  :
     appointments
@@ -288,30 +299,38 @@ export default function DoctorDashboard() {
                   <div className="grid grid-cols-7 gap-1">
                     {weekDays.map(day => {
                       const dayAppts = appointments.filter(a => isSameDay(new Date(a.start_at), day))
-                      const isToday  = isSameDay(day, today)
+                      const isToday    = isSameDay(day, today)
+                      const isSelected = !!selectedDay && isSameDay(day, selectedDay)
                       return (
-                        <div key={day.toISOString()}
-                          className={`p-2 rounded-xl text-center text-xs
-                            ${isToday ? 'bg-sage-500 text-white' : 'bg-gray-50 text-gray-600'}`}>
+                        <button key={day.toISOString()} type="button"
+                          onClick={() => setSelectedDay(d => d && isSameDay(d, day) ? null : day)}
+                          className={`p-2 rounded-xl text-center text-xs transition-colors cursor-pointer
+                            ${isToday ? 'bg-sage-500 text-white' : isSelected ? 'bg-sage-100 text-sage-700 ring-2 ring-sage-400' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}>
                           <p className="font-medium mb-1">{format(day, 'EEE', { locale: fr })}</p>
                           <p>{format(day, 'd')}</p>
                           {dayAppts.length > 0 && (
                             <div className={`w-1.5 h-1.5 rounded-full mx-auto mt-1.5
                               ${isToday ? 'bg-white' : 'bg-sage-400'}`} />
                           )}
-                        </div>
+                        </button>
                       )
                     })}
                   </div>
+                  {selectedDay && (
+                    <p className="text-xs text-sage-600 mt-2">
+                      Rendez-vous du {format(selectedDay, "EEEE d MMMM", { locale: fr })}
+                      <button onClick={() => setSelectedDay(null)} className="ml-2 text-gray-400 hover:underline">Réinitialiser</button>
+                    </p>
+                  )}
                 </div>
 
                 {/* Liste RDV */}
                 <div>
                   <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-4 w-fit">
                     {(['today', 'week', 'all'] as const).map(t => (
-                      <button key={t} onClick={() => setApptTab(t)}
+                      <button key={t} onClick={() => { setApptTab(t); setSelectedDay(null) }}
                         className={`px-4 py-1.5 text-xs font-medium rounded-lg transition-colors
-                          ${apptTab === t ? 'bg-white text-sage-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                          ${!selectedDay && apptTab === t ? 'bg-white text-sage-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
                         {t === 'today' ? "Aujourd'hui" : t === 'week' ? 'Semaine' : 'Tous'}
                       </button>
                     ))}
