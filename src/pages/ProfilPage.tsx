@@ -1,14 +1,30 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/lib/authStore'
-import { useCurrentDoctor, useUpdateProfile, useUpdateDoctor } from '@/hooks/useData'
+import { useCurrentDoctor, useUpdateProfile, useUpdateDoctor, useDeleteAccount } from '@/hooks/useData'
 import Navbar from '@/components/ui/Navbar'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 
 export default function ProfilPage() {
-  const { user, profile } = useAuthStore()
+  const { user, profile, signOut } = useAuthStore()
+  const navigate = useNavigate()
   const { data: doctor } = useCurrentDoctor()
   const updateProfile = useUpdateProfile()
   const updateDoctor = useUpdateDoctor()
+  const deleteAccount = useDeleteAccount()
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+
+  async function handleDeleteAccount() {
+    setDeleteError('')
+    try {
+      await deleteAccount.mutateAsync()
+      await signOut()
+      navigate('/')
+    } catch (e: any) {
+      setDeleteError(e.message ?? 'Erreur lors de la suppression du compte.')
+    }
+  }
 
   const isDoctor = user?.role === 'doctor'
 
@@ -196,6 +212,35 @@ export default function ProfilPage() {
           </button>
 
         </form>
+
+        {/* ZONE DE DANGER */}
+        <div className="card p-6 mt-8 border border-red-100">
+          <h2 className="font-semibold text-red-600 mb-1">Zone de danger</h2>
+          <p className="text-xs text-gray-500 mb-4">
+            La suppression de votre compte est définitive : profil, rendez-vous, animaux et dossiers de santé,
+            messages, avis{isDoctor ? ', cabinet dont vous êtes le créateur' : ''} — tout sera effacé sans possibilité de retour en arrière.
+          </p>
+          {deleteError && <p className="text-red-500 text-sm mb-3">{deleteError}</p>}
+          {!confirmDelete ? (
+            <button onClick={() => setConfirmDelete(true)}
+              className="text-sm text-red-500 hover:underline font-medium">
+              Supprimer mon compte
+            </button>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-gray-700 font-medium">Es-tu sûr(e) ? Cette action est irréversible.</p>
+              <div className="flex gap-2">
+                <button onClick={handleDeleteAccount} disabled={deleteAccount.isPending}
+                  className="btn-primary bg-red-500 hover:bg-red-600 text-sm px-4 py-2">
+                  {deleteAccount.isPending ? 'Suppression...' : 'Oui, supprimer définitivement'}
+                </button>
+                <button onClick={() => setConfirmDelete(false)} className="btn-secondary text-sm px-4 py-2">
+                  Annuler
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

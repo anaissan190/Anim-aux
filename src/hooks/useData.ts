@@ -849,6 +849,20 @@ export function useDoctorPublicClinic(doctorId?: string) {
   })
 }
 
+// Retirer un membre du cabinet — réservé au créateur (vérifié côté RPC,
+// SECURITY DEFINER, car on ne connaît pas le détail du RLS de clinic_members
+// pour ce genre d'opération croisée entre utilisateurs).
+export function useRemoveClinicMember() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ clinicMemberId }: { clinicMemberId: string; clinicId: string }) => {
+      const { error } = await supabase.rpc('remove_clinic_member', { p_clinic_member_id: clinicMemberId })
+      if (error) throw new Error(error.message)
+    },
+    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['clinic_members', vars.clinicId] }),
+  })
+}
+
 export function useClinicMembers(clinicId?: string) {
   return useQuery({
     queryKey: ['clinic_members', clinicId],
@@ -1090,6 +1104,20 @@ export function useUpdateDoctor() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['currentDoctor'] })
       qc.invalidateQueries({ queryKey: ['doctors'] })
+    },
+  })
+}
+
+// Suppression définitive du compte (RDV, animaux/dossiers de santé,
+// cabinet possédé, messages, avis, etc.) via une RPC SECURITY DEFINER —
+// nécessaire car le client ne peut pas supprimer une ligne auth.users, et
+// certaines tables (appointments) ont une contrainte "on delete restrict"
+// qui bloquerait sinon toute suppression dès qu'un RDV existe.
+export function useDeleteAccount() {
+  return useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc('delete_my_account')
+      if (error) throw new Error(error.message)
     },
   })
 }

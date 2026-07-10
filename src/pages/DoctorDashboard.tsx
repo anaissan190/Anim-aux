@@ -1,6 +1,6 @@
 // src/pages/DoctorDashboard.tsx
 import { useState, useEffect, useRef } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import Navbar from '@/components/ui/Navbar'
@@ -8,7 +8,7 @@ import RichTextEditor from '@/components/ui/RichTextEditor'
 import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
-import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDeleteConversation, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor } from '@/hooks/useData'
+import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDeleteConversation, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { PRACTITIONER_TYPES, getPractitionerType } from '@/lib/practitionerTypes'
 import { SPECIES_EMOJI } from '@/lib/animalSpecies'
@@ -75,8 +75,25 @@ export default function DoctorDashboard() {
   const addClinicService  = useAddClinicService()
   const deleteClinicService = useDeleteClinicService()
   const updateClinic      = useUpdateClinic()
-  const { user } = useAuthStore()
+  const removeClinicMember = useRemoveClinicMember()
+  const [removeMemberError, setRemoveMemberError] = useState('')
+  const { user, signOut } = useAuthStore()
+  const navigate = useNavigate()
   const isClinicAdmin = clinic?.owner_id === user?.id
+  const deleteAccount = useDeleteAccount()
+  const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false)
+  const [deleteAccountError, setDeleteAccountError] = useState('')
+
+  async function handleDeleteAccount() {
+    setDeleteAccountError('')
+    try {
+      await deleteAccount.mutateAsync()
+      await signOut()
+      navigate('/')
+    } catch (e: any) {
+      setDeleteAccountError(e.message ?? 'Erreur lors de la suppression du compte.')
+    }
+  }
 
   // Préremplit le formulaire "Mon profil" une seule fois au chargement.
   // Sans le garde-fou `profileInitialized`, ce useEffect se redéclenchait à
@@ -982,6 +999,7 @@ export default function DoctorDashboard() {
                       <h3 className="font-semibold text-gray-900 mb-4">
                         Membres du cabinet ({clinicMembers.length})
                       </h3>
+                      {removeMemberError && <p className="text-red-500 text-sm mb-3">{removeMemberError}</p>}
                       <div className="space-y-3">
                         {clinicMembers.map((m: any) => (
                           <div key={m.id} className="flex items-center gap-3">
@@ -994,8 +1012,24 @@ export default function DoctorDashboard() {
                               </p>
                               <p className="text-xs text-gray-400">{m.doctors?.specialty}</p>
                             </div>
-                            {clinic.owner_id === m.doctors?.user_id && (
+                            {clinic.owner_id === m.doctors?.user_id ? (
                               <span className="ml-auto text-xs bg-sage-100 text-sage-700 px-2 py-0.5 rounded-full">Admin</span>
+                            ) : (
+                              isClinicAdmin && (
+                                <button
+                                  onClick={async () => {
+                                    setRemoveMemberError('')
+                                    try {
+                                      await removeClinicMember.mutateAsync({ clinicMemberId: m.id, clinicId: clinic.id })
+                                    } catch (e: any) {
+                                      setRemoveMemberError(e.message ?? 'Erreur lors du retrait du membre.')
+                                    }
+                                  }}
+                                  disabled={removeClinicMember.isPending}
+                                  className="ml-auto text-xs text-red-500 hover:underline">
+                                  Retirer
+                                </button>
+                              )
                             )}
                           </div>
                         ))}
@@ -1154,6 +1188,35 @@ export default function DoctorDashboard() {
                   {(updateProfile.isPending || updateDoctorInfo.isPending) ? 'Enregistrement...' : 'Enregistrer mes informations'}
                 </button>
               </div>
+            </div>
+
+            {/* ZONE DE DANGER */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-red-100">
+              <h2 className="font-semibold text-red-600 mb-1">Zone de danger</h2>
+              <p className="text-xs text-gray-500 mb-4">
+                La suppression de votre compte est définitive : profil, rendez-vous, disponibilités,
+                messages, avis{clinic ? (isClinicAdmin ? ', votre cabinet (les autres membres perdront l\'accès à l\'agenda partagé)' : ', votre adhésion au cabinet') : ''} — tout sera effacé sans possibilité de retour en arrière.
+              </p>
+              {deleteAccountError && <p className="text-red-500 text-sm mb-3">{deleteAccountError}</p>}
+              {!confirmDeleteAccount ? (
+                <button onClick={() => setConfirmDeleteAccount(true)}
+                  className="text-sm text-red-500 hover:underline font-medium">
+                  Supprimer mon compte
+                </button>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-700 font-medium">Es-tu sûr(e) ? Cette action est irréversible.</p>
+                  <div className="flex gap-2">
+                    <button onClick={handleDeleteAccount} disabled={deleteAccount.isPending}
+                      className="btn-primary bg-red-500 hover:bg-red-600 text-sm px-4 py-2">
+                      {deleteAccount.isPending ? 'Suppression...' : 'Oui, supprimer définitivement'}
+                    </button>
+                    <button onClick={() => setConfirmDeleteAccount(false)} className="btn-secondary text-sm px-4 py-2">
+                      Annuler
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
