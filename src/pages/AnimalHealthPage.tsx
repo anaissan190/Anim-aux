@@ -25,7 +25,8 @@ import {
 } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { supabase } from '@/lib/supabase'
-import { SPECIES_GROUPS, SPECIES_EMOJI, SPECIES_MAX_WEIGHT, BREED_PLACEHOLDER } from '@/lib/animalSpecies'
+import { SPECIES_EMOJI, SPECIES_MAX_WEIGHT, BREED_PLACEHOLDER } from '@/lib/animalSpecies'
+import SpeciesSelect from '@/components/ui/SpeciesSelect'
 
 export default function AnimalHealthPage() {
   const { id } = useParams<{ id: string }>()
@@ -331,17 +332,8 @@ export default function AnimalHealthPage() {
               </div>
               <div>
                 <label className="text-xs text-gray-500">Espèce *</label>
-                <select className="input text-sm mt-1" value={editForm.species}
-                  onChange={e => setEditForm(f => ({ ...f, species: e.target.value, breed: '' }))}>
-                  {SPECIES_GROUPS.map(g => (
-                    <optgroup key={g.group} label={g.group}>
-                      {g.species.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
-                    </optgroup>
-                  ))}
-                  <optgroup label="Autre">
-                    <option value="Autre">Autre</option>
-                  </optgroup>
-                </select>
+                <SpeciesSelect value={editForm.species}
+                  onChange={species => setEditForm(f => ({ ...f, species, breed: '' }))} />
               </div>
               <div>
                 <label className="text-xs text-gray-500">Race</label>

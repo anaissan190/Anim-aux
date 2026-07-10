@@ -6,7 +6,8 @@ import AppointmentCard from '@/components/appointment/AppointmentCard'
 import { usePatientAppointments, useAnimals, useCreateAnimal } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { isFuture, isPast } from 'date-fns'
-import { SPECIES_GROUPS, SPECIES_EMOJI, BREED_PLACEHOLDER, SPECIES_MAX_WEIGHT } from '@/lib/animalSpecies'
+import { SPECIES_EMOJI, BREED_PLACEHOLDER, SPECIES_MAX_WEIGHT } from '@/lib/animalSpecies'
+import SpeciesSelect from '@/components/ui/SpeciesSelect'
 
 export default function PatientDashboard() {
   const { profile } = useAuthStore()
@@ -152,17 +153,8 @@ export default function PatientDashboard() {
                 </div>
                 <div>
                   <label className="text-xs text-gray-500">Espèce *</label>
-                  <select className="input text-sm mt-1" value={animalForm.species}
-                    onChange={e => setAnimalForm(f => ({...f, species: e.target.value, breed: ''}))}>
-                    {SPECIES_GROUPS.map(g => (
-                      <optgroup key={g.group} label={g.group}>
-                        {g.species.map(s => <option key={s.name} value={s.name}>{s.name}</option>)}
-                      </optgroup>
-                    ))}
-                    <optgroup label="Autre">
-                      <option value="Autre">Autre</option>
-                    </optgroup>
-                  </select>
+                  <SpeciesSelect value={animalForm.species}
+                    onChange={species => setAnimalForm(f => ({...f, species, breed: ''}))} />
                 </div>
                 {animalForm.species === 'Autre' && (
                   <div>
