@@ -909,16 +909,14 @@ export function useJoinClinic() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ inviteCode, doctorId }: { inviteCode: string; doctorId: string }) => {
-      const { data: clinic, error } = await supabase
-        .from('clinics')
-        .select('id')
-        .eq('invite_code', inviteCode.toUpperCase())
-        .single()
-      if (error || !clinic) throw new Error('Code invalide ou cabinet introuvable')
-      const { error: memberError } = await supabase
-        .from('clinic_members')
-        .insert({ clinic_id: clinic.id, doctor_id: doctorId })
-      if (memberError) throw new Error('Vous êtes déjà membre de ce cabinet')
+      // Passe par une RPC SECURITY DEFINER : une requête directe sur `clinics`
+      // est bloquée par le RLS tant qu'on n'est pas déjà membre du cabinet
+      // (donc la recherche par code échouait toujours pour un nouveau membre).
+      const { error } = await supabase.rpc('join_clinic_by_code', {
+        p_invite_code: inviteCode.toUpperCase(),
+        p_doctor_id: doctorId,
+      })
+      if (error) throw new Error(error.message)
     },
     onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['clinic', vars.doctorId] }),
   })
