@@ -8,7 +8,7 @@ import RichTextEditor from '@/components/ui/RichTextEditor'
 import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
-import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useUpdateClinic, useConversation, useSendMessage, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useUpdateProfile, useUpdateDoctor } from '@/hooks/useData'
+import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useUpdateClinic, useConversation, useSendMessage, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { PRACTITIONER_TYPES, getPractitionerType } from '@/lib/practitionerTypes'
 import { SPECIES_EMOJI } from '@/lib/animalSpecies'
@@ -47,6 +47,13 @@ export default function DoctorDashboard() {
   const [showAddSlot, setShowAddSlot] = useState(false)
   const [slotForm, setSlotForm] = useState({ day_of_week: 1, start_time: '09:00', end_time: '18:00' })
   const [slotError, setSlotError] = useState('')
+
+  const { data: blockedSlots = [] } = useBlockedSlots(doctor?.id)
+  const createBlockedSlot = useCreateBlockedSlot()
+  const deleteBlockedSlot = useDeleteBlockedSlot()
+  const [showAddBlocked, setShowAddBlocked] = useState(false)
+  const [blockedForm, setBlockedForm] = useState({ start_date: '', end_date: '', reason: '' })
+  const [blockedError, setBlockedError] = useState('')
 
   const updateProfile = useUpdateProfile()
   const updateDoctorInfo = useUpdateDoctor()
@@ -681,6 +688,97 @@ export default function DoctorDashboard() {
                     })}
                   </div>
                 )}
+
+                {/* Congés / indisponibilités */}
+                <div className="mt-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">🌴 Congés & indisponibilités</h3>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Gelez une période précise (vacances, formation...) : aucun créneau ne sera proposé aux patients sur ces dates.
+                      </p>
+                    </div>
+                    <button onClick={() => { setShowAddBlocked(true); setBlockedError('') }} className="btn-secondary text-sm px-4 py-2 flex-shrink-0 ml-3">
+                      + Ajouter une période
+                    </button>
+                  </div>
+
+                  {showAddBlocked && (
+                    <div className="bg-white rounded-2xl p-5 mb-4 border-2 border-sage-200">
+                      <h4 className="font-semibold text-sm text-gray-800 mb-3">Nouvelle période d'indisponibilité</h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Du</label>
+                          <input type="date" className="input text-sm" value={blockedForm.start_date}
+                            onChange={e => setBlockedForm(f => ({ ...f, start_date: e.target.value }))} />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Au</label>
+                          <input type="date" className="input text-sm" value={blockedForm.end_date}
+                            onChange={e => setBlockedForm(f => ({ ...f, end_date: e.target.value }))} />
+                        </div>
+                      </div>
+                      <div className="mt-3">
+                        <label className="block text-xs text-gray-500 mb-1">Motif (facultatif)</label>
+                        <input className="input text-sm" value={blockedForm.reason}
+                          onChange={e => setBlockedForm(f => ({ ...f, reason: e.target.value }))}
+                          placeholder="Ex: Vacances, formation..." />
+                      </div>
+                      {blockedError && <p className="text-red-500 text-sm mt-3">{blockedError}</p>}
+                      <div className="flex gap-2 mt-4">
+                        <button onClick={async () => {
+                          if (!doctor?.id) return
+                          if (!blockedForm.start_date || !blockedForm.end_date) {
+                            setBlockedError('Merci de renseigner les deux dates.')
+                            return
+                          }
+                          if (blockedForm.start_date > blockedForm.end_date) {
+                            setBlockedError('La date de fin doit être après la date de début.')
+                            return
+                          }
+                          setBlockedError('')
+                          try {
+                            const start = new Date(blockedForm.start_date); start.setHours(0, 0, 0, 0)
+                            const end = new Date(blockedForm.end_date); end.setHours(23, 59, 59, 999)
+                            await createBlockedSlot.mutateAsync({
+                              doctor_id: doctor.id,
+                              start_at: start.toISOString(),
+                              end_at: end.toISOString(),
+                              reason: blockedForm.reason || undefined,
+                            })
+                            setShowAddBlocked(false)
+                            setBlockedForm({ start_date: '', end_date: '', reason: '' })
+                          } catch (e: any) {
+                            setBlockedError(e.message ?? "Erreur lors de l'ajout de la période.")
+                          }
+                        }} disabled={createBlockedSlot.isPending} className="btn-primary text-sm px-4 py-2">
+                          {createBlockedSlot.isPending ? 'Ajout...' : 'Ajouter'}
+                        </button>
+                        <button onClick={() => setShowAddBlocked(false)} className="btn-secondary text-sm px-4 py-2">Annuler</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {blockedSlots.length === 0 ? (
+                    <p className="text-sm text-gray-400">Aucune période d'indisponibilité programmée.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {blockedSlots.map((b: any) => (
+                        <div key={b.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">
+                              {format(new Date(b.start_at), 'd MMM yyyy', { locale: fr })} → {format(new Date(b.end_at), 'd MMM yyyy', { locale: fr })}
+                            </p>
+                            {b.reason && <p className="text-xs text-gray-400 mt-0.5">{b.reason}</p>}
+                          </div>
+                          <button
+                            onClick={() => deleteBlockedSlot.mutate({ id: b.id, doctorId: doctor!.id })}
+                            className="text-xs text-red-400 hover:text-red-500 flex-shrink-0 ml-3">Supprimer</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 

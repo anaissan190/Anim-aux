@@ -103,6 +103,20 @@ export function useAvailableSlots(doctorId: string, date: Date | null) {
       })
       if (bookedErr) throw bookedErr
       const bookedTimes = new Set((booked || []).map((a: any) => new Date(a.start_at).getTime()))
+
+      // Périodes de congés/indisponibilités posées par le praticien
+      // (blocked_slots) : on exclut tout créneau qui tombe dedans.
+      const { data: blocked } = await supabase
+        .from('blocked_slots')
+        .select('start_at, end_at')
+        .eq('doctor_id', doctorId)
+        .lt('start_at', dayEnd.toISOString())
+        .gt('end_at', dayStart.toISOString())
+      const blockedRanges = (blocked || []).map((b: any) => ({
+        start: new Date(b.start_at).getTime(),
+        end: new Date(b.end_at).getTime(),
+      }))
+
       const slots: Date[] = []
       for (const a of avail) {
         const [sh, sm] = a.start_time.split(':').map(Number)
@@ -112,7 +126,9 @@ export function useAvailableSlots(doctorId: string, date: Date | null) {
         const end = new Date(date)
         end.setHours(eh, em, 0, 0)
         while (cur < end) {
-          if (!bookedTimes.has(cur.getTime())) slots.push(new Date(cur))
+          const t = cur.getTime()
+          const isBlocked = blockedRanges.some(r => t >= r.start && t < r.end)
+          if (!bookedTimes.has(t) && !isBlocked) slots.push(new Date(cur))
           cur = addMinutes(cur, a.slot_duration_minutes)
         }
       }
@@ -149,6 +165,54 @@ export function useDeleteAvailability() {
       if (error) throw error
     },
     onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['availabilities', vars.doctorId] }),
+  })
+}
+
+// ── CONGÉS / INDISPONIBILITÉS (blocked_slots) ────────────────────────────────
+// Permet à un praticien de geler une période précise (vacances, etc.), par-
+// dessus son planning récurrent hebdomadaire.
+
+export function useBlockedSlots(doctorId?: string) {
+  return useQuery({
+    queryKey: ['blocked-slots', doctorId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('blocked_slots')
+        .select('*')
+        .eq('doctor_id', doctorId!)
+        .order('start_at')
+      if (error) throw error
+      return data
+    },
+    enabled: !!doctorId,
+  })
+}
+
+export function useCreateBlockedSlot() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (slot: { doctor_id: string; start_at: string; end_at: string; reason?: string }) => {
+      const { error } = await supabase.from('blocked_slots').insert(slot)
+      if (error) throw error
+    },
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['blocked-slots', vars.doctor_id] })
+      qc.invalidateQueries({ queryKey: ['slots'] })
+    },
+  })
+}
+
+export function useDeleteBlockedSlot() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id }: { id: string; doctorId: string }) => {
+      const { error } = await supabase.from('blocked_slots').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['blocked-slots', vars.doctorId] })
+      qc.invalidateQueries({ queryKey: ['slots'] })
+    },
   })
 }
 
