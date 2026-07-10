@@ -8,7 +8,7 @@ import RichTextEditor from '@/components/ui/RichTextEditor'
 import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
-import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useUpdateClinic, useConversation, useSendMessage, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor } from '@/hooks/useData'
+import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useUpdateClinic, useConversation, useSendMessage, useMessageSummaries, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { PRACTITIONER_TYPES, getPractitionerType } from '@/lib/practitionerTypes'
 import { SPECIES_EMOJI } from '@/lib/animalSpecies'
@@ -140,6 +140,21 @@ export default function DoctorDashboard() {
   const bottomRef = useRef<HTMLDivElement>(null)
   const { data: messages = [] } = useConversation(selectedUserId ?? '')
   const send = useSendMessage()
+  const { data: summaries } = useMessageSummaries()
+  const markRead = useMarkConversationRead()
+
+  const sortedContacts = [...contacts]
+    .map(c => ({ ...c, ...summaries?.get(c.user_id) }))
+    .sort((a: any, b: any) => {
+      if (!a.lastAt && !b.lastAt) return 0
+      if (!a.lastAt) return 1
+      if (!b.lastAt) return -1
+      return new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime()
+    })
+
+  useEffect(() => {
+    if (selectedUserId) markRead.mutate(selectedUserId)
+  }, [selectedUserId])
 
   useEffect(() => {
     if (!user || tab !== 'messages') return
@@ -182,14 +197,15 @@ export default function DoctorDashboard() {
   }
 
   useEffect(() => {
-    if (!user || !selectedUserId) return
+    if (!user) return
     const channel = supabase.channel('doctor-msgs')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
         qc.invalidateQueries({ queryKey: ['messages'] })
+        qc.invalidateQueries({ queryKey: ['message-summaries'] })
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [user, selectedUserId])
+  }, [user])
   const practitionerType = getPractitionerType(doctor?.specialty
     ? PRACTITIONER_TYPES.find(p => p.label === doctor.specialty)?.id ?? ''
     : '')
@@ -1123,16 +1139,26 @@ export default function DoctorDashboard() {
               )}
 
               <div className="flex-1 overflow-y-auto">
-                {contacts.length === 0 ? (
+                {sortedContacts.length === 0 ? (
                   <p className="text-xs text-gray-400 p-4 text-center">Aucune conversation pour l'instant.</p>
-                ) : contacts.map(c => (
+                ) : sortedContacts.map((c: any) => (
                   <button key={c.user_id} onClick={() => setSelectedUserId(c.user_id)}
                     className={`w-full text-left p-3 flex items-center gap-3 hover:bg-gray-50 transition-colors
                       ${selectedUserId === c.user_id ? 'bg-sage-50' : ''}`}>
                     <div className="w-8 h-8 rounded-full bg-sage-100 flex items-center justify-center text-xs text-sage-700 font-bold flex-shrink-0">
                       {c.name[0]}
                     </div>
-                    <p className="text-sm font-medium text-gray-700 truncate">{c.name}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm truncate ${c.unread > 0 ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>{c.name}</p>
+                      {c.lastContent && (
+                        <p className={`text-xs truncate ${c.unread > 0 ? 'text-gray-600' : 'text-gray-400'}`}>{c.lastContent}</p>
+                      )}
+                    </div>
+                    {c.unread > 0 && (
+                      <span className="flex-shrink-0 w-5 h-5 bg-sage-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
+                        {c.unread > 9 ? '9+' : c.unread}
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>

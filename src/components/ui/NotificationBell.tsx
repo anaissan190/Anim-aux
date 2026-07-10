@@ -1,5 +1,6 @@
 // src/components/ui/NotificationBell.tsx
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useNotifications, useMarkNotificationsRead } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { supabase } from '@/lib/supabase'
@@ -9,6 +10,7 @@ import { fr } from 'date-fns/locale'
 
 export default function NotificationBell() {
   const [open, setOpen] = useState(false)
+  const navigate = useNavigate()
   const { user } = useAuthStore()
   const { data: notifications = [] } = useNotifications()
   const markRead = useMarkNotificationsRead()
@@ -59,7 +61,9 @@ export default function NotificationBell() {
               {notifications.length === 0 ? (
                 <p className="text-center text-sm text-gray-400 py-8">Aucune notification</p>
               ) : notifications.map(n => (
-                <div key={n.id} className={`px-4 py-3 text-sm ${n.is_read ? 'bg-white' : 'bg-sage-50'}`}>
+                <div key={n.id}
+                  onClick={() => { if (n.type === 'new_message') { setOpen(false); navigate('/messages') } }}
+                  className={`px-4 py-3 text-sm ${n.is_read ? 'bg-white' : 'bg-sage-50'} ${n.type === 'new_message' ? 'cursor-pointer hover:bg-gray-50' : ''}`}>
                   <p className="font-medium text-gray-900">{n.title}</p>
                   <p className="text-gray-500 text-xs mt-0.5">{n.body}</p>
                   <p className="text-gray-400 text-xs mt-1">

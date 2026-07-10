@@ -445,7 +445,60 @@ export function useSendMessage() {
       })
       if (error) throw error
     },
-    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['messages', user?.id, vars.receiverId] }),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['messages', user?.id, vars.receiverId] })
+      qc.invalidateQueries({ queryKey: ['message-summaries'] })
+    },
+  })
+}
+
+// Résumé par contact (dernier message + nombre de non-lus), pour trier et
+// signaler les nouvelles conversations dans la liste sans avoir à chercher
+// manuellement la personne qui vient d'écrire.
+export function useMessageSummaries() {
+  const { user } = useAuthStore()
+  return useQuery({
+    queryKey: ['message-summaries', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('sender_id, receiver_id, content, created_at, is_read')
+        .or(`sender_id.eq.${user!.id},receiver_id.eq.${user!.id}`)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+
+      const map = new Map<string, { lastAt: string; lastContent: string; unread: number }>()
+      for (const m of data ?? []) {
+        const otherId = m.sender_id === user!.id ? m.receiver_id : m.sender_id
+        const isUnreadForMe = m.receiver_id === user!.id && !m.is_read
+        const existing = map.get(otherId)
+        if (!existing) {
+          map.set(otherId, { lastAt: m.created_at, lastContent: m.content, unread: isUnreadForMe ? 1 : 0 })
+        } else if (isUnreadForMe) {
+          existing.unread += 1
+        }
+      }
+      return map
+    },
+    enabled: !!user,
+    refetchInterval: 5000,
+  })
+}
+
+export function useMarkConversationRead() {
+  const qc = useQueryClient()
+  const { user } = useAuthStore()
+  return useMutation({
+    mutationFn: async (otherUserId: string) => {
+      const { error } = await supabase
+        .from('messages')
+        .update({ is_read: true })
+        .eq('receiver_id', user!.id)
+        .eq('sender_id', otherUserId)
+        .eq('is_read', false)
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['message-summaries'] }),
   })
 }
 

@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import Navbar from '@/components/ui/Navbar'
-import { useConversation, useSendMessage } from '@/hooks/useData'
+import { useConversation, useSendMessage, useMessageSummaries, useMarkConversationRead } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
@@ -18,6 +18,22 @@ export default function MessagesPage() {
 
   const { data: messages = [] } = useConversation(selectedUserId ?? '')
   const send = useSendMessage()
+  const { data: summaries } = useMessageSummaries()
+  const markRead = useMarkConversationRead()
+
+  const sortedContacts = [...contacts]
+    .map(c => ({ ...c, ...summaries?.get(c.user_id) }))
+    .sort((a: any, b: any) => {
+      if (!a.lastAt && !b.lastAt) return 0
+      if (!a.lastAt) return 1
+      if (!b.lastAt) return -1
+      return new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime()
+    })
+
+  // Marque la conversation comme lue dès qu'on l'ouvre
+  useEffect(() => {
+    if (selectedUserId) markRead.mutate(selectedUserId)
+  }, [selectedUserId])
 
   // Charge les contacts depuis les RDV existants
   useEffect(() => {
@@ -47,12 +63,14 @@ export default function MessagesPage() {
     loadContacts()
   }, [user])
 
-  // Realtime messages
+  // Realtime messages : écoute même sans conversation ouverte pour mettre
+  // à jour la liste (tri + badge non-lus) dès qu'un message arrive.
   useEffect(() => {
-    if (!user || !selectedUserId) return
+    if (!user) return
     const channel = supabase.channel('msgs')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
         qc.invalidateQueries({ queryKey: ['messages'] })
+        qc.invalidateQueries({ queryKey: ['message-summaries'] })
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
@@ -80,9 +98,9 @@ export default function MessagesPage() {
           <div className="p-3 border-b border-gray-100">
             <p className="text-sm font-semibold text-gray-900">Conversations</p>
           </div>
-          {contacts.length === 0 ? (
+          {sortedContacts.length === 0 ? (
             <p className="text-xs text-gray-400 p-4 text-center">Aucune conversation — prenez un RDV pour commencer à échanger.</p>
-          ) : contacts.map(c => (
+          ) : sortedContacts.map((c: any) => (
             <button key={c.user_id}
               onClick={() => setSelectedUserId(c.user_id)}
               className={`w-full text-left p-3 flex items-center gap-3 hover:bg-gray-50 transition-colors
@@ -90,7 +108,17 @@ export default function MessagesPage() {
               <div className="w-8 h-8 rounded-full bg-sage-100 flex items-center justify-center text-xs text-sage-700 font-bold flex-shrink-0">
                 {c.name[0]}
               </div>
-              <p className="text-sm font-medium text-gray-700 truncate">{c.name}</p>
+              <div className="flex-1 min-w-0">
+                <p className={`text-sm truncate ${c.unread > 0 ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>{c.name}</p>
+                {c.lastContent && (
+                  <p className={`text-xs truncate ${c.unread > 0 ? 'text-gray-600' : 'text-gray-400'}`}>{c.lastContent}</p>
+                )}
+              </div>
+              {c.unread > 0 && (
+                <span className="flex-shrink-0 w-5 h-5 bg-sage-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
+                  {c.unread > 9 ? '9+' : c.unread}
+                </span>
+              )}
             </button>
           ))}
         </aside>
