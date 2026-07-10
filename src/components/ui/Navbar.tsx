@@ -15,7 +15,11 @@ export default function Navbar() {
   return (
     <nav className="bg-white border-b border-gray-100 sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2 font-bold text-xl text-sage-600">
+        {/* Connecté, le logo ramène directement au dashboard (avec sa barre
+            de catégories : Accueil, Mes patients, Tarifs, Disponibilités...)
+            plutôt qu'à la page publique — sinon ces catégories n'étaient
+            atteignables qu'en passant par l'icône profil. */}
+        <Link to={user ? dashboardPath : '/'} className="flex items-center gap-2 font-bold text-xl text-sage-600">
           <span className="text-2xl">🌿</span>
           <span>Animéaux</span>
         </Link>
