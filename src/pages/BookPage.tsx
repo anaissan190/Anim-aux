@@ -190,19 +190,22 @@ export default function BookPage() {
               <p className="text-sm font-medium text-gray-700 mb-2">Documents ou photos à joindre (facultatif)</p>
               <label className="btn-secondary text-sm inline-block cursor-pointer">
                 📎 Ajouter un fichier
-                <input type="file" multiple className="hidden"
+                <input type="file" className="sr-only"
                   onChange={e => { addDocuments(e.target.files); e.target.value = '' }} />
               </label>
               {documents.length > 0 && (
-                <ul className="mt-2 space-y-1">
-                  {documents.map((f, i) => (
-                    <li key={i} className="flex items-center justify-between text-xs bg-gray-50 rounded-lg px-3 py-2">
-                      <span className="truncate">📄 {f.name}</span>
-                      <button type="button" onClick={() => removeDocument(i)}
-                        className="text-red-400 hover:underline ml-2 flex-shrink-0">Retirer</button>
-                    </li>
-                  ))}
-                </ul>
+                <>
+                  <ul className="mt-2 space-y-1">
+                    {documents.map((f, i) => (
+                      <li key={i} className="flex items-center justify-between text-xs bg-gray-50 rounded-lg px-3 py-2">
+                        <span className="truncate">📄 {f.name}</span>
+                        <button type="button" onClick={() => removeDocument(i)}
+                          className="text-red-400 hover:underline ml-2 flex-shrink-0">Retirer</button>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-xs text-gray-400 mt-2">Vous pouvez cliquer à nouveau sur le bouton pour ajouter d'autres fichiers.</p>
+                </>
               )}
               <p className="text-xs text-gray-400 mt-2">
                 Ex : analyses, ordonnance, radios... Le praticien pourra les consulter avant le RDV.
