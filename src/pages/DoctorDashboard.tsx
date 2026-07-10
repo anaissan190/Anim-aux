@@ -128,6 +128,14 @@ export default function DoctorDashboard() {
   const [tab, setTab] = useState<Tab>(
     ALL_TAB_IDS.includes(initialTab as Tab) ? (initialTab as Tab) : 'home'
   )
+  // Les icônes Messages/Profil de la Navbar pointent vers cette même page
+  // (/dashboard/doctor?tab=...) : comme on y est déjà, React Router ne
+  // remonte pas le composant, donc seul le useState initial ne suffit pas —
+  // il faut aussi réagir aux changements de ?tab= une fois la page ouverte.
+  useEffect(() => {
+    const t = searchParams.get('tab')
+    if (ALL_TAB_IDS.includes(t as Tab)) setTab(t as Tab)
+  }, [searchParams])
   const [apptTab, setApptTab] = useState<'today' | 'week' | 'all'>('today')
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }))
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
