@@ -303,6 +303,26 @@ export default function DoctorDashboard() {
   const [newService, setNewService] = useState({ name: '', price: '', duration: '' })
   const [addingService, setAddingService] = useState(false)
 
+  // Tarifs du cabinet regroupés par praticien — chaque membre inscrit les
+  // siens, affichés sous son propre nom.
+  const servicesByDoctor = (() => {
+    const byId = new Map<string, { doctorId: string; name: string; specialty: string; services: any[] }>()
+    for (const s of clinicServices as any[]) {
+      const d = s.doctors
+      const key = s.doctor_id ?? 'unknown'
+      if (!byId.has(key)) {
+        byId.set(key, {
+          doctorId: key,
+          name: d?.profiles ? `${d.profiles.first_name} ${d.profiles.last_name}` : 'Praticien',
+          specialty: d?.specialty ?? '',
+          services: [],
+        })
+      }
+      byId.get(key)!.services.push(s)
+    }
+    return [...byId.values()]
+  })()
+
   const today     = new Date()
   const todayAppts = appointments.filter(a => isSameDay(new Date(a.start_at), today))
   const weekDays   = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
@@ -563,18 +583,15 @@ export default function DoctorDashboard() {
                   <div>
                     <h2 className="text-xl font-bold text-gray-900">Tarifs du cabinet</h2>
                     <p className="text-sm text-gray-500 mt-1">
-                      Partagés avec tous les membres de <strong>{clinic.name}</strong>
-                      {!isClinicAdmin && <span className="ml-1 text-amber-500">(modification réservée à l'admin)</span>}
+                      Chaque praticien de <strong>{clinic.name}</strong> inscrit ses propres tarifs
                     </p>
                   </div>
-                  {isClinicAdmin && (
-                    <button onClick={() => setAddingService(true)} className="btn-primary text-sm px-4 py-2">
-                      + Ajouter
-                    </button>
-                  )}
+                  <button onClick={() => setAddingService(true)} className="btn-primary text-sm px-4 py-2">
+                    + Ajouter mon tarif
+                  </button>
                 </div>
 
-                {isClinicAdmin && addingService && (
+                {addingService && (
                   <div className="bg-sage-50 border border-sage-200 rounded-2xl p-5 mb-4">
                     <h3 className="font-semibold text-sm text-gray-800 mb-3">Nouvelle prestation</h3>
                     <div className="grid grid-cols-3 gap-3 mb-3">
@@ -602,27 +619,37 @@ export default function DoctorDashboard() {
                   </div>
                 )}
 
-                {clinicServices.length === 0 ? (
+                {servicesByDoctor.length === 0 ? (
                   <div className="bg-white rounded-2xl p-10 text-center border border-gray-100">
                     <p className="text-3xl mb-3">💰</p>
                     <p className="text-gray-500 text-sm">Aucune prestation renseignée pour ce cabinet.</p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {clinicServices.map((service: any) => (
-                      <div key={service.id} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-gray-900">{service.name}</p>
-                          <p className="text-xs text-gray-400 mt-0.5">{service.duration}</p>
+                  <div className="space-y-5">
+                    {servicesByDoctor.map(group => (
+                      <div key={group.doctorId} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                        <div className="mb-3">
+                          <p className="font-semibold text-gray-900">{group.name}</p>
+                          {group.specialty && <p className="text-xs text-gray-400">{group.specialty}</p>}
                         </div>
-                        <div className="flex items-center gap-4">
-                          <span className="text-lg font-bold text-sage-600">
-                            {service.price !== null ? `${service.price} €` : 'Sur devis'}
-                          </span>
-                          {isClinicAdmin && (
-                            <button onClick={() => deleteClinicService.mutate({ id: service.id, clinicId: clinic.id })}
-                              className="text-gray-300 hover:text-red-400 transition-colors text-lg">✕</button>
-                          )}
+                        <div className="space-y-2">
+                          {group.services.map((service: any) => (
+                            <div key={service.id} className="flex items-center justify-between border-t border-gray-50 pt-2 first:border-0 first:pt-0">
+                              <div>
+                                <p className="text-sm text-gray-800">{service.name}</p>
+                                <p className="text-xs text-gray-400">{service.duration}</p>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                <span className="text-base font-bold text-sage-600">
+                                  {service.price !== null ? `${service.price} €` : 'Sur devis'}
+                                </span>
+                                {(group.doctorId === doctor?.id || isClinicAdmin) && (
+                                  <button onClick={() => deleteClinicService.mutate({ id: service.id, clinicId: clinic.id })}
+                                    className="text-gray-300 hover:text-red-400 transition-colors text-lg">✕</button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     ))}

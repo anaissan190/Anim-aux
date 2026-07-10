@@ -957,7 +957,7 @@ export function useClinicServices(clinicId?: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('clinic_services')
-        .select('*')
+        .select('*, doctors(id, user_id, specialty, profiles!doctors_user_id_profiles_fkey(first_name, last_name))')
         .eq('clinic_id', clinicId!)
         .order('created_at')
       if (error) throw error
@@ -967,24 +967,29 @@ export function useClinicServices(clinicId?: string) {
   })
 }
 
+// Chaque membre du cabinet inscrit ses propres tarifs — la RPC détermine
+// elle-même l'auteur (via auth.uid()) et vérifie l'appartenance au cabinet,
+// impossible de créer un tarif au nom d'un autre praticien.
 export function useAddClinicService() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ clinicId, name, price, duration }: { clinicId: string; name: string; price: number | null; duration: string }) => {
-      const { error } = await supabase
-        .from('clinic_services')
-        .insert({ clinic_id: clinicId, name, price, duration })
+      const { error } = await supabase.rpc('add_clinic_service', {
+        p_clinic_id: clinicId, p_name: name, p_price: price, p_duration: duration,
+      })
       if (error) throw new Error(error.message)
     },
     onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['clinic_services', vars.clinicId] }),
   })
 }
 
+// Suppression réservée au praticien propriétaire du tarif, ou à l'admin du
+// cabinet (vérifié côté RPC).
 export function useDeleteClinicService() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, clinicId }: { id: string; clinicId: string }) => {
-      const { error } = await supabase.from('clinic_services').delete().eq('id', id)
+    mutationFn: async ({ id }: { id: string; clinicId: string }) => {
+      const { error } = await supabase.rpc('delete_clinic_service', { p_service_id: id })
       if (error) throw new Error(error.message)
     },
     onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['clinic_services', vars.clinicId] }),
