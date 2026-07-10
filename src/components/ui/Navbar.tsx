@@ -5,7 +5,7 @@ import NotificationBell from './NotificationBell'
 import { DOCTOR_TABS } from '@/lib/doctorDashboardTabs'
 
 export default function Navbar() {
-  const { user, profile, signOut } = useAuthStore()
+  const { user, signOut } = useAuthStore()
   const navigate = useNavigate()
   const location = useLocation()
   const [searchParams] = useSearchParams()
@@ -49,39 +49,45 @@ export default function Navbar() {
           </div>
         )}
 
-        {/* Pour les autres rôles, liens classiques. */}
-        {user?.role !== 'doctor' && (
-          <div className="hidden md:flex items-center gap-6 text-sm text-gray-600">
-            <Link to="/search" className="hover:text-sage-600 transition-colors">Trouver un praticien</Link>
-            {user && <Link to={dashboardPath} className="hover:text-sage-600 transition-colors">Mon espace</Link>}
-            {user && <Link to="/messages" className="hover:text-sage-600 transition-colors">Messages</Link>}
-            {user && <Link to="/profil" className="hover:text-sage-600 transition-colors">Profil</Link>}
+        {/* Propriétaire d'animal (et admin) : mêmes catégories directement à
+            la suite du logo, dans le même style que le praticien. Messages
+            et Profil sont gérés plus loin, en icônes à côté de la cloche. */}
+        {user && user.role !== 'doctor' && (
+          <div className="flex-1 min-w-0 flex items-center justify-center gap-1.5 overflow-x-auto scrollbar-hide">
+            <Link to="/search"
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors
+                ${location.pathname === '/search'
+                  ? 'bg-sage-500 text-white'
+                  : 'bg-sage-50 text-sage-600 hover:bg-sage-100'}`}>
+              <span>🔍</span>
+              <span className="hidden lg:inline">Trouver un praticien</span>
+            </Link>
+            <Link to={dashboardPath}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors
+                ${location.pathname === dashboardPath
+                  ? 'bg-sage-500 text-white'
+                  : 'bg-sage-50 text-sage-600 hover:bg-sage-100'}`}>
+              <span>🏠</span>
+              <span className="hidden lg:inline">Mon espace</span>
+            </Link>
           </div>
         )}
 
         <div className="flex items-center gap-3 ml-auto flex-shrink-0">
           {user ? (
             <>
-              {/* Praticien : accès rapide Messages à côté de la cloche, pour
-                  libérer de la place dans la barre d'onglets du dashboard. */}
-              {user.role === 'doctor' && (
-                <Link to="/dashboard/doctor?tab=messages" title="Messages"
-                  className="p-2 rounded-xl hover:bg-gray-50 transition-colors text-lg leading-none">
-                  ✉️
-                </Link>
-              )}
+              {/* Accès rapide Messages à côté de la cloche, pour tous les
+                  rôles — même traitement que le praticien. */}
+              <Link to={user.role === 'doctor' ? '/dashboard/doctor?tab=messages' : '/messages'} title="Messages"
+                className="p-2 rounded-xl hover:bg-gray-50 transition-colors text-lg leading-none">
+                ✉️
+              </Link>
               <NotificationBell />
               <div className="flex items-center gap-2">
-                {user.role === 'doctor' ? (
-                  <Link to="/dashboard/doctor?tab=profil" title="Mon profil"
-                    className="w-8 h-8 rounded-full bg-sage-100 flex items-center justify-center text-lg hover:bg-sage-200 transition-colors">
-                    👤
-                  </Link>
-                ) : (
-                  <Link to="/profil" title="Mon profil" className="w-8 h-8 rounded-full bg-sage-100 flex items-center justify-center text-sage-700 font-medium text-sm hover:bg-sage-200 transition-colors">
-                    {profile?.first_name?.[0]?.toUpperCase() ?? user.email[0].toUpperCase()}
-                  </Link>
-                )}
+                <Link to={user.role === 'doctor' ? '/dashboard/doctor?tab=profil' : '/profil'} title="Mon profil"
+                  className="w-8 h-8 rounded-full bg-sage-100 flex items-center justify-center text-lg hover:bg-sage-200 transition-colors">
+                  👤
+                </Link>
                 <button onClick={() => signOut().then(() => navigate('/'))}
                   className="text-sm text-gray-500 hover:text-red-500 transition-colors hidden md:block">
                   Déconnexion
