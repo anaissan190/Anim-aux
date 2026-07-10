@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import Navbar from '@/components/ui/Navbar'
-import { useConversation, useSendMessage, useMessageSummaries, useMarkConversationRead } from '@/hooks/useData'
+import { useConversation, useSendMessage, useConversationPartners, useMarkConversationRead } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
@@ -18,17 +18,30 @@ export default function MessagesPage() {
 
   const { data: messages = [] } = useConversation(selectedUserId ?? '')
   const send = useSendMessage()
-  const { data: summaries } = useMessageSummaries()
+  const { data: partners = [] } = useConversationPartners()
   const markRead = useMarkConversationRead()
 
-  const sortedContacts = [...contacts]
-    .map(c => ({ ...c, ...summaries?.get(c.user_id) }))
-    .sort((a: any, b: any) => {
+  // La liste vient en priorité de get_conversation_partners() (construite
+  // directement à partir des messages échangés — fiable, avec les noms
+  // résolus), complétée par les contacts issus des RDV pour pouvoir démarrer
+  // une conversation avec quelqu'un à qui on n'a encore jamais écrit.
+  const sortedContacts = (() => {
+    const byId = new Map<string, any>()
+    partners.forEach(p => byId.set(p.user_id, {
+      user_id: p.user_id,
+      name: `${p.first_name} ${p.last_name}`.trim(),
+      lastAt: p.last_message_at,
+      lastContent: p.last_message_content,
+      unread: p.unread_count,
+    }))
+    contacts.forEach(c => { if (!byId.has(c.user_id)) byId.set(c.user_id, c) })
+    return [...byId.values()].sort((a, b) => {
       if (!a.lastAt && !b.lastAt) return 0
       if (!a.lastAt) return 1
       if (!b.lastAt) return -1
       return new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime()
     })
+  })()
 
   // Marque la conversation comme lue dès qu'on l'ouvre
   useEffect(() => {
@@ -58,10 +71,15 @@ export default function MessagesPage() {
         }
       })
       setContacts(list)
-      if (list.length > 0 && !selectedUserId) setSelectedUserId(list[0].user_id)
     }
     loadContacts()
   }, [user])
+
+  // Sélectionne la première conversation par défaut (priorité à celle avec
+  // l'activité la plus récente, une fois les données chargées).
+  useEffect(() => {
+    if (!selectedUserId && sortedContacts.length > 0) setSelectedUserId(sortedContacts[0].user_id)
+  }, [sortedContacts.length])
 
   // Realtime messages : écoute même sans conversation ouverte pour mettre
   // à jour la liste (tri + badge non-lus) dès qu'un message arrive.
@@ -70,7 +88,7 @@ export default function MessagesPage() {
     const channel = supabase.channel('msgs')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
         qc.invalidateQueries({ queryKey: ['messages'] })
-        qc.invalidateQueries({ queryKey: ['message-summaries'] })
+        qc.invalidateQueries({ queryKey: ['conversation-partners'] })
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }

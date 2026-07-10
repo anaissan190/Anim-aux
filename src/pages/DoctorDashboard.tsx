@@ -8,7 +8,7 @@ import RichTextEditor from '@/components/ui/RichTextEditor'
 import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
-import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useUpdateClinic, useConversation, useSendMessage, useMessageSummaries, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor } from '@/hooks/useData'
+import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { PRACTITIONER_TYPES, getPractitionerType } from '@/lib/practitionerTypes'
 import { SPECIES_EMOJI } from '@/lib/animalSpecies'
@@ -140,17 +140,30 @@ export default function DoctorDashboard() {
   const bottomRef = useRef<HTMLDivElement>(null)
   const { data: messages = [] } = useConversation(selectedUserId ?? '')
   const send = useSendMessage()
-  const { data: summaries } = useMessageSummaries()
+  const { data: partners = [] } = useConversationPartners()
   const markRead = useMarkConversationRead()
 
-  const sortedContacts = [...contacts]
-    .map(c => ({ ...c, ...summaries?.get(c.user_id) }))
-    .sort((a: any, b: any) => {
+  // La liste vient en priorité de get_conversation_partners() (construite
+  // directement à partir des messages échangés — fiable, avec les noms
+  // résolus), complétée par les patients issus des RDV pour pouvoir démarrer
+  // une conversation avec quelqu'un à qui on n'a encore jamais écrit.
+  const sortedContacts = (() => {
+    const byId = new Map<string, any>()
+    partners.forEach(p => byId.set(p.user_id, {
+      user_id: p.user_id,
+      name: `${p.first_name} ${p.last_name}`.trim(),
+      lastAt: p.last_message_at,
+      lastContent: p.last_message_content,
+      unread: p.unread_count,
+    }))
+    contacts.forEach(c => { if (!byId.has(c.user_id)) byId.set(c.user_id, c) })
+    return [...byId.values()].sort((a, b) => {
       if (!a.lastAt && !b.lastAt) return 0
       if (!a.lastAt) return 1
       if (!b.lastAt) return -1
       return new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime()
     })
+  })()
 
   useEffect(() => {
     if (selectedUserId) markRead.mutate(selectedUserId)
@@ -176,10 +189,15 @@ export default function DoctorDashboard() {
         .in('user_id', patientIds)
       const list = (profilesData ?? []).map((p: any) => ({ user_id: p.user_id, name: `${p.first_name} ${p.last_name}` }))
       setContacts(list)
-      if (list.length > 0 && !selectedUserId) setSelectedUserId(list[0].user_id)
     }
     loadContacts()
   }, [user, tab])
+
+  // Sélectionne la première conversation par défaut (activité la plus
+  // récente) une fois les données chargées.
+  useEffect(() => {
+    if (!selectedUserId && sortedContacts.length > 0) setSelectedUserId(sortedContacts[0].user_id)
+  }, [sortedContacts.length])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -201,7 +219,7 @@ export default function DoctorDashboard() {
     const channel = supabase.channel('doctor-msgs')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
         qc.invalidateQueries({ queryKey: ['messages'] })
-        qc.invalidateQueries({ queryKey: ['message-summaries'] })
+        qc.invalidateQueries({ queryKey: ['conversation-partners'] })
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }

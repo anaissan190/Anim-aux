@@ -455,30 +455,27 @@ export function useSendMessage() {
 // Résumé par contact (dernier message + nombre de non-lus), pour trier et
 // signaler les nouvelles conversations dans la liste sans avoir à chercher
 // manuellement la personne qui vient d'écrire.
-export function useMessageSummaries() {
+// Construit la liste des conversations directement depuis la table
+// `messages` (via une RPC SECURITY DEFINER) plutôt que depuis les RDV : plus
+// fiable, résout aussi le prénom/nom de l'interlocuteur sans dépendre des
+// policies RLS sur `profiles`/`users` qui bloquaient parfois silencieusement
+// certains embeds.
+export function useConversationPartners() {
   const { user } = useAuthStore()
   return useQuery({
-    queryKey: ['message-summaries', user?.id],
+    queryKey: ['conversation-partners', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('sender_id, receiver_id, content, created_at, is_read')
-        .or(`sender_id.eq.${user!.id},receiver_id.eq.${user!.id}`)
-        .order('created_at', { ascending: false })
+      const { data, error } = await supabase.rpc('get_conversation_partners')
       if (error) throw error
-
-      const map = new Map<string, { lastAt: string; lastContent: string; unread: number }>()
-      for (const m of data ?? []) {
-        const otherId = m.sender_id === user!.id ? m.receiver_id : m.sender_id
-        const isUnreadForMe = m.receiver_id === user!.id && !m.is_read
-        const existing = map.get(otherId)
-        if (!existing) {
-          map.set(otherId, { lastAt: m.created_at, lastContent: m.content, unread: isUnreadForMe ? 1 : 0 })
-        } else if (isUnreadForMe) {
-          existing.unread += 1
-        }
-      }
-      return map
+      return (data ?? []) as {
+        user_id: string
+        first_name: string
+        last_name: string
+        avatar_url: string | null
+        last_message_at: string
+        last_message_content: string
+        unread_count: number
+      }[]
     },
     enabled: !!user,
     refetchInterval: 5000,
