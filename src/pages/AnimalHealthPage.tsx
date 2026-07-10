@@ -684,7 +684,7 @@ export default function AnimalHealthPage() {
               </div>
               <label className="btn-primary text-sm inline-block cursor-pointer">
                 {docUploading ? 'Envoi...' : '+ Choisir un fichier'}
-                <input type="file" accept="image/*,.pdf" className="hidden" disabled={docUploading}
+                <input type="file" className="hidden" disabled={docUploading}
                   onChange={e => { const f = e.target.files?.[0]; if (f) handleDocUpload(f); e.target.value = '' }} />
               </label>
             </div>

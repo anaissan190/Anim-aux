@@ -190,7 +190,7 @@ export default function BookPage() {
               <p className="text-sm font-medium text-gray-700 mb-2">Documents ou photos à joindre (facultatif)</p>
               <label className="btn-secondary text-sm inline-block cursor-pointer">
                 📎 Ajouter un fichier
-                <input type="file" accept="image/*,.pdf" multiple className="hidden"
+                <input type="file" multiple className="hidden"
                   onChange={e => { addDocuments(e.target.files); e.target.value = '' }} />
               </label>
               {documents.length > 0 && (
