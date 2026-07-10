@@ -3,12 +3,19 @@ import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-do
 import { useAuthStore } from '@/lib/authStore'
 import NotificationBell from './NotificationBell'
 import { DOCTOR_TABS } from '@/lib/doctorDashboardTabs'
+import { useConversationPartners } from '@/hooks/useData'
 
 export default function Navbar() {
   const { user, signOut } = useAuthStore()
   const navigate = useNavigate()
   const location = useLocation()
   const [searchParams] = useSearchParams()
+
+  // Pastille rouge sur l'enveloppe : les nouveaux messages ont leur propre
+  // indicateur, séparé de la cloche de notifications (qui sert désormais
+  // aux autres mises à jour : RDV confirmé/annulé, avis, etc.).
+  const { data: conversationPartners = [] } = useConversationPartners()
+  const unreadMessages = conversationPartners.reduce((sum, p) => sum + (p.unread_count || 0), 0)
 
   const dashboardPath =
     user?.role === 'doctor' ? '/dashboard/doctor' :
@@ -77,10 +84,16 @@ export default function Navbar() {
           {user ? (
             <>
               {/* Accès rapide Messages à côté de la cloche, pour tous les
-                  rôles — même traitement que le praticien. */}
+                  rôles — même traitement que le praticien. Pastille rouge
+                  dès qu'il y a un message non lu. */}
               <Link to={user.role === 'doctor' ? '/dashboard/doctor?tab=messages' : '/messages'} title="Messages"
-                className="p-2 rounded-xl hover:bg-gray-50 transition-colors text-lg leading-none">
+                className="relative p-2 rounded-xl hover:bg-gray-50 transition-colors text-lg leading-none">
                 ✉️
+                {unreadMessages > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
+                    {unreadMessages > 9 ? '9+' : unreadMessages}
+                  </span>
+                )}
               </Link>
               <NotificationBell />
               <div className="flex items-center gap-2">

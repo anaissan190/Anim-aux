@@ -1,6 +1,5 @@
 // src/components/ui/NotificationBell.tsx
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useNotifications, useMarkNotificationsRead, useDeleteNotification, useDeleteAllNotifications } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { supabase } from '@/lib/supabase'
@@ -10,10 +9,12 @@ import { fr } from 'date-fns/locale'
 
 export default function NotificationBell() {
   const [open, setOpen] = useState(false)
-  const navigate = useNavigate()
   const { user } = useAuthStore()
-  const messagesPath = user?.role === 'doctor' ? '/dashboard/doctor?tab=messages' : '/messages'
-  const { data: notifications = [] } = useNotifications()
+  const { data: allNotifications = [] } = useNotifications()
+  // Les nouveaux messages ont désormais leur propre indicateur (pastille
+  // rouge sur l'icône enveloppe, voir Navbar.tsx) : la cloche ne sert plus
+  // qu'aux autres mises à jour (RDV confirmé/annulé, nouvel avis, etc.).
+  const notifications = allNotifications.filter(n => n.type !== 'new_message')
   const markRead = useMarkNotificationsRead()
   const deleteNotification = useDeleteNotification()
   const deleteAllNotifications = useDeleteAllNotifications()
@@ -73,9 +74,7 @@ export default function NotificationBell() {
               ) : notifications.map(n => (
                 <div key={n.id}
                   className={`px-4 py-3 text-sm flex items-start gap-2 ${n.is_read ? 'bg-white' : 'bg-sage-50'}`}>
-                  <div
-                    onClick={() => { if (n.type === 'new_message') { setOpen(false); navigate(messagesPath) } }}
-                    className={`flex-1 min-w-0 ${n.type === 'new_message' ? 'cursor-pointer' : ''}`}>
+                  <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900">{n.title}</p>
                     <p className="text-gray-500 text-xs mt-0.5">{n.body}</p>
                     <p className="text-gray-400 text-xs mt-1">
