@@ -36,6 +36,12 @@ export default function DoctorDashboard() {
   const { data: reviews = [] } = useDoctorReviews(doctor?.id ?? '')
 
   const { data: patientAnimals = [] } = useDoctorPatientAnimals(doctor?.id)
+  const [patientSearch, setPatientSearch] = useState('')
+  const filteredPatientAnimals = patientAnimals.filter((a: any) => {
+    const q = patientSearch.trim().toLowerCase()
+    if (!q) return true
+    return a.name?.toLowerCase().includes(q) || a.ownerName?.toLowerCase().includes(q)
+  })
   const createAvailability = useCreateAvailability()
   const deleteAvailability = useDeleteAvailability()
   const [showAddSlot, setShowAddSlot] = useState(false)
@@ -368,14 +374,28 @@ export default function DoctorDashboard() {
                 Animaux des patients ayant un rendez-vous confirmé ou terminé avec vous.
               </p>
             </div>
+            {patientAnimals.length > 0 && (
+              <input
+                type="text"
+                value={patientSearch}
+                onChange={e => setPatientSearch(e.target.value)}
+                placeholder="Rechercher par nom d'animal ou de propriétaire..."
+                className="input text-sm mb-4 max-w-md"
+              />
+            )}
             {patientAnimals.length === 0 ? (
               <div className="bg-white rounded-2xl p-10 text-center border border-gray-100">
                 <p className="text-3xl mb-3">🐾</p>
                 <p className="text-gray-500 text-sm">Aucun animal suivi pour l'instant.</p>
               </div>
+            ) : filteredPatientAnimals.length === 0 ? (
+              <div className="bg-white rounded-2xl p-10 text-center border border-gray-100">
+                <p className="text-3xl mb-3">🔍</p>
+                <p className="text-gray-500 text-sm">Aucun résultat pour cette recherche.</p>
+              </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {patientAnimals.map((a: any) => (
+                {filteredPatientAnimals.map((a: any) => (
                   <Link key={a.id} to={`/animal/${a.id}`}
                     className="bg-white rounded-2xl p-4 text-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
                     <div className="w-14 h-14 rounded-xl mx-auto mb-2 overflow-hidden bg-gray-100 flex items-center justify-center">
