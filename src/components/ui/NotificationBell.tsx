@@ -1,7 +1,7 @@
 // src/components/ui/NotificationBell.tsx
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useNotifications, useMarkNotificationsRead } from '@/hooks/useData'
+import { useNotifications, useMarkNotificationsRead, useDeleteNotification, useDeleteAllNotifications } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
@@ -14,6 +14,8 @@ export default function NotificationBell() {
   const { user } = useAuthStore()
   const { data: notifications = [] } = useNotifications()
   const markRead = useMarkNotificationsRead()
+  const deleteNotification = useDeleteNotification()
+  const deleteAllNotifications = useDeleteAllNotifications()
   const qc = useQueryClient()
   const unread = notifications.filter(n => !n.is_read).length
 
@@ -54,21 +56,37 @@ export default function NotificationBell() {
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-12 w-80 card shadow-xl z-20 overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100">
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
               <p className="font-semibold text-sm">Notifications</p>
+              {notifications.length > 0 && (
+                <button
+                  onClick={() => deleteAllNotifications.mutate()}
+                  className="text-xs text-gray-400 hover:text-red-500 transition-colors">
+                  Tout effacer
+                </button>
+              )}
             </div>
             <div className="max-h-80 overflow-y-auto divide-y divide-gray-50">
               {notifications.length === 0 ? (
                 <p className="text-center text-sm text-gray-400 py-8">Aucune notification</p>
               ) : notifications.map(n => (
                 <div key={n.id}
-                  onClick={() => { if (n.type === 'new_message') { setOpen(false); navigate('/messages') } }}
-                  className={`px-4 py-3 text-sm ${n.is_read ? 'bg-white' : 'bg-sage-50'} ${n.type === 'new_message' ? 'cursor-pointer hover:bg-gray-50' : ''}`}>
-                  <p className="font-medium text-gray-900">{n.title}</p>
-                  <p className="text-gray-500 text-xs mt-0.5">{n.body}</p>
-                  <p className="text-gray-400 text-xs mt-1">
-                    {formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: fr })}
-                  </p>
+                  className={`px-4 py-3 text-sm flex items-start gap-2 ${n.is_read ? 'bg-white' : 'bg-sage-50'}`}>
+                  <div
+                    onClick={() => { if (n.type === 'new_message') { setOpen(false); navigate('/messages') } }}
+                    className={`flex-1 min-w-0 ${n.type === 'new_message' ? 'cursor-pointer' : ''}`}>
+                    <p className="font-medium text-gray-900">{n.title}</p>
+                    <p className="text-gray-500 text-xs mt-0.5">{n.body}</p>
+                    <p className="text-gray-400 text-xs mt-1">
+                      {formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: fr })}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => deleteNotification.mutate(n.id)}
+                    className="flex-shrink-0 text-gray-300 hover:text-red-500 transition-colors"
+                    title="Supprimer">
+                    ✕
+                  </button>
                 </div>
               ))}
             </div>

@@ -8,7 +8,7 @@ import RichTextEditor from '@/components/ui/RichTextEditor'
 import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
-import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor } from '@/hooks/useData'
+import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDeleteConversation, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { PRACTITIONER_TYPES, getPractitionerType } from '@/lib/practitionerTypes'
 import { SPECIES_EMOJI } from '@/lib/animalSpecies'
@@ -142,6 +142,9 @@ export default function DoctorDashboard() {
   const send = useSendMessage()
   const { data: partners = [] } = useConversationPartners()
   const markRead = useMarkConversationRead()
+  const deleteConversation = useDeleteConversation()
+  const [messageSearch, setMessageSearch] = useState('')
+  const [confirmDeleteConvId, setConfirmDeleteConvId] = useState<string | null>(null)
 
   // La liste vient en priorité de get_conversation_partners() (construite
   // directement à partir des messages échangés — fiable, avec les noms
@@ -164,6 +167,20 @@ export default function DoctorDashboard() {
       return new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime()
     })
   })()
+
+  // Recherche par nom de contact OU nom d'un de ses animaux
+  const filteredMessageContacts = sortedContacts.filter((c: any) => {
+    const q = messageSearch.trim().toLowerCase()
+    if (!q) return true
+    if (c.name.toLowerCase().includes(q)) return true
+    return patientAnimals.some((a: any) => a.owner_id === c.user_id && a.name?.toLowerCase().includes(q))
+  })
+
+  function handleDeleteConversation(otherUserId: string) {
+    deleteConversation.mutate(otherUserId)
+    if (selectedUserId === otherUserId) setSelectedUserId(null)
+    setConfirmDeleteConvId(null)
+  }
 
   useEffect(() => {
     if (selectedUserId) markRead.mutate(selectedUserId)
@@ -1156,12 +1173,26 @@ export default function DoctorDashboard() {
                 </div>
               )}
 
+              {sortedContacts.length > 4 && (
+                <div className="p-3 border-b border-gray-100">
+                  <input
+                    type="text"
+                    value={messageSearch}
+                    onChange={e => setMessageSearch(e.target.value)}
+                    placeholder="Chercher par nom (patient ou animal)..."
+                    className="input text-xs py-1.5"
+                  />
+                </div>
+              )}
+
               <div className="flex-1 overflow-y-auto">
                 {sortedContacts.length === 0 ? (
                   <p className="text-xs text-gray-400 p-4 text-center">Aucune conversation pour l'instant.</p>
-                ) : sortedContacts.map((c: any) => (
-                  <button key={c.user_id} onClick={() => setSelectedUserId(c.user_id)}
-                    className={`w-full text-left p-3 flex items-center gap-3 hover:bg-gray-50 transition-colors
+                ) : filteredMessageContacts.length === 0 ? (
+                  <p className="text-xs text-gray-400 p-4 text-center">Aucun résultat.</p>
+                ) : filteredMessageContacts.map((c: any) => (
+                  <div key={c.user_id} onClick={() => setSelectedUserId(c.user_id)}
+                    className={`group w-full text-left p-3 flex items-center gap-3 hover:bg-gray-50 transition-colors cursor-pointer
                       ${selectedUserId === c.user_id ? 'bg-sage-50' : ''}`}>
                     <div className="w-8 h-8 rounded-full bg-sage-100 flex items-center justify-center text-xs text-sage-700 font-bold flex-shrink-0">
                       {c.name[0]}
@@ -1177,7 +1208,21 @@ export default function DoctorDashboard() {
                         {c.unread > 9 ? '9+' : c.unread}
                       </span>
                     )}
-                  </button>
+                    {confirmDeleteConvId === c.user_id ? (
+                      <span className="flex-shrink-0 flex items-center gap-1 text-xs">
+                        <button onClick={e => { e.stopPropagation(); handleDeleteConversation(c.user_id) }}
+                          className="text-red-500 hover:underline font-medium">Oui</button>
+                        <button onClick={e => { e.stopPropagation(); setConfirmDeleteConvId(null) }}
+                          className="text-gray-400 hover:underline">Non</button>
+                      </span>
+                    ) : (
+                      <button onClick={e => { e.stopPropagation(); setConfirmDeleteConvId(c.user_id) }}
+                        className="flex-shrink-0 text-gray-300 hover:text-red-500 transition-colors"
+                        title="Supprimer la conversation">
+                        🗑️
+                      </button>
+                    )}
+                  </div>
                 ))}
               </div>
             </aside>
@@ -1192,7 +1237,7 @@ export default function DoctorDashboard() {
                 <>
                   <div className="p-4 border-b border-gray-100 flex-shrink-0">
                     <p className="font-semibold text-sm text-gray-900">
-                      {contacts.find(c => c.user_id === selectedUserId)?.name}
+                      {sortedContacts.find((c: any) => c.user_id === selectedUserId)?.name}
                     </p>
                   </div>
                   <div className="flex-1 overflow-y-auto p-4 space-y-3">

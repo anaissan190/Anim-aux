@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import Navbar from '@/components/ui/Navbar'
-import { useConversation, useSendMessage, useConversationPartners, useMarkConversationRead } from '@/hooks/useData'
+import { useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDeleteConversation } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
@@ -20,6 +20,9 @@ export default function MessagesPage() {
   const send = useSendMessage()
   const { data: partners = [] } = useConversationPartners()
   const markRead = useMarkConversationRead()
+  const deleteConversation = useDeleteConversation()
+  const [contactSearch, setContactSearch] = useState('')
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   // La liste vient en priorité de get_conversation_partners() (construite
   // directement à partir des messages échangés — fiable, avec les noms
@@ -42,6 +45,16 @@ export default function MessagesPage() {
       return new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime()
     })
   })()
+
+  const filteredContacts = sortedContacts.filter((c: any) =>
+    c.name.toLowerCase().includes(contactSearch.trim().toLowerCase())
+  )
+
+  function handleDeleteConversation(otherUserId: string) {
+    deleteConversation.mutate(otherUserId)
+    if (selectedUserId === otherUserId) setSelectedUserId(null)
+    setConfirmDeleteId(null)
+  }
 
   // Marque la conversation comme lue dès qu'on l'ouvre
   useEffect(() => {
@@ -114,15 +127,26 @@ export default function MessagesPage() {
         {/* Liste contacts */}
         <aside className="w-64 flex-shrink-0 card overflow-y-auto">
           <div className="p-3 border-b border-gray-100">
-            <p className="text-sm font-semibold text-gray-900">Conversations</p>
+            <p className="text-sm font-semibold text-gray-900 mb-2">Conversations</p>
+            {sortedContacts.length > 4 && (
+              <input
+                type="text"
+                value={contactSearch}
+                onChange={e => setContactSearch(e.target.value)}
+                placeholder="Rechercher..."
+                className="input text-xs py-1.5"
+              />
+            )}
           </div>
           {sortedContacts.length === 0 ? (
             <p className="text-xs text-gray-400 p-4 text-center">Aucune conversation — prenez un RDV pour commencer à échanger.</p>
-          ) : sortedContacts.map((c: any) => (
-            <button key={c.user_id}
-              onClick={() => setSelectedUserId(c.user_id)}
-              className={`w-full text-left p-3 flex items-center gap-3 hover:bg-gray-50 transition-colors
-                ${selectedUserId === c.user_id ? 'bg-sage-50' : ''}`}>
+          ) : filteredContacts.length === 0 ? (
+            <p className="text-xs text-gray-400 p-4 text-center">Aucun résultat.</p>
+          ) : filteredContacts.map((c: any) => (
+            <div key={c.user_id}
+              className={`group w-full text-left p-3 flex items-center gap-3 hover:bg-gray-50 transition-colors cursor-pointer
+                ${selectedUserId === c.user_id ? 'bg-sage-50' : ''}`}
+              onClick={() => setSelectedUserId(c.user_id)}>
               <div className="w-8 h-8 rounded-full bg-sage-100 flex items-center justify-center text-xs text-sage-700 font-bold flex-shrink-0">
                 {c.name[0]}
               </div>
@@ -137,7 +161,21 @@ export default function MessagesPage() {
                   {c.unread > 9 ? '9+' : c.unread}
                 </span>
               )}
-            </button>
+              {confirmDeleteId === c.user_id ? (
+                <span className="flex-shrink-0 flex items-center gap-1 text-xs">
+                  <button onClick={e => { e.stopPropagation(); handleDeleteConversation(c.user_id) }}
+                    className="text-red-500 hover:underline font-medium">Oui</button>
+                  <button onClick={e => { e.stopPropagation(); setConfirmDeleteId(null) }}
+                    className="text-gray-400 hover:underline">Non</button>
+                </span>
+              ) : (
+                <button onClick={e => { e.stopPropagation(); setConfirmDeleteId(c.user_id) }}
+                  className="flex-shrink-0 text-gray-300 hover:text-red-500 transition-colors"
+                  title="Supprimer la conversation">
+                  🗑️
+                </button>
+              )}
+            </div>
           ))}
         </aside>
 
@@ -151,7 +189,7 @@ export default function MessagesPage() {
             <>
               <div className="p-4 border-b border-gray-100 flex-shrink-0">
                 <p className="font-semibold text-sm text-gray-900">
-                  {contacts.find(c => c.user_id === selectedUserId)?.name}
+                  {sortedContacts.find((c: any) => c.user_id === selectedUserId)?.name}
                 </p>
               </div>
 

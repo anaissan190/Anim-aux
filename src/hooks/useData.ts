@@ -495,7 +495,26 @@ export function useMarkConversationRead() {
         .eq('is_read', false)
       if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['message-summaries'] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['conversation-partners'] }),
+  })
+}
+
+// Supprime l'intégralité d'une conversation (messages dans les deux sens).
+export function useDeleteConversation() {
+  const qc = useQueryClient()
+  const { user } = useAuthStore()
+  return useMutation({
+    mutationFn: async (otherUserId: string) => {
+      const { error } = await supabase
+        .from('messages')
+        .delete()
+        .or(`and(sender_id.eq.${user!.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user!.id})`)
+      if (error) throw error
+    },
+    onSuccess: (_, otherUserId) => {
+      qc.invalidateQueries({ queryKey: ['conversation-partners'] })
+      qc.invalidateQueries({ queryKey: ['messages', user?.id, otherUserId] })
+    },
   })
 }
 
@@ -527,6 +546,29 @@ export function useMarkNotificationsRead() {
         .update({ is_read: true })
         .eq('user_id', user!.id)
         .eq('is_read', false)
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+  })
+}
+
+export function useDeleteNotification() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('notifications').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+  })
+}
+
+export function useDeleteAllNotifications() {
+  const qc = useQueryClient()
+  const { user } = useAuthStore()
+  return useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from('notifications').delete().eq('user_id', user!.id)
       if (error) throw error
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
