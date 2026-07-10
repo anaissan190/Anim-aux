@@ -136,7 +136,6 @@ export default function DoctorDashboard() {
   const [msgText, setMsgText] = useState('')
   const [showNewMsg, setShowNewMsg] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<any[]>([])
   const bottomRef = useRef<HTMLDivElement>(null)
   const { data: messages = [] } = useConversation(selectedUserId ?? '')
   const send = useSendMessage()
@@ -244,16 +243,12 @@ export default function DoctorDashboard() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  async function searchUsers(query: string) {
-    if (!query.trim()) { setSearchResults([]); return }
-    const { data } = await supabase
-      .from('profiles')
-      .select('user_id, first_name, last_name')
-      .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%`)
-      .neq('user_id', user?.id)
-      .limit(8)
-    setSearchResults(data ?? [])
-  }
+  // "Nouveau message" : uniquement les patients avec qui le praticien a eu
+  // un rendez-vous (liste `contacts`, dérivée des appointments), filtrés par
+  // le texte recherché — jamais une recherche ouverte sur tous les profils.
+  const newMsgResults = contacts.filter(c =>
+    c.name.toLowerCase().includes(searchQuery.trim().toLowerCase())
+  )
 
   useEffect(() => {
     if (!user) return
@@ -1147,48 +1142,48 @@ export default function DoctorDashboard() {
             <aside className="w-64 flex-shrink-0 bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col overflow-hidden">
               <div className="p-4 border-b border-gray-100 flex items-center justify-between">
                 <p className="text-sm font-semibold text-gray-900">Conversations</p>
-                <button onClick={() => { setShowNewMsg(true); setSearchQuery(''); setSearchResults([]) }}
+                <button onClick={() => { setShowNewMsg(true); setSearchQuery('') }}
                   className="text-xs bg-sage-500 text-white px-3 py-1.5 rounded-lg hover:bg-sage-600 transition-colors">
                   + Nouveau
                 </button>
               </div>
 
-              {/* Recherche nouveau message */}
+              {/* Recherche nouveau message — limitée aux patients avec RDV */}
               {showNewMsg && (
                 <div className="p-3 border-b border-gray-100 bg-sage-50">
                   <p className="text-xs font-medium text-gray-600 mb-2">Nouveau message</p>
                   <input
                     className="input text-sm w-full"
-                    placeholder="Rechercher un utilisateur..."
+                    placeholder="Rechercher parmi vos patients..."
                     value={searchQuery}
-                    onChange={e => { setSearchQuery(e.target.value); searchUsers(e.target.value) }}
+                    onChange={e => setSearchQuery(e.target.value)}
                     autoFocus
                   />
-                  {searchResults.length > 0 && (
-                    <div className="mt-2 space-y-1">
-                      {searchResults.map(r => (
+                  {newMsgResults.length > 0 && (
+                    <div className="mt-2 space-y-1 max-h-56 overflow-y-auto">
+                      {newMsgResults.map(r => (
                         <button key={r.user_id}
                           onClick={() => {
-                            const name = `${r.first_name} ${r.last_name}`
-                            if (!contacts.find(c => c.user_id === r.user_id)) {
-                              setContacts(prev => [{ user_id: r.user_id, name }, ...prev])
-                            }
                             setSelectedUserId(r.user_id)
+                            unhideConversation(r.user_id)
                             setShowNewMsg(false)
                             setSearchQuery('')
-                            setSearchResults([])
                           }}
                           className="w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white transition-colors text-sm">
                           <div className="w-7 h-7 rounded-full bg-sage-100 flex items-center justify-center text-xs text-sage-700 font-bold flex-shrink-0">
-                            {r.first_name[0]}
+                            {r.name[0]}
                           </div>
-                          <span className="text-gray-700">{r.first_name} {r.last_name}</span>
+                          <span className="text-gray-700">{r.name}</span>
                         </button>
                       ))}
                     </div>
                   )}
-                  {searchQuery && searchResults.length === 0 && (
-                    <p className="text-xs text-gray-400 mt-2 text-center">Aucun résultat</p>
+                  {newMsgResults.length === 0 && (
+                    <p className="text-xs text-gray-400 mt-2 text-center">
+                      {contacts.length === 0
+                        ? "Aucun patient n'a encore eu de rendez-vous avec vous."
+                        : 'Aucun résultat.'}
+                    </p>
                   )}
                   <button onClick={() => setShowNewMsg(false)}
                     className="text-xs text-gray-400 hover:text-gray-600 mt-2 w-full text-center">

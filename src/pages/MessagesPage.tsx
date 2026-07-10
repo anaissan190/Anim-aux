@@ -32,6 +32,8 @@ export default function MessagesPage() {
   const deleteConversation = useDeleteConversation()
   const [contactSearch, setContactSearch] = useState('')
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [showNewMsg, setShowNewMsg] = useState(false)
+  const [newMsgSearch, setNewMsgSearch] = useState('')
   // Conversations supprimées : une fois supprimée, un contact issu des RDV
   // (relation permanente) ne doit pas réapparaître tout seul dans le feed —
   // on le masque tant qu'aucun nouveau message n'est rééchangé avec lui.
@@ -63,6 +65,13 @@ export default function MessagesPage() {
 
   const filteredContacts = sortedContacts.filter((c: any) =>
     c.name.toLowerCase().includes(contactSearch.trim().toLowerCase())
+  )
+
+  // "Nouveau message" : uniquement les praticiens (ou patients, si praticien)
+  // avec qui un rendez-vous a eu lieu — jamais une recherche ouverte sur
+  // tous les profils.
+  const newMsgResults = contacts.filter(c =>
+    c.name.toLowerCase().includes(newMsgSearch.trim().toLowerCase())
   )
 
   async function handleDeleteConversation(otherUserId: string) {
@@ -160,7 +169,13 @@ export default function MessagesPage() {
         {/* Liste contacts */}
         <aside className="w-64 flex-shrink-0 card overflow-y-auto">
           <div className="p-3 border-b border-gray-100">
-            <p className="text-sm font-semibold text-gray-900 mb-2">Conversations</p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-semibold text-gray-900">Conversations</p>
+              <button onClick={() => { setShowNewMsg(true); setNewMsgSearch('') }}
+                className="text-xs bg-sage-500 text-white px-3 py-1.5 rounded-lg hover:bg-sage-600 transition-colors">
+                + Nouveau
+              </button>
+            </div>
             <input
               type="text"
               value={contactSearch}
@@ -169,6 +184,51 @@ export default function MessagesPage() {
               className="input text-xs py-1.5"
             />
           </div>
+
+          {/* Recherche nouveau message — limitée aux contacts avec RDV */}
+          {showNewMsg && (
+            <div className="p-3 border-b border-gray-100 bg-sage-50">
+              <p className="text-xs font-medium text-gray-600 mb-2">Nouveau message</p>
+              <input
+                className="input text-sm w-full"
+                placeholder={user?.role === 'doctor' ? 'Rechercher parmi vos patients...' : 'Rechercher parmi vos praticiens...'}
+                value={newMsgSearch}
+                onChange={e => setNewMsgSearch(e.target.value)}
+                autoFocus
+              />
+              {newMsgResults.length > 0 && (
+                <div className="mt-2 space-y-1 max-h-56 overflow-y-auto">
+                  {newMsgResults.map(r => (
+                    <button key={r.user_id}
+                      onClick={() => {
+                        setSelectedUserId(r.user_id)
+                        unhideContact(r.user_id)
+                        setShowNewMsg(false)
+                        setNewMsgSearch('')
+                      }}
+                      className="w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white transition-colors text-sm">
+                      <div className="w-7 h-7 rounded-full bg-sage-100 flex items-center justify-center text-xs text-sage-700 font-bold flex-shrink-0">
+                        {r.name[0]}
+                      </div>
+                      <span className="text-gray-700">{r.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {newMsgResults.length === 0 && (
+                <p className="text-xs text-gray-400 mt-2 text-center">
+                  {contacts.length === 0
+                    ? "Aucun rendez-vous n'a encore eu lieu."
+                    : 'Aucun résultat.'}
+                </p>
+              )}
+              <button onClick={() => setShowNewMsg(false)}
+                className="text-xs text-gray-400 hover:text-gray-600 mt-2 w-full text-center">
+                Annuler
+              </button>
+            </div>
+          )}
+
           {sortedContacts.length === 0 ? (
             <p className="text-xs text-gray-400 p-4 text-center">Aucune conversation — prenez un RDV pour commencer à échanger.</p>
           ) : filteredContacts.length === 0 ? (
