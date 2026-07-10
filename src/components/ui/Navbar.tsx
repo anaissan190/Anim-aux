@@ -26,6 +26,7 @@ export default function Navbar() {
           )}
           {user && <Link to={dashboardPath} className="hover:text-sage-600 transition-colors">Mon espace</Link>}
           {user && <Link to="/messages" className="hover:text-sage-600 transition-colors">Messages</Link>}
+          {user && <Link to="/profil" className="hover:text-sage-600 transition-colors">Profil</Link>}
         </div>
 
         <div className="flex items-center gap-3">
