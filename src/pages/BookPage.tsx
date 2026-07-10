@@ -193,15 +193,7 @@ export default function BookPage() {
                   file:mr-3 file:py-2.5 file:px-4 file:rounded-xl file:border-0
                   file:bg-sage-500 file:text-white file:text-sm file:font-medium
                   hover:file:bg-sage-600 file:cursor-pointer"
-                onChange={e => {
-                  // Diagnostic temporaire : confirme si le navigateur déclenche
-                  // bien l'événement de sélection sur cette page précise.
-                  alert('Fichier(s) reçu(s) : ' + (e.target.files && e.target.files.length > 0
-                    ? Array.from(e.target.files).map(f => f.name).join(', ')
-                    : 'AUCUN'))
-                  addDocuments(e.target.files)
-                  e.target.value = ''
-                }} />
+                onChange={e => { addDocuments(e.target.files); e.target.value = '' }} />
               {documents.length > 0 && (
                 <>
                   <ul className="mt-2 space-y-1">
@@ -280,7 +272,9 @@ export default function BookPage() {
             </div>
             {createAppt.isError && (
               <p className="text-red-500 text-sm mt-3 text-center">
-                Ce créneau est déjà pris. Veuillez en choisir un autre.
+                {(createAppt.error as any)?.code === '23505'
+                  ? 'Ce créneau est déjà pris. Veuillez en choisir un autre.'
+                  : (createAppt.error as any)?.message || "Une erreur est survenue. Veuillez réessayer."}
               </p>
             )}
           </div>
