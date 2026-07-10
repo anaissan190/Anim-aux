@@ -12,22 +12,13 @@ import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorRe
 import { useAuthStore } from '@/lib/authStore'
 import { PRACTITIONER_TYPES, getPractitionerType } from '@/lib/practitionerTypes'
 import { SPECIES_EMOJI } from '@/lib/animalSpecies'
+import { type DoctorTab as Tab, ALL_DOCTOR_TAB_IDS as ALL_TAB_IDS } from '@/lib/doctorDashboardTabs'
 
-type Tab = 'home' | 'patients' | 'tarifs' | 'disponibilites' | 'profil' | 'avis' | 'messages'
-
-// Onglets affichés dans la barre. "Mon profil" et "Messages" restent des
-// Tab valides (contenu inchangé, accessible via ?tab=...) mais ne sont plus
-// listés ici : ils sont désormais accessibles via les icônes à côté de la
-// cloche de notifications, dans la Navbar, pour désencombrer la barre.
-const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: 'home',           label: 'Accueil',         icon: '🏠' },
-  { id: 'patients',       label: 'Mes patients',    icon: '🐾' },
-  { id: 'tarifs',         label: 'Tarifs',           icon: '💰' },
-  { id: 'disponibilites', label: 'Disponibilités',   icon: '🗓️' },
-  { id: 'avis',           label: 'Avis',             icon: '⭐' },
-]
-
-const ALL_TAB_IDS: Tab[] = ['home', 'patients', 'tarifs', 'disponibilites', 'profil', 'avis', 'messages']
+// La barre d'onglets (Accueil, Mes patients, Tarifs, Disponibilités, Avis)
+// est désormais affichée dans la Navbar, à la suite du logo, pour être
+// visible dès l'arrivée sur la page d'accueil sans clic supplémentaire —
+// voir src/components/ui/Navbar.tsx. Ce fichier ne gère plus que le
+// contenu de chaque onglet, piloté par le paramètre d'URL ?tab=.
 
 
 const DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
@@ -349,35 +340,10 @@ export default function DoctorDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* La barre d'onglets (Accueil, Mes patients, Tarifs, Disponibilités,
+          Avis) est affichée dans la Navbar elle-même, à la suite du logo —
+          voir src/components/ui/Navbar.tsx. */}
       <Navbar />
-
-      {/* Barre d'onglets */}
-      <div className="bg-white border-b border-gray-100 sticky top-16 z-40">
-        <div className="max-w-5xl mx-auto px-4">
-          <div className="flex gap-1 overflow-x-auto scrollbar-hide">
-            {/* Remplace le lien "Mon espace" retiré de la barre de nav du haut :
-                ramène simplement à la vue d'accueil du dashboard. */}
-            <button onClick={() => setTab('home')}
-              className={`flex items-center gap-2 px-4 py-4 text-sm font-medium whitespace-nowrap border-b-2 transition-colors
-                ${tab === 'home'
-                  ? 'border-sage-500 text-sage-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-              <span>🌿</span>
-              <span>Mon espace</span>
-            </button>
-            {TABS.map(t => (
-              <button key={t.id} onClick={() => setTab(t.id)}
-                className={`flex items-center gap-2 px-4 py-4 text-sm font-medium whitespace-nowrap border-b-2 transition-colors
-                  ${tab === t.id
-                    ? 'border-sage-500 text-sage-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-                <span>{t.icon}</span>
-                <span>{t.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
 
       <div className="max-w-5xl mx-auto px-4 py-8">
 
