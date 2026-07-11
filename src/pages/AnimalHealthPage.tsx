@@ -428,12 +428,12 @@ export default function AnimalHealthPage() {
             </div>
             <div className="card p-5">
               <h3 className="font-semibold text-sm text-gray-700 mb-3">⚖️ Poids actuel</h3>
-              <p className="text-3xl font-bold text-blue-600 mb-1">{lastWeight ? `${lastWeight.weight_kg} kg` : '—'}</p>
+              <p className="text-3xl font-bold text-moss-600 mb-1">{lastWeight ? `${lastWeight.weight_kg} kg` : '—'}</p>
               <p className="text-xs text-gray-400">{lastWeight ? format(new Date(lastWeight.measured_at), 'd MMM yyyy', { locale: fr }) : 'Aucune mesure'}</p>
             </div>
             <div className="card p-5">
               <h3 className="font-semibold text-sm text-gray-700 mb-3">📁 Événements</h3>
-              <p className="text-3xl font-bold text-purple-600 mb-1">{records.length}</p>
+              <p className="text-3xl font-bold text-sage-700 mb-1">{records.length}</p>
               <p className="text-xs text-gray-400">dans le dossier</p>
             </div>
           </div>
@@ -573,12 +573,12 @@ export default function AnimalHealthPage() {
                     </div>
                   ) : (
                     <div key={w.id} className="card p-4 flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-lg">⚖️</div>
+                      <div className="w-10 h-10 rounded-xl bg-moss-50 flex items-center justify-center text-lg">⚖️</div>
                       <div className="flex-1">
                         <p className="font-semibold text-sm text-gray-900">{w.weight_kg} kg</p>
                         <p className="text-xs text-gray-500">{format(new Date(w.measured_at), 'd MMM yyyy', { locale: fr })}{w.notes ? ` · ${w.notes}` : ''}</p>
                       </div>
-                      {i === 0 && <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full">Dernier</span>}
+                      {i === 0 && <span className="text-xs bg-moss-100 text-moss-700 px-2 py-1 rounded-full">Dernier</span>}
                       <div className="flex gap-2 flex-shrink-0">
                         <button onClick={() => startEditWeight(w)} className="text-xs text-sage-600 hover:underline">✏️</button>
                         <button onClick={() => removeWeight(w)} disabled={deleteWeight.isPending} className="text-xs text-red-400 hover:underline">🗑️</button>
@@ -646,7 +646,7 @@ export default function AnimalHealthPage() {
                   }
                   return (
                     <div key={r.id} className="card p-4 flex items-start gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-lg">{typeEmoji[r.type] ?? '📋'}</div>
+                      <div className="w-10 h-10 rounded-xl bg-sage-100 flex items-center justify-center text-lg">{typeEmoji[r.type] ?? '📋'}</div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <p className="font-semibold text-sm text-gray-900">{r.title}</p>

@@ -31,6 +31,17 @@ export default {
           700: '#b8560a',
           800: '#8c4308',
           900: '#5a3a22',
+        },
+        // Vert sage : deuxième couleur "de données" à côté de l'orange
+        // (sage-*) et du beige, pour remplacer les bleus/violets ponctuels.
+        moss: {
+          50:  '#f0f4ea',
+          100: '#dee8d0',
+          200: '#c3d3a8',
+          500: '#8fa377',
+          600: '#6f8557',
+          700: '#566844',
+          800: '#3f4d32',
         }
       },
       fontFamily: {

@@ -406,7 +406,7 @@ export default function DoctorDashboard() {
               {[
                 { label: "Aujourd'hui", value: todayAppts.length, icon: '📅', color: 'text-sage-600' },
                 { label: 'En attente',  value: pending,           icon: '⏳', color: pending > 0 ? 'text-amber-600' : 'text-gray-700' },
-                { label: 'Cette semaine', value: weekAppts.length, icon: '📆', color: 'text-blue-600' },
+                { label: 'Cette semaine', value: weekAppts.length, icon: '📆', color: 'text-moss-600' },
                 { label: 'Total',       value: appointments.length, icon: '📊', color: 'text-gray-700' },
               ].map(m => (
                 <div key={m.label} className="bg-white rounded-2xl p-4 text-center shadow-sm border border-gray-100">
