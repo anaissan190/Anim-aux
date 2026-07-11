@@ -74,10 +74,11 @@ export default function MessagesPage() {
       .filter(c => {
         const hiddenAt = hiddenIds[c.user_id]
         if (!hiddenAt) return true
-        // Réapparaît tout seul dès qu'un message plus récent que le masquage
-        // arrive, même si le canal realtime n'a pas notifié à temps.
+        // Reste masqué tant qu'aucun message plus récent que le masquage
+        // n'est arrivé (sinon il réapparaît tout seul, même sans que le
+        // canal realtime ait notifié à temps).
         if (!c.lastAt) return false
-        return new Date(c.lastAt).getTime() <= new Date(hiddenAt).getTime()
+        return new Date(c.lastAt).getTime() > new Date(hiddenAt).getTime()
       })
       .sort((a, b) => {
         if (!a.lastAt && !b.lastAt) return 0

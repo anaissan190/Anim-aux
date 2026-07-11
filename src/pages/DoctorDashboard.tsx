@@ -204,8 +204,11 @@ export default function DoctorDashboard() {
       .filter(c => {
         const hiddenAt = hiddenConvIds[c.user_id]
         if (!hiddenAt) return true
+        // Reste masqué tant qu'aucun message plus récent que le masquage
+        // n'est arrivé (sinon il réapparaît tout seul, même sans que le
+        // canal realtime ait notifié à temps).
         if (!c.lastAt) return false
-        return new Date(c.lastAt).getTime() <= new Date(hiddenAt).getTime()
+        return new Date(c.lastAt).getTime() > new Date(hiddenAt).getTime()
       })
       .sort((a, b) => {
         if (!a.lastAt && !b.lastAt) return 0
