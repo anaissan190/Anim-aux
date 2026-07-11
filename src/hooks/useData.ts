@@ -998,22 +998,45 @@ export function useCreateAnimalDocument() {
   })
 }
 
-// Toutes les ordonnances des animaux du patient connecté, tous animaux
-// confondus — la RLS "animal_documents: propriétaire voit les siens"
-// limite déjà le résultat aux documents des animaux qui lui appartiennent,
-// pas besoin de refiltrer par owner_id ici.
-export function usePatientPrescriptions() {
+// Tous les documents (ordonnances, analyses, radios...) déposés par un
+// praticien dans le dossier des animaux du patient connecté — pas ceux que
+// le patient a lui-même envoyés, qu'il a déjà sous les yeux dans l'onglet
+// "Documents" de chaque animal. La RLS "animal_documents: propriétaire voit
+// les siens" limite déjà le résultat aux documents des animaux qui lui
+// appartiennent ; on filtre ensuite côté client sur uploaded_by ≠
+// owner_id (impossible à exprimer proprement en un seul filtre PostgREST
+// puisque ce sont deux colonnes de deux tables différentes).
+//
+// Complété par les pièces jointes envoyées par le patient lui-même au
+// moment de la prise de RDV (appointment_documents, étape 2 de BookPage) :
+// une ordonnance jointe pour justifier un renouvellement, par exemple, doit
+// rester consultable ici même si c'est le patient qui l'a déposée.
+export function usePatientDoctorDocuments() {
   const { user } = useAuthStore()
   return useQuery({
-    queryKey: ['prescriptions', user?.id],
+    queryKey: ['patient-doctor-documents', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: animalDocs, error: animalErr } = await supabase
         .from('animal_documents')
-        .select('*, animals(id, name, species, avatar_url)')
-        .eq('document_type', 'ordonnance')
+        .select('*, animals(id, name, species, avatar_url, owner_id)')
         .order('created_at', { ascending: false })
-      if (error) throw error
-      return data ?? []
+      if (animalErr) throw animalErr
+      const doctorAnimalDocs = (animalDocs ?? [])
+        .filter((d: any) => d.uploaded_by !== d.animals?.owner_id)
+        .map((d: any) => ({ ...d, source: 'animal' as const }))
+
+      // RLS "appointment_documents: patient voit les siens" limite déjà le
+      // résultat aux pièces jointes de ses propres RDV.
+      const { data: apptDocs, error: apptErr } = await supabase
+        .from('appointment_documents')
+        .select('*, appointments(start_at, doctors(profiles!doctors_user_id_profiles_fkey(first_name, last_name)))')
+        .order('created_at', { ascending: false })
+      if (apptErr) throw apptErr
+      const bookingDocs = (apptDocs ?? []).map((d: any) => ({ ...d, source: 'appointment' as const }))
+
+      return [...doctorAnimalDocs, ...bookingDocs].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      )
     },
     enabled: !!user,
   })
