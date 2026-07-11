@@ -1042,13 +1042,25 @@ export function useClinicAppointments(clinicId?: string) {
         .eq('clinic_id', clinicId!)
       if (!members || members.length === 0) return []
       const doctorIds = members.map(m => m.doctor_id)
+      // Embed direct sur `profiles!patient_id` (pas `users!patient_id`) : un
+      // embed via `users` est bloqué par le RLS pour un praticien qui n'est
+      // ni l'utilisateur ni admin, il revient toujours null silencieusement
+      // (même bug déjà rencontré pour "Mes patients" et la messagerie).
       const { data, error } = await supabase
         .from('appointments')
-        .select(`*, doctors!inner(specialty, user_id, profiles!doctors_user_id_profiles_fkey(first_name, last_name))`)
+        .select(`*,
+          doctors!inner(specialty, user_id, profiles!doctors_user_id_profiles_fkey(first_name, last_name)),
+          profiles!patient_id(first_name, last_name),
+          appointment_animals(animals(id, name, species))
+        `)
         .in('doctor_id', doctorIds)
         .order('start_at')
       if (error) throw error
-      return data ?? []
+      return (data ?? []).map((a: any) => ({
+        ...a,
+        patientProfile: a.profiles,
+        animals: (a.appointment_animals ?? []).map((link: any) => link.animals).filter(Boolean),
+      }))
     },
     enabled: !!clinicId,
   })

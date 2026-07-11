@@ -67,6 +67,7 @@ export default function DoctorDashboard() {
   const calendarWeekDays = Array.from({ length: 7 }, (_, i) =>
     addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), calendarWeekOffset * 7 + i)
   )
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState<Date | null>(null)
   const createClinic      = useCreateClinic()
   const joinClinic        = useJoinClinic()
   const addClinicService  = useAddClinicService()
@@ -1112,10 +1113,17 @@ export default function DoctorDashboard() {
                           <tr>
                             <th className="text-left text-xs text-gray-400 font-medium pb-2 pr-3 w-32">Praticien</th>
                             {calendarWeekDays.map(d => (
-                              <th key={d.toISOString()} className={`text-center text-xs font-medium pb-2 px-1
-                                ${isSameDay(d, new Date()) ? 'text-sage-600' : 'text-gray-500'}`}>
-                                <div>{format(d, 'EEE', { locale: fr })}</div>
-                                <div className="text-gray-400 font-normal">{format(d, 'd MMM', { locale: fr })}</div>
+                              <th key={d.toISOString()} className="text-center pb-2 px-1">
+                                <button onClick={() => setSelectedCalendarDay(prev => isSameDay(d, prev ?? new Date(0)) ? null : d)}
+                                  className={`w-full rounded-lg py-1 transition-colors text-xs font-medium
+                                    ${selectedCalendarDay && isSameDay(d, selectedCalendarDay)
+                                      ? 'bg-sage-500 text-white'
+                                      : isSameDay(d, new Date()) ? 'text-sage-600 hover:bg-sage-50' : 'text-gray-500 hover:bg-gray-50'}`}>
+                                  <div>{format(d, 'EEE', { locale: fr })}</div>
+                                  <div className={`font-normal ${selectedCalendarDay && isSameDay(d, selectedCalendarDay) ? 'text-sage-100' : 'text-gray-400'}`}>
+                                    {format(d, 'd MMM', { locale: fr })}
+                                  </div>
+                                </button>
                               </th>
                             ))}
                           </tr>
@@ -1171,41 +1179,64 @@ export default function DoctorDashboard() {
                       </table>
                     </div>
 
-                    {/* Agenda partagé */}
+                    {/* Détail du jour sélectionné dans le calendrier —
+                        cliquer sur un jour ci-dessus affiche ses RDV ici :
+                        praticien, propriétaire/animal, plus rapide à
+                        parcourir qu'une longue liste de "prochains RDV". */}
                     <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-                      <h3 className="font-semibold text-gray-900 mb-4">Prochains rendez-vous du cabinet</h3>
-                      {clinicAppts.length === 0 ? (
-                        <div className="text-center py-6">
-                          <p className="text-gray-400 text-sm">Aucun rendez-vous à venir dans le cabinet.</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {clinicAppts.slice(0, 10).map((a: any) => (
-                            <div key={a.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                              <div className="text-center min-w-[48px]">
-                                <p className="text-xs text-gray-400">{format(new Date(a.start_at), 'EEE', { locale: fr })}</p>
-                                <p className="text-sm font-bold text-gray-700">{format(new Date(a.start_at), 'd MMM', { locale: fr })}</p>
-                                <p className="text-xs text-sage-600">{format(new Date(a.start_at), 'HH:mm')}</p>
-                              </div>
-                              <div className="flex-1">
-                                <p className="text-sm text-gray-600">{a.reason ?? 'Consultation'}</p>
-                                <p className="text-xs text-gray-400">
-                                  Dr {a.doctors?.profiles?.first_name} {a.doctors?.profiles?.last_name}
-                                </p>
-                              </div>
-                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium
-                                ${a.status === 'confirmed' ? 'bg-green-100 text-green-700' :
-                                  a.status === 'pending'   ? 'bg-amber-100 text-amber-700' :
-                                  a.status === 'cancelled' || a.status === 'no_show' ? 'bg-red-100 text-red-700' :
-                                  'bg-gray-100 text-gray-500'}`}>
-                                {a.status === 'confirmed' ? 'Confirmé' : a.status === 'pending' ? 'En attente' :
-                                  a.status === 'completed' ? 'Terminé' : a.status === 'no_show' ? 'Absent(e)' :
-                                  a.status === 'cancelled' ? 'Annulé' : a.status}
-                              </span>
+                      <h3 className="font-semibold text-gray-900 mb-4">
+                        {selectedCalendarDay
+                          ? `Rendez-vous du ${format(selectedCalendarDay, 'EEEE d MMMM', { locale: fr })}`
+                          : 'Rendez-vous du jour'}
+                      </h3>
+                      {(() => {
+                        const day = selectedCalendarDay ?? new Date()
+                        const dayAppts = clinicAppts
+                          .filter((a: any) => isSameDay(new Date(a.start_at), day))
+                          .sort((a: any, b: any) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime())
+                        if (dayAppts.length === 0) {
+                          return (
+                            <div className="text-center py-6">
+                              <p className="text-gray-400 text-sm">
+                                {selectedCalendarDay ? 'Aucun rendez-vous ce jour-là.' : "Aucun rendez-vous aujourd'hui. Cliquez sur un jour du calendrier ci-dessus pour voir son détail."}
+                              </p>
                             </div>
-                          ))}
-                        </div>
-                      )}
+                          )
+                        }
+                        return (
+                          <div className="space-y-3">
+                            {dayAppts.map((a: any) => {
+                              const doctorName = `${a.doctors?.profiles?.first_name ?? ''} ${a.doctors?.profiles?.last_name ?? ''}`.trim()
+                              const patientName = `${a.patientProfile?.first_name ?? ''} ${a.patientProfile?.last_name ?? ''}`.trim()
+                              const animalNames = (a.animals ?? []).map((an: any) => an.name).join(', ')
+                              return (
+                                <div key={a.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                                  <div className="text-center min-w-[48px]">
+                                    <p className="text-sm font-bold text-gray-700">{format(new Date(a.start_at), 'HH:mm')}</p>
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm text-gray-700 font-medium truncate">
+                                      {patientName || 'Patient'}{animalNames ? ` · ${animalNames}` : ''}
+                                    </p>
+                                    <p className="text-xs text-gray-400 truncate">
+                                      Dr {doctorName} {a.reason ? `· ${a.reason}` : ''}
+                                    </p>
+                                  </div>
+                                  <span className={`flex-shrink-0 text-xs px-2 py-0.5 rounded-full font-medium
+                                    ${a.status === 'confirmed' ? 'bg-green-100 text-green-700' :
+                                      a.status === 'pending'   ? 'bg-amber-100 text-amber-700' :
+                                      a.status === 'cancelled' || a.status === 'no_show' ? 'bg-red-100 text-red-700' :
+                                      'bg-gray-100 text-gray-500'}`}>
+                                    {a.status === 'confirmed' ? 'Confirmé' : a.status === 'pending' ? 'En attente' :
+                                      a.status === 'completed' ? 'Terminé' : a.status === 'no_show' ? 'Absent(e)' :
+                                      a.status === 'cancelled' ? 'Annulé' : a.status}
+                                  </span>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )
+                      })()}
                     </div>
                   </div>
                 )}
