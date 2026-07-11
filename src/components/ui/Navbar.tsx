@@ -35,7 +35,7 @@ export default function Navbar() {
             de praticien, etc.) — même connecté. Pour revenir à son dashboard,
             le praticien a l'onglet "Mon espace" juste à côté. */}
         <Link to="/" className="flex items-center flex-shrink-0">
-          <img src={logoNavbar} alt="Animéaux" className="h-9 w-auto" />
+          <img src={logoNavbar} alt="Animéaux" className="h-12 w-auto" />
         </Link>
 
         {/* Praticien : les catégories du dashboard (Accueil, Mes patients,

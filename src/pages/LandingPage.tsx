@@ -24,7 +24,7 @@ export default function LandingPage() {
         <section className="py-20 px-4">
           <div className="max-w-4xl mx-auto text-center">
             <span className="inline-block bg-sage-100 text-sage-700 text-sm font-medium px-4 py-1.5 rounded-full mb-6">
-              🌿 Votre animal, notre priorité
+              Votre animal, notre priorité
             </span>
             <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 leading-tight mb-4">
               Trouvez un praticien,<br />
@@ -85,7 +85,7 @@ export default function LandingPage() {
         </section>
 
         {/* CTA médecins */}
-        <section className="py-16 px-4">
+        <section className="py-16 px-4 bg-[#FFFAF0]">
           <div className="max-w-2xl mx-auto text-center">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Vous êtes praticien ?</h2>
             <p className="text-gray-500 mb-6">
