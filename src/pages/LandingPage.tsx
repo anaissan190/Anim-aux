@@ -18,7 +18,7 @@ export default function LandingPage() {
       <Navbar />
 
       {/* Hero */}
-      <section className="bg-gradient-to-br from-sage-50 via-white to-green-50 py-20 px-4">
+      <section className="bg-gradient-to-br from-sage-50 via-white to-sage-100 py-20 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <span className="inline-block bg-sage-100 text-sage-700 text-sm font-medium px-4 py-1.5 rounded-full mb-6">
             🌿 Votre santé, simplifiée

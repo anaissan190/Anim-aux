@@ -16,17 +16,21 @@ export default {
           800: '#166534',
           900: '#14532d',
         },
+        // Palette "Animéaux" (moodboard : orange chaleureux). Le nom du
+        // token (sage) est conservé tel quel pour ne pas avoir à renommer
+        // les ~150 classes bg-sage-*/text-sage-*/etc. déjà utilisées dans
+        // toute l'appli — seules les valeurs hex changent.
         sage: {
-          50:  '#f2f7f2',
-          100: '#e0ece0',
-          200: '#c1d8c1',
-          300: '#93bc93',
-          400: '#5f9960',
-          500: '#4a7c59',
-          600: '#3a6347',
-          700: '#2d5038',
-          800: '#253f2d',
-          900: '#1e3325',
+          50:  '#fff6e6',
+          100: '#fce9c6',
+          200: '#f8dba0',
+          300: '#f5c275',
+          400: '#f5a056',
+          500: '#f2820f',
+          600: '#d9670b',
+          700: '#b8560a',
+          800: '#8c4308',
+          900: '#5a3a22',
         }
       },
       fontFamily: {

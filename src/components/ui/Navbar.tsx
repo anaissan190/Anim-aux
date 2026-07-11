@@ -4,6 +4,7 @@ import { useAuthStore } from '@/lib/authStore'
 import NotificationBell from './NotificationBell'
 import { DOCTOR_TABS } from '@/lib/doctorDashboardTabs'
 import { useConversationPartners } from '@/hooks/useData'
+import logoNavbar from '@/assets/logo-navbar.svg'
 
 export default function Navbar() {
   const { user, signOut } = useAuthStore()
@@ -33,9 +34,8 @@ export default function Navbar() {
         {/* Le logo ramène toujours vers la page d'accueil publique (recherche
             de praticien, etc.) — même connecté. Pour revenir à son dashboard,
             le praticien a l'onglet "Mon espace" juste à côté. */}
-        <Link to="/" className="flex items-center gap-2 font-bold text-xl text-sage-600 flex-shrink-0">
-          <span className="text-2xl">🌿</span>
-          <span className="hidden sm:inline">Animéaux</span>
+        <Link to="/" className="flex items-center flex-shrink-0">
+          <img src={logoNavbar} alt="Animéaux" className="h-9 w-auto" />
         </Link>
 
         {/* Praticien : les catégories du dashboard (Accueil, Mes patients,

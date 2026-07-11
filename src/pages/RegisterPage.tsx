@@ -4,6 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { z } from 'zod'
 import { supabase } from '@/lib/supabase'
 import { PRACTITIONER_TYPES } from '@/lib/practitionerTypes'
+import logoNavbar from '@/assets/logo-navbar.svg'
 
 const schema = z.object({
   first_name:        z.string().min(2, 'Prénom requis'),
@@ -84,7 +85,7 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-sage-50 flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/" className="text-2xl font-bold text-sage-600">🌿 Animéaux</Link>
+          <Link to="/" className="inline-flex"><img src={logoNavbar} alt="Animéaux" className="h-10 w-auto" /></Link>
           <h1 className="text-xl font-bold text-gray-900 mt-4">Créer un compte</h1>
         </div>
         <div className="card p-8">

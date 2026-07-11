@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { supabase, getMyUserDataWithRetry } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/authStore'
 import type { User } from '@/types'
+import logoNavbar from '@/assets/logo-navbar.svg'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -67,7 +68,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-sage-50 flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/" className="text-2xl font-bold text-sage-600">🐾 Animéaux</Link>
+          <Link to="/" className="inline-flex"><img src={logoNavbar} alt="Animéaux" className="h-10 w-auto" /></Link>
           <h1 className="text-xl font-bold text-gray-900 mt-4">Connexion</h1>
         </div>
         <div className="card p-8">

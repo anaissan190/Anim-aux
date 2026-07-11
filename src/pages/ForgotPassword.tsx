@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
+import logoNavbar from '@/assets/logo-navbar.svg'
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('')
@@ -22,7 +23,7 @@ export default function ForgotPassword() {
     <div className="min-h-screen bg-sage-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/" className="text-2xl font-bold text-sage-600">🌿 Animéaux</Link>
+          <Link to="/" className="inline-flex"><img src={logoNavbar} alt="Animéaux" className="h-10 w-auto" /></Link>
         </div>
         <div className="card p-8">
           {sent ? (

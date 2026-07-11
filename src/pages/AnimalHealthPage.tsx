@@ -534,7 +534,7 @@ export default function AnimalHealthPage() {
                       (dataMax: number) => Math.max(dataMax, SPECIES_MAX_WEIGHT[animal.species] ?? 50)
                     ]} />
                     <Tooltip formatter={(v: any) => [`${v} kg`, 'Poids']} />
-                    <Line type="monotone" dataKey="poids" stroke="#6b9e7a" strokeWidth={2} dot={{ fill: '#6b9e7a', r: 4 }} />
+                    <Line type="monotone" dataKey="poids" stroke="#f2820f" strokeWidth={2} dot={{ fill: '#f2820f', r: 4 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
