@@ -245,11 +245,10 @@ export default function PatientDashboard() {
             <div className="text-3xl mb-2">💬</div>
             <p className="text-sm font-medium text-gray-700">Messages</p>
           </Link>
-          <div className="card p-4 text-center opacity-60 cursor-not-allowed">
-            <div className="text-3xl mb-2">📋</div>
+          <Link to="/ordonnances" className="card p-4 text-center hover:shadow-md transition-shadow">
+            <div className="text-3xl mb-2">💊</div>
             <p className="text-sm font-medium text-gray-700">Ordonnances</p>
-            <p className="text-xs text-gray-400">Bientôt</p>
-          </div>
+          </Link>
         </div>
 
         {/* Onglets RDV */}

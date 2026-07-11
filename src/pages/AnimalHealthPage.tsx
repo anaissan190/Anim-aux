@@ -26,11 +26,20 @@ import {
   useAnimalDocuments,
   useCreateAnimalDocument,
   useDeleteAnimalDocument,
+  type DocumentType,
 } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { supabase } from '@/lib/supabase'
 import { SPECIES_EMOJI, SPECIES_MAX_WEIGHT, BREED_PLACEHOLDER } from '@/lib/animalSpecies'
 import SpeciesSelect from '@/components/ui/SpeciesSelect'
+
+export const DOC_TYPE_LABELS: Record<DocumentType, string> = {
+  ordonnance: '💊 Ordonnance',
+  analyse: '🧪 Analyse',
+  radio: '🩻 Radio',
+  certificat: '📜 Certificat',
+  autre: '📄 Autre',
+}
 
 export default function AnimalHealthPage() {
   const { id } = useParams<{ id: string }>()
@@ -123,6 +132,7 @@ export default function AnimalHealthPage() {
   const [showWeightForm, setShowWeightForm] = useState(false)
   const [showRecordForm, setShowRecordForm] = useState(false)
   const [docLabel, setDocLabel] = useState('')
+  const [docType, setDocType] = useState<DocumentType>('autre')
   const [docUploading, setDocUploading] = useState(false)
   const [docError, setDocError] = useState('')
 
@@ -277,8 +287,9 @@ export default function AnimalHealthPage() {
     setDocError('')
     setDocUploading(true)
     try {
-      await createDocument.mutateAsync({ animal_id: id!, file, label: docLabel })
+      await createDocument.mutateAsync({ animal_id: id!, file, label: docLabel, document_type: docType })
       setDocLabel('')
+      setDocType('autre')
     } catch (e: any) {
       setDocError(e.message ?? "Erreur lors de l'envoi.")
     } finally {
@@ -677,11 +688,22 @@ export default function AnimalHealthPage() {
             <div className="card p-5 mb-4 border-2 border-sage-200">
               <h3 className="font-semibold text-sm mb-3">Ajouter un document ou une photo</h3>
               <div className="grid grid-cols-2 gap-3 mb-3">
-                <div className="col-span-2">
+                <div>
+                  <label className="text-xs text-gray-500">Type</label>
+                  <select className="input text-sm mt-1" value={docType}
+                    onChange={e => setDocType(e.target.value as DocumentType)}>
+                    <option value="ordonnance">💊 Ordonnance</option>
+                    <option value="analyse">🧪 Analyse</option>
+                    <option value="radio">🩻 Radio</option>
+                    <option value="certificat">📜 Certificat</option>
+                    <option value="autre">📄 Autre</option>
+                  </select>
+                </div>
+                <div>
                   <label className="text-xs text-gray-500">Description (facultatif)</label>
                   <input className="input text-sm mt-1" value={docLabel}
                     onChange={e => setDocLabel(e.target.value)}
-                    placeholder="Ex: Analyse de sang, radio, ordonnance..." />
+                    placeholder="Ex: Amoxicilline 10j..." />
                 </div>
               </div>
               <input type="file" disabled={docUploading}
@@ -706,10 +728,15 @@ export default function AnimalHealthPage() {
                         : '📄'}
                     </a>
                     <div className="flex-1 min-w-0">
-                      <a href={d.file_url} target="_blank" rel="noopener noreferrer"
-                        className="font-semibold text-sm text-gray-900 hover:underline truncate block">
-                        {d.label || d.file_name}
-                      </a>
+                      <div className="flex items-center gap-2">
+                        <a href={d.file_url} target="_blank" rel="noopener noreferrer"
+                          className="font-semibold text-sm text-gray-900 hover:underline truncate">
+                          {d.label || d.file_name}
+                        </a>
+                        <span className="text-xs bg-sage-100 text-sage-700 px-2 py-0.5 rounded-full flex-shrink-0">
+                          {DOC_TYPE_LABELS[d.document_type as DocumentType] ?? DOC_TYPE_LABELS.autre}
+                        </span>
+                      </div>
                       <p className="text-xs text-gray-500">
                         {format(new Date(d.created_at), 'd MMM yyyy', { locale: fr })}
                         {d.uploaded_by === user?.id ? ' · Ajouté par vous' : isDoctor ? ' · Ajouté par le propriétaire' : ' · Ajouté par le praticien'}

@@ -16,6 +16,7 @@ import DoctorDashboard from '@/pages/DoctorDashboard'
 import AdminDashboard from '@/pages/AdminDashboard'
 import MessagesPage from '@/pages/MessagesPage'
 import AnimalHealthPage from '@/pages/AnimalHealthPage'
+import PrescriptionsPage from '@/pages/PrescriptionsPage'
 import ProfilPage from '@/pages/ProfilPage'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import LogoPreview from '@/pages/LogoPreview'
@@ -82,6 +83,9 @@ export default function App() {
         } />
         <Route path="/animal/:id" element={
           <ProtectedRoute role={['patient', 'doctor']}><AnimalHealthPage /></ProtectedRoute>
+        } />
+        <Route path="/ordonnances" element={
+          <ProtectedRoute role="patient"><PrescriptionsPage /></ProtectedRoute>
         } />
         <Route path="/profil" element={
           <ProtectedRoute><ProfilPage /></ProtectedRoute>

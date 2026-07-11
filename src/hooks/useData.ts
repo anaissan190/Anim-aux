@@ -966,11 +966,15 @@ export function useAnimalDocuments(animalId?: string) {
   })
 }
 
+export type DocumentType = 'ordonnance' | 'analyse' | 'radio' | 'certificat' | 'autre'
+
 export function useCreateAnimalDocument() {
   const qc = useQueryClient()
   const { user } = useAuthStore()
   return useMutation({
-    mutationFn: async ({ animal_id, file, label }: { animal_id: string; file: File; label?: string }) => {
+    mutationFn: async ({ animal_id, file, label, document_type }: {
+      animal_id: string; file: File; label?: string; document_type?: DocumentType
+    }) => {
       const ext = file.name.split('.').pop()
       const path = `animals/${animal_id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
       const { error: uploadError } = await supabase.storage.from('documents').upload(path, file)
@@ -983,10 +987,35 @@ export function useCreateAnimalDocument() {
         file_name: file.name,
         file_type: file.type,
         label: label || undefined,
+        document_type: document_type || 'autre',
       })
       if (error) throw error
     },
-    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['animal_documents', vars.animal_id] }),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['animal_documents', vars.animal_id] })
+      qc.invalidateQueries({ queryKey: ['prescriptions'] })
+    },
+  })
+}
+
+// Toutes les ordonnances des animaux du patient connecté, tous animaux
+// confondus — la RLS "animal_documents: propriétaire voit les siens"
+// limite déjà le résultat aux documents des animaux qui lui appartiennent,
+// pas besoin de refiltrer par owner_id ici.
+export function usePatientPrescriptions() {
+  const { user } = useAuthStore()
+  return useQuery({
+    queryKey: ['prescriptions', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('animal_documents')
+        .select('*, animals(id, name, species, avatar_url)')
+        .eq('document_type', 'ordonnance')
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data ?? []
+    },
+    enabled: !!user,
   })
 }
 
