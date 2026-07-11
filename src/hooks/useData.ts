@@ -233,6 +233,53 @@ export function usePatientAppointments() {
   })
 }
 
+// Tuile "Rappels" du dashboard patient : regroupe les rendez-vous déjà
+// planifiés (à venir) et les rappels de vaccin (date de rappel renseignée)
+// de tous ses animaux, tous confondus. Il n'existe pas encore de champ
+// dédié "check-up" dans le schéma — un contrôle général se traduit soit par
+// un RDV déjà pris (première section), soit par un rappel de vaccin
+// (deuxième section) : pas besoin d'une troisième source de données tant
+// qu'un vrai suivi de check-up n'est pas défini.
+export function usePatientReminders() {
+  const { user } = useAuthStore()
+  return useQuery({
+    queryKey: ['patient-reminders', user?.id],
+    queryFn: async () => {
+      const { data: appts, error: apptErr } = await supabase
+        .from('appointments')
+        .select('id, start_at, reason, doctors!inner(specialty, profiles!doctors_user_id_profiles_fkey(first_name, last_name))')
+        .eq('patient_id', user!.id)
+        .eq('status', 'confirmed')
+        .gte('start_at', new Date().toISOString())
+        .order('start_at', { ascending: true })
+      if (apptErr) throw apptErr
+
+      const { data: animals, error: animalErr } = await supabase
+        .from('animals')
+        .select('id, name, species')
+        .eq('owner_id', user!.id)
+      if (animalErr) throw animalErr
+      const animalIds = (animals ?? []).map((a: any) => a.id)
+      const animalById = new Map((animals ?? []).map((a: any) => [a.id, a]))
+
+      let vaccineReminders: any[] = []
+      if (animalIds.length > 0) {
+        const { data: vaccines, error: vaccErr } = await supabase
+          .from('vaccines')
+          .select('id, name, next_due_date, animal_id')
+          .in('animal_id', animalIds)
+          .not('next_due_date', 'is', null)
+          .order('next_due_date', { ascending: true })
+        if (vaccErr) throw vaccErr
+        vaccineReminders = (vaccines ?? []).map((v: any) => ({ ...v, animal: animalById.get(v.animal_id) }))
+      }
+
+      return { appointments: appts ?? [], vaccineReminders }
+    },
+    enabled: !!user,
+  })
+}
+
 export function useDoctorAppointments(doctorId?: string) {
   return useQuery({
     queryKey: ['appointments', 'doctor', doctorId],

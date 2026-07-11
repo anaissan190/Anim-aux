@@ -241,9 +241,9 @@ export default function PatientDashboard() {
             <div className="text-3xl mb-2">🔍</div>
             <p className="text-sm font-medium text-gray-700">Nouveau RDV</p>
           </Link>
-          <Link to="/messages" className="card p-4 text-center hover:shadow-md transition-shadow">
-            <div className="text-3xl mb-2">💬</div>
-            <p className="text-sm font-medium text-gray-700">Messages</p>
+          <Link to="/rappels" className="card p-4 text-center hover:shadow-md transition-shadow">
+            <div className="text-3xl mb-2">🔔</div>
+            <p className="text-sm font-medium text-gray-700">Rappels</p>
           </Link>
           <Link to="/documents" className="card p-4 text-center hover:shadow-md transition-shadow">
             <div className="text-3xl mb-2">📄</div>
