@@ -1147,28 +1147,34 @@ export default function DoctorDashboard() {
                                   const apptCount = clinicAppts.filter((a: any) =>
                                     a.doctor_id === m.doctor_id &&
                                     isSameDay(new Date(a.start_at), d) &&
-                                    ['confirmed', 'completed'].includes(a.status)
+                                    a.status !== 'cancelled'
                                   ).length
                                   return (
                                     <td key={d.toISOString()} className="py-2 px-1 text-center align-top">
-                                      {onLeave ? (
-                                        <span className="inline-block text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full whitespace-nowrap">
+                                      {onLeave && (
+                                        <span className="inline-block text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full whitespace-nowrap mb-0.5">
                                           🌴 Congé
                                         </span>
-                                      ) : daySlots.length === 0 ? (
-                                        <span className="text-xs text-gray-300">—</span>
-                                      ) : (
-                                        <div className="space-y-0.5">
-                                          {daySlots.map((s: any) => (
-                                            <div key={s.id} className="text-xs text-sage-700 bg-sage-50 rounded-full px-2 py-0.5 whitespace-nowrap">
-                                              {s.start_time.slice(0, 5)}–{s.end_time.slice(0, 5)}
-                                            </div>
-                                          ))}
-                                          {apptCount > 0 && (
-                                            <div className="text-xs text-gray-400">{apptCount} RDV</div>
-                                          )}
-                                        </div>
                                       )}
+                                      {/* Le nombre de RDV s'affiche toujours (même en congé, ou sans
+                                          horaires récurrents renseignés ce jour-là) : un RDV réel ne
+                                          doit jamais rester invisible faute de disponibilité déclarée. */}
+                                      <div className="space-y-0.5">
+                                        {!onLeave && daySlots.map((s: any) => (
+                                          <div key={s.id} className="text-xs text-sage-700 bg-sage-50 rounded-full px-2 py-0.5 whitespace-nowrap">
+                                            {s.start_time.slice(0, 5)}–{s.end_time.slice(0, 5)}
+                                          </div>
+                                        ))}
+                                        {!onLeave && daySlots.length === 0 && apptCount === 0 && (
+                                          <span className="text-xs text-gray-300">—</span>
+                                        )}
+                                        {apptCount > 0 && (
+                                          <button onClick={() => setSelectedCalendarDay(d)}
+                                            className="text-xs text-sage-700 font-semibold hover:underline">
+                                            {apptCount} RDV
+                                          </button>
+                                        )}
+                                      </div>
                                     </td>
                                   )
                                 })}
