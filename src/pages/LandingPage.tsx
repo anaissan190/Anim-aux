@@ -14,6 +14,20 @@ const SPECIALTIES = [
   { icon: '🎓', name: 'Éducateur canin' },
 ]
 
+// "Comment ça marche" dépend de qui regarde : un patient/visiteur veut
+// savoir comment réserver, un praticien connecté veut savoir comment gérer
+// son activité — les étapes de réservation n'ont aucun sens pour lui.
+const STEPS_PATIENT = [
+  { n: '1', t: 'Recherchez', d: 'Entrez votre spécialité et votre ville. Filtrez par disponibilité, prix ou note.' },
+  { n: '2', t: 'Choisissez', d: 'Consultez les profils, les avis patients et choisissez votre créneau.' },
+  { n: '3', t: 'Confirmez', d: 'Prenez rendez-vous en quelques secondes. Confirmation par email immédiate.' },
+]
+const STEPS_DOCTOR = [
+  { n: '1', t: 'Créez votre profil', d: 'Renseignez votre spécialité, votre bio et vos disponibilités.' },
+  { n: '2', t: 'Recevez des demandes', d: 'Les patients réservent directement selon vos créneaux disponibles.' },
+  { n: '3', t: 'Échangez avec vos patients', d: 'Confirmez les RDV, gérez le dossier de leurs animaux, messagerie intégrée.' },
+]
+
 export default function LandingPage() {
   const { user } = useAuthStore()
 
@@ -70,11 +84,7 @@ export default function LandingPage() {
               Comment ça marche ?
             </h2>
             <div className="grid sm:grid-cols-3 gap-8">
-              {[
-                { n: '1', t: 'Recherchez', d: 'Entrez votre spécialité et votre ville. Filtrez par disponibilité, prix ou note.' },
-                { n: '2', t: 'Choisissez', d: 'Consultez les profils, les avis patients et choisissez votre créneau.' },
-                { n: '3', t: 'Confirmez', d: 'Prenez rendez-vous en quelques secondes. Confirmation par email immédiate.' },
-              ].map(step => (
+              {(user?.role === 'doctor' ? STEPS_DOCTOR : STEPS_PATIENT).map(step => (
                 <div key={step.n} className="text-center">
                   <div className="w-12 h-12 bg-sage-500 text-white rounded-2xl flex items-center justify-center text-xl font-bold mx-auto mb-4">
                     {step.n}
