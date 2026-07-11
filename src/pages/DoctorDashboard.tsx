@@ -369,7 +369,7 @@ export default function DoctorDashboard() {
     : null
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-sage-100">
       {/* La barre d'onglets (Accueil, Mes patients, Tarifs, Disponibilités,
           Avis) est affichée dans la Navbar elle-même, à la suite du logo —
           voir src/components/ui/Navbar.tsx. */}

@@ -38,7 +38,7 @@ export default function DoctorPage() {
   }
 
   if (isLoading) return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-sage-100">
       <Navbar />
       <div className="max-w-4xl mx-auto px-4 py-8 animate-pulse space-y-4">
         <div className="h-48 bg-gray-200 rounded-2xl" />
@@ -48,7 +48,7 @@ export default function DoctorPage() {
   )
 
   if (!doctor) return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-sage-100">
       <Navbar />
       <div className="max-w-4xl mx-auto px-4 py-16 text-center">
         <p className="text-gray-500">Praticien introuvable.</p>
@@ -62,7 +62,7 @@ export default function DoctorPage() {
     : 'Praticien'
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-sage-100">
       <Navbar />
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="grid md:grid-cols-3 gap-6">

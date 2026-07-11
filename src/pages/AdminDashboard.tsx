@@ -3,7 +3,7 @@ import Navbar from '@/components/ui/Navbar'
 
 export default function AdminDashboard() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-sage-100">
       <Navbar />
       <div className="max-w-5xl mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">Administration</h1>

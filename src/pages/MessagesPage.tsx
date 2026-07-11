@@ -197,7 +197,7 @@ export default function MessagesPage() {
   if (user?.role === 'doctor') return null
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-sage-100 flex flex-col">
       <Navbar />
       <div className="flex-1 max-w-5xl w-full mx-auto px-4 py-6 flex gap-4" style={{ height: 'calc(100vh - 4rem)' }}>
 
