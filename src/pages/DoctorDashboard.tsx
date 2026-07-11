@@ -8,7 +8,7 @@ import RichTextEditor from '@/components/ui/RichTextEditor'
 import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
-import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll } from '@/hooks/useData'
+import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { PRACTITIONER_TYPES, getPractitionerType } from '@/lib/practitionerTypes'
 import { SPECIES_EMOJI } from '@/lib/animalSpecies'
@@ -68,6 +68,8 @@ export default function DoctorDashboard() {
     addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), calendarWeekOffset * 7 + i)
   )
   const [selectedCalendarDay, setSelectedCalendarDay] = useState<Date>(new Date())
+  const [selectedApptDetail, setSelectedApptDetail] = useState<any | null>(null)
+  const { data: selectedApptDocuments = [] } = useAppointmentDocuments(selectedApptDetail?.id)
   const createClinic      = useCreateClinic()
   const joinClinic        = useJoinClinic()
   const addClinicService  = useAddClinicService()
@@ -1214,12 +1216,13 @@ export default function DoctorDashboard() {
                                       const animalNames = (appt.animals ?? []).map((an: any) => an.name).join(', ')
                                       return (
                                         <td key={m.id} className="py-0.5 px-0.5 align-top">
-                                          <div className={`${statusColor} text-white rounded-md px-1.5 py-0.5 truncate`}
+                                          <button onClick={() => setSelectedApptDetail(appt)}
+                                            className={`${statusColor} text-white rounded-md px-1.5 py-0.5 truncate w-full text-left hover:opacity-90 transition-opacity cursor-pointer`}
                                             title={`${patientName}${animalNames ? ' · ' + animalNames : ''}${appt.reason ? ' · ' + appt.reason : ''}`}>
                                             {apptStartsHere ? (
                                               <span className="font-medium">{patientName || 'Patient'}{animalNames ? ` · ${animalNames}` : ''}</span>
                                             ) : '···'}
-                                          </div>
+                                          </button>
                                         </td>
                                       )
                                     }
@@ -1603,6 +1606,83 @@ export default function DoctorDashboard() {
           </div>
         )}
       </div>
+
+      {/* Détail d'un RDV cliqué dans le calendrier partagé du cabinet —
+          accessible même pour le RDV d'un confrère, pour pouvoir le
+          couvrir (heure, patient/propriétaire, animal, documents joints). */}
+      {selectedApptDetail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setSelectedApptDetail(null)} />
+          <div className="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6 max-h-[85vh] overflow-y-auto">
+            <div className="flex items-start justify-between mb-4">
+              <h3 className="font-bold text-gray-900 text-lg">Détail du rendez-vous</h3>
+              <button onClick={() => setSelectedApptDetail(null)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">✕</button>
+            </div>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Date & heure</span>
+                <span className="font-medium text-gray-900">
+                  {format(new Date(selectedApptDetail.start_at), "EEEE d MMMM 'à' HH:mm", { locale: fr })}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Praticien</span>
+                <span className="font-medium text-gray-900">
+                  {`${selectedApptDetail.doctors?.profiles?.first_name ?? ''} ${selectedApptDetail.doctors?.profiles?.last_name ?? ''}`.trim()}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Propriétaire</span>
+                <span className="font-medium text-gray-900">
+                  {`${selectedApptDetail.patientProfile?.first_name ?? ''} ${selectedApptDetail.patientProfile?.last_name ?? ''}`.trim() || '—'}
+                </span>
+              </div>
+              {(selectedApptDetail.animals ?? []).length > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">{selectedApptDetail.animals.length > 1 ? 'Animaux' : 'Animal'}</span>
+                  <span className="font-medium text-gray-900">
+                    {selectedApptDetail.animals.map((an: any) => an.name).join(', ')}
+                  </span>
+                </div>
+              )}
+              {selectedApptDetail.reason && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Motif</span>
+                  <span className="font-medium text-gray-900">{selectedApptDetail.reason}</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="text-gray-500">Statut</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium
+                  ${selectedApptDetail.status === 'confirmed' ? 'bg-green-100 text-green-700' :
+                    selectedApptDetail.status === 'pending'   ? 'bg-amber-100 text-amber-700' :
+                    selectedApptDetail.status === 'cancelled' || selectedApptDetail.status === 'no_show' ? 'bg-red-100 text-red-700' :
+                    'bg-gray-100 text-gray-500'}`}>
+                  {selectedApptDetail.status === 'confirmed' ? 'Confirmé' : selectedApptDetail.status === 'pending' ? 'En attente' :
+                    selectedApptDetail.status === 'completed' ? 'Terminé' : selectedApptDetail.status === 'no_show' ? 'Absent(e)' :
+                    selectedApptDetail.status === 'cancelled' ? 'Annulé' : selectedApptDetail.status}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-5 pt-4 border-t border-gray-100">
+              <p className="text-xs font-semibold text-gray-500 mb-2">📎 Documents joints</p>
+              {selectedApptDocuments.length === 0 ? (
+                <p className="text-xs text-gray-400">Aucun document joint à ce RDV.</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {selectedApptDocuments.map((d: any) => (
+                    <a key={d.id} href={d.file_url} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-xs text-sage-600 hover:underline bg-gray-50 rounded-lg px-3 py-2">
+                      📄 {d.file_name}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
