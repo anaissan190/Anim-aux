@@ -331,7 +331,13 @@ export function useAppointmentDocuments(appointmentId?: string) {
 // collègue du même cabinet (pour pouvoir couvrir un collègue absent/en
 // congé) — chaque animal est alors annoté du praticien référent (doctor_id
 // du RDV le plus récent), pour affichage d'un badge dans "Mes patients".
-export function useDoctorPatientAnimals(doctorId?: string, clinicId?: string) {
+// `clinicReady` doit passer à false tant que la recherche du cabinet
+// (useMyClinic) n'est pas terminée : sans ça, cette requête se déclenche
+// une première fois avec clinicId=undefined (patients perso uniquement),
+// puis une seconde fois dès que le cabinet est trouvé — ce qui fait
+// clignoter "Mes patients" (vide puis rempli) à chaque chargement/
+// changement de page.
+export function useDoctorPatientAnimals(doctorId?: string, clinicId?: string, clinicReady: boolean = true) {
   return useQuery({
     queryKey: ['doctor-patient-animals', doctorId, clinicId],
     queryFn: async () => {
@@ -391,7 +397,7 @@ export function useDoctorPatientAnimals(doctorId?: string, clinicId?: string) {
         referentDoctorId: referentByPatient.get(an.owner_id) ?? null,
       }))
     },
-    enabled: !!doctorId,
+    enabled: !!doctorId && clinicReady,
   })
 }
 

@@ -30,8 +30,8 @@ export default function DoctorDashboard() {
   const { data: availabilities = [] } = useAvailabilities(doctor?.id ?? '')
   const { data: reviews = [] } = useDoctorReviews(doctor?.id ?? '')
 
-  const { data: clinic }              = useMyClinic(doctor?.id)
-  const { data: patientAnimals = [] } = useDoctorPatientAnimals(doctor?.id, clinic?.id)
+  const { data: clinic, isLoading: clinicLoading } = useMyClinic(doctor?.id)
+  const { data: patientAnimals = [], isLoading: patientAnimalsLoading } = useDoctorPatientAnimals(doctor?.id, clinic?.id, !clinicLoading)
   const [patientSearch, setPatientSearch] = useState('')
   const filteredPatientAnimals = patientAnimals.filter((a: any) => {
     const q = patientSearch.trim().toLowerCase()
@@ -544,7 +544,11 @@ export default function DoctorDashboard() {
                 className="input text-sm mb-4 max-w-md"
               />
             )}
-            {patientAnimals.length === 0 ? (
+            {clinicLoading || patientAnimalsLoading ? (
+              <div className="bg-white rounded-2xl p-10 text-center border border-gray-100">
+                <p className="text-gray-400 text-sm">Chargement...</p>
+              </div>
+            ) : patientAnimals.length === 0 ? (
               <div className="bg-white rounded-2xl p-10 text-center border border-gray-100">
                 <p className="text-3xl mb-3">🐾</p>
                 <p className="text-gray-500 text-sm">Aucun animal suivi pour l'instant.</p>
