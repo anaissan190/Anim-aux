@@ -950,6 +950,23 @@ export function useHealthRecords(animalId: string) {
 
 // ── ANIMAL DOCUMENTS (onglet Documents du dossier animal) ────────────────────
 
+// `uploaded_by` référence auth.users (pas public.profiles), donc pas
+// d'embed PostgREST possible — on résout le nom via une seconde requête
+// groupée sur `profiles.user_id`, qui existe pour tout le monde (patient
+// comme praticien, créé automatiquement à l'inscription).
+async function attachUploaderNames<T extends { uploaded_by: string }>(docs: T[]): Promise<(T & { uploaderName: string })[]> {
+  const ids = [...new Set(docs.map(d => d.uploaded_by))]
+  if (ids.length === 0) return docs as (T & { uploaderName: string })[]
+  const { data: profilesData, error } = await supabase
+    .from('profiles')
+    .select('user_id, first_name, last_name')
+    .in('user_id', ids)
+  if (error) throw error
+  const names = new Map<string, string>()
+  ;(profilesData ?? []).forEach((p: any) => names.set(p.user_id, `${p.first_name} ${p.last_name}`.trim()))
+  return docs.map(d => ({ ...d, uploaderName: names.get(d.uploaded_by) || 'Utilisateur' }))
+}
+
 export function useAnimalDocuments(animalId?: string) {
   return useQuery({
     queryKey: ['animal_documents', animalId],
@@ -960,7 +977,7 @@ export function useAnimalDocuments(animalId?: string) {
         .eq('animal_id', animalId!)
         .order('created_at', { ascending: false })
       if (error) throw error
-      return data ?? []
+      return attachUploaderNames(data ?? [])
     },
     enabled: !!animalId,
   })
@@ -993,7 +1010,7 @@ export function useCreateAnimalDocument() {
     },
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ['animal_documents', vars.animal_id] })
-      qc.invalidateQueries({ queryKey: ['prescriptions'] })
+      qc.invalidateQueries({ queryKey: ['patient-doctor-documents'] })
     },
   })
 }
@@ -1034,9 +1051,10 @@ export function usePatientDoctorDocuments() {
       if (apptErr) throw apptErr
       const bookingDocs = (apptDocs ?? []).map((d: any) => ({ ...d, source: 'appointment' as const }))
 
-      return [...doctorAnimalDocs, ...bookingDocs].sort(
+      const merged = [...doctorAnimalDocs, ...bookingDocs].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       )
+      return attachUploaderNames(merged)
     },
     enabled: !!user,
   })

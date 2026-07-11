@@ -74,9 +74,11 @@ export default function PatientDocumentsPage() {
                       </span>
                     </div>
                     <p className="text-xs text-gray-500">
-                      {d.source === 'animal' && d.animals?.name && `${SPECIES_EMOJI[d.animals.species] ?? '🐾'} ${d.animals.name} · `}
-                      {d.source === 'appointment' && doctorProfile && `Dr ${doctorProfile.first_name} ${doctorProfile.last_name} · `}
-                      {format(new Date(d.created_at), 'd MMM yyyy', { locale: fr })}
+                      {d.source === 'animal' && d.animals?.name && `${SPECIES_EMOJI[d.animals.species] ?? '🐾'} ${d.animals.name}`}
+                      {d.source === 'appointment' && doctorProfile && `RDV avec Dr ${doctorProfile.first_name} ${doctorProfile.last_name}`}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      Déposé par {d.uploaderName} le {format(new Date(d.created_at), "d MMM yyyy 'à' HH:mm", { locale: fr })}
                     </p>
                   </div>
                 </a>

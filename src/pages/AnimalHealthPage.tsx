@@ -738,8 +738,7 @@ export default function AnimalHealthPage() {
                         </span>
                       </div>
                       <p className="text-xs text-gray-500">
-                        {format(new Date(d.created_at), 'd MMM yyyy', { locale: fr })}
-                        {d.uploaded_by === user?.id ? ' · Ajouté par vous' : isDoctor ? ' · Ajouté par le propriétaire' : ' · Ajouté par le praticien'}
+                        Déposé par {d.uploaded_by === user?.id ? 'vous' : d.uploaderName} le {format(new Date(d.created_at), "d MMM yyyy 'à' HH:mm", { locale: fr })}
                       </p>
                     </div>
                     {d.uploaded_by === user?.id && (
