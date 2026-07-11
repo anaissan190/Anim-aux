@@ -350,7 +350,7 @@ export function useDoctorPatientAnimals(doctorId?: string, clinicId?: string) {
         .from('appointments')
         .select('patient_id, doctor_id')
         .in('doctor_id', doctorIds)
-        .in('status', ['confirmed', 'completed'])
+        .neq('status', 'cancelled')
         .order('start_at', { ascending: true })
       if (apptErr) throw apptErr
 
