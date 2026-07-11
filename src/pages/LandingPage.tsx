@@ -41,7 +41,7 @@ export default function LandingPage() {
         </section>
 
         {/* Spécialités */}
-        <section className="py-16 px-4 bg-sage-100">
+        <section className="py-16 px-4 bg-sage-50">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-2xl font-bold text-gray-900 text-center mb-10">
               Consultez par spécialité
