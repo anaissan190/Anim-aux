@@ -4,6 +4,7 @@ import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import Navbar from '@/components/ui/Navbar'
+import AnimalBackground from '@/components/ui/AnimalBackground'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
@@ -411,7 +412,9 @@ export default function DoctorDashboard() {
     : null
 
   return (
-    <div className="min-h-screen bg-[#FFFAF0]">
+    <div className="relative min-h-screen bg-sage-50">
+      <AnimalBackground />
+      <div className="relative z-10">
       {/* La barre d'onglets (Accueil, Mes patients, Tarifs, Disponibilités,
           Avis) est affichée dans la Navbar elle-même, à la suite du logo —
           voir src/components/ui/Navbar.tsx. */}
@@ -1767,6 +1770,7 @@ export default function DoctorDashboard() {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }
