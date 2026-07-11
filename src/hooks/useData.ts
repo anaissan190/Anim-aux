@@ -23,6 +23,69 @@ export function useDoctors(filters: SearchFilters = {}) {
   })
 }
 
+// Recherche de cabinets (équipe de plusieurs praticiens), groupés comme
+// leur propre "profil" dans les résultats de recherche — voir RPC
+// search_clinics (migration 034), nécessaire car la RLS sur `clinics` ne
+// laisse pas un visiteur lire les cabinets dont il n'est pas membre.
+export function useClinicsSearch(filters: SearchFilters = {}) {
+  return useQuery({
+    queryKey: ['clinics-search', filters.city, filters.specialty],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('search_clinics', {
+        p_city: filters.city || null,
+        p_specialty: filters.specialty || null,
+      })
+      if (error) throw error
+      return data ?? []
+    },
+  })
+}
+
+// Fiche publique d'un cabinet, pour la page /cabinet/:id
+export function useClinicInfo(clinicId?: string) {
+  return useQuery({
+    queryKey: ['clinic-info', clinicId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_clinic_info', { p_clinic_id: clinicId })
+      if (error) throw error
+      return data?.[0] ?? null
+    },
+    enabled: !!clinicId,
+  })
+}
+
+// Équipe complète d'un cabinet (tous les praticiens membres)
+export function useClinicTeam(clinicId?: string) {
+  return useQuery({
+    queryKey: ['clinic-team', clinicId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_clinic_team', { p_clinic_id: clinicId })
+      if (error) throw error
+      return data ?? []
+    },
+    enabled: !!clinicId,
+  })
+}
+
+// Disponibilités hebdomadaires (récurrentes) de plusieurs praticiens à la
+// fois — `availabilities` est en lecture publique, pas besoin de RPC.
+export function useDoctorsAvailabilities(doctorIds: string[]) {
+  return useQuery({
+    queryKey: ['availabilities-batch', ...doctorIds],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('availabilities')
+        .select('*')
+        .in('doctor_id', doctorIds)
+        .eq('is_active', true)
+        .order('day_of_week')
+      if (error) throw error
+      return data ?? []
+    },
+    enabled: doctorIds.length > 0,
+  })
+}
+
 export function useDoctor(id: string) {
   return useQuery({
     queryKey: ['doctor', id],

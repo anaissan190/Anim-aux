@@ -6,6 +6,7 @@ import { useAuthStore } from '@/lib/authStore'
 import LandingPage from '@/pages/LandingPage'
 import SearchPage from '@/pages/SearchPage'
 import DoctorPage from '@/pages/DoctorPage'
+import ClinicPage from '@/pages/ClinicPage'
 import BookPage from '@/pages/BookPage'
 import LoginPage from '@/pages/LoginPage'
 import RegisterPage from '@/pages/RegisterPage'
@@ -63,6 +64,7 @@ export default function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/doctor/:id" element={<DoctorPage />} />
+        <Route path="/cabinet/:id" element={<ClinicPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
