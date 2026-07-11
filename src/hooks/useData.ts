@@ -237,17 +237,35 @@ export function useDoctorAppointments(doctorId?: string) {
   return useQuery({
     queryKey: ['appointments', 'doctor', doctorId],
     queryFn: async () => {
+      // `users!patient_id(...)` est bloqué par le RLS : un praticien n'a pas
+      // le droit de lire la ligne `users` d'un autre utilisateur, donc cet
+      // embed renvoyait null silencieusement (nom du patient jamais affiché
+      // sur "Liste RDV"). Même bug que useDoctorPatientAnimals/
+      // useClinicAppointments : deux requêtes séparées (RDV, puis profils
+      // des patients via `profiles`, autorisé) fusionnées côté client.
       const { data, error } = await supabase
         .from('appointments')
-        .select('*, users!patient_id(id, email, profiles(first_name, last_name, avatar_url, phone)), appointment_animals(animals(id, name, species, avatar_url))')
+        .select('*, appointment_animals(animals(id, name, species, avatar_url))')
         .eq('doctor_id', doctorId!)
         .order('start_at', { ascending: true })
       if (error) throw error
+
+      const patientIds = [...new Set((data ?? []).map((a: any) => a.patient_id))]
+      const profilesByPatient = new Map<string, any>()
+      if (patientIds.length > 0) {
+        const { data: profilesData, error: profErr } = await supabase
+          .from('profiles')
+          .select('user_id, first_name, last_name, avatar_url, phone')
+          .in('user_id', patientIds)
+        if (profErr) throw profErr
+        ;(profilesData ?? []).forEach((p: any) => profilesByPatient.set(p.user_id, p))
+      }
+
       // Aligne la forme des données sur le type Appointment : profiles au
       // niveau racine, et animaux à plat (un RDV peut concerner plusieurs animaux).
       return (data ?? []).map((a: any) => ({
         ...a,
-        profiles: a.users?.profiles,
+        profiles: profilesByPatient.get(a.patient_id) ?? null,
         animals: (a.appointment_animals ?? []).map((link: any) => link.animals).filter(Boolean),
       }))
     },
@@ -297,6 +315,18 @@ export function useCreateAppointment() {
           }))
         )
         if (docError) throw docError
+      }
+
+      // Email de confirmation + notification in-app (Edge Function
+      // send-appointment-confirmation, service Resend). En "best effort" :
+      // le RDV reste confirmé même si l'envoi échoue (clé Resend absente,
+      // domaine pas encore vérifié...), on ne bloque jamais la réservation.
+      try {
+        await supabase.functions.invoke('send-appointment-confirmation', {
+          body: { appointmentId: appt.id },
+        })
+      } catch (emailError) {
+        console.error('Confirmation email non envoyée :', emailError)
       }
 
       return appt
