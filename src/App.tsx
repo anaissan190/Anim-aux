@@ -26,6 +26,14 @@ export default function App() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        // Ne relance l'appel RPC (get_my_user_data, jusqu'à 3 tentatives x 8s)
+        // qu'à la connexion/déconnexion réelle — pas à chaque TOKEN_REFRESHED,
+        // que Supabase émet régulièrement (y compris au retour sur l'onglet).
+        // Sans ce filtre, ça déclenche une requête réseau en fond à chaque
+        // focus/refresh de token, qui vient ralentir tout le reste (chaque
+        // page semble mettre du temps à charger / données qui tardent).
+        if (event !== 'SIGNED_IN' && event !== 'SIGNED_OUT' && event !== 'INITIAL_SESSION') return
+
         if (session?.user) {
           const fallbackUser = { id: session.user.id, email: session.user.email!, role: 'patient' as const, created_at: '' }
           const data = await getMyUserDataWithRetry()
