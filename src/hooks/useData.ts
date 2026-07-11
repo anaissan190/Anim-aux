@@ -1043,23 +1043,36 @@ export function useClinicAppointments(clinicId?: string) {
         .eq('clinic_id', clinicId!)
       if (!members || members.length === 0) return []
       const doctorIds = members.map(m => m.doctor_id)
-      // Embed direct sur `profiles!patient_id` (pas `users!patient_id`) : un
-      // embed via `users` est bloqué par le RLS pour un praticien qui n'est
-      // ni l'utilisateur ni admin, il revient toujours null silencieusement
-      // (même bug déjà rencontré pour "Mes patients" et la messagerie).
+      // `profiles!patient_id(...)` n'est pas un embed valide : patient_id
+      // référence `users`, pas `profiles` directement (PostgREST renvoie
+      // "Could not find a relationship"). Et un embed via `users!patient_id`
+      // est bloqué par le RLS pour un praticien qui n'est ni l'utilisateur
+      // ni admin (revient null silencieusement). Donc : deux requêtes
+      // séparées puis fusion côté client, comme pour "Mes patients".
       const { data, error } = await supabase
         .from('appointments')
         .select(`*,
           doctors!inner(specialty, user_id, profiles!doctors_user_id_profiles_fkey(first_name, last_name)),
-          profiles!patient_id(first_name, last_name),
           appointment_animals(animals(id, name, species))
         `)
         .in('doctor_id', doctorIds)
         .order('start_at')
       if (error) throw error
+
+      const patientIds = [...new Set((data ?? []).map((a: any) => a.patient_id))]
+      const ownerNames = new Map<string, { first_name: string; last_name: string }>()
+      if (patientIds.length > 0) {
+        const { data: profilesData, error: profErr } = await supabase
+          .from('profiles')
+          .select('user_id, first_name, last_name')
+          .in('user_id', patientIds)
+        if (profErr) throw profErr
+        ;(profilesData ?? []).forEach((p: any) => ownerNames.set(p.user_id, p))
+      }
+
       return (data ?? []).map((a: any) => ({
         ...a,
-        patientProfile: a.profiles,
+        patientProfile: ownerNames.get(a.patient_id) ?? null,
         animals: (a.appointment_animals ?? []).map((link: any) => link.animals).filter(Boolean),
       }))
     },
