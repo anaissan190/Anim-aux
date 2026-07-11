@@ -2,6 +2,7 @@
 import { Link } from 'react-router-dom'
 import Navbar from '@/components/ui/Navbar'
 import SearchBar from '@/components/search/SearchBar'
+import AnimalBackground from '@/components/ui/AnimalBackground'
 
 const SPECIALTIES = [
   { icon: '🏥', name: 'Vétérinaire généraliste' },
@@ -18,10 +19,11 @@ export default function LandingPage() {
       <Navbar />
 
       {/* Hero */}
-      <section className="bg-gradient-to-br from-sage-50 via-white to-sage-100 py-20 px-4">
-        <div className="max-w-4xl mx-auto text-center">
+      <section className="relative overflow-hidden bg-sage-50 py-20 px-4">
+        <AnimalBackground />
+        <div className="relative z-10 max-w-4xl mx-auto text-center">
           <span className="inline-block bg-sage-100 text-sage-700 text-sm font-medium px-4 py-1.5 rounded-full mb-6">
-            🌿 Votre santé, simplifiée
+            🌿 Votre animal, notre priorité
           </span>
           <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 leading-tight mb-4">
             Trouvez un praticien,<br />
