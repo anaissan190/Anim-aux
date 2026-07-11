@@ -10,12 +10,20 @@ import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
 
 function hiddenKey(userId: string) { return `animeaux-hidden-conversations-${userId}` }
-function loadHidden(userId?: string | null): string[] {
-  if (!userId) return []
-  try { return JSON.parse(localStorage.getItem(hiddenKey(userId)) ?? '[]') } catch { return [] }
+// user_id -> date ISO à laquelle la conversation a été masquée. Comparé à
+// last_message_at pour la réafficher automatiquement dès qu'un nouveau
+// message arrive après ce masquage — sans dépendre du temps réel (canal
+// realtime), qui peut ne jamais se déclencher selon la config du projet.
+type HiddenMap = Record<string, string>
+function loadHidden(userId?: string | null): HiddenMap {
+  if (!userId) return {}
+  try {
+    const raw = JSON.parse(localStorage.getItem(hiddenKey(userId)) ?? '{}')
+    return Array.isArray(raw) ? {} : raw // ancien format (tableau) : on l'ignore
+  } catch { return {} }
 }
-function saveHidden(userId: string, ids: string[]) {
-  localStorage.setItem(hiddenKey(userId), JSON.stringify(ids))
+function saveHidden(userId: string, map: HiddenMap) {
+  localStorage.setItem(hiddenKey(userId), JSON.stringify(map))
 }
 
 export default function MessagesPage() {
@@ -46,7 +54,7 @@ export default function MessagesPage() {
   // Conversations supprimées : une fois supprimée, un contact issu des RDV
   // (relation permanente) ne doit pas réapparaître tout seul dans le feed —
   // on le masque tant qu'aucun nouveau message n'est rééchangé avec lui.
-  const [hiddenIds, setHiddenIds] = useState<string[]>(() => loadHidden(user?.id))
+  const [hiddenIds, setHiddenIds] = useState<HiddenMap>(() => loadHidden(user?.id))
 
   // La liste vient en priorité de get_conversation_partners() (construite
   // directement à partir des messages échangés — fiable, avec les noms
@@ -63,7 +71,14 @@ export default function MessagesPage() {
     }))
     contacts.forEach(c => { if (!byId.has(c.user_id)) byId.set(c.user_id, c) })
     return [...byId.values()]
-      .filter(c => !hiddenIds.includes(c.user_id))
+      .filter(c => {
+        const hiddenAt = hiddenIds[c.user_id]
+        if (!hiddenAt) return true
+        // Réapparaît tout seul dès qu'un message plus récent que le masquage
+        // arrive, même si le canal realtime n'a pas notifié à temps.
+        if (!c.lastAt) return false
+        return new Date(c.lastAt).getTime() <= new Date(hiddenAt).getTime()
+      })
       .sort((a, b) => {
         if (!a.lastAt && !b.lastAt) return 0
         if (!a.lastAt) return 1
@@ -90,18 +105,20 @@ export default function MessagesPage() {
     if (selectedUserId === otherUserId) setSelectedUserId(null)
     setConfirmDeleteId(null)
     if (user) {
-      const next = [...new Set([...hiddenIds, otherUserId])]
+      const next = { ...hiddenIds, [otherUserId]: new Date().toISOString() }
       setHiddenIds(next)
       saveHidden(user.id, next)
     }
   }
 
-  // Renvoyer un message à un contact masqué le fait réapparaître naturellement
+  // Renvoyer un message à un contact masqué (ou en recevoir un via le
+  // realtime) le fait réapparaître immédiatement — sinon le filtre par date
+  // s'en charge de toute façon dès le prochain rafraîchissement.
   function unhideContact(otherUserId: string) {
-    if (!user || !hiddenIds.includes(otherUserId)) return
-    const next = hiddenIds.filter(id => id !== otherUserId)
-    setHiddenIds(next)
-    saveHidden(user.id, next)
+    if (!user || !(otherUserId in hiddenIds)) return
+    const { [otherUserId]: _removed, ...rest } = hiddenIds
+    setHiddenIds(rest)
+    saveHidden(user.id, rest)
   }
 
   // Marque la conversation comme lue dès qu'on l'ouvre

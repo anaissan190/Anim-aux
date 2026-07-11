@@ -170,13 +170,20 @@ export default function DoctorDashboard() {
   // Conversations supprimées : une fois supprimée, un contact issu des RDV
   // (relation permanente) ne doit pas réapparaître tout seul dans le feed —
   // on le masque tant qu'aucun nouveau message n'est rééchangé avec lui.
-  const [hiddenConvIds, setHiddenConvIds] = useState<string[]>(() => {
-    if (!user) return []
-    try { return JSON.parse(localStorage.getItem(`animeaux-hidden-conversations-${user.id}`) ?? '[]') } catch { return [] }
+  // On stocke la date du masquage (et non un simple booléen) pour pouvoir
+  // le comparer à last_message_at et le réafficher automatiquement dès
+  // qu'un message plus récent arrive, sans dépendre du canal realtime
+  // (qui peut ne jamais se déclencher selon la config du projet Supabase).
+  const [hiddenConvIds, setHiddenConvIds] = useState<Record<string, string>>(() => {
+    if (!user) return {}
+    try {
+      const raw = JSON.parse(localStorage.getItem(`animeaux-hidden-conversations-${user.id}`) ?? '{}')
+      return Array.isArray(raw) ? {} : raw // ancien format (tableau) : on l'ignore
+    } catch { return {} }
   })
-  function persistHiddenConvIds(ids: string[]) {
-    setHiddenConvIds(ids)
-    if (user) localStorage.setItem(`animeaux-hidden-conversations-${user.id}`, JSON.stringify(ids))
+  function persistHiddenConvIds(map: Record<string, string>) {
+    setHiddenConvIds(map)
+    if (user) localStorage.setItem(`animeaux-hidden-conversations-${user.id}`, JSON.stringify(map))
   }
 
   // La liste vient en priorité de get_conversation_partners() (construite
@@ -194,7 +201,12 @@ export default function DoctorDashboard() {
     }))
     contacts.forEach(c => { if (!byId.has(c.user_id)) byId.set(c.user_id, c) })
     return [...byId.values()]
-      .filter(c => !hiddenConvIds.includes(c.user_id))
+      .filter(c => {
+        const hiddenAt = hiddenConvIds[c.user_id]
+        if (!hiddenAt) return true
+        if (!c.lastAt) return false
+        return new Date(c.lastAt).getTime() <= new Date(hiddenAt).getTime()
+      })
       .sort((a, b) => {
         if (!a.lastAt && !b.lastAt) return 0
         if (!a.lastAt) return 1
@@ -217,13 +229,16 @@ export default function DoctorDashboard() {
   function handleDeleteConversation(otherUserId: string) {
     if (selectedUserId === otherUserId) setSelectedUserId(null)
     setConfirmDeleteConvId(null)
-    persistHiddenConvIds([...new Set([...hiddenConvIds, otherUserId])])
+    persistHiddenConvIds({ ...hiddenConvIds, [otherUserId]: new Date().toISOString() })
   }
 
-  // Renvoyer un message à un contact masqué le fait réapparaître naturellement
+  // Renvoyer un message à un contact masqué (ou en recevoir un via le
+  // realtime) le fait réapparaître immédiatement — sinon le filtre par date
+  // s'en charge de toute façon dès le prochain rafraîchissement.
   function unhideConversation(otherUserId: string) {
-    if (!hiddenConvIds.includes(otherUserId)) return
-    persistHiddenConvIds(hiddenConvIds.filter(id => id !== otherUserId))
+    if (!(otherUserId in hiddenConvIds)) return
+    const { [otherUserId]: _removed, ...rest } = hiddenConvIds
+    persistHiddenConvIds(rest)
   }
 
   useEffect(() => {
