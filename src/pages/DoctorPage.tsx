@@ -84,11 +84,17 @@ export default function DoctorPage() {
                 <h1 className="text-2xl font-bold text-gray-900">{name}</h1>
                 <p className="text-sage-600 font-medium">{doctor.specialty}</p>
                 {clinic ? (
-                  <div className="mt-1">
-                    <p className="text-sm text-gray-700 font-medium">🏥 Membre du cabinet {clinic.clinic_name}</p>
-                    {(clinic.address || clinic.city) && (
-                      <p className="text-sm text-gray-500">📍 {clinic.address ?? clinic.city}</p>
+                  <div className="mt-1 flex items-center gap-2">
+                    {clinic.logo_url && (
+                      <img src={clinic.logo_url} alt={clinic.clinic_name}
+                        className="w-6 h-6 rounded-lg object-cover flex-shrink-0" />
                     )}
+                    <div>
+                      <p className="text-sm text-gray-700 font-medium">🏥 Membre du cabinet {clinic.clinic_name}</p>
+                      {(clinic.address || clinic.city) && (
+                        <p className="text-sm text-gray-500">📍 {clinic.address ?? clinic.city}</p>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   doctor.city && <p className="text-sm text-gray-500 mt-1">📍 {doctor.address ?? doctor.city}</p>

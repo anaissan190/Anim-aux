@@ -58,6 +58,10 @@ export default function DoctorDashboard() {
   })
   const [profileError, setProfileError] = useState('')
   const [profileSaved, setProfileSaved] = useState(false)
+  const [photoUploading, setPhotoUploading] = useState(false)
+  const [photoError, setPhotoError] = useState('')
+  const [clinicLogoUploading, setClinicLogoUploading] = useState(false)
+  const [clinicLogoError, setClinicLogoError] = useState('')
   const { data: clinicMembers = [] }  = useClinicMembers(clinic?.id)
   const { data: clinicAppts = [], error: clinicApptsError } = useClinicAppointments(clinic?.id)
   const { data: clinicServices = [] } = useClinicServices(clinic?.id)
@@ -137,6 +141,44 @@ export default function DoctorDashboard() {
       setTimeout(() => setProfileSaved(false), 3000)
     } catch (e: any) {
       setProfileError(e.message ?? "Erreur lors de l'enregistrement.")
+    }
+  }
+
+  async function handlePhotoUpload(file: File) {
+    setPhotoUploading(true)
+    setPhotoError('')
+    try {
+      const ext = file.name.split('.').pop()
+      const path = `profiles/${user!.id}-${Date.now()}.${ext}`
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
+      if (uploadError) throw uploadError
+      const { data } = supabase.storage.from('avatars').getPublicUrl(path)
+      await updateProfile.mutateAsync({ avatar_url: data.publicUrl })
+    } catch (e: any) {
+      setPhotoError(e.message ?? "Erreur lors de l'envoi de la photo.")
+    } finally {
+      setPhotoUploading(false)
+    }
+  }
+
+  async function handleClinicLogoUpload(file: File) {
+    if (!clinic) return
+    setClinicLogoUploading(true)
+    setClinicLogoError('')
+    try {
+      const ext = file.name.split('.').pop()
+      const path = `clinics/${clinic.id}-${Date.now()}.${ext}`
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
+      if (uploadError) throw uploadError
+      const { data } = supabase.storage.from('avatars').getPublicUrl(path)
+      await updateClinic.mutateAsync({
+        id: clinic.id, name: clinic.name, address: clinic.address ?? undefined,
+        city: clinic.city ?? undefined, phone: clinic.phone ?? undefined, logo_url: data.publicUrl,
+      })
+    } catch (e: any) {
+      setClinicLogoError(e.message ?? "Erreur lors de l'envoi du logo.")
+    } finally {
+      setClinicLogoUploading(false)
     }
   }
 
@@ -1267,6 +1309,25 @@ export default function DoctorDashboard() {
                   <h2 className="text-lg font-bold text-gray-900">Profil du cabinet</h2>
                   <p className="text-sm text-gray-500 mt-0.5">Visible par les patients sur la fiche du cabinet</p>
                 </div>
+                <div className="flex items-center gap-4 mb-5">
+                  <div className="relative w-16 h-16 flex-shrink-0 group">
+                    <div className="w-16 h-16 rounded-2xl bg-sage-100 flex items-center justify-center text-2xl overflow-hidden">
+                      {clinic.logo_url
+                        ? <img src={clinic.logo_url} className="w-full h-full object-cover" alt={clinic.name} />
+                        : '🏥'}
+                    </div>
+                    <label className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
+                      <span className="text-white text-xs font-medium">{clinicLogoUploading ? '...' : '📷'}</span>
+                      <input type="file" accept="image/*" className="hidden"
+                        onChange={e => { const f = e.target.files?.[0]; if (f) handleClinicLogoUpload(f); e.target.value = '' }} />
+                    </label>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Logo du cabinet</p>
+                    <p className="text-xs text-gray-400">Survolez la photo pour la changer</p>
+                    {clinicLogoError && <p className="text-red-500 text-xs mt-1">{clinicLogoError}</p>}
+                  </div>
+                </div>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Nom du cabinet</label>
@@ -1310,6 +1371,25 @@ export default function DoctorDashboard() {
                     ? 'Visible dans l\'agenda partagé du cabinet'
                     : 'Ces informations sont visibles par les patients'}
                 </p>
+              </div>
+              <div className="flex items-center gap-4 mb-5">
+                <div className="relative w-16 h-16 flex-shrink-0 group">
+                  <div className="w-16 h-16 rounded-full bg-sage-100 flex items-center justify-center text-2xl overflow-hidden">
+                    {profile?.avatar_url
+                      ? <img src={profile.avatar_url} className="w-full h-full object-cover" alt="Photo de profil" />
+                      : '👤'}
+                  </div>
+                  <label className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
+                    <span className="text-white text-xs font-medium">{photoUploading ? '...' : '📷'}</span>
+                    <input type="file" accept="image/*" className="hidden"
+                      onChange={e => { const f = e.target.files?.[0]; if (f) handlePhotoUpload(f); e.target.value = '' }} />
+                  </label>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Ma photo</p>
+                  <p className="text-xs text-gray-400">Survolez la photo pour la changer</p>
+                  {photoError && <p className="text-red-500 text-xs mt-1">{photoError}</p>}
+                </div>
               </div>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
