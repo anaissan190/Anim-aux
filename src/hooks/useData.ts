@@ -304,6 +304,7 @@ export function useCreateAppointment() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['appointments'] })
       qc.invalidateQueries({ queryKey: ['slots'] })
+      qc.invalidateQueries({ queryKey: ['clinic_appointments'] })
     },
   })
 }
@@ -1063,6 +1064,10 @@ export function useClinicAppointments(clinicId?: string) {
       }))
     },
     enabled: !!clinicId,
+    // Un RDV pris par un patient avec un collègue doit apparaître dans
+    // l'agenda partagé sans que le praticien qui regarde le calendrier
+    // ait besoin de recharger la page.
+    refetchInterval: 10000,
   })
 }
 

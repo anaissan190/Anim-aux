@@ -59,7 +59,7 @@ export default function DoctorDashboard() {
   const [profileError, setProfileError] = useState('')
   const [profileSaved, setProfileSaved] = useState(false)
   const { data: clinicMembers = [] }  = useClinicMembers(clinic?.id)
-  const { data: clinicAppts = [] }    = useClinicAppointments(clinic?.id)
+  const { data: clinicAppts = [], error: clinicApptsError } = useClinicAppointments(clinic?.id)
   const { data: clinicServices = [] } = useClinicServices(clinic?.id)
   const { data: clinicAvailabilities = [] } = useClinicAvailabilities(clinic?.id)
   const { data: clinicBlockedAll = [] }     = useClinicBlockedSlotsAll(clinic?.id)
@@ -1108,6 +1108,11 @@ export default function DoctorDashboard() {
                           )}
                         </div>
                       </div>
+                      {clinicApptsError && (
+                        <p className="text-red-500 text-xs mb-3">
+                          Erreur de chargement des RDV du cabinet : {(clinicApptsError as any).message}
+                        </p>
+                      )}
                       <table className="w-full text-sm border-collapse min-w-[640px]">
                         <thead>
                           <tr>
