@@ -404,14 +404,14 @@ export default function DoctorDashboard() {
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
               {[
-                { label: "Aujourd'hui", value: todayAppts.length, icon: '📅', color: 'text-sage-600' },
-                { label: 'En attente',  value: pending,           icon: '⏳', color: pending > 0 ? 'text-amber-600' : 'text-gray-700' },
-                { label: 'Cette semaine', value: weekAppts.length, icon: '📆', color: 'text-moss-600' },
-                { label: 'Total',       value: appointments.length, icon: '📊', color: 'text-gray-700' },
+                { label: "Aujourd'hui", value: todayAppts.length, icon: '📅' },
+                { label: 'En attente',  value: pending,           icon: '⏳' },
+                { label: 'Cette semaine', value: weekAppts.length, icon: '📆' },
+                { label: 'Total',       value: appointments.length, icon: '📊' },
               ].map(m => (
                 <div key={m.label} className="bg-white rounded-2xl p-4 text-center shadow-sm border border-gray-100">
                   <p className="text-xl mb-1">{m.icon}</p>
-                  <p className={`text-3xl font-bold ${m.color}`}>{m.value}</p>
+                  <p className={`text-3xl font-bold ${m.value === 0 ? 'text-sage-600' : 'text-moss-500'}`}>{m.value}</p>
                   <p className="text-xs text-gray-500 mt-1">{m.label}</p>
                 </div>
               ))}
