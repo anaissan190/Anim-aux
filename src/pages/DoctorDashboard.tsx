@@ -67,7 +67,7 @@ export default function DoctorDashboard() {
   const calendarWeekDays = Array.from({ length: 7 }, (_, i) =>
     addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), calendarWeekOffset * 7 + i)
   )
-  const [selectedCalendarDay, setSelectedCalendarDay] = useState<Date | null>(null)
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState<Date>(new Date())
   const createClinic      = useCreateClinic()
   const joinClinic        = useJoinClinic()
   const addClinicService  = useAddClinicService()
@@ -1089,11 +1089,10 @@ export default function DoctorDashboard() {
                       </div>
                     </div>
 
-                    {/* Calendrier hebdomadaire : qui a des dispos, qui est
-                        présent, qui est en congé cette semaine-là. */}
-                    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 overflow-x-auto">
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-semibold text-gray-900">Calendrier de la semaine</h3>
+                    {/* Sélecteur de jour */}
+                    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-semibold text-gray-900">Calendrier du cabinet</h3>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <button onClick={() => setCalendarWeekOffset(w => w - 1)}
                             className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">‹</button>
@@ -1103,7 +1102,7 @@ export default function DoctorDashboard() {
                           <button onClick={() => setCalendarWeekOffset(w => w + 1)}
                             className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">›</button>
                           {calendarWeekOffset !== 0 && (
-                            <button onClick={() => setCalendarWeekOffset(0)}
+                            <button onClick={() => { setCalendarWeekOffset(0); setSelectedCalendarDay(new Date()) }}
                               className="text-xs text-sage-600 hover:underline ml-1">Aujourd'hui</button>
                           )}
                         </div>
@@ -1113,139 +1112,127 @@ export default function DoctorDashboard() {
                           Erreur de chargement des RDV du cabinet : {(clinicApptsError as any).message}
                         </p>
                       )}
-                      <table className="w-full text-sm border-collapse min-w-[640px]">
-                        <thead>
-                          <tr>
-                            <th className="text-left text-xs text-gray-400 font-medium pb-2 pr-3 w-32">Praticien</th>
-                            {calendarWeekDays.map(d => (
-                              <th key={d.toISOString()} className="text-center pb-2 px-1">
-                                <button onClick={() => setSelectedCalendarDay(prev => isSameDay(d, prev ?? new Date(0)) ? null : d)}
-                                  className={`w-full rounded-lg py-1 transition-colors text-xs font-medium
-                                    ${selectedCalendarDay && isSameDay(d, selectedCalendarDay)
-                                      ? 'bg-sage-500 text-white'
-                                      : isSameDay(d, new Date()) ? 'text-sage-600 hover:bg-sage-50' : 'text-gray-500 hover:bg-gray-50'}`}>
-                                  <div>{format(d, 'EEE', { locale: fr })}</div>
-                                  <div className={`font-normal ${selectedCalendarDay && isSameDay(d, selectedCalendarDay) ? 'text-sage-100' : 'text-gray-400'}`}>
-                                    {format(d, 'd MMM', { locale: fr })}
-                                  </div>
-                                </button>
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {clinicMembers.map((m: any) => {
-                            const memberName = `${m.doctors?.profiles?.first_name ?? ''} ${m.doctors?.profiles?.last_name ?? ''}`.trim()
-                            return (
-                              <tr key={m.id} className="border-t border-gray-50">
-                                <td className="py-2 pr-3 text-xs font-medium text-gray-700 align-top">{memberName}</td>
-                                {calendarWeekDays.map(d => {
-                                  const dayStart = new Date(d); dayStart.setHours(0, 0, 0, 0)
-                                  const dayEnd = new Date(d); dayEnd.setHours(23, 59, 59, 999)
-                                  const onLeave = clinicBlockedAll.some((b: any) =>
-                                    b.doctor_id === m.doctor_id &&
-                                    new Date(b.start_at) <= dayEnd && new Date(b.end_at) >= dayStart
-                                  )
-                                  const daySlots = clinicAvailabilities.filter((av: any) =>
-                                    av.doctor_id === m.doctor_id && av.day_of_week === d.getDay()
-                                  )
-                                  const apptCount = clinicAppts.filter((a: any) =>
-                                    a.doctor_id === m.doctor_id &&
-                                    isSameDay(new Date(a.start_at), d) &&
-                                    a.status !== 'cancelled'
-                                  ).length
-                                  return (
-                                    <td key={d.toISOString()} className="py-2 px-1 text-center align-top">
-                                      {onLeave && (
-                                        <span className="inline-block text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full whitespace-nowrap mb-0.5">
-                                          🌴 Congé
-                                        </span>
-                                      )}
-                                      {/* Le nombre de RDV s'affiche toujours (même en congé, ou sans
-                                          horaires récurrents renseignés ce jour-là) : un RDV réel ne
-                                          doit jamais rester invisible faute de disponibilité déclarée. */}
-                                      <div className="space-y-0.5">
-                                        {!onLeave && daySlots.map((s: any) => (
-                                          <div key={s.id} className="text-xs text-sage-700 bg-sage-50 rounded-full px-2 py-0.5 whitespace-nowrap">
-                                            {s.start_time.slice(0, 5)}–{s.end_time.slice(0, 5)}
-                                          </div>
-                                        ))}
-                                        {!onLeave && daySlots.length === 0 && apptCount === 0 && (
-                                          <span className="text-xs text-gray-300">—</span>
-                                        )}
-                                        {apptCount > 0 && (
-                                          <button onClick={() => setSelectedCalendarDay(d)}
-                                            className="text-xs text-sage-700 font-semibold hover:underline">
-                                            {apptCount} RDV
-                                          </button>
-                                        )}
-                                      </div>
-                                    </td>
-                                  )
-                                })}
-                              </tr>
-                            )
-                          })}
-                        </tbody>
-                      </table>
+                      <div className="grid grid-cols-7 gap-1.5">
+                        {calendarWeekDays.map(d => {
+                          const dayStart = new Date(d); dayStart.setHours(0, 0, 0, 0)
+                          const dayEnd = new Date(d); dayEnd.setHours(23, 59, 59, 999)
+                          const anyoneOnLeave = clinicBlockedAll.some((b: any) =>
+                            new Date(b.start_at) <= dayEnd && new Date(b.end_at) >= dayStart
+                          )
+                          const isSelected = isSameDay(d, selectedCalendarDay)
+                          return (
+                            <button key={d.toISOString()} onClick={() => setSelectedCalendarDay(d)}
+                              className={`rounded-xl py-2 text-xs font-medium transition-colors relative
+                                ${isSelected ? 'bg-sage-500 text-white' : isSameDay(d, new Date()) ? 'bg-sage-50 text-sage-600 hover:bg-sage-100' : 'text-gray-500 hover:bg-gray-50'}`}>
+                              <div>{format(d, 'EEE', { locale: fr })}</div>
+                              <div className={`font-normal ${isSelected ? 'text-sage-100' : 'text-gray-400'}`}>{format(d, 'd')}</div>
+                              {anyoneOnLeave && <span className="absolute top-1 right-1.5 text-[10px]">🌴</span>}
+                            </button>
+                          )
+                        })}
+                      </div>
                     </div>
 
-                    {/* Détail du jour sélectionné dans le calendrier —
-                        cliquer sur un jour ci-dessus affiche ses RDV ici :
-                        praticien, propriétaire/animal, plus rapide à
-                        parcourir qu'une longue liste de "prochains RDV". */}
-                    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                    {/* Calendrier horaire du jour sélectionné : tous les
+                        créneaux, un praticien par colonne, RDV positionnés
+                        à leur heure. */}
+                    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 overflow-x-auto">
                       <h3 className="font-semibold text-gray-900 mb-4">
-                        {selectedCalendarDay
-                          ? `Rendez-vous du ${format(selectedCalendarDay, 'EEEE d MMMM', { locale: fr })}`
-                          : 'Rendez-vous du jour'}
+                        {format(selectedCalendarDay, 'EEEE d MMMM', { locale: fr })}
                       </h3>
                       {(() => {
-                        const day = selectedCalendarDay ?? new Date()
-                        const dayAppts = clinicAppts
-                          .filter((a: any) => isSameDay(new Date(a.start_at), day))
-                          .sort((a: any, b: any) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime())
-                        if (dayAppts.length === 0) {
-                          return (
-                            <div className="text-center py-6">
-                              <p className="text-gray-400 text-sm">
-                                {selectedCalendarDay ? 'Aucun rendez-vous ce jour-là.' : "Aucun rendez-vous aujourd'hui. Cliquez sur un jour du calendrier ci-dessus pour voir son détail."}
-                              </p>
-                            </div>
-                          )
+                        const dayOfWeek = selectedCalendarDay.getDay()
+                        const dayStart = new Date(selectedCalendarDay); dayStart.setHours(0, 0, 0, 0)
+                        const dayEnd = new Date(selectedCalendarDay); dayEnd.setHours(23, 59, 59, 999)
+                        const toMinutes = (t: string) => { const [h, mi] = t.split(':').map(Number); return h * 60 + mi }
+                        const minutesOfDay = (dt: Date) => dt.getHours() * 60 + dt.getMinutes()
+
+                        const daySlotsAll = clinicAvailabilities.filter((av: any) => av.day_of_week === dayOfWeek)
+                        const dayApptsAll = clinicAppts.filter((a: any) =>
+                          isSameDay(new Date(a.start_at), selectedCalendarDay) && a.status !== 'cancelled'
+                        )
+                        const bounds = [
+                          ...daySlotsAll.map((s: any) => toMinutes(s.start_time)),
+                          ...daySlotsAll.map((s: any) => toMinutes(s.end_time)),
+                          ...dayApptsAll.flatMap((a: any) => [minutesOfDay(new Date(a.start_at)), minutesOfDay(new Date(a.end_at))]),
+                        ]
+                        const gridStart = bounds.length > 0 ? Math.floor(Math.min(...bounds) / 30) * 30 : 8 * 60
+                        const gridEnd   = bounds.length > 0 ? Math.ceil(Math.max(...bounds) / 30) * 30 : 19 * 60
+                        const timeSlots: number[] = []
+                        for (let t = gridStart; t < gridEnd; t += 30) timeSlots.push(t)
+
+                        if (clinicMembers.length === 0) {
+                          return <p className="text-sm text-gray-400 text-center py-6">Aucun membre dans le cabinet.</p>
                         }
+
                         return (
-                          <div className="space-y-3">
-                            {dayAppts.map((a: any) => {
-                              const doctorName = `${a.doctors?.profiles?.first_name ?? ''} ${a.doctors?.profiles?.last_name ?? ''}`.trim()
-                              const patientName = `${a.patientProfile?.first_name ?? ''} ${a.patientProfile?.last_name ?? ''}`.trim()
-                              const animalNames = (a.animals ?? []).map((an: any) => an.name).join(', ')
-                              return (
-                                <div key={a.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                                  <div className="text-center min-w-[48px]">
-                                    <p className="text-sm font-bold text-gray-700">{format(new Date(a.start_at), 'HH:mm')}</p>
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm text-gray-700 font-medium truncate">
-                                      {patientName || 'Patient'}{animalNames ? ` · ${animalNames}` : ''}
-                                    </p>
-                                    <p className="text-xs text-gray-400 truncate">
-                                      Dr {doctorName} {a.reason ? `· ${a.reason}` : ''}
-                                    </p>
-                                  </div>
-                                  <span className={`flex-shrink-0 text-xs px-2 py-0.5 rounded-full font-medium
-                                    ${a.status === 'confirmed' ? 'bg-green-100 text-green-700' :
-                                      a.status === 'pending'   ? 'bg-amber-100 text-amber-700' :
-                                      a.status === 'cancelled' || a.status === 'no_show' ? 'bg-red-100 text-red-700' :
-                                      'bg-gray-100 text-gray-500'}`}>
-                                    {a.status === 'confirmed' ? 'Confirmé' : a.status === 'pending' ? 'En attente' :
-                                      a.status === 'completed' ? 'Terminé' : a.status === 'no_show' ? 'Absent(e)' :
-                                      a.status === 'cancelled' ? 'Annulé' : a.status}
-                                  </span>
-                                </div>
-                              )
-                            })}
-                          </div>
+                          <table className="w-full text-xs border-collapse min-w-[560px]">
+                            <thead>
+                              <tr>
+                                <th className="text-left text-gray-400 font-medium pb-2 pr-2 w-14">Heure</th>
+                                {clinicMembers.map((m: any) => (
+                                  <th key={m.id} className="text-center text-gray-600 font-medium pb-2 px-1">
+                                    {`${m.doctors?.profiles?.first_name ?? ''} ${m.doctors?.profiles?.last_name ?? ''}`.trim()}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {timeSlots.map(t => (
+                                <tr key={t} className="border-t border-gray-50">
+                                  <td className="py-1 pr-2 text-gray-400 align-top whitespace-nowrap">
+                                    {String(Math.floor(t / 60)).padStart(2, '0')}:{String(t % 60).padStart(2, '0')}
+                                  </td>
+                                  {clinicMembers.map((m: any) => {
+                                    const onLeave = clinicBlockedAll.some((b: any) =>
+                                      b.doctor_id === m.doctor_id &&
+                                      new Date(b.start_at) <= dayEnd && new Date(b.end_at) >= dayStart
+                                    )
+                                    const memberSlots = daySlotsAll.filter((av: any) => av.doctor_id === m.doctor_id)
+                                    const inHours = memberSlots.some((s: any) => t >= toMinutes(s.start_time) && t < toMinutes(s.end_time))
+                                    const appt = dayApptsAll.find((a: any) => {
+                                      if (a.doctor_id !== m.doctor_id) return false
+                                      const s = minutesOfDay(new Date(a.start_at))
+                                      const e = minutesOfDay(new Date(a.end_at))
+                                      return t < e && t + 30 > s
+                                    })
+                                    const apptStartsHere = appt && minutesOfDay(new Date(appt.start_at)) >= t && minutesOfDay(new Date(appt.start_at)) < t + 30
+
+                                    if (onLeave) {
+                                      return (
+                                        <td key={m.id} className="py-1 px-1 text-center bg-amber-50">
+                                          {t === timeSlots[0] && <span className="text-amber-600">🌴</span>}
+                                        </td>
+                                      )
+                                    }
+                                    if (appt) {
+                                      const statusColor =
+                                        appt.status === 'pending' ? 'bg-amber-400' :
+                                        appt.status === 'completed' ? 'bg-gray-400' :
+                                        appt.status === 'no_show' ? 'bg-red-300' : 'bg-sage-500'
+                                      const patientName = `${appt.patientProfile?.first_name ?? ''} ${appt.patientProfile?.last_name ?? ''}`.trim()
+                                      const animalNames = (appt.animals ?? []).map((an: any) => an.name).join(', ')
+                                      return (
+                                        <td key={m.id} className="py-0.5 px-0.5 align-top">
+                                          <div className={`${statusColor} text-white rounded-md px-1.5 py-0.5 truncate`}
+                                            title={`${patientName}${animalNames ? ' · ' + animalNames : ''}${appt.reason ? ' · ' + appt.reason : ''}`}>
+                                            {apptStartsHere ? (
+                                              <span className="font-medium">{patientName || 'Patient'}{animalNames ? ` · ${animalNames}` : ''}</span>
+                                            ) : '···'}
+                                          </div>
+                                        </td>
+                                      )
+                                    }
+                                    return (
+                                      <td key={m.id} className={`py-1 px-1 text-center ${inHours ? 'bg-white' : 'bg-gray-50'}`}>
+                                        {inHours ? '' : <span className="text-gray-200">·</span>}
+                                      </td>
+                                    )
+                                  })}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         )
                       })()}
                     </div>
