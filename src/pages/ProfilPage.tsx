@@ -100,7 +100,7 @@ export default function ProfilPage() {
   }
 
   return (
-    <div className="min-h-screen bg-sage-100">
+    <div className="min-h-screen bg-[#FFFAF0]">
       <Navbar />
       <div className="max-w-2xl mx-auto px-4 py-8">
 

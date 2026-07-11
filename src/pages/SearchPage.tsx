@@ -30,7 +30,7 @@ export default function SearchPage() {
   }, [params])
 
   return (
-    <div className="min-h-screen bg-sage-100">
+    <div className="min-h-screen bg-[#FFFAF0]">
       <Navbar />
       <div className="bg-white border-b py-4 px-4">
         <div className="max-w-5xl mx-auto">

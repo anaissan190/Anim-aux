@@ -148,8 +148,8 @@ export default function AnimalHealthPage() {
     setRecordForm(f => f.professional_name ? f : { ...f, professional_name: doctorName })
   }, [isDoctor, doctorName])
 
-  if (isLoading) return <div className="min-h-screen bg-sage-100"><Navbar /><div className="flex items-center justify-center h-64"><p className="text-gray-400">Chargement...</p></div></div>
-  if (!animal) return <div className="min-h-screen bg-sage-100"><Navbar /><div className="flex items-center justify-center h-64"><p className="text-gray-400">Animal introuvable</p></div></div>
+  if (isLoading) return <div className="min-h-screen bg-[#FFFAF0]"><Navbar /><div className="flex items-center justify-center h-64"><p className="text-gray-400">Chargement...</p></div></div>
+  if (!animal) return <div className="min-h-screen bg-[#FFFAF0]"><Navbar /><div className="flex items-center justify-center h-64"><p className="text-gray-400">Animal introuvable</p></div></div>
 
   const lastWeight = weights.length > 0 ? weights[weights.length - 1] : null
   const nextVaccine = vaccines.find(v => v.next_due_date)
@@ -295,7 +295,7 @@ export default function AnimalHealthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-sage-100">
+    <div className="min-h-screen bg-[#FFFAF0]">
       <Navbar />
       <div className="max-w-4xl mx-auto px-4 py-8">
 
