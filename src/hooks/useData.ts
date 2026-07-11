@@ -1401,6 +1401,7 @@ export function useUpdateProfile() {
       address?: string
       emergency_contact_name?: string
       emergency_contact_phone?: string
+      avatar_url?: string
     }) => {
       if (!profile) throw new Error('Profil non chargé')
       const { data, error } = await supabase

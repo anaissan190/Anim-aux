@@ -7,7 +7,7 @@ import { useConversationPartners } from '@/hooks/useData'
 import logoNavbar from '@/assets/logo-navbar.svg'
 
 export default function Navbar() {
-  const { user, signOut } = useAuthStore()
+  const { user, profile, signOut } = useAuthStore()
   const navigate = useNavigate()
   const location = useLocation()
   const [searchParams] = useSearchParams()
@@ -98,8 +98,10 @@ export default function Navbar() {
               <NotificationBell />
               <div className="flex items-center gap-2">
                 <Link to={user.role === 'doctor' ? '/dashboard/doctor?tab=profil' : '/profil'} title="Mon profil"
-                  className="w-8 h-8 rounded-full bg-sage-100 flex items-center justify-center text-lg hover:bg-sage-200 transition-colors">
-                  👤
+                  className="w-8 h-8 rounded-full bg-sage-100 flex items-center justify-center text-lg overflow-hidden hover:bg-sage-200 transition-colors">
+                  {profile?.avatar_url
+                    ? <img src={profile.avatar_url} className="w-full h-full object-cover" alt="Mon profil" />
+                    : '👤'}
                 </Link>
                 <button onClick={() => signOut().then(() => navigate('/'))}
                   className="text-sm text-gray-500 hover:text-red-500 transition-colors hidden md:block">

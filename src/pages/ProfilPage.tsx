@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/lib/authStore'
 import { useCurrentDoctor, useUpdateProfile, useUpdateDoctor, useDeleteAccount } from '@/hooks/useData'
+import { supabase } from '@/lib/supabase'
 import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
 import RichTextEditor from '@/components/ui/RichTextEditor'
@@ -15,6 +16,25 @@ export default function ProfilPage() {
   const deleteAccount = useDeleteAccount()
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleteError, setDeleteError] = useState('')
+  const [photoUploading, setPhotoUploading] = useState(false)
+  const [photoError, setPhotoError] = useState('')
+
+  async function handlePhotoUpload(file: File) {
+    setPhotoUploading(true)
+    setPhotoError('')
+    try {
+      const ext = file.name.split('.').pop()
+      const path = `profiles/${user!.id}-${Date.now()}.${ext}`
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
+      if (uploadError) throw uploadError
+      const { data } = supabase.storage.from('avatars').getPublicUrl(path)
+      await updateProfile.mutateAsync({ avatar_url: data.publicUrl })
+    } catch (e: any) {
+      setPhotoError(e.message ?? "Erreur lors de l'envoi de la photo.")
+    } finally {
+      setPhotoUploading(false)
+    }
+  }
 
   async function handleDeleteAccount() {
     setDeleteError('')
@@ -108,11 +128,26 @@ export default function ProfilPage() {
         <BackButton fallback={isDoctor ? '/dashboard/doctor?tab=profil' : '/dashboard/patient'} />
 
         {/* En-tête */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">
-            👤 {profile?.first_name ? `${profile.first_name} ${profile.last_name ?? ''}` : 'Mon profil'}
-          </h1>
-          <p className="text-gray-500 text-sm mt-1">{user?.email}</p>
+        <div className="mb-8 flex items-center gap-4">
+          <div className="relative w-16 h-16 flex-shrink-0 group">
+            <div className="w-16 h-16 rounded-full bg-sage-100 flex items-center justify-center text-2xl overflow-hidden">
+              {profile?.avatar_url
+                ? <img src={profile.avatar_url} className="w-full h-full object-cover" alt="Photo de profil" />
+                : '👤'}
+            </div>
+            <label className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
+              <span className="text-white text-xs font-medium">{photoUploading ? '...' : '📷'}</span>
+              <input type="file" accept="image/*" className="hidden"
+                onChange={e => { const f = e.target.files?.[0]; if (f) handlePhotoUpload(f); e.target.value = '' }} />
+            </label>
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {profile?.first_name ? `${profile.first_name} ${profile.last_name ?? ''}` : 'Mon profil'}
+            </h1>
+            <p className="text-gray-500 text-sm mt-1">{user?.email}</p>
+            {photoError && <p className="text-red-500 text-xs mt-1">{photoError}</p>}
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
