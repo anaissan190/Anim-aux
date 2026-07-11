@@ -8,7 +8,7 @@ import RichTextEditor from '@/components/ui/RichTextEditor'
 import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
-import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember } from '@/hooks/useData'
+import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { PRACTITIONER_TYPES, getPractitionerType } from '@/lib/practitionerTypes'
 import { SPECIES_EMOJI } from '@/lib/animalSpecies'
@@ -30,7 +30,8 @@ export default function DoctorDashboard() {
   const { data: availabilities = [] } = useAvailabilities(doctor?.id ?? '')
   const { data: reviews = [] } = useDoctorReviews(doctor?.id ?? '')
 
-  const { data: patientAnimals = [] } = useDoctorPatientAnimals(doctor?.id)
+  const { data: clinic }              = useMyClinic(doctor?.id)
+  const { data: patientAnimals = [] } = useDoctorPatientAnimals(doctor?.id, clinic?.id)
   const [patientSearch, setPatientSearch] = useState('')
   const filteredPatientAnimals = patientAnimals.filter((a: any) => {
     const q = patientSearch.trim().toLowerCase()
@@ -57,10 +58,15 @@ export default function DoctorDashboard() {
   })
   const [profileError, setProfileError] = useState('')
   const [profileSaved, setProfileSaved] = useState(false)
-  const { data: clinic }              = useMyClinic(doctor?.id)
   const { data: clinicMembers = [] }  = useClinicMembers(clinic?.id)
   const { data: clinicAppts = [] }    = useClinicAppointments(clinic?.id)
   const { data: clinicServices = [] } = useClinicServices(clinic?.id)
+  const { data: clinicAvailabilities = [] } = useClinicAvailabilities(clinic?.id)
+  const { data: clinicBlockedAll = [] }     = useClinicBlockedSlotsAll(clinic?.id)
+  const [calendarWeekOffset, setCalendarWeekOffset] = useState(0)
+  const calendarWeekDays = Array.from({ length: 7 }, (_, i) =>
+    addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), calendarWeekOffset * 7 + i)
+  )
   const createClinic      = useCreateClinic()
   const joinClinic        = useJoinClinic()
   const addClinicService  = useAddClinicService()
@@ -521,7 +527,9 @@ export default function DoctorDashboard() {
             <div className="mb-6">
               <h2 className="text-xl font-bold text-gray-900">Mes patients</h2>
               <p className="text-sm text-gray-500 mt-1">
-                Animaux des patients ayant un rendez-vous confirmé ou terminé avec vous.
+                {clinic
+                  ? "Animaux des patients ayant un rendez-vous confirmé ou terminé avec vous ou un confrère de votre cabinet — utile pour consulter un dossier si un collègue est absent."
+                  : "Animaux des patients ayant un rendez-vous confirmé ou terminé avec vous."}
               </p>
             </div>
             {patientAnimals.length > 0 && (
@@ -545,20 +553,38 @@ export default function DoctorDashboard() {
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {filteredPatientAnimals.map((a: any) => (
-                  <Link key={a.id} to={`/animal/${a.id}`}
-                    className="bg-white rounded-2xl p-4 text-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                    <div className="w-14 h-14 rounded-xl mx-auto mb-2 overflow-hidden bg-gray-100 flex items-center justify-center">
-                      {a.avatar_url
-                        ? <img src={a.avatar_url} alt={a.name} className="w-full h-full object-cover" />
-                        : <span className="text-3xl">{SPECIES_EMOJI[a.species] ?? '🐾'}</span>
-                      }
-                    </div>
-                    <p className="font-semibold text-sm text-gray-900">{a.name}</p>
-                    <p className="text-xs text-gray-400">{a.breed ?? a.species}</p>
-                    <p className="text-xs text-sage-600 mt-1">{a.ownerName}</p>
-                  </Link>
-                ))}
+                {filteredPatientAnimals.map((a: any) => {
+                  const isColleaguePatient = clinic && a.referentDoctorId && a.referentDoctorId !== doctor?.id
+                  const referentName = isColleaguePatient
+                    ? (() => {
+                        const m: any = clinicMembers.find((cm: any) => cm.doctor_id === a.referentDoctorId)
+                        const p = m?.doctors?.profiles
+                        return p ? `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim() : ''
+                      })()
+                    : ''
+                  return (
+                    <Link key={a.id} to={`/animal/${a.id}`}
+                      className="bg-white rounded-2xl p-4 text-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative">
+                      {isColleaguePatient && (
+                        <span className="absolute top-2 right-2 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full" title={`Suivi par ${referentName}`}>
+                          🤝
+                        </span>
+                      )}
+                      <div className="w-14 h-14 rounded-xl mx-auto mb-2 overflow-hidden bg-gray-100 flex items-center justify-center">
+                        {a.avatar_url
+                          ? <img src={a.avatar_url} alt={a.name} className="w-full h-full object-cover" />
+                          : <span className="text-3xl">{SPECIES_EMOJI[a.species] ?? '🐾'}</span>
+                        }
+                      </div>
+                      <p className="font-semibold text-sm text-gray-900">{a.name}</p>
+                      <p className="text-xs text-gray-400">{a.breed ?? a.species}</p>
+                      <p className="text-xs text-sage-600 mt-1">{a.ownerName}</p>
+                      {isColleaguePatient && referentName && (
+                        <p className="text-xs text-amber-600 mt-0.5">Suivi par {referentName}</p>
+                      )}
+                    </Link>
+                  )
+                })}
               </div>
             )}
           </div>
@@ -1062,9 +1088,92 @@ export default function DoctorDashboard() {
                       </div>
                     </div>
 
+                    {/* Calendrier hebdomadaire : qui a des dispos, qui est
+                        présent, qui est en congé cette semaine-là. */}
+                    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 overflow-x-auto">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-semibold text-gray-900">Calendrier de la semaine</h3>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <button onClick={() => setCalendarWeekOffset(w => w - 1)}
+                            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">‹</button>
+                          <span className="text-xs text-gray-500 min-w-[130px] text-center">
+                            {format(calendarWeekDays[0], 'd MMM', { locale: fr })} – {format(calendarWeekDays[6], 'd MMM yyyy', { locale: fr })}
+                          </span>
+                          <button onClick={() => setCalendarWeekOffset(w => w + 1)}
+                            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">›</button>
+                          {calendarWeekOffset !== 0 && (
+                            <button onClick={() => setCalendarWeekOffset(0)}
+                              className="text-xs text-sage-600 hover:underline ml-1">Aujourd'hui</button>
+                          )}
+                        </div>
+                      </div>
+                      <table className="w-full text-sm border-collapse min-w-[640px]">
+                        <thead>
+                          <tr>
+                            <th className="text-left text-xs text-gray-400 font-medium pb-2 pr-3 w-32">Praticien</th>
+                            {calendarWeekDays.map(d => (
+                              <th key={d.toISOString()} className={`text-center text-xs font-medium pb-2 px-1
+                                ${isSameDay(d, new Date()) ? 'text-sage-600' : 'text-gray-500'}`}>
+                                <div>{format(d, 'EEE', { locale: fr })}</div>
+                                <div className="text-gray-400 font-normal">{format(d, 'd MMM', { locale: fr })}</div>
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {clinicMembers.map((m: any) => {
+                            const memberName = `${m.doctors?.profiles?.first_name ?? ''} ${m.doctors?.profiles?.last_name ?? ''}`.trim()
+                            return (
+                              <tr key={m.id} className="border-t border-gray-50">
+                                <td className="py-2 pr-3 text-xs font-medium text-gray-700 align-top">{memberName}</td>
+                                {calendarWeekDays.map(d => {
+                                  const dayStart = new Date(d); dayStart.setHours(0, 0, 0, 0)
+                                  const dayEnd = new Date(d); dayEnd.setHours(23, 59, 59, 999)
+                                  const onLeave = clinicBlockedAll.some((b: any) =>
+                                    b.doctor_id === m.doctor_id &&
+                                    new Date(b.start_at) <= dayEnd && new Date(b.end_at) >= dayStart
+                                  )
+                                  const daySlots = clinicAvailabilities.filter((av: any) =>
+                                    av.doctor_id === m.doctor_id && av.day_of_week === d.getDay()
+                                  )
+                                  const apptCount = clinicAppts.filter((a: any) =>
+                                    a.doctor_id === m.doctor_id &&
+                                    isSameDay(new Date(a.start_at), d) &&
+                                    ['confirmed', 'completed'].includes(a.status)
+                                  ).length
+                                  return (
+                                    <td key={d.toISOString()} className="py-2 px-1 text-center align-top">
+                                      {onLeave ? (
+                                        <span className="inline-block text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full whitespace-nowrap">
+                                          🌴 Congé
+                                        </span>
+                                      ) : daySlots.length === 0 ? (
+                                        <span className="text-xs text-gray-300">—</span>
+                                      ) : (
+                                        <div className="space-y-0.5">
+                                          {daySlots.map((s: any) => (
+                                            <div key={s.id} className="text-xs text-sage-700 bg-sage-50 rounded-full px-2 py-0.5 whitespace-nowrap">
+                                              {s.start_time.slice(0, 5)}–{s.end_time.slice(0, 5)}
+                                            </div>
+                                          ))}
+                                          {apptCount > 0 && (
+                                            <div className="text-xs text-gray-400">{apptCount} RDV</div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </td>
+                                  )
+                                })}
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+
                     {/* Agenda partagé */}
                     <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-                      <h3 className="font-semibold text-gray-900 mb-4">Agenda du cabinet</h3>
+                      <h3 className="font-semibold text-gray-900 mb-4">Prochains rendez-vous du cabinet</h3>
                       {clinicAppts.length === 0 ? (
                         <div className="text-center py-6">
                           <p className="text-gray-400 text-sm">Aucun rendez-vous à venir dans le cabinet.</p>

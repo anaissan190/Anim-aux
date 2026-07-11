@@ -325,17 +325,38 @@ export function useAppointmentDocuments(appointmentId?: string) {
   })
 }
 
-// Tous les animaux des patients d'un praticien (RDV confirmé ou terminé)
-export function useDoctorPatientAnimals(doctorId?: string) {
+// Tous les animaux des patients d'un praticien (RDV confirmé ou terminé).
+// Si `clinicId` est fourni, inclut aussi les patients vus par n'importe quel
+// collègue du même cabinet (pour pouvoir couvrir un collègue absent/en
+// congé) — chaque animal est alors annoté du praticien référent (doctor_id
+// du RDV le plus récent), pour affichage d'un badge dans "Mes patients".
+export function useDoctorPatientAnimals(doctorId?: string, clinicId?: string) {
   return useQuery({
-    queryKey: ['doctor-patient-animals', doctorId],
+    queryKey: ['doctor-patient-animals', doctorId, clinicId],
     queryFn: async () => {
+      let doctorIds = [doctorId!]
+      if (clinicId) {
+        const { data: members, error: membersErr } = await supabase
+          .from('clinic_members')
+          .select('doctor_id')
+          .eq('clinic_id', clinicId)
+        if (membersErr) throw membersErr
+        doctorIds = (members ?? []).map((m: any) => m.doctor_id)
+        if (doctorIds.length === 0) doctorIds = [doctorId!]
+      }
+
       const { data: appts, error: apptErr } = await supabase
         .from('appointments')
-        .select('patient_id')
-        .eq('doctor_id', doctorId!)
+        .select('patient_id, doctor_id')
+        .in('doctor_id', doctorIds)
         .in('status', ['confirmed', 'completed'])
+        .order('start_at', { ascending: true })
       if (apptErr) throw apptErr
+
+      // Praticien référent = doctor_id du RDV confirmé/terminé le plus
+      // récent pour ce patient (dernier itéré, grâce au tri croissant).
+      const referentByPatient = new Map<string, string>()
+      ;(appts ?? []).forEach((a: any) => referentByPatient.set(a.patient_id, a.doctor_id))
 
       const patientIds = [...new Set((appts ?? []).map((a: any) => a.patient_id))]
       if (patientIds.length === 0) return []
@@ -363,9 +384,61 @@ export function useDoctorPatientAnimals(doctorId?: string) {
         .order('name')
       if (animalErr) throw animalErr
 
-      return (animals ?? []).map((an: any) => ({ ...an, ownerName: ownerNames.get(an.owner_id) ?? '' }))
+      return (animals ?? []).map((an: any) => ({
+        ...an,
+        ownerName: ownerNames.get(an.owner_id) ?? '',
+        referentDoctorId: referentByPatient.get(an.owner_id) ?? null,
+      }))
     },
     enabled: !!doctorId,
+  })
+}
+
+// ── AGENDA PARTAGÉ DU CABINET (disponibilités + congés de tous les membres) ──
+
+export function useClinicAvailabilities(clinicId?: string) {
+  return useQuery({
+    queryKey: ['clinic-availabilities', clinicId],
+    queryFn: async () => {
+      const { data: members, error: membersErr } = await supabase
+        .from('clinic_members')
+        .select('doctor_id')
+        .eq('clinic_id', clinicId!)
+      if (membersErr) throw membersErr
+      const doctorIds = (members ?? []).map((m: any) => m.doctor_id)
+      if (doctorIds.length === 0) return []
+      const { data, error } = await supabase
+        .from('availabilities')
+        .select('*')
+        .in('doctor_id', doctorIds)
+        .eq('is_active', true)
+      if (error) throw error
+      return data ?? []
+    },
+    enabled: !!clinicId,
+  })
+}
+
+export function useClinicBlockedSlotsAll(clinicId?: string) {
+  return useQuery({
+    queryKey: ['clinic-blocked-slots-all', clinicId],
+    queryFn: async () => {
+      const { data: members, error: membersErr } = await supabase
+        .from('clinic_members')
+        .select('doctor_id')
+        .eq('clinic_id', clinicId!)
+      if (membersErr) throw membersErr
+      const doctorIds = (members ?? []).map((m: any) => m.doctor_id)
+      if (doctorIds.length === 0) return []
+      const { data, error } = await supabase
+        .from('blocked_slots')
+        .select('*')
+        .in('doctor_id', doctorIds)
+        .order('start_at')
+      if (error) throw error
+      return data ?? []
+    },
+    enabled: !!clinicId,
   })
 }
 
