@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/lib/authStore'
 import { useCurrentDoctor, useUpdateProfile, useUpdateDoctor, useDeleteAccount } from '@/hooks/useData'
 import Navbar from '@/components/ui/Navbar'
+import BackButton from '@/components/ui/BackButton'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 
 export default function ProfilPage() {
@@ -103,6 +104,8 @@ export default function ProfilPage() {
     <div className="min-h-screen bg-[#FFFAF0]">
       <Navbar />
       <div className="max-w-2xl mx-auto px-4 py-8">
+
+        <BackButton fallback={isDoctor ? '/dashboard/doctor?tab=profil' : '/dashboard/patient'} />
 
         {/* En-tête */}
         <div className="mb-8">

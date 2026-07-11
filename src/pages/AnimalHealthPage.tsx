@@ -5,6 +5,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import Navbar from '@/components/ui/Navbar'
+import BackButton from '@/components/ui/BackButton'
 import {
   useAnimal,
   useVaccines,
@@ -299,6 +300,8 @@ export default function AnimalHealthPage() {
       <Navbar />
       <div className="max-w-4xl mx-auto px-4 py-8">
 
+        <BackButton fallback={isDoctor ? '/dashboard/doctor?tab=patients' : '/dashboard/patient'} />
+
         <div className="card p-6 mb-6 flex items-center gap-5">
           <div className="relative w-20 h-20 flex-shrink-0 group">
             <div className="w-20 h-20 rounded-2xl bg-sage-50 flex items-center justify-center text-4xl overflow-hidden">
@@ -349,7 +352,6 @@ export default function AnimalHealthPage() {
               </div>
             )}
           </div>
-          <Link to={isDoctor ? '/dashboard/doctor' : '/dashboard/patient'} className="text-sm text-gray-500 hover:text-gray-700">← Retour</Link>
         </div>
 
         {!isDoctor && showEditForm && (

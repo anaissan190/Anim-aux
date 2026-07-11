@@ -5,6 +5,7 @@ import { useDoctor, useAnimals } from '@/hooks/useData'
 import { useCreateAppointment } from '@/hooks/useData'
 import { supabase } from '@/lib/supabase'
 import Navbar from '@/components/ui/Navbar'
+import BackButton from '@/components/ui/BackButton'
 import AvailabilityCalendar from '@/components/appointment/AvailabilityCalendar'
 import { format, addMinutes } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -93,6 +94,8 @@ export default function BookPage() {
     <div className="min-h-screen bg-[#FFFAF0]">
       <Navbar />
       <div className="max-w-2xl mx-auto px-4 py-8">
+
+        <BackButton fallback={`/doctor/${doctorId}`} />
 
         {/* Fil d'Ariane médecin */}
         {doctor && (

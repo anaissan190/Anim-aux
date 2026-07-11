@@ -4,6 +4,7 @@ import { useParams, Link } from 'react-router-dom'
 import { useDoctor, useDoctorReviews, useCreateReview, useDoctorPublicClinic } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import Navbar from '@/components/ui/Navbar'
+import BackButton from '@/components/ui/BackButton'
 import StarRating from '@/components/ui/StarRating'
 import { sanitizeHtml } from '@/lib/sanitizeHtml'
 import { format } from 'date-fns'
@@ -65,6 +66,7 @@ export default function DoctorPage() {
     <div className="min-h-screen bg-[#FFFAF0]">
       <Navbar />
       <div className="max-w-4xl mx-auto px-4 py-8">
+        <BackButton fallback="/search" />
         <div className="grid md:grid-cols-3 gap-6">
 
           {/* Colonne principale */}
