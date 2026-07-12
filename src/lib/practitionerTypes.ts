@@ -109,15 +109,6 @@ export const PRACTITIONER_TYPES: PractitionerType[] = [
     ],
   },
   {
-    id: 'ethologue',
-    label: 'Éthologue',
-    icon: '🔍',
-    services: [
-      { name: 'Observation comportementale', duration: '1h' },
-      { name: 'Rapport et préconisations',   duration: '30 min' },
-    ],
-  },
-  {
     id: 'educateur',
     label: 'Éducateur canin',
     icon: '🐕',
@@ -170,14 +161,6 @@ export const PRACTITIONER_TYPES: PractitionerType[] = [
   },
 
   // ─── Élevage et garde ───────────────────────────────────────────
-  {
-    id: 'eleveur',
-    label: 'Éleveur canin ou équin',
-    icon: '🐴',
-    services: [
-      { name: 'Visite d\'élevage', duration: '30 min' },
-    ],
-  },
   {
     id: 'palefrenier',
     label: 'Palefrenier',
