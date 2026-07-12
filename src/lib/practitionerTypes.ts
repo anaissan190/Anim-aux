@@ -187,14 +187,6 @@ export const PRACTITIONER_TYPES: PractitionerType[] = [
     ],
   },
   {
-    id: 'musher',
-    label: 'Musher',
-    icon: '🛷',
-    services: [
-      { name: 'Séance / sortie', duration: 'Variable' },
-    ],
-  },
-  {
     id: 'soigneur',
     label: 'Soigneur animalier',
     icon: '🦁',

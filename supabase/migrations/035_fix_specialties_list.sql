@@ -27,7 +27,6 @@ insert into public.specialties (name) values
 ('Masseur canin'),
 ('Éleveur canin ou équin'),
 ('Palefrenier'),
-('Musher'),
 ('Soigneur animalier'),
 ('Pet-sitter'),
 ('Autre')
