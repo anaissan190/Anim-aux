@@ -1,6 +1,6 @@
 // src/pages/SearchPage.tsx
 import { useState, useEffect, useRef } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import Navbar from '@/components/ui/Navbar'
 import SearchBar from '@/components/search/SearchBar'
 import DoctorCard from '@/components/doctor/DoctorCard'
@@ -10,6 +10,7 @@ import type { SearchFilters } from '@/types'
 
 export default function SearchPage() {
   const [params] = useSearchParams()
+  const navigate = useNavigate()
   const initializedRef = useRef(false)
 
   const [filters, setFilters] = useState<SearchFilters>({
@@ -38,7 +39,7 @@ export default function SearchPage() {
       <Navbar />
       <div className="bg-white border-b py-4 px-4">
         <div className="max-w-5xl mx-auto">
-          <SearchBar />
+          <SearchBar initialSpecialty={filters.specialty} initialCity={filters.city} />
         </div>
       </div>
 
@@ -63,7 +64,10 @@ export default function SearchPage() {
               <option value="4.5">4.5+ étoiles</option>
             </select>
 
-            <button onClick={() => setFilters({ specialty: '', city: '', maxPrice: undefined, minRating: undefined })}
+            <button onClick={() => {
+                setFilters({ specialty: '', city: '', maxPrice: undefined, minRating: undefined })
+                navigate('/search')
+              }}
               className="btn-secondary w-full text-sm py-2 mt-3">
               Réinitialiser
             </button>

@@ -3,17 +3,28 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSpecialties } from '@/hooks/useData'
 
-interface Props { large?: boolean }
+interface Props { large?: boolean; initialSpecialty?: string; initialCity?: string }
 
-export default function SearchBar({ large }: Props) {
+export default function SearchBar({ large, initialSpecialty = '', initialCity = '' }: Props) {
   const navigate = useNavigate()
   const { data: specialties = [] } = useSpecialties()
-  const [specialty, setSpecialty] = useState('')
-  const [city, setCity] = useState('')
+  const [specialty, setSpecialty] = useState(initialSpecialty)
+  const [city, setCity] = useState(initialCity)
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const specialtiesRef = useRef<string[]>([])
+
+  // Reflète le filtre actif — utile quand on revient sur /search (retour
+  // depuis une fiche praticien) ou après un reset des filtres latéraux :
+  // la barre ne doit pas paraître vide alors que le filtre est toujours
+  // appliqué.
+  useEffect(() => {
+    setSpecialty(initialSpecialty)
+  }, [initialSpecialty])
+  useEffect(() => {
+    setCity(initialCity)
+  }, [initialCity])
 
   useEffect(() => {
     specialtiesRef.current = specialties
