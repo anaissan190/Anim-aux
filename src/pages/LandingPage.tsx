@@ -4,15 +4,12 @@ import Navbar from '@/components/ui/Navbar'
 import SearchBar from '@/components/search/SearchBar'
 import AnimalBackground from '@/components/ui/AnimalBackground'
 import { useAuthStore } from '@/lib/authStore'
+import { PRACTITIONER_TYPES } from '@/lib/practitionerTypes'
 
-const SPECIALTIES = [
-  { icon: '🏥', name: 'Vétérinaire généraliste' },
-  { icon: '🚑', name: 'Vétérinaire urgentiste' },
-  { icon: '✂️', name: 'Toiletteur' },
-  { icon: '🤲', name: 'Ostéopathe animalier' },
-  { icon: '🧠', name: 'Comportementaliste animalier' },
-  { icon: '🎓', name: 'Éducateur canin' },
-]
+// Toutes les catégories de la liste fermée des métiers, sauf "Autre" qui
+// n'a pas de sens comme raccourci de recherche.
+const SPECIALTIES = PRACTITIONER_TYPES.filter(t => t.id !== 'autre')
+  .map(t => ({ icon: t.icon, name: t.label }))
 
 // "Comment ça marche" dépend de qui regarde : un patient/visiteur veut
 // savoir comment réserver, un praticien connecté veut savoir comment gérer
@@ -100,12 +97,12 @@ export default function LandingPage() {
             <h2 className="text-2xl font-bold text-gray-900 text-center mb-10">
               Consultez par spécialité
             </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
               {SPECIALTIES.map(s => (
                 <Link key={s.name} to={`/search?specialty=${encodeURIComponent(s.name)}`}
-                  className="card p-5 text-center hover:shadow-md hover:border-sage-200 transition-all group">
-                  <div className="text-4xl mb-3">{s.icon}</div>
-                  <p className="text-sm font-medium text-gray-700 group-hover:text-sage-600 transition-colors">
+                  className="card p-3 text-center hover:shadow-md hover:border-sage-200 transition-all group">
+                  <div className="text-2xl mb-2">{s.icon}</div>
+                  <p className="text-xs font-medium text-gray-700 group-hover:text-sage-600 transition-colors leading-tight">
                     {s.name}
                   </p>
                 </Link>
