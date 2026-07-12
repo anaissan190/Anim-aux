@@ -57,28 +57,8 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Spécialités */}
-        <section className="py-16 px-4 bg-[#FFFAF0]">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold text-gray-900 text-center mb-10">
-              Consultez par spécialité
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {SPECIALTIES.map(s => (
-                <Link key={s.name} to={`/search?specialty=${encodeURIComponent(s.name)}`}
-                  className="card p-5 text-center hover:shadow-md hover:border-sage-200 transition-all group">
-                  <div className="text-4xl mb-3">{s.icon}</div>
-                  <p className="text-sm font-medium text-gray-700 group-hover:text-sage-600 transition-colors">
-                    {s.name}
-                  </p>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-
         {/* Comment ça marche */}
-        <section className="py-16 px-4">
+        <section className="py-16 px-4 bg-[#FFFAF0]">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-2xl font-bold text-gray-900 text-center mb-10">
               Comment ça marche ?
@@ -92,6 +72,26 @@ export default function LandingPage() {
                   <h3 className="font-semibold text-gray-900 mb-2">{step.t}</h3>
                   <p className="text-sm text-gray-500">{step.d}</p>
                 </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Spécialités */}
+        <section className="py-16 px-4">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-2xl font-bold text-gray-900 text-center mb-10">
+              Consultez par spécialité
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              {SPECIALTIES.map(s => (
+                <Link key={s.name} to={`/search?specialty=${encodeURIComponent(s.name)}`}
+                  className="card p-5 text-center hover:shadow-md hover:border-sage-200 transition-all group">
+                  <div className="text-4xl mb-3">{s.icon}</div>
+                  <p className="text-sm font-medium text-gray-700 group-hover:text-sage-600 transition-colors">
+                    {s.name}
+                  </p>
+                </Link>
               ))}
             </div>
           </div>
