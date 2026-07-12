@@ -74,24 +74,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* CTA médecins — uniquement pour les visiteurs non connectés :
-            un patient ou un praticien déjà connecté n'a pas à voir cette
-            proposition de création de compte. */}
-        {!user && (
-          <section className="py-16 px-4 bg-[#FFFAF0]">
-            <div className="max-w-2xl mx-auto text-center">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Vous êtes praticien ?</h2>
-              <p className="text-gray-500 mb-6">
-                Rejoignez Animéaux et gérez votre agenda en ligne. Gratuit pendant 3 mois.
-              </p>
-              <Link to="/register?role=doctor" className="btn-primary inline-flex items-center gap-2">
-                Créer mon profil praticien →
-              </Link>
-            </div>
-          </section>
-        )}
-
-        {/* Spécialités — en dernier */}
+        {/* Spécialités */}
         <section className="py-16 px-4">
           <div className="max-w-4xl mx-auto">
             <h2 className="text-2xl font-bold text-gray-900 text-center mb-10">
@@ -110,6 +93,23 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+
+        {/* CTA médecins — en dernier, uniquement pour les visiteurs non
+            connectés : un patient ou un praticien déjà connecté n'a pas à
+            voir cette proposition de création de compte. */}
+        {!user && (
+          <section className="py-16 px-4 bg-[#FFFAF0]">
+            <div className="max-w-2xl mx-auto text-center">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Vous êtes praticien ?</h2>
+              <p className="text-gray-500 mb-6">
+                Rejoignez Animéaux et gérez votre agenda en ligne. Gratuit pendant 3 mois.
+              </p>
+              <Link to="/register?role=doctor" className="btn-primary inline-flex items-center gap-2">
+                Créer mon profil praticien →
+              </Link>
+            </div>
+          </section>
+        )}
       </div>
     </div>
   )
