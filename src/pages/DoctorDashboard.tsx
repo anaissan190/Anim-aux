@@ -1413,8 +1413,13 @@ export default function DoctorDashboard() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Spécialité / Métier</label>
-                  <input className="input" value={profileForm.specialty}
-                    onChange={e => setProfileForm(f => ({ ...f, specialty: e.target.value }))} />
+                  <select className="input" value={profileForm.specialty}
+                    onChange={e => setProfileForm(f => ({ ...f, specialty: e.target.value }))}>
+                    <option value="" disabled>Choisir un métier</option>
+                    {PRACTITIONER_TYPES.map(t => (
+                      <option key={t.id} value={t.label}>{t.label}</option>
+                    ))}
+                  </select>
                 </div>
                 {!clinic && (
                   <div className="grid grid-cols-2 gap-4">
