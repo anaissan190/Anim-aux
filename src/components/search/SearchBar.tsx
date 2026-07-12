@@ -1,12 +1,16 @@
 // src/components/search/SearchBar.tsx
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useSpecialties } from '@/hooks/useData'
 
 interface Props { large?: boolean; initialSpecialty?: string; initialCity?: string }
 
 export default function SearchBar({ large, initialSpecialty = '', initialCity = '' }: Props) {
   const navigate = useNavigate()
+  // Sert uniquement à préserver les autres filtres déjà actifs (prix, note)
+  // quand on relance une recherche par spécialité/ville depuis cette barre —
+  // sur la page d'accueil, il n'y a jamais de tels paramètres à préserver.
+  const [currentParams] = useSearchParams()
   const { data: specialties = [] } = useSpecialties()
   const [specialty, setSpecialty] = useState(initialSpecialty)
   const [city, setCity] = useState(initialCity)
@@ -41,9 +45,9 @@ export default function SearchBar({ large, initialSpecialty = '', initialCity = 
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
-    const p = new URLSearchParams()
-    if (specialty) p.set('specialty', specialty)
-    if (city) p.set('city', city)
+    const p = new URLSearchParams(currentParams)
+    if (specialty) p.set('specialty', specialty); else p.delete('specialty')
+    if (city) p.set('city', city); else p.delete('city')
     navigate(`/search?${p.toString()}`)
   }
 

@@ -1,6 +1,5 @@
 // src/pages/SearchPage.tsx
-import { useState, useEffect, useRef } from 'react'
-import { useSearchParams, useNavigate } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import Navbar from '@/components/ui/Navbar'
 import SearchBar from '@/components/search/SearchBar'
 import DoctorCard from '@/components/doctor/DoctorCard'
@@ -9,30 +8,34 @@ import { useDoctors, useClinicsSearch } from '@/hooks/useData'
 import type { SearchFilters } from '@/types'
 
 export default function SearchPage() {
-  const [params] = useSearchParams()
-  const navigate = useNavigate()
-  const initializedRef = useRef(false)
+  // L'URL est l'unique source de vérité pour les filtres (specialty, city,
+  // maxPrice, minRating) — plus de state React dupliqué. Comme ça, un
+  // retour arrière depuis une fiche praticien restaure exactement l'URL
+  // précédente (donc tous les filtres), sans dépendre d'un state local
+  // remis à zéro au remount.
+  const [params, setParams] = useSearchParams()
 
-  const [filters, setFilters] = useState<SearchFilters>({
+  const filters: SearchFilters = {
     specialty: params.get('specialty') ?? '',
     city:      params.get('city') ?? '',
-    maxPrice:  undefined,
-    minRating: undefined,
-  })
+    maxPrice:  params.get('maxPrice') ? +params.get('maxPrice')! : undefined,
+    minRating: params.get('minRating') ? +params.get('minRating')! : undefined,
+  }
+
+  function updateFilters(patch: Partial<SearchFilters>) {
+    const next = { ...filters, ...patch }
+    const p = new URLSearchParams()
+    if (next.specialty) p.set('specialty', next.specialty)
+    if (next.city) p.set('city', next.city)
+    if (next.maxPrice !== undefined) p.set('maxPrice', String(next.maxPrice))
+    if (next.minRating !== undefined) p.set('minRating', String(next.minRating))
+    setParams(p, { replace: true })
+  }
 
   const { data: doctors = [], isLoading } = useDoctors(filters)
   // Filtres prix/note ignorés côté cabinet : ils portent sur un praticien
   // précis, pas sur l'établissement dans son ensemble.
   const { data: clinics = [], isLoading: clinicsLoading } = useClinicsSearch(filters)
-
-  useEffect(() => {
-    if (!initializedRef.current) { initializedRef.current = true; return }
-    setFilters(f => ({
-      ...f,
-      specialty: params.get('specialty') ?? '',
-      city:      params.get('city') ?? '',
-    }))
-  }, [params])
 
   return (
     <div className="min-h-screen bg-[#FFFAF0]">
@@ -49,25 +52,32 @@ export default function SearchPage() {
           <div className="card p-4">
             <h3 className="font-semibold text-sm text-gray-900 mb-3">Filtres</h3>
 
-            <label className="block text-xs font-medium text-gray-500 mb-1">Prix max (€)</label>
-            <input type="number" min={0} max={500}
-              value={filters.maxPrice ?? ''}
-              onChange={e => setFilters(f => ({ ...f, maxPrice: e.target.value ? +e.target.value : undefined }))}
-              className="input text-sm py-2" placeholder="Tous les prix" />
+            <label className="block text-xs font-medium text-gray-500 mb-1">Prix max</label>
+            <div className="flex items-baseline justify-between mb-1">
+              <span className="text-[11px] text-gray-400">0 €</span>
+              <span className="text-sm font-medium text-sage-500">
+                {filters.maxPrice === undefined ? '200 €+' : `${filters.maxPrice} €`}
+              </span>
+              <span className="text-[11px] text-gray-400">200 €+</span>
+            </div>
+            <input type="range" min={0} max={200} step={10}
+              value={filters.maxPrice ?? 200}
+              onChange={e => {
+                const v = +e.target.value
+                updateFilters({ maxPrice: v >= 200 ? undefined : v })
+              }}
+              className="w-full accent-sage-500 mb-2" />
 
             <label className="block text-xs font-medium text-gray-500 mb-1 mt-3">Note minimum</label>
             <select value={filters.minRating ?? ''}
-              onChange={e => setFilters(f => ({ ...f, minRating: e.target.value ? +e.target.value : undefined }))}
+              onChange={e => updateFilters({ minRating: e.target.value ? +e.target.value : undefined })}
               className="input text-sm py-2">
               <option value="">Toutes les notes</option>
               <option value="4">4+ étoiles</option>
               <option value="4.5">4.5+ étoiles</option>
             </select>
 
-            <button onClick={() => {
-                setFilters({ specialty: '', city: '', maxPrice: undefined, minRating: undefined })
-                navigate('/search')
-              }}
+            <button onClick={() => setParams(new URLSearchParams(), { replace: true })}
               className="btn-secondary w-full text-sm py-2 mt-3">
               Réinitialiser
             </button>
