@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
 import RichTextEditor from '@/components/ui/RichTextEditor'
+import { PRACTITIONER_TYPES, getPractitionerType } from '@/lib/practitionerTypes'
 
 export default function ProfilPage() {
   const { user, profile, signOut } = useAuthStore()
@@ -58,7 +59,7 @@ export default function ProfilPage() {
   const [emergencyPhone, setEmergencyPhone] = useState('')
 
   // Champs praticien
-  const [specialty, setSpecialty]   = useState('')
+  const [practitionerTypeId, setPractitionerTypeId] = useState('')
   const [bio, setBio]               = useState('')
   const [city, setCity]             = useState('')
   const [address, setAddress]       = useState('')
@@ -81,7 +82,8 @@ export default function ProfilPage() {
 
   useEffect(() => {
     if (doctor) {
-      setSpecialty(doctor.specialty || '')
+      const matched = PRACTITIONER_TYPES.find(p => p.label === doctor.specialty)
+      setPractitionerTypeId(matched?.id ?? (doctor.specialty ? 'autre' : ''))
       setBio(doctor.bio || '')
       setCity(doctor.city || '')
       setAddress(doctor.address || '')
@@ -104,7 +106,7 @@ export default function ProfilPage() {
       })
       if (isDoctor) {
         await updateDoctor.mutateAsync({
-          specialty,
+          specialty: getPractitionerType(practitionerTypeId)?.label ?? '',
           bio,
           city,
           address,
@@ -210,9 +212,13 @@ export default function ProfilPage() {
               <h2 className="font-semibold text-gray-900 mb-4">🩺 Informations professionnelles</h2>
               <div className="mb-3">
                 <label className="text-xs text-gray-500">Spécialité / Activité</label>
-                <input className="input text-sm mt-1" value={specialty}
-                  onChange={e => setSpecialty(e.target.value)}
-                  placeholder="Ex : Toiletteur, Vétérinaire, Palefrenier…" />
+                <select className="input text-sm mt-1" value={practitionerTypeId}
+                  onChange={e => setPractitionerTypeId(e.target.value)}>
+                  <option value="" disabled>Sélectionnez votre profession</option>
+                  {PRACTITIONER_TYPES.map(type => (
+                    <option key={type.id} value={type.id}>{type.icon} {type.label}</option>
+                  ))}
+                </select>
               </div>
               <div className="mb-3">
                 <label className="text-xs text-gray-500 block mb-1">Bio / Présentation</label>
