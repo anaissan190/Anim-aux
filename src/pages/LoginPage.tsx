@@ -34,7 +34,11 @@ export default function LoginPage() {
     }
 
     if (authError) {
-      setError('Email ou mot de passe incorrect')
+      const emailNotConfirmed = authError.code === 'email_not_confirmed'
+        || authError.message?.toLowerCase().includes('email not confirmed')
+      setError(emailNotConfirmed
+        ? 'Veuillez confirmer votre adresse email en cliquant sur le lien reçu par email avant de vous connecter.'
+        : 'Email ou mot de passe incorrect')
       setLoading(false)
       return
     }
