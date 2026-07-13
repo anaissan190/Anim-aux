@@ -4,6 +4,7 @@ import { supabase, getMyUserDataWithRetry } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/authStore'
 import type { User } from '@/types'
 import logoNavbar from '@/assets/logo-navbar.svg'
+import PasswordInput from '@/components/ui/PasswordInput'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -80,8 +81,8 @@ export default function LoginPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-                className="input" placeholder="••••••••" required />
+              <PasswordInput value={password} onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••" required />
             </div>
             <div className="flex justify-end">
               <Link to="/forgot-password" className="text-xs text-sage-600 hover:underline">

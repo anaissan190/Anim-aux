@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { supabase } from '@/lib/supabase'
 import { PRACTITIONER_TYPES } from '@/lib/practitionerTypes'
 import logoNavbar from '@/assets/logo-navbar.svg'
+import PasswordInput from '@/components/ui/PasswordInput'
 
 const schema = z.object({
   first_name:        z.string().min(2, 'Prénom requis'),
@@ -155,9 +156,9 @@ export default function RegisterPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
-              <input type="password" value={form.password}
+              <PasswordInput value={form.password}
                 onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                className="input" placeholder="Minimum 8 caractères" />
+                placeholder="Minimum 8 caractères" />
               {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
             </div>
 
