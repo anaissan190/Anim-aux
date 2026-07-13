@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import logoNavbar from '@/assets/logo-navbar.svg'
+import PasswordInput from '@/components/ui/PasswordInput'
 
 export default function ResetPassword() {
   const navigate = useNavigate()
@@ -60,19 +61,15 @@ export default function ResetPassword() {
                 Choisissez un nouveau mot de passe pour votre compte.
               </p>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <input
-                  type="password"
+                <PasswordInput
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  className="input"
                   placeholder="Nouveau mot de passe (min. 8 caractères)"
                   required
                 />
-                <input
-                  type="password"
+                <PasswordInput
                   value={confirmPassword}
                   onChange={e => setConfirmPassword(e.target.value)}
-                  className="input"
                   placeholder="Confirmer le mot de passe"
                   required
                 />
