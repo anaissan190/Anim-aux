@@ -136,4 +136,7 @@ export interface SearchFilters {
   maxPrice?: number
   minRating?: number
   availableDate?: string
+  lat?: number
+  lng?: number
+  radiusKm?: number
 }

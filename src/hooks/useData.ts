@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/authStore'
 import type { SearchFilters, Appointment, AppointmentStatus } from '@/types'
 import { addMinutes } from 'date-fns'
+import { geocodeAddress } from '@/lib/geo'
 
 export function useDoctors(filters: SearchFilters = {}) {
   return useQuery({
@@ -1396,6 +1397,8 @@ export function useUpdateClinic() {
     mutationFn: async ({ id, name, address, city, phone, logo_url }: { id: string; name: string; address?: string; city?: string; phone?: string; logo_url?: string }) => {
       const updates: Record<string, any> = { name, address, city, phone }
       if (logo_url !== undefined) updates.logo_url = logo_url
+      const coords = await geocodeAddress(address, city)
+      if (coords) { updates.lat = coords.lat; updates.lng = coords.lng }
       const { error } = await supabase
         .from('clinics')
         .update(updates)
@@ -1497,9 +1500,14 @@ export function useUpdateDoctor() {
       consultation_price?: number
     }) => {
       if (!user) throw new Error('Utilisateur non connecté')
+      const payload: typeof updates & { lat?: number; lng?: number } = { ...updates }
+      if (updates.city !== undefined || updates.address !== undefined) {
+        const coords = await geocodeAddress(updates.address, updates.city)
+        if (coords) { payload.lat = coords.lat; payload.lng = coords.lng }
+      }
       const { error } = await supabase
         .from('doctors')
-        .update(updates)
+        .update(payload)
         .eq('user_id', user.id)
       if (error) throw error
     },

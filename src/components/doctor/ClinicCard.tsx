@@ -12,9 +12,10 @@ interface Props {
     specialties: string[] | null
     average_rating: number | null
   }
+  distanceKm?: number
 }
 
-export default function ClinicCard({ clinic }: Props) {
+export default function ClinicCard({ clinic, distanceKm }: Props) {
   return (
     <Link to={`/cabinet/${clinic.id}`}
       className="card p-5 hover:shadow-md transition-shadow flex gap-4 group border-2 border-sage-100">
@@ -51,7 +52,7 @@ export default function ClinicCard({ clinic }: Props) {
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
               </svg>
-              {clinic.city}
+              {clinic.city}{distanceKm !== undefined && ` · ${distanceKm.toFixed(1)} km`}
             </span>
           )}
         </div>

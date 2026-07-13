@@ -6,6 +6,7 @@ import DoctorCard from '@/components/doctor/DoctorCard'
 import ClinicCard from '@/components/doctor/ClinicCard'
 import { useDoctors, useClinicsSearch } from '@/hooks/useData'
 import type { SearchFilters } from '@/types'
+import { haversineKm } from '@/lib/geo'
 
 export default function SearchPage() {
   // L'URL est l'unique source de vérité pour les filtres (specialty, city,
@@ -20,7 +21,11 @@ export default function SearchPage() {
     city:      params.get('city') ?? '',
     maxPrice:  params.get('maxPrice') ? +params.get('maxPrice')! : undefined,
     minRating: params.get('minRating') ? +params.get('minRating')! : undefined,
+    lat:       params.get('lat') ? +params.get('lat')! : undefined,
+    lng:       params.get('lng') ? +params.get('lng')! : undefined,
+    radiusKm:  params.get('radiusKm') ? +params.get('radiusKm')! : undefined,
   }
+  const hasLocation = filters.lat !== undefined && filters.lng !== undefined
 
   function updateFilters(patch: Partial<SearchFilters>) {
     const next = { ...filters, ...patch }
@@ -29,13 +34,41 @@ export default function SearchPage() {
     if (next.city) p.set('city', next.city)
     if (next.maxPrice !== undefined) p.set('maxPrice', String(next.maxPrice))
     if (next.minRating !== undefined) p.set('minRating', String(next.minRating))
+    if (next.lat !== undefined) p.set('lat', String(next.lat))
+    if (next.lng !== undefined) p.set('lng', String(next.lng))
+    if (next.radiusKm !== undefined) p.set('radiusKm', String(next.radiusKm))
     setParams(p, { replace: true })
   }
 
-  const { data: doctors = [], isLoading } = useDoctors(filters)
+  const { data: doctorsRaw = [], isLoading } = useDoctors(filters)
   // Filtres prix/note ignorés côté cabinet : ils portent sur un praticien
   // précis, pas sur l'établissement dans son ensemble.
-  const { data: clinics = [], isLoading: clinicsLoading } = useClinicsSearch(filters)
+  const { data: clinicsRaw = [], isLoading: clinicsLoading } = useClinicsSearch(filters)
+
+  // Tri/filtre par distance : calculé côté client (à vol d'oiseau) une fois
+  // qu'une position est active. Les entrées sans coordonnées (praticien pas
+  // encore geocodé) restent affichées en fin de liste, sauf si un rayon
+  // précis est demandé — on ne peut alors pas garantir qu'elles y soient.
+  function withDistance<T extends { lat?: number | null; lng?: number | null }>(items: T[]): (T & { distanceKm?: number })[] {
+    if (!hasLocation) return items
+    const withD = items.map(item => ({
+      ...item,
+      distanceKm: item.lat != null && item.lng != null
+        ? haversineKm(filters.lat!, filters.lng!, item.lat, item.lng)
+        : undefined,
+    }))
+    const filtered = filters.radiusKm !== undefined
+      ? withD.filter(item => item.distanceKm !== undefined && item.distanceKm <= filters.radiusKm!)
+      : withD
+    return filtered.sort((a, b) => {
+      if (a.distanceKm === undefined) return 1
+      if (b.distanceKm === undefined) return -1
+      return a.distanceKm - b.distanceKm
+    })
+  }
+
+  const doctors = withDistance(doctorsRaw)
+  const clinics = withDistance(clinicsRaw)
 
   return (
     <div className="min-h-screen bg-[#FFFAF0]">
@@ -76,6 +109,22 @@ export default function SearchPage() {
               <option value="4">4+ étoiles</option>
               <option value="4.5">4.5+ étoiles</option>
             </select>
+
+            {hasLocation && (
+              <>
+                <label className="block text-xs font-medium text-gray-500 mb-1 mt-3">Rayon autour de moi</label>
+                <select value={filters.radiusKm ?? ''}
+                  onChange={e => updateFilters({ radiusKm: e.target.value ? +e.target.value : undefined })}
+                  className="input text-sm py-2">
+                  <option value="">Toutes distances</option>
+                  <option value="5">5 km</option>
+                  <option value="10">10 km</option>
+                  <option value="25">25 km</option>
+                  <option value="50">50 km</option>
+                  <option value="100">100 km</option>
+                </select>
+              </>
+            )}
 
             <button onClick={() => setParams(new URLSearchParams(), { replace: true })}
               className="btn-secondary w-full text-sm py-2 mt-3">
@@ -121,7 +170,7 @@ export default function SearchPage() {
                     {clinics.length > 0 && (
                       <div className="space-y-3 mb-6">
                         <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Cabinets</h2>
-                        {clinics.map((c: any) => <ClinicCard key={c.id} clinic={c} />)}
+                        {clinics.map((c: any) => <ClinicCard key={c.id} clinic={c} distanceKm={c.distanceKm} />)}
                       </div>
                     )}
                     {doctors.length > 0 && (
@@ -129,7 +178,7 @@ export default function SearchPage() {
                         {clinics.length > 0 && (
                           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Praticiens</h2>
                         )}
-                        {doctors.map(d => <DoctorCard key={d.id} doctor={d} />)}
+                        {doctors.map(d => <DoctorCard key={d.id} doctor={d} distanceKm={d.distanceKm} />)}
                       </div>
                     )}
                   </>

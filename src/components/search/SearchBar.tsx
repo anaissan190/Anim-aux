@@ -16,6 +16,8 @@ export default function SearchBar({ large, initialSpecialty = '', initialCity = 
   const [city, setCity] = useState(initialCity)
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [locating, setLocating] = useState(false)
+  const [geoError, setGeoError] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const specialtiesRef = useRef<string[]>([])
 
@@ -48,7 +50,34 @@ export default function SearchBar({ large, initialSpecialty = '', initialCity = 
     const p = new URLSearchParams(currentParams)
     if (specialty) p.set('specialty', specialty); else p.delete('specialty')
     if (city) p.set('city', city); else p.delete('city')
+    p.delete('lat'); p.delete('lng'); p.delete('radiusKm')
     navigate(`/search?${p.toString()}`)
+  }
+
+  function handleLocate() {
+    setGeoError('')
+    if (!navigator.geolocation) {
+      setGeoError("La géolocalisation n'est pas prise en charge par ce navigateur.")
+      return
+    }
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        setLocating(false)
+        setCity('')
+        const p = new URLSearchParams(currentParams)
+        if (specialty) p.set('specialty', specialty); else p.delete('specialty')
+        p.delete('city')
+        p.set('lat', String(pos.coords.latitude))
+        p.set('lng', String(pos.coords.longitude))
+        navigate(`/search?${p.toString()}`)
+      },
+      () => {
+        setLocating(false)
+        setGeoError('Impossible de récupérer votre position. Vérifiez les autorisations de localisation de votre navigateur.')
+      },
+      { timeout: 10000 }
+    )
   }
 
   return (
@@ -90,8 +119,31 @@ export default function SearchBar({ large, initialSpecialty = '', initialCity = 
           value={city}
           onChange={e => setCity(e.target.value)}
           placeholder="Ville"
-          className={`input pl-9 ${large ? 'py-4 text-base' : ''}`}
+          className={`input pl-9 pr-10 ${large ? 'py-4 text-base' : ''}`}
         />
+        <button
+          type="button"
+          onClick={handleLocate}
+          disabled={locating}
+          title="Autour de moi"
+          aria-label="Utiliser ma position actuelle"
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-sage-600 disabled:opacity-50"
+        >
+          {locating ? (
+            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+            </svg>
+          ) : (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8a4 4 0 100 8 4 4 0 000-8z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2v3m0 14v3M2 12h3m14 0h3" />
+            </svg>
+          )}
+        </button>
+        {geoError && (
+          <p className="absolute top-full left-0 mt-1 text-xs text-red-500 max-w-xs">{geoError}</p>
+        )}
       </div>
 
       <button type="submit" className={`btn-primary whitespace-nowrap ${large ? 'py-4 px-8 text-base' : ''}`}>
