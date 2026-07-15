@@ -115,20 +115,22 @@ export default function SearchPage() {
               <option value="4.5">4.5+ étoiles</option>
             </select>
 
-            {hasLocation && (
-              <>
-                <label className="block text-xs font-medium text-gray-500 mb-1 mt-3">Rayon autour de moi</label>
-                <select value={filters.radiusKm ?? ''}
-                  onChange={e => updateFilters({ radiusKm: e.target.value ? +e.target.value : undefined })}
-                  className="input text-sm py-2">
-                  <option value="">Toutes distances</option>
-                  <option value="5">5 km</option>
-                  <option value="10">10 km</option>
-                  <option value="25">25 km</option>
-                  <option value="50">50 km</option>
-                  <option value="100">100 km</option>
-                </select>
-              </>
+            <label className="block text-xs font-medium text-gray-500 mb-1 mt-3">Rayon autour de moi</label>
+            <select value={filters.radiusKm ?? ''}
+              disabled={!hasLocation}
+              onChange={e => updateFilters({ radiusKm: e.target.value ? +e.target.value : undefined })}
+              className="input text-sm py-2 disabled:opacity-50 disabled:cursor-not-allowed">
+              <option value="">Toutes distances</option>
+              <option value="5">5 km</option>
+              <option value="10">10 km</option>
+              <option value="25">25 km</option>
+              <option value="50">50 km</option>
+              <option value="100">100 km</option>
+            </select>
+            {!hasLocation && (
+              <p className="text-[11px] text-gray-400 mt-1">
+                Clique sur 📍 dans le champ ville pour l'activer.
+              </p>
             )}
 
             <button onClick={() => setParams(new URLSearchParams(), { replace: true })}
