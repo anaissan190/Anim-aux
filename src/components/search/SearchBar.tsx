@@ -18,6 +18,7 @@ export default function SearchBar({ large, initialSpecialty = '', initialCity = 
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [locating, setLocating] = useState(false)
   const [geoError, setGeoError] = useState('')
+  const [showCityOptions, setShowCityOptions] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const specialtiesRef = useRef<string[]>([])
 
@@ -56,6 +57,7 @@ export default function SearchBar({ large, initialSpecialty = '', initialCity = 
 
   function handleLocate() {
     setGeoError('')
+    setShowCityOptions(false)
     if (!navigator.geolocation) {
       setGeoError("La géolocalisation n'est pas prise en charge par ce navigateur.")
       return
@@ -118,6 +120,8 @@ export default function SearchBar({ large, initialSpecialty = '', initialCity = 
         <input
           value={city}
           onChange={e => setCity(e.target.value)}
+          onFocus={() => setShowCityOptions(true)}
+          onBlur={() => setTimeout(() => setShowCityOptions(false), 150)}
           placeholder="Ville"
           className={`input pl-9 pr-10 ${large ? 'py-4 text-base' : ''}`}
         />
@@ -141,6 +145,20 @@ export default function SearchBar({ large, initialSpecialty = '', initialCity = 
             </svg>
           )}
         </button>
+        {showCityOptions && (
+          <div className="absolute top-full left-0 right-0 mt-1 card shadow-lg z-50 overflow-hidden">
+            <button type="button"
+              onClick={handleLocate}
+              disabled={locating}
+              className="w-full flex items-center gap-2 text-left px-4 py-2.5 text-sm font-medium text-sage-600 hover:bg-sage-50 transition-colors disabled:opacity-50">
+              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8a4 4 0 100 8 4 4 0 000-8z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2v3m0 14v3M2 12h3m14 0h3" />
+              </svg>
+              {locating ? 'Localisation en cours...' : 'Autour de moi'}
+            </button>
+          </div>
+        )}
         {geoError && (
           <p className="absolute top-full left-0 mt-1 text-xs text-red-500 max-w-xs">{geoError}</p>
         )}
