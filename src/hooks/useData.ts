@@ -10,6 +10,12 @@ export function useDoctors(filters: SearchFilters = {}, enabled: boolean = true)
   return useQuery({
     queryKey: ['doctors', filters],
     queryFn: async () => {
+      // Un praticien membre d'un cabinet ne doit pas apparaître comme
+      // résultat individuel — on ne doit le trouver qu'en passant par la
+      // fiche du cabinet (voir get_clinic_member_doctor_ids, migration 044).
+      const { data: clinicMembers } = await supabase.rpc('get_clinic_member_doctor_ids')
+      const excludedIds = (clinicMembers ?? []).map((m: any) => m.doctor_id)
+
       let q = supabase
         .from('doctors')
         .select('*, profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url)')
@@ -17,6 +23,7 @@ export function useDoctors(filters: SearchFilters = {}, enabled: boolean = true)
       if (filters.city)      q = q.ilike('city', `%${filters.city}%`)
       if (filters.maxPrice)  q = q.lte('consultation_price', filters.maxPrice)
       if (filters.minRating) q = q.gte('average_rating', filters.minRating)
+      if (excludedIds.length > 0) q = q.not('id', 'in', `(${excludedIds.join(',')})`)
       const { data, error } = await q.order('average_rating', { ascending: false })
       if (error) throw error
       return data
