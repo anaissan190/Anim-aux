@@ -6,7 +6,7 @@ import type { SearchFilters, Appointment, AppointmentStatus } from '@/types'
 import { addMinutes } from 'date-fns'
 import { geocodeAddress } from '@/lib/geo'
 
-export function useDoctors(filters: SearchFilters = {}) {
+export function useDoctors(filters: SearchFilters = {}, enabled: boolean = true) {
   return useQuery({
     queryKey: ['doctors', filters],
     queryFn: async () => {
@@ -21,6 +21,7 @@ export function useDoctors(filters: SearchFilters = {}) {
       if (error) throw error
       return data
     },
+    enabled,
   })
 }
 
@@ -28,7 +29,7 @@ export function useDoctors(filters: SearchFilters = {}) {
 // leur propre "profil" dans les résultats de recherche — voir RPC
 // search_clinics (migration 034), nécessaire car la RLS sur `clinics` ne
 // laisse pas un visiteur lire les cabinets dont il n'est pas membre.
-export function useClinicsSearch(filters: SearchFilters = {}) {
+export function useClinicsSearch(filters: SearchFilters = {}, enabled: boolean = true) {
   return useQuery({
     queryKey: ['clinics-search', filters.city, filters.specialty],
     queryFn: async () => {
@@ -39,6 +40,7 @@ export function useClinicsSearch(filters: SearchFilters = {}) {
       if (error) throw error
       return data ?? []
     },
+    enabled,
   })
 }
 

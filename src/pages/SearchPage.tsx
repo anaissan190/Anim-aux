@@ -26,6 +26,11 @@ export default function SearchPage() {
     radiusKm:  params.get('radiusKm') ? +params.get('radiusKm')! : undefined,
   }
   const hasLocation = filters.lat !== undefined && filters.lng !== undefined
+  // Sans spécialité, ville ni géolocalisation, il n'y a aucun critère de
+  // recherche réel (prix/note seuls ne comptent pas, ils affinent une
+  // recherche existante) : on n'interroge même pas la base, pour ne
+  // jamais afficher "tout le monde" par défaut après une réinitialisation.
+  const hasCriteria = !!(filters.specialty || filters.city || hasLocation)
 
   function updateFilters(patch: Partial<SearchFilters>) {
     const next = { ...filters, ...patch }
@@ -40,10 +45,10 @@ export default function SearchPage() {
     setParams(p, { replace: true })
   }
 
-  const { data: doctorsRaw = [], isLoading } = useDoctors(filters)
+  const { data: doctorsRaw = [], isLoading } = useDoctors(filters, hasCriteria)
   // Filtres prix/note ignorés côté cabinet : ils portent sur un praticien
   // précis, pas sur l'établissement dans son ensemble.
-  const { data: clinicsRaw = [], isLoading: clinicsLoading } = useClinicsSearch(filters)
+  const { data: clinicsRaw = [], isLoading: clinicsLoading } = useClinicsSearch(filters, hasCriteria)
 
   // Tri/filtre par distance : calculé côté client (à vol d'oiseau) une fois
   // qu'une position est active. Les entrées sans coordonnées (praticien pas
@@ -142,11 +147,17 @@ export default function SearchPage() {
               <>
                 <div className="flex items-center justify-between mb-4">
                   <p className="text-sm text-gray-500">
-                    {loading ? 'Recherche...' : `${total} résultat${total > 1 ? 's' : ''} trouvé${total > 1 ? 's' : ''}`}
+                    {!hasCriteria ? '' : loading ? 'Recherche...' : `${total} résultat${total > 1 ? 's' : ''} trouvé${total > 1 ? 's' : ''}`}
                   </p>
                 </div>
 
-                {loading ? (
+                {!hasCriteria ? (
+                  <div className="card p-12 text-center">
+                    <div className="text-4xl mb-4">🔍</div>
+                    <h3 className="font-semibold text-gray-900 mb-2">Lancez une recherche</h3>
+                    <p className="text-sm text-gray-500">Saisissez une spécialité, une ville, ou utilisez la géolocalisation.</p>
+                  </div>
+                ) : loading ? (
                   <div className="space-y-3">
                     {[...Array(4)].map((_, i) => (
                       <div key={i} className="card p-5 flex gap-4 animate-pulse">
