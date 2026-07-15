@@ -625,13 +625,16 @@ export function useDoctorReviews(doctorId: string) {
   return useQuery({
     queryKey: ['reviews', doctorId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('reviews')
-        .select('*, profiles!reviews_patient_id_profiles_fkey(first_name, last_name, avatar_url)')
-        .eq('doctor_id', doctorId)
-        .order('created_at', { ascending: false })
+      // Passe par une RPC SECURITY DEFINER : le prénom/nom du patient
+      // (profiles) est privé par RLS, un embed direct renvoie toujours
+      // `null` pour l'auteur même si l'avis lui-même est public.
+      const { data, error } = await supabase.rpc('get_doctor_reviews', { p_doctor_id: doctorId })
       if (error) throw error
-      return data
+      const rows: any[] = data ?? []
+      return rows.map(r => ({
+        ...r,
+        profiles: { first_name: r.patient_first_name, last_name: r.patient_last_name, avatar_url: r.patient_avatar_url },
+      }))
     },
     enabled: !!doctorId,
   })
