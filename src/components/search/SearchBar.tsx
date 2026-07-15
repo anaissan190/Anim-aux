@@ -123,28 +123,8 @@ export default function SearchBar({ large, initialSpecialty = '', initialCity = 
           onFocus={() => setShowCityOptions(true)}
           onBlur={() => setTimeout(() => setShowCityOptions(false), 150)}
           placeholder="Ville"
-          className={`input pl-9 pr-10 ${large ? 'py-4 text-base' : ''}`}
+          className={`input pl-9 ${large ? 'py-4 text-base' : ''}`}
         />
-        <button
-          type="button"
-          onClick={handleLocate}
-          disabled={locating}
-          title="Autour de moi"
-          aria-label="Utiliser ma position actuelle"
-          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-sage-600 disabled:opacity-50"
-        >
-          {locating ? (
-            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-            </svg>
-          ) : (
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8a4 4 0 100 8 4 4 0 000-8z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2v3m0 14v3M2 12h3m14 0h3" />
-            </svg>
-          )}
-        </button>
         {showCityOptions && (
           <div className="absolute top-full left-0 right-0 mt-1 card shadow-lg z-50 overflow-hidden">
             <button type="button"
