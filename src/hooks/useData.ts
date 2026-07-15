@@ -190,6 +190,11 @@ export function useAvailableSlots(doctorId: string, date: Date | null) {
         end: new Date(b.end_at).getTime(),
       }))
 
+      // Délai de battement minimum avant un RDV : un créneau qui commence
+      // dans moins de 15 min n'est plus réservable (le reste de la
+      // journée reste visible normalement).
+      const minStart = Date.now() + 15 * 60 * 1000
+
       const slots: Date[] = []
       for (const a of avail) {
         const [sh, sm] = a.start_time.split(':').map(Number)
@@ -201,7 +206,7 @@ export function useAvailableSlots(doctorId: string, date: Date | null) {
         while (cur < end) {
           const t = cur.getTime()
           const isBlocked = blockedRanges.some(r => t >= r.start && t < r.end)
-          if (!bookedTimes.has(t) && !isBlocked) slots.push(new Date(cur))
+          if (t >= minStart && !bookedTimes.has(t) && !isBlocked) slots.push(new Date(cur))
           cur = addMinutes(cur, a.slot_duration_minutes)
         }
       }
