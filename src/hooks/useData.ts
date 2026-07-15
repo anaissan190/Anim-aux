@@ -14,19 +14,28 @@ export function useDoctors(filters: SearchFilters = {}, enabled: boolean = true)
       // résultat individuel — on ne doit le trouver qu'en passant par la
       // fiche du cabinet (voir get_clinic_member_doctor_ids, migration 044).
       const { data: clinicMembers } = await supabase.rpc('get_clinic_member_doctor_ids')
-      const excludedIds = (clinicMembers ?? []).map((m: any) => m.doctor_id)
+      const excludedIds = new Set((clinicMembers ?? []).map((m: any) => m.doctor_id))
 
       let q = supabase
         .from('doctors')
         .select('*, profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url)')
-      if (filters.specialty) q = q.ilike('specialty', `%${filters.specialty}%`)
       if (filters.city)      q = q.ilike('city', `%${filters.city}%`)
       if (filters.maxPrice)  q = q.lte('consultation_price', filters.maxPrice)
       if (filters.minRating) q = q.gte('average_rating', filters.minRating)
-      if (excludedIds.length > 0) q = q.not('id', 'in', `(${excludedIds.join(',')})`)
       const { data, error } = await q.order('average_rating', { ascending: false })
       if (error) throw error
-      return data
+
+      // Filtre spécialité/nom appliqué côté client : un praticien trouvé
+      // par SON NOM reste visible même en cabinet, seule la recherche par
+      // spécialité masque les membres de cabinet (voir plus haut).
+      const term = filters.specialty?.trim().toLowerCase()
+      if (!term) return (data ?? []).filter((d: any) => !excludedIds.has(d.id))
+
+      return (data ?? []).filter((d: any) => {
+        const fullName = `${d.profiles?.first_name ?? ''} ${d.profiles?.last_name ?? ''}`.toLowerCase()
+        if (fullName.includes(term)) return true
+        return (d.specialty ?? '').toLowerCase().includes(term) && !excludedIds.has(d.id)
+      })
     },
     enabled,
   })
