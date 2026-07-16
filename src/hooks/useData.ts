@@ -1360,7 +1360,16 @@ export function useInviteClinicSecretary() {
         body: { clinicId, email },
       })
       if (error) {
-        const message = (data as any)?.error ?? error.message
+        // Sur une réponse non-2xx, supabase-js laisse `data` à null et met le
+        // corps réel de la réponse dans `error.context` (un objet Response) —
+        // sans ça, l'utilisateur ne voit que le message générique "Edge
+        // Function returned a non-2xx status code" au lieu de l'erreur précise
+        // renvoyée par la fonction (cabinet introuvable, email déjà utilisé...).
+        let message = error.message
+        try {
+          const body = await (error as any).context?.json()
+          if (body?.error) message = body.error
+        } catch {}
         throw new Error(message)
       }
       if (data?.ok === false) throw new Error(data.error ?? "Erreur lors de l'invitation")
