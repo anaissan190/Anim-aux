@@ -162,9 +162,21 @@ export default function BookPage() {
               <strong>{selectedSlot && format(selectedSlot, "EEEE d MMMM 'à' HH:mm", { locale: fr })}</strong>
             </p>
 
-            {animals.length > 0 && (
+            {animals.length === 0 ? (
+              <div className="mb-5 bg-amber-50 border border-amber-200 rounded-xl p-4 text-center">
+                <p className="text-sm text-amber-800 font-medium mb-1">
+                  Aucun animal enregistré
+                </p>
+                <p className="text-xs text-amber-700 mb-3">
+                  Vous devez ajouter au moins un animal à votre profil avant de prendre rendez-vous.
+                </p>
+                <Link to="/dashboard/patient" className="btn-primary text-sm px-4 py-2 inline-block">
+                  Ajouter un animal
+                </Link>
+              </div>
+            ) : (
               <div className="mb-5">
-                <p className="text-sm font-medium text-gray-700 mb-2">Pour quel(s) animal(aux) ? (facultatif, plusieurs possibles)</p>
+                <p className="text-sm font-medium text-gray-700 mb-2">Pour quel(s) animal(aux) ? (obligatoire, plusieurs possibles)</p>
                 {animals.length > 5 && (
                   <input
                     type="text"
@@ -241,9 +253,16 @@ export default function BookPage() {
               </p>
             </div>
 
+            {animals.length > 0 && animalIds.length === 0 && (
+              <p className="text-xs text-red-500 mt-3 text-center">Sélectionnez au moins un animal pour continuer.</p>
+            )}
+
             <div className="flex gap-3 mt-5">
               <button className="btn-secondary flex-1" onClick={() => setStep(1)}>← Retour</button>
-              <button className="btn-primary flex-1" onClick={() => setStep(3)}>Récapitulatif →</button>
+              <button className="btn-primary flex-1" onClick={() => setStep(3)}
+                disabled={animalIds.length === 0}>
+                Récapitulatif →
+              </button>
             </div>
           </div>
         )}

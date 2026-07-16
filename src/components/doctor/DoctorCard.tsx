@@ -31,9 +31,10 @@ export default function DoctorCard({ doctor, distanceKm }: Props) {
             </h3>
             <p className="text-sm text-sage-600 font-medium">{doctor.specialty}</p>
           </div>
-          {doctor.is_verified && (
-            <span className="badge-green flex-shrink-0">✓ Vérifié</span>
-          )}
+          <div className="flex flex-col items-end gap-1 flex-shrink-0">
+            {doctor.is_verified && <span className="badge-green">✓ Vérifié</span>}
+            {doctor.home_visit && <span className="badge-green">🏠 À domicile</span>}
+          </div>
         </div>
 
         <div className="flex items-center gap-3 mt-1.5">

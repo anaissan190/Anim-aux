@@ -20,8 +20,10 @@ export function useDoctors(filters: SearchFilters = {}, enabled: boolean = true)
         .from('doctors')
         .select('*, profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url)')
       if (filters.city)      q = q.ilike('city', `%${filters.city}%`)
-      if (filters.maxPrice)  q = q.lte('consultation_price', filters.maxPrice)
+      if (filters.maxPrice !== undefined) q = q.lte('consultation_price', filters.maxPrice)
       if (filters.minRating) q = q.gte('average_rating', filters.minRating)
+      if (filters.species && filters.species.length > 0) q = q.overlaps('accepted_species', filters.species)
+      if (filters.homeVisit) q = q.eq('home_visit', true)
       const { data, error } = await q.order('average_rating', { ascending: false })
       if (error) throw error
 
@@ -29,16 +31,83 @@ export function useDoctors(filters: SearchFilters = {}, enabled: boolean = true)
       // par SON NOM reste visible même en cabinet, seule la recherche par
       // spécialité masque les membres de cabinet (voir plus haut).
       const term = filters.specialty?.trim().toLowerCase()
-      if (!term) return (data ?? []).filter((d: any) => !excludedIds.has(d.id))
+      const filtered = !term
+        ? (data ?? []).filter((d: any) => !excludedIds.has(d.id))
+        : (data ?? []).filter((d: any) => {
+            const fullName = `${d.profiles?.first_name ?? ''} ${d.profiles?.last_name ?? ''}`.toLowerCase()
+            if (fullName.includes(term)) return true
+            return (d.specialty ?? '').toLowerCase().includes(term) && !excludedIds.has(d.id)
+          })
 
-      return (data ?? []).filter((d: any) => {
-        const fullName = `${d.profiles?.first_name ?? ''} ${d.profiles?.last_name ?? ''}`.toLowerCase()
-        if (fullName.includes(term)) return true
-        return (d.specialty ?? '').toLowerCase().includes(term) && !excludedIds.has(d.id)
-      })
+      if (!filters.availability) return filtered
+
+      // "Disponible aujourd'hui" / "Disponible dans la semaine" : garde
+      // uniquement les praticiens ayant au moins un créneau réellement
+      // réservable (hors RDV pris/congés) sur la période choisie — même
+      // logique que useAvailableSlots, étendue sur une plage de jours
+      // plutôt qu'une seule journée.
+      const from = new Date()
+      const to = new Date(from)
+      if (filters.availability === 'today') to.setHours(23, 59, 59, 999)
+      else to.setDate(to.getDate() + 7)
+      const results = await Promise.all(
+        filtered.map(async (d: any) => ({ d, ok: await hasAvailabilityInRange(d.id, from, to) }))
+      )
+      return results.filter(r => r.ok).map(r => r.d)
     },
     enabled,
   })
+}
+
+// Existe-t-il au moins un créneau réservable pour ce praticien entre `from`
+// et `to` ? Réutilise le même principe que useAvailableSlots (disponibilités
+// récurrentes moins RDV pris moins congés moins battement de 15 min), mais
+// s'arrête au premier créneau libre trouvé plutôt que de tous les lister.
+async function hasAvailabilityInRange(doctorId: string, from: Date, to: Date): Promise<boolean> {
+  const { data: avail } = await supabase
+    .from('availabilities')
+    .select('*')
+    .eq('doctor_id', doctorId)
+    .eq('is_active', true)
+  if (!avail || avail.length === 0) return false
+
+  const { data: booked } = await supabase.rpc('get_booked_slots', {
+    p_doctor_id: doctorId,
+    p_from: from.toISOString(),
+    p_to: to.toISOString(),
+  })
+  const bookedTimes = new Set((booked || []).map((a: any) => new Date(a.start_at).getTime()))
+
+  const { data: blocked } = await supabase
+    .from('blocked_slots')
+    .select('start_at, end_at')
+    .eq('doctor_id', doctorId)
+    .lt('start_at', to.toISOString())
+    .gt('end_at', from.toISOString())
+  const blockedRanges = (blocked || []).map((b: any) => ({
+    start: new Date(b.start_at).getTime(),
+    end: new Date(b.end_at).getTime(),
+  }))
+
+  const minStart = Date.now() + 15 * 60 * 1000
+
+  for (let day = new Date(from); day < to; day.setDate(day.getDate() + 1)) {
+    const dayOfWeek = day.getDay()
+    for (const a of avail) {
+      if (a.day_of_week !== dayOfWeek) continue
+      const [sh, sm] = a.start_time.split(':').map(Number)
+      const [eh, em] = a.end_time.split(':').map(Number)
+      let cur = new Date(day); cur.setHours(sh, sm, 0, 0)
+      const end = new Date(day); end.setHours(eh, em, 0, 0)
+      while (cur < end) {
+        const t = cur.getTime()
+        const isBlocked = blockedRanges.some(r => t >= r.start && t < r.end)
+        if (t >= minStart && !bookedTimes.has(t) && !isBlocked) return true
+        cur = addMinutes(cur, a.slot_duration_minutes)
+      }
+    }
+  }
+  return false
 }
 
 // Recherche de cabinets (équipe de plusieurs praticiens), groupés comme
@@ -1569,6 +1638,8 @@ export function useUpdateDoctor() {
       city?: string
       address?: string
       consultation_price?: number
+      accepted_species?: string[]
+      home_visit?: boolean
     }) => {
       if (!user) throw new Error('Utilisateur non connecté')
       const payload: typeof updates & { lat?: number; lng?: number } = { ...updates }

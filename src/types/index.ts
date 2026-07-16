@@ -43,6 +43,8 @@ export interface Doctor {
   city?: string
   lat?: number
   lng?: number
+  accepted_species?: string[]
+  home_visit?: boolean
   is_verified: boolean
   average_rating: number
   review_count: number
@@ -139,4 +141,7 @@ export interface SearchFilters {
   lat?: number
   lng?: number
   radiusKm?: number
+  species?: string[]
+  homeVisit?: boolean
+  availability?: 'today' | 'week'
 }

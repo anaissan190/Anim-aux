@@ -132,6 +132,17 @@ export const SPECIES_GROUPS: SpeciesGroup[] = [
   },
 ]
 
+// Catégories larges utilisées pour le filtre "Espèces acceptées" côté
+// recherche/profil praticien — volontairement plus grossières que
+// SPECIES_GROUPS (qui sert aux fiches animal précises).
+export const PRACTICE_SPECIES_OPTIONS = [
+  { id: 'Chiens',  icon: '🐕' },
+  { id: 'Chats',   icon: '🐈' },
+  { id: 'NAC',     icon: '🐇' },
+  { id: 'Équidés', icon: '🐴' },
+  { id: 'Oiseaux', icon: '🦜' },
+] as const
+
 // Liste plate de toutes les espèces
 export const ALL_SPECIES = SPECIES_GROUPS.flatMap(g => g.species)
 

@@ -7,6 +7,7 @@ import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 import { PRACTITIONER_TYPES, getPractitionerType } from '@/lib/practitionerTypes'
+import { PRACTICE_SPECIES_OPTIONS } from '@/lib/animalSpecies'
 
 export default function ProfilPage() {
   const { user, profile, signOut } = useAuthStore()
@@ -16,6 +17,7 @@ export default function ProfilPage() {
   const updateDoctor = useUpdateDoctor()
   const deleteAccount = useDeleteAccount()
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
   const [deleteError, setDeleteError] = useState('')
   const [photoUploading, setPhotoUploading] = useState(false)
   const [photoError, setPhotoError] = useState('')
@@ -48,6 +50,12 @@ export default function ProfilPage() {
     }
   }
 
+  function closeDeleteModal() {
+    setConfirmDelete(false)
+    setDeleteConfirmText('')
+    setDeleteError('')
+  }
+
   const isDoctor = user?.role === 'doctor'
 
   // Champs profil
@@ -64,6 +72,8 @@ export default function ProfilPage() {
   const [city, setCity]             = useState('')
   const [address, setAddress]       = useState('')
   const [price, setPrice]           = useState('')
+  const [acceptedSpecies, setAcceptedSpecies] = useState<string[]>([])
+  const [homeVisit, setHomeVisit]   = useState(false)
 
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -88,8 +98,14 @@ export default function ProfilPage() {
       setCity(doctor.city || '')
       setAddress(doctor.address || '')
       setPrice(doctor.consultation_price?.toString() || '')
+      setAcceptedSpecies(doctor.accepted_species || [])
+      setHomeVisit(doctor.home_visit || false)
     }
   }, [doctor])
+
+  function toggleSpecies(id: string) {
+    setAcceptedSpecies(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id])
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -111,6 +127,8 @@ export default function ProfilPage() {
           city,
           address,
           consultation_price: price ? parseInt(price) : undefined,
+          accepted_species: acceptedSpecies,
+          home_visit: homeVisit,
         })
       }
       setSuccess(true)
@@ -236,11 +254,31 @@ export default function ProfilPage() {
                     onChange={e => setPrice(e.target.value)} placeholder="50" type="number" min="0" />
                 </div>
               </div>
-              <div>
+              <div className="mb-3">
                 <label className="text-xs text-gray-500">Adresse</label>
                 <input className="input text-sm mt-1" value={address}
                   onChange={e => setAddress(e.target.value)} placeholder="12 rue des Lilas, 75001 Paris" />
               </div>
+              <div className="mb-3">
+                <label className="text-xs text-gray-500 block mb-1.5">Espèces acceptées</label>
+                <div className="flex flex-wrap gap-2">
+                  {PRACTICE_SPECIES_OPTIONS.map(opt => (
+                    <button type="button" key={opt.id} onClick={() => toggleSpecies(opt.id)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                        acceptedSpecies.includes(opt.id)
+                          ? 'bg-sage-500 border-sage-500 text-white'
+                          : 'bg-white border-gray-200 text-gray-600 hover:border-sage-300'
+                      }`}>
+                      {opt.icon} {opt.id}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                <input type="checkbox" checked={homeVisit} onChange={e => setHomeVisit(e.target.checked)}
+                  className="accent-sage-500 w-4 h-4" />
+                🏠 Je me déplace à domicile
+              </label>
             </div>
           )}
 
@@ -264,27 +302,52 @@ export default function ProfilPage() {
             La suppression de votre compte est définitive : profil, rendez-vous, animaux et dossiers de santé,
             messages, avis{isDoctor ? ', cabinet dont vous êtes le créateur' : ''} — tout sera effacé sans possibilité de retour en arrière.
           </p>
-          {deleteError && <p className="text-red-500 text-sm mb-3">{deleteError}</p>}
-          {!confirmDelete ? (
-            <button onClick={() => setConfirmDelete(true)}
-              className="text-sm text-red-500 hover:underline font-medium">
-              Supprimer mon compte
-            </button>
-          ) : (
-            <div className="space-y-3">
-              <p className="text-sm text-gray-700 font-medium">Es-tu sûr(e) ? Cette action est irréversible.</p>
+          <button onClick={() => setConfirmDelete(true)}
+            className="text-sm text-red-500 hover:underline font-medium">
+            Supprimer mon compte
+          </button>
+        </div>
+
+        {/* ÉCRAN INTERMÉDIAIRE DE CONFIRMATION — étape de friction volontaire
+            avant une action irréversible : oblige à taper "SUPPRIMER" plutôt
+            qu'un simple clic de confirmation. */}
+        {confirmDelete && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-2xl p-6 max-w-md w-full">
+              <div className="text-4xl mb-3 text-center">⚠️</div>
+              <h2 className="text-lg font-bold text-gray-900 text-center mb-2">
+                Supprimer définitivement votre compte ?
+              </h2>
+              <p className="text-sm text-gray-500 text-center mb-4">
+                Cette action est <strong>irréversible</strong>. Seront effacés sans retour en arrière :
+              </p>
+              <ul className="text-sm text-gray-600 list-disc list-inside space-y-1 mb-5 bg-red-50 rounded-xl p-4">
+                <li>Votre profil et vos informations personnelles</li>
+                <li>Tous vos rendez-vous (passés et à venir)</li>
+                <li>Vos animaux et leurs dossiers de santé</li>
+                <li>Vos messages et avis</li>
+                {isDoctor && <li>Le cabinet dont vous êtes le créateur, le cas échéant</li>}
+              </ul>
+              <label className="text-xs text-gray-500 block mb-1.5">
+                Tapez <strong>SUPPRIMER</strong> pour confirmer
+              </label>
+              <input className="input text-sm mb-4" value={deleteConfirmText}
+                onChange={e => setDeleteConfirmText(e.target.value)}
+                placeholder="SUPPRIMER" autoFocus />
+              {deleteError && <p className="text-red-500 text-sm mb-3">{deleteError}</p>}
               <div className="flex gap-2">
-                <button onClick={handleDeleteAccount} disabled={deleteAccount.isPending}
-                  className="btn-primary bg-red-500 hover:bg-red-600 text-sm px-4 py-2">
-                  {deleteAccount.isPending ? 'Suppression...' : 'Oui, supprimer définitivement'}
-                </button>
-                <button onClick={() => setConfirmDelete(false)} className="btn-secondary text-sm px-4 py-2">
+                <button onClick={closeDeleteModal} className="btn-secondary flex-1 text-sm py-2">
                   Annuler
+                </button>
+                <button onClick={handleDeleteAccount}
+                  disabled={deleteConfirmText !== 'SUPPRIMER' || deleteAccount.isPending}
+                  className="btn-primary bg-red-500 hover:bg-red-600 flex-1 text-sm py-2">
+                  {deleteAccount.isPending ? 'Suppression...' : 'Supprimer définitivement'}
                 </button>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -8,6 +8,7 @@ import ClinicCard from '@/components/doctor/ClinicCard'
 import { useDoctors, useClinicsSearch } from '@/hooks/useData'
 import type { SearchFilters } from '@/types'
 import { haversineKm } from '@/lib/geo'
+import { PRACTICE_SPECIES_OPTIONS } from '@/lib/animalSpecies'
 
 export default function SearchPage() {
   // L'URL est l'unique source de vérité pour les filtres (specialty, city,
@@ -25,13 +26,20 @@ export default function SearchPage() {
     lat:       params.get('lat') ? +params.get('lat')! : undefined,
     lng:       params.get('lng') ? +params.get('lng')! : undefined,
     radiusKm:  params.get('radiusKm') ? +params.get('radiusKm')! : undefined,
+    species:   params.get('species') ? params.get('species')!.split(',') : undefined,
+    homeVisit: params.get('homeVisit') === '1' ? true : undefined,
+    availability: params.get('availability') === 'today' ? 'today' : params.get('availability') === 'week' ? 'week' : undefined,
   }
   const hasLocation = filters.lat !== undefined && filters.lng !== undefined
-  // Sans spécialité, ville ni géolocalisation, il n'y a aucun critère de
-  // recherche réel (prix/note seuls ne comptent pas, ils affinent une
-  // recherche existante) : on n'interroge même pas la base, pour ne
-  // jamais afficher "tout le monde" par défaut après une réinitialisation.
-  const hasCriteria = !!(filters.specialty || filters.city || hasLocation)
+  // Sans spécialité, ville, géolocalisation ni filtre secondaire, il n'y a
+  // aucun critère de recherche réel (prix/note seuls ne comptent pas, ils
+  // affinent une recherche existante) : on n'interroge même pas la base,
+  // pour ne jamais afficher "tout le monde" par défaut après une réinitialisation.
+  const hasCriteria = !!(
+    filters.specialty || filters.city || hasLocation ||
+    (filters.species && filters.species.length > 0) ||
+    filters.homeVisit || filters.availability
+  )
 
   function updateFilters(patch: Partial<SearchFilters>) {
     const next = { ...filters, ...patch }
@@ -43,7 +51,16 @@ export default function SearchPage() {
     if (next.lat !== undefined) p.set('lat', String(next.lat))
     if (next.lng !== undefined) p.set('lng', String(next.lng))
     if (next.radiusKm !== undefined) p.set('radiusKm', String(next.radiusKm))
+    if (next.species && next.species.length > 0) p.set('species', next.species.join(','))
+    if (next.homeVisit) p.set('homeVisit', '1')
+    if (next.availability) p.set('availability', next.availability)
     setParams(p, { replace: true })
+  }
+
+  function toggleSpecies(id: string) {
+    const current = filters.species ?? []
+    const next = current.includes(id) ? current.filter(s => s !== id) : [...current, id]
+    updateFilters({ species: next.length > 0 ? next : undefined })
   }
 
   const { data: doctorsRaw = [], isLoading } = useDoctors(filters, hasCriteria)
@@ -136,6 +153,40 @@ export default function SearchPage() {
                 Clique sur 📍 dans le champ ville pour l'activer.
               </p>
             )}
+
+            <div className="border-t border-dashed border-sage-200 my-3 pt-3">
+              <p className="text-[10px] font-semibold text-sage-600 uppercase tracking-wide mb-2">Nouveau</p>
+
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">Espèces acceptées</label>
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {PRACTICE_SPECIES_OPTIONS.map(opt => (
+                  <button key={opt.id} onClick={() => toggleSpecies(opt.id)}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors ${
+                      (filters.species ?? []).includes(opt.id)
+                        ? 'bg-sage-500 border-sage-500 text-white'
+                        : 'bg-white border-gray-200 text-gray-600 hover:border-sage-300'
+                    }`}>
+                    {opt.icon} {opt.id}
+                  </button>
+                ))}
+              </div>
+
+              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer mb-2">
+                <input type="checkbox" checked={filters.homeVisit ?? false}
+                  onChange={e => updateFilters({ homeVisit: e.target.checked ? true : undefined })}
+                  className="accent-sage-500 w-4 h-4" />
+                🏠 Se déplace à domicile
+              </label>
+
+              <label className="block text-xs font-medium text-gray-500 mb-1 mt-3">📅 Disponibilité</label>
+              <select value={filters.availability ?? ''}
+                onChange={e => updateFilters({ availability: e.target.value ? e.target.value as 'today' | 'week' : undefined })}
+                className="input text-sm py-2">
+                <option value="">Peu importe</option>
+                <option value="today">Aujourd'hui</option>
+                <option value="week">Dans la semaine</option>
+              </select>
+            </div>
 
             <button onClick={() => setParams(new URLSearchParams(), { replace: true })}
               className="btn-secondary w-full text-sm py-2 mt-3">
