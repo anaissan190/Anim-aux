@@ -9,9 +9,9 @@ import RichTextEditor from '@/components/ui/RichTextEditor'
 import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
-import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments } from '@/hooks/useData'
+import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useDoctorServices, useAddDoctorService, useDeleteDoctorService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
-import { PRACTITIONER_TYPES, getPractitionerType } from '@/lib/practitionerTypes'
+import { PRACTITIONER_TYPES } from '@/lib/practitionerTypes'
 import { SPECIES_EMOJI } from '@/lib/animalSpecies'
 import { type DoctorTab as Tab, ALL_DOCTOR_TAB_IDS as ALL_TAB_IDS } from '@/lib/doctorDashboardTabs'
 
@@ -66,6 +66,7 @@ export default function DoctorDashboard() {
   const { data: clinicMembers = [] }  = useClinicMembers(clinic?.id)
   const { data: clinicAppts = [], error: clinicApptsError } = useClinicAppointments(clinic?.id)
   const { data: clinicServices = [] } = useClinicServices(clinic?.id)
+  const { data: doctorServices = [] } = useDoctorServices(doctor?.id)
   const { data: clinicAvailabilities = [] } = useClinicAvailabilities(clinic?.id)
   const { data: clinicBlockedAll = [] }     = useClinicBlockedSlotsAll(clinic?.id)
   const [calendarWeekOffset, setCalendarWeekOffset] = useState(0)
@@ -79,6 +80,8 @@ export default function DoctorDashboard() {
   const joinClinic        = useJoinClinic()
   const addClinicService  = useAddClinicService()
   const deleteClinicService = useDeleteClinicService()
+  const addDoctorService  = useAddDoctorService()
+  const deleteDoctorService = useDeleteDoctorService()
   const updateClinic      = useUpdateClinic()
   const removeClinicMember = useRemoveClinicMember()
   const [removeMemberError, setRemoveMemberError] = useState('')
@@ -357,13 +360,6 @@ export default function DoctorDashboard() {
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [user])
-  const practitionerType = getPractitionerType(doctor?.specialty
-    ? PRACTITIONER_TYPES.find(p => p.label === doctor.specialty)?.id ?? ''
-    : '')
-  const defaultServices = (practitionerType?.services ?? []).map((s, i) => ({
-    id: String(i + 1), name: s.name, price: null as number | null, duration: s.duration
-  }))
-  const [services, setServices] = useState(defaultServices)
   const [newService, setNewService] = useState({ name: '', price: '', duration: '' })
   const [addingService, setAddingService] = useState(false)
 
@@ -758,26 +754,30 @@ export default function DoctorDashboard() {
                         onChange={e => setNewService(s => ({ ...s, duration: e.target.value }))} />
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={() => {
-                        if (newService.name) {
-                          setServices(s => [...s, { id: Date.now().toString(), name: newService.name, price: newService.price ? Number(newService.price) : null, duration: newService.duration }])
-                          setNewService({ name: '', price: '', duration: '' })
-                          setAddingService(false)
-                        }
+                      <button onClick={async () => {
+                        if (!newService.name || !doctor) return
+                        await addDoctorService.mutateAsync({
+                          doctorId: doctor.id,
+                          name: newService.name,
+                          price: newService.price ? Number(newService.price) : null,
+                          duration: newService.duration,
+                        })
+                        setNewService({ name: '', price: '', duration: '' })
+                        setAddingService(false)
                       }} className="btn-primary text-sm px-4 py-2">Ajouter</button>
                       <button onClick={() => setAddingService(false)} className="btn-secondary text-sm px-4 py-2">Annuler</button>
                     </div>
                   </div>
                 )}
 
-                {services.length === 0 ? (
+                {doctorServices.length === 0 ? (
                   <div className="bg-white rounded-2xl p-10 text-center border border-gray-100">
                     <p className="text-3xl mb-3">💰</p>
                     <p className="text-gray-500 text-sm">Aucune prestation renseignée.</p>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    {services.map(service => (
+                    {doctorServices.map((service: any) => (
                       <div key={service.id} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center justify-between">
                         <div>
                           <p className="font-medium text-gray-900">{service.name}</p>
@@ -787,7 +787,7 @@ export default function DoctorDashboard() {
                           <span className="text-lg font-bold text-sage-600">
                             {service.price !== null ? `${service.price} €` : 'Sur devis'}
                           </span>
-                          <button onClick={() => setServices(s => s.filter(sv => sv.id !== service.id))}
+                          <button onClick={() => doctor && deleteDoctorService.mutate({ id: service.id, doctorId: doctor.id })}
                             className="text-gray-300 hover:text-red-400 transition-colors text-lg">✕</button>
                         </div>
                       </div>

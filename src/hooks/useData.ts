@@ -1417,6 +1417,51 @@ export function useDeleteClinicService() {
   })
 }
 
+// Tarifs personnels d'un praticien SANS cabinet — même table que les
+// tarifs de cabinet (clinic_services), mais avec clinic_id = null. Écriture
+// directe (pas de RPC nécessaire) car il n'y a pas de logique
+// cross-utilisateur à vérifier : le RLS suffit (voir migration 045).
+export function useDoctorServices(doctorId?: string) {
+  return useQuery({
+    queryKey: ['doctor_services', doctorId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('clinic_services')
+        .select('*')
+        .eq('doctor_id', doctorId!)
+        .is('clinic_id', null)
+        .order('created_at')
+      if (error) throw error
+      return data ?? []
+    },
+    enabled: !!doctorId,
+  })
+}
+
+export function useAddDoctorService() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ doctorId, name, price, duration }: { doctorId: string; name: string; price: number | null; duration: string }) => {
+      const { error } = await supabase
+        .from('clinic_services')
+        .insert({ doctor_id: doctorId, clinic_id: null, name, price, duration })
+      if (error) throw new Error(error.message)
+    },
+    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['doctor_services', vars.doctorId] }),
+  })
+}
+
+export function useDeleteDoctorService() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id }: { id: string; doctorId: string }) => {
+      const { error } = await supabase.from('clinic_services').delete().eq('id', id)
+      if (error) throw new Error(error.message)
+    },
+    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['doctor_services', vars.doctorId] }),
+  })
+}
+
 export function useUpdateClinic() {
   const qc = useQueryClient()
   return useMutation({
