@@ -9,7 +9,7 @@ import RichTextEditor from '@/components/ui/RichTextEditor'
 import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
-import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useDoctorServices, useAddDoctorService, useDeleteDoctorService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments } from '@/hooks/useData'
+import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useDoctorServices, useAddDoctorService, useDeleteDoctorService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments, useInviteClinicSecretary, useClinicStaffList } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { PRACTITIONER_TYPES } from '@/lib/practitionerTypes'
 import { SPECIES_EMOJI } from '@/lib/animalSpecies'
@@ -64,6 +64,7 @@ export default function DoctorDashboard() {
   const [clinicLogoUploading, setClinicLogoUploading] = useState(false)
   const [clinicLogoError, setClinicLogoError] = useState('')
   const { data: clinicMembers = [] }  = useClinicMembers(clinic?.id)
+  const { data: clinicStaff = [] }    = useClinicStaffList(clinic?.id)
   const { data: clinicAppts = [], error: clinicApptsError } = useClinicAppointments(clinic?.id)
   const { data: clinicServices = [] } = useClinicServices(clinic?.id)
   const { data: doctorServices = [] } = useDoctorServices(doctor?.id)
@@ -85,6 +86,10 @@ export default function DoctorDashboard() {
   const updateClinic      = useUpdateClinic()
   const removeClinicMember = useRemoveClinicMember()
   const [removeMemberError, setRemoveMemberError] = useState('')
+  const inviteSecretary = useInviteClinicSecretary()
+  const [secretaryEmail, setSecretaryEmail] = useState('')
+  const [secretaryInviteError, setSecretaryInviteError] = useState('')
+  const [secretaryInviteSuccess, setSecretaryInviteSuccess] = useState(false)
   const { user, signOut } = useAuthStore()
   const navigate = useNavigate()
   const isClinicAdmin = clinic?.owner_id === user?.id
@@ -1143,6 +1148,62 @@ export default function DoctorDashboard() {
                         ))}
                       </div>
                     </div>
+
+                    {/* Secrétariat */}
+                    {isClinicAdmin && (
+                      <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                        <h3 className="font-semibold text-gray-900 mb-1">Secrétariat</h3>
+                        <p className="text-xs text-gray-400 mb-4">
+                          Donnez un accès dédié à votre équipe administrative, sans partager vos identifiants.
+                        </p>
+
+                        <div className="flex gap-2 mb-4">
+                          <input type="email" className="input text-sm flex-1"
+                            placeholder="email@secretaire.fr"
+                            value={secretaryEmail}
+                            onChange={e => { setSecretaryEmail(e.target.value); setSecretaryInviteSuccess(false) }} />
+                          <button
+                            onClick={async () => {
+                              if (!secretaryEmail || !clinic?.id) return
+                              setSecretaryInviteError('')
+                              setSecretaryInviteSuccess(false)
+                              try {
+                                await inviteSecretary.mutateAsync({ clinicId: clinic.id, email: secretaryEmail })
+                                setSecretaryEmail('')
+                                setSecretaryInviteSuccess(true)
+                              } catch (e: any) {
+                                setSecretaryInviteError(e.message ?? "Erreur lors de l'envoi des identifiants.")
+                              }
+                            }}
+                            disabled={inviteSecretary.isPending}
+                            className="btn-primary text-sm px-4 py-2 whitespace-nowrap">
+                            {inviteSecretary.isPending ? 'Envoi...' : 'Envoyer les identifiants'}
+                          </button>
+                        </div>
+                        {secretaryInviteError && <p className="text-red-500 text-sm mb-3">{secretaryInviteError}</p>}
+                        {secretaryInviteSuccess && (
+                          <p className="text-sage-600 text-sm mb-3">✓ Identifiants envoyés par email.</p>
+                        )}
+
+                        {clinicStaff.length > 0 && (
+                          <div className="space-y-3 pt-3 border-t border-gray-100">
+                            {clinicStaff.map((s: any) => (
+                              <div key={s.user_id} className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-full bg-sage-100 flex items-center justify-center text-sage-700 font-bold text-sm">
+                                  {s.first_name?.[0]?.toUpperCase() ?? '?'}
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-gray-800">
+                                    {s.first_name && s.last_name ? `${s.first_name} ${s.last_name}` : s.email}
+                                  </p>
+                                  <p className="text-xs text-gray-400">{s.email}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Sélecteur de jour */}
                     <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">

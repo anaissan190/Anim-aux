@@ -1344,6 +1344,92 @@ export function useClinicMembers(clinicId?: string) {
   })
 }
 
+// ── SECRÉTARIAT DE CABINET ────────────────────────────────────────────────
+
+// Crée l'accès secrétariat (Edge Function invite-clinic-secretary : compte
+// créé côté serveur avec un mot de passe généré, jamais choisi par la
+// secrétaire, envoyé par email avec le propriétaire du cabinet en copie).
+// Contrairement à l'email de confirmation de RDV, l'appel n'est pas
+// best-effort : c'est l'action elle-même, ses erreurs doivent remonter à
+// l'écran (email déjà utilisé, etc.).
+export function useInviteClinicSecretary() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ clinicId, email }: { clinicId: string; email: string }) => {
+      const { data, error } = await supabase.functions.invoke('invite-clinic-secretary', {
+        body: { clinicId, email },
+      })
+      if (error) {
+        const message = (data as any)?.error ?? error.message
+        throw new Error(message)
+      }
+      if (data?.ok === false) throw new Error(data.error ?? "Erreur lors de l'invitation")
+      return data
+    },
+    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['clinic_staff_list', vars.clinicId] }),
+  })
+}
+
+// Liste des secrétaires déjà invitées (onglet Secrétariat du tableau de
+// bord praticien) — RPC réservée au propriétaire du cabinet.
+export function useClinicStaffList(clinicId?: string) {
+  return useQuery({
+    queryKey: ['clinic_staff_list', clinicId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_clinic_staff_list', { p_clinic_id: clinicId })
+      if (error) throw error
+      return data ?? []
+    },
+    enabled: !!clinicId,
+  })
+}
+
+// Cabinet de la secrétaire connectée, pour amorcer son tableau de bord dédié.
+export function useMyClinicStaffInfo() {
+  const { user } = useAuthStore()
+  return useQuery({
+    queryKey: ['my-clinic-staff-info', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_my_clinic_staff_info')
+      if (error) throw error
+      return data?.[0] ?? null
+    },
+    enabled: !!user && user.role === 'secretary',
+  })
+}
+
+// Agenda du cabinet (tous les praticiens membres) sur une période — RPC
+// autorisée au propriétaire, à un membre secrétariat, ou à un praticien du
+// même cabinet (voir migration 048).
+export function useClinicAgenda(clinicId?: string, from?: Date, to?: Date) {
+  return useQuery({
+    queryKey: ['clinic-agenda', clinicId, from?.toDateString(), to?.toDateString()],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_clinic_agenda', {
+        p_clinic_id: clinicId,
+        p_from: from!.toISOString(),
+        p_to: to!.toISOString(),
+      })
+      if (error) throw error
+      return data ?? []
+    },
+    enabled: !!clinicId && !!from && !!to,
+  })
+}
+
+// Patientèle agrégée du cabinet — même autorisation que useClinicAgenda.
+export function useClinicPatients(clinicId?: string) {
+  return useQuery({
+    queryKey: ['clinic-patients', clinicId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_clinic_patients', { p_clinic_id: clinicId })
+      if (error) throw error
+      return data ?? []
+    },
+    enabled: !!clinicId,
+  })
+}
+
 export function useClinicAppointments(clinicId?: string) {
   return useQuery({
     queryKey: ['clinic_appointments', clinicId],

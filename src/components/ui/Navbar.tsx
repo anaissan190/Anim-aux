@@ -4,7 +4,7 @@ import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-do
 import { useAuthStore } from '@/lib/authStore'
 import NotificationBell from './NotificationBell'
 import { DOCTOR_TABS } from '@/lib/doctorDashboardTabs'
-import { useConversationPartners } from '@/hooks/useData'
+import { useConversationPartners, useMyClinicStaffInfo } from '@/hooks/useData'
 import logoNavbar from '@/assets/logo-navbar.svg'
 
 export default function Navbar() {
@@ -33,10 +33,12 @@ export default function Navbar() {
   // aux autres mises à jour : RDV confirmé/annulé, avis, etc.).
   const { data: conversationPartners = [] } = useConversationPartners()
   const unreadMessages = conversationPartners.reduce((sum, p) => sum + (p.unread_count || 0), 0)
+  const { data: staffInfo } = useMyClinicStaffInfo()
 
   const dashboardPath =
-    user?.role === 'doctor' ? '/dashboard/doctor' :
-    user?.role === 'admin'  ? '/dashboard/admin'  :
+    user?.role === 'doctor'    ? '/dashboard/doctor' :
+    user?.role === 'admin'     ? '/dashboard/admin'  :
+    user?.role === 'secretary' ? '/dashboard/secretariat' :
     '/dashboard/patient'
 
   // Onglet actif du dashboard praticien, dérivé directement de l'URL — pour
@@ -77,7 +79,7 @@ export default function Navbar() {
             d'accueil (accessible via le logo) — plus de raccourci direct
             "Trouver un praticien" ici. Messages et Profil sont gérés plus
             loin, en icônes à côté de la cloche. */}
-        {user && user.role !== 'doctor' && (
+        {user && user.role !== 'doctor' && user.role !== 'secretary' && (
           <div className="flex-1 min-w-0 flex items-center justify-center gap-1.5 overflow-x-auto scrollbar-hide">
             <Link to={dashboardPath}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors
@@ -90,8 +92,23 @@ export default function Navbar() {
           </div>
         )}
 
+        {/* Secrétariat : espace dédié au cabinet uniquement, sans les liens
+            patient/praticien (recherche, messages, profil personnel...). */}
+        {user?.role === 'secretary' && (
+          <div className="flex-1 min-w-0 flex items-center justify-center">
+            <span className="text-sm text-gray-600 font-medium truncate">
+              {staffInfo?.name ?? 'Cabinet'} <span className="text-gray-400 font-normal">· Espace secrétariat</span>
+            </span>
+          </div>
+        )}
+
         <div className="flex items-center gap-3 ml-auto flex-shrink-0">
-          {user ? (
+          {user?.role === 'secretary' ? (
+            <button onClick={() => signOut().then(() => navigate('/'))}
+              className="text-sm text-gray-500 hover:text-red-500 transition-colors">
+              Déconnexion
+            </button>
+          ) : user ? (
             <>
               {/* Accès rapide Messages à côté de la cloche, pour tous les
                   rôles — même traitement que le praticien. Pastille rouge

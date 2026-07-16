@@ -61,6 +61,8 @@ export default function LoginPage() {
 
       if (finalUser.role === 'doctor') {
         navigate('/dashboard/doctor', { replace: true })
+      } else if (finalUser.role === 'secretary') {
+        navigate('/dashboard/secretariat', { replace: true })
       } else {
         navigate('/dashboard/patient', { replace: true })
       }

@@ -1,7 +1,7 @@
 // src/types/index.ts
 // Types TypeScript alignés sur le schéma Supabase
 
-export type UserRole = 'patient' | 'doctor' | 'admin'
+export type UserRole = 'patient' | 'doctor' | 'admin' | 'secretary'
 export type AppointmentStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'no_show'
 export type NotificationType =
   | 'appointment_confirmed'

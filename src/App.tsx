@@ -15,6 +15,7 @@ import ResetPassword from '@/pages/ResetPassword'
 import PatientDashboard from '@/pages/PatientDashboard'
 import DoctorDashboard from '@/pages/DoctorDashboard'
 import AdminDashboard from '@/pages/AdminDashboard'
+import SecretaryDashboard from '@/pages/SecretaryDashboard'
 import MessagesPage from '@/pages/MessagesPage'
 import AnimalHealthPage from '@/pages/AnimalHealthPage'
 import PatientDocumentsPage from '@/pages/PatientDocumentsPage'
@@ -80,6 +81,9 @@ export default function App() {
         } />
         <Route path="/dashboard/admin" element={
           <ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>
+        } />
+        <Route path="/dashboard/secretariat" element={
+          <ProtectedRoute role="secretary"><SecretaryDashboard /></ProtectedRoute>
         } />
         <Route path="/messages" element={
           <ProtectedRoute><MessagesPage /></ProtectedRoute>
