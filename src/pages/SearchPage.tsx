@@ -79,12 +79,12 @@ export default function SearchPage() {
   return (
     <div className="min-h-screen bg-[#FFFAF0]">
       <Navbar />
-      <div className="max-w-5xl mx-auto px-4 pt-4">
-        <BackButton fallback="/" />
-      </div>
       <div className="bg-white border-b py-4 px-4">
-        <div className="max-w-5xl mx-auto">
-          <SearchBar initialSpecialty={filters.specialty} initialCity={filters.city} />
+        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center gap-3 [&>button]:mb-0">
+          <BackButton fallback="/" />
+          <div className="flex-1">
+            <SearchBar initialSpecialty={filters.specialty} initialCity={filters.city} />
+          </div>
         </div>
       </div>
 
