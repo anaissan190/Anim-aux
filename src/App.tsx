@@ -82,8 +82,12 @@ export default function App() {
         <Route path="/dashboard/admin" element={
           <ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>
         } />
+        {/* Pas de restriction de rôle : un praticien ou un patient peut
+            aussi avoir un accès secrétariat en plus de son rôle principal
+            (voir clinic_staff) — la page elle-même gère le cas où le
+            compte connecté n'est rattaché à aucun cabinet. */}
         <Route path="/dashboard/secretariat" element={
-          <ProtectedRoute role="secretary"><SecretaryDashboard /></ProtectedRoute>
+          <ProtectedRoute><SecretaryDashboard /></ProtectedRoute>
         } />
         <Route path="/messages" element={
           <ProtectedRoute><MessagesPage /></ProtectedRoute>

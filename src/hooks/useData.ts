@@ -1393,7 +1393,11 @@ export function useClinicStaffList(clinicId?: string) {
   })
 }
 
-// Cabinet de la secrétaire connectée, pour amorcer son tableau de bord dédié.
+// Cabinet lié au compte connecté via clinic_staff, pour amorcer son
+// tableau de bord dédié. Un compte praticien ou patient peut aussi avoir
+// un accès secrétariat en plus de son rôle principal (les deux ne sont
+// pas exclusifs) — pas de restriction sur user.role ici, c'est la
+// présence d'une ligne clinic_staff qui détermine l'accès.
 export function useMyClinicStaffInfo() {
   const { user } = useAuthStore()
   return useQuery({
@@ -1403,7 +1407,7 @@ export function useMyClinicStaffInfo() {
       if (error) throw error
       return data?.[0] ?? null
     },
-    enabled: !!user && user.role === 'secretary',
+    enabled: !!user,
   })
 }
 

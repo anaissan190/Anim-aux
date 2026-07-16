@@ -62,24 +62,42 @@ Deno.serve(async (req) => {
       return new Response('Interdit', { status: 403, headers: corsHeaders })
     }
 
-    const password = generatePassword()
-    const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
-      email: email,
-      password: password,
-      email_confirm: true,
-      user_metadata: { role: 'secretary' },
-    })
-    if (createErr || !created || !created.user) {
-      const alreadyExists = createErr && createErr.message && createErr.message.toLowerCase().includes('already been registered')
-      return new Response(
-        JSON.stringify({ ok: false, error: alreadyExists ? 'Cet email est deja utilise par un compte existant.' : ((createErr && createErr.message) || 'Erreur lors de la creation du compte') }),
-        { status: alreadyExists ? 409 : 500, headers: Object.assign({}, corsHeaders, { 'Content-Type': 'application/json' }) }
-      )
+    // Un email deja utilise (praticien ou patient existant) n'est pas
+    // bloquant : les roles ne sont pas exclusifs, on rattache simplement
+    // ce compte existant au cabinet comme secretariat, sans nouveau mot
+    // de passe. Seul un email totalement nouveau declenche une creation
+    // de compte dediee.
+    const { data: existingUser } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('email', email)
+      .maybeSingle()
+
+    let userId: string
+    let password: string | null = null
+
+    if (existingUser) {
+      userId = existingUser.id
+    } else {
+      password = generatePassword()
+      const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+        email: email,
+        password: password,
+        email_confirm: true,
+        user_metadata: { role: 'secretary' },
+      })
+      if (createErr || !created || !created.user) {
+        return new Response(
+          JSON.stringify({ ok: false, error: (createErr && createErr.message) || 'Erreur lors de la creation du compte' }),
+          { status: 500, headers: Object.assign({}, corsHeaders, { 'Content-Type': 'application/json' }) }
+        )
+      }
+      userId = created.user.id
     }
 
     const { error: staffErr } = await supabaseAdmin
       .from('clinic_staff')
-      .insert({ clinic_id: clinicId, user_id: created.user.id, invited_by: user.id })
+      .upsert({ clinic_id: clinicId, user_id: userId, invited_by: user.id }, { onConflict: 'clinic_id,user_id' })
     if (staffErr) {
       console.error('clinic_staff insert error', staffErr)
       return new Response(JSON.stringify({ ok: false, error: staffErr.message }), {
@@ -93,17 +111,26 @@ Deno.serve(async (req) => {
     const loginUrl = (Deno.env.get('APP_URL') || 'https://anim-aux-a2qn.vercel.app') + '/login'
 
     if (resendKey) {
-      const html = '<div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #1f2937;">'
-        + '<h2 style="color: #d9670b;">Acces a l espace cabinet</h2>'
-        + '<p>Bonjour,</p>'
-        + '<p>Un acces dedie au cabinet <strong>' + clinic.name + '</strong> vient d etre cree sur Animeaux.</p>'
-        + '<ul style="line-height: 1.8;">'
-        + '<li><strong>Email de connexion :</strong> ' + email + '</li>'
-        + '<li><strong>Mot de passe :</strong> ' + password + '</li>'
-        + '</ul>'
-        + '<p><a href="' + loginUrl + '" style="color: #d9670b;">Se connecter a Animeaux</a></p>'
-        + '<p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Le proprietaire du cabinet est en copie de cet email.</p>'
-        + '</div>'
+      const html = password
+        ? '<div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #1f2937;">'
+          + '<h2 style="color: #d9670b;">Acces a l espace cabinet</h2>'
+          + '<p>Bonjour,</p>'
+          + '<p>Un acces dedie au cabinet <strong>' + clinic.name + '</strong> vient d etre cree sur Animeaux.</p>'
+          + '<ul style="line-height: 1.8;">'
+          + '<li><strong>Email de connexion :</strong> ' + email + '</li>'
+          + '<li><strong>Mot de passe :</strong> ' + password + '</li>'
+          + '</ul>'
+          + '<p><a href="' + loginUrl + '" style="color: #d9670b;">Se connecter a Animeaux</a></p>'
+          + '<p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Le proprietaire du cabinet est en copie de cet email.</p>'
+          + '</div>'
+        : '<div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #1f2937;">'
+          + '<h2 style="color: #d9670b;">Acces secretariat ajoute</h2>'
+          + '<p>Bonjour,</p>'
+          + '<p>Votre compte Animeaux existant (' + email + ') a maintenant acces a l espace secretariat du cabinet <strong>' + clinic.name + '</strong>.</p>'
+          + '<p>Connectez-vous avec votre mot de passe habituel : un lien "Espace secretariat" apparait desormais dans votre menu.</p>'
+          + '<p><a href="' + loginUrl + '" style="color: #d9670b;">Se connecter a Animeaux</a></p>'
+          + '<p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Le proprietaire du cabinet est en copie de cet email.</p>'
+          + '</div>'
 
       const resendRes = await fetch('https://api.resend.com/emails', {
         method: 'POST',
