@@ -72,19 +72,13 @@ export default function Navbar() {
           </div>
         )}
 
-        {/* Propriétaire d'animal (et admin) : mêmes catégories directement à
-            la suite du logo, dans le même style que le praticien. Messages
-            et Profil sont gérés plus loin, en icônes à côté de la cloche. */}
+        {/* Propriétaire d'animal (et admin) : à l'image de Doctolib, la
+            recherche ne se fait plus que depuis la barre de l'écran
+            d'accueil (accessible via le logo) — plus de raccourci direct
+            "Trouver un praticien" ici. Messages et Profil sont gérés plus
+            loin, en icônes à côté de la cloche. */}
         {user && user.role !== 'doctor' && (
           <div className="flex-1 min-w-0 flex items-center justify-center gap-1.5 overflow-x-auto scrollbar-hide">
-            <Link to="/search"
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors
-                ${location.pathname === '/search'
-                  ? 'bg-sage-500 text-white'
-                  : 'bg-sage-50 text-sage-600 hover:bg-sage-100'}`}>
-              <span>🔍</span>
-              <span className="hidden lg:inline">Trouver un praticien</span>
-            </Link>
             <Link to={dashboardPath}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors
                 ${location.pathname === dashboardPath
