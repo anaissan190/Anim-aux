@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import Navbar from '@/components/ui/Navbar'
+import BackButton from '@/components/ui/BackButton'
 import { useConversation, useSendMessage, useConversationPartners, useMarkConversationRead } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { supabase } from '@/lib/supabase'
@@ -199,7 +200,10 @@ export default function MessagesPage() {
   return (
     <div className="min-h-screen bg-[#FFFAF0] flex flex-col">
       <Navbar />
-      <div className="flex-1 max-w-5xl w-full mx-auto px-4 py-6 flex gap-4" style={{ height: 'calc(100vh - 4rem)' }}>
+      <div className="max-w-5xl w-full mx-auto px-4 pt-6 flex-shrink-0">
+        <BackButton fallback="/dashboard/patient" />
+      </div>
+      <div className="flex-1 min-h-0 max-w-5xl w-full mx-auto px-4 pb-6 flex gap-4">
 
         {/* Liste contacts */}
         <aside className="w-64 flex-shrink-0 card overflow-y-auto">

@@ -1,6 +1,7 @@
 // src/pages/SearchPage.tsx
 import { useSearchParams } from 'react-router-dom'
 import Navbar from '@/components/ui/Navbar'
+import BackButton from '@/components/ui/BackButton'
 import SearchBar from '@/components/search/SearchBar'
 import DoctorCard from '@/components/doctor/DoctorCard'
 import ClinicCard from '@/components/doctor/ClinicCard'
@@ -78,6 +79,9 @@ export default function SearchPage() {
   return (
     <div className="min-h-screen bg-[#FFFAF0]">
       <Navbar />
+      <div className="max-w-5xl mx-auto px-4 pt-4">
+        <BackButton fallback="/" />
+      </div>
       <div className="bg-white border-b py-4 px-4">
         <div className="max-w-5xl mx-auto">
           <SearchBar initialSpecialty={filters.specialty} initialCity={filters.city} />
