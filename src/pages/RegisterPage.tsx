@@ -26,6 +26,7 @@ export default function RegisterPage() {
     role: defaultRole as 'patient' | 'doctor',
     practitioner_type: '',
   })
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [errors, setErrors]       = useState<Record<string, string>>({})
   const [loading, setLoading]     = useState(false)
   const [success, setSuccess]     = useState(false)
@@ -37,6 +38,11 @@ export default function RegisterPage() {
 
     if (form.role === 'doctor' && !form.practitioner_type) {
       setErrors({ practitioner_type: 'Veuillez choisir votre type de profession' })
+      return
+    }
+
+    if (!acceptedTerms) {
+      setErrors({ terms: 'Vous devez accepter les CGU et la politique de confidentialité' })
       return
     }
 
@@ -160,6 +166,25 @@ export default function RegisterPage() {
                 onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
                 placeholder="Minimum 8 caractères" />
               {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
+            </div>
+
+            <div>
+              <label className="flex items-start gap-2 text-sm text-gray-600 cursor-pointer">
+                <input type="checkbox" checked={acceptedTerms}
+                  onChange={e => { setAcceptedTerms(e.target.checked); setErrors(errs => ({ ...errs, terms: '' })) }}
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-sage-600 focus:ring-sage-500" />
+                <span>
+                  J'accepte les{' '}
+                  <Link to="/cgu" target="_blank" className="text-sage-600 font-medium hover:underline">
+                    Conditions Générales d'Utilisation
+                  </Link>{' '}
+                  et la{' '}
+                  <Link to="/confidentialite" target="_blank" className="text-sage-600 font-medium hover:underline">
+                    Politique de confidentialité
+                  </Link>
+                </span>
+              </label>
+              {errors.terms && <p className="text-red-500 text-xs mt-1">{errors.terms}</p>}
             </div>
 
             {globalError && (

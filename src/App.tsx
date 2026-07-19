@@ -23,6 +23,7 @@ import RemindersPage from '@/pages/RemindersPage'
 import ProfilPage from '@/pages/ProfilPage'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import LogoPreview from '@/pages/LogoPreview'
+import LegalPage from '@/pages/LegalPage'
 
 export default function App() {
   const { setUser, setProfile, setLoading } = useAuthStore()
@@ -70,6 +71,8 @@ export default function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/cgu" element={<LegalPage />} />
+        <Route path="/confidentialite" element={<LegalPage />} />
         <Route path="/book/:doctorId" element={
           <ProtectedRoute role="patient"><BookPage /></ProtectedRoute>
         } />
