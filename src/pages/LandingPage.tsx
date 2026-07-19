@@ -1,6 +1,7 @@
 // src/pages/LandingPage.tsx
 import { Link } from 'react-router-dom'
 import Navbar from '@/components/ui/Navbar'
+import Footer from '@/components/ui/Footer'
 import SearchBar from '@/components/search/SearchBar'
 import AnimalBackground from '@/components/ui/AnimalBackground'
 import { useAuthStore } from '@/lib/authStore'
@@ -110,6 +111,8 @@ export default function LandingPage() {
             </div>
           </section>
         )}
+
+        <Footer />
       </div>
     </div>
   )
