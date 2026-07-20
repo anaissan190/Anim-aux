@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { PRACTITIONER_TYPES } from '@/lib/practitionerTypes'
 import logoNavbar from '@/assets/logo-navbar.svg'
 import PasswordInput from '@/components/ui/PasswordInput'
+import Turnstile from '@/components/ui/Turnstile'
 
 const schema = z.object({
   first_name:        z.string().min(2, 'Prénom requis'),
@@ -27,6 +28,7 @@ export default function RegisterPage() {
     practitioner_type: '',
   })
   const [acceptedTerms, setAcceptedTerms] = useState(false)
+  const [captchaToken, setCaptchaToken] = useState('')
   const [errors, setErrors]       = useState<Record<string, string>>({})
   const [loading, setLoading]     = useState(false)
   const [success, setSuccess]     = useState(false)
@@ -46,6 +48,11 @@ export default function RegisterPage() {
       return
     }
 
+    if (import.meta.env.VITE_TURNSTILE_SITE_KEY && !captchaToken) {
+      setErrors({ captcha: 'Veuillez valider le contrôle de sécurité' })
+      return
+    }
+
     const result = schema.safeParse(form)
     if (!result.success) {
       const errs: Record<string, string> = {}
@@ -60,6 +67,7 @@ export default function RegisterPage() {
       email: form.email,
       password: form.password,
       options: {
+        captchaToken,
         data: {
           first_name:        form.first_name,
           last_name:         form.last_name,
@@ -185,6 +193,11 @@ export default function RegisterPage() {
                 </span>
               </label>
               {errors.terms && <p className="text-red-500 text-xs mt-1">{errors.terms}</p>}
+            </div>
+
+            <div>
+              <Turnstile onVerify={setCaptchaToken} onExpire={() => setCaptchaToken('')} />
+              {errors.captcha && <p className="text-red-500 text-xs mt-1">{errors.captcha}</p>}
             </div>
 
             {globalError && (
