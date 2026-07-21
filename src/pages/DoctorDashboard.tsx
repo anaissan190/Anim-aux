@@ -12,7 +12,7 @@ import AppointmentCard from '@/components/appointment/AppointmentCard'
 import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useDoctorServices, useAddDoctorService, useDeleteDoctorService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments, useInviteClinicSecretary, useClinicStaffList } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { PRACTITIONER_TYPES } from '@/lib/practitionerTypes'
-import { SPECIES_EMOJI } from '@/lib/animalSpecies'
+import { SPECIES_EMOJI, PRACTICE_SPECIES_OPTIONS } from '@/lib/animalSpecies'
 import { type DoctorTab as Tab, ALL_DOCTOR_TAB_IDS as ALL_TAB_IDS } from '@/lib/doctorDashboardTabs'
 
 // La barre d'onglets (Accueil, Mes patients, Tarifs, Disponibilités, Avis)
@@ -56,6 +56,7 @@ export default function DoctorDashboard() {
   const updateDoctorInfo = useUpdateDoctor()
   const [profileForm, setProfileForm] = useState({
     first_name: '', last_name: '', specialty: '', city: '', address: '', bio: '', phone: '',
+    accepted_species: [] as string[], home_visit: false,
   })
   const [profileError, setProfileError] = useState('')
   const [profileSaved, setProfileSaved] = useState(false)
@@ -125,9 +126,20 @@ export default function DoctorDashboard() {
       address: doctor.address ?? '',
       bio: doctor.bio ?? '',
       phone: profile.phone ?? '',
+      accepted_species: doctor.accepted_species ?? [],
+      home_visit: doctor.home_visit ?? false,
     })
     profileInitialized.current = true
   }, [profile, doctor])
+
+  function toggleProfileSpecies(id: string) {
+    setProfileForm(f => ({
+      ...f,
+      accepted_species: f.accepted_species.includes(id)
+        ? f.accepted_species.filter(s => s !== id)
+        : [...f.accepted_species, id],
+    }))
+  }
 
   async function submitProfile() {
     setProfileError('')
@@ -144,6 +156,8 @@ export default function DoctorDashboard() {
           city: profileForm.city,
           address: profileForm.address,
           bio: profileForm.bio,
+          accepted_species: profileForm.accepted_species,
+          home_visit: profileForm.home_visit,
         }),
       ])
       setProfileSaved(true)
@@ -1496,6 +1510,30 @@ export default function DoctorDashboard() {
                     </div>
                   </div>
                 )}
+                {/* Espèces acceptées et déplacement à domicile — propres au
+                    praticien lui-même, indépendants du cabinet (contrairement
+                    à ville/adresse ci-dessus). */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Espèces acceptées</label>
+                  <div className="flex flex-wrap gap-2">
+                    {PRACTICE_SPECIES_OPTIONS.map(opt => (
+                      <button type="button" key={opt.id} onClick={() => toggleProfileSpecies(opt.id)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                          profileForm.accepted_species.includes(opt.id)
+                            ? 'bg-sage-500 border-sage-500 text-white'
+                            : 'bg-white border-gray-200 text-gray-600 hover:border-sage-300'
+                        }`}>
+                        {opt.icon} {opt.id}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                  <input type="checkbox" checked={profileForm.home_visit}
+                    onChange={e => setProfileForm(f => ({ ...f, home_visit: e.target.checked }))}
+                    className="accent-sage-500 w-4 h-4" />
+                  🏠 Je me déplace à domicile
+                </label>
                 {/* La bio reste éditable même pour un membre de cabinet — seules
                     ville/adresse dépendent du cabinet, pas la présentation
                     personnelle du praticien. */}
