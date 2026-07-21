@@ -5,12 +5,14 @@ import { useAuthStore } from '@/lib/authStore'
 import type { User } from '@/types'
 import logoNavbar from '@/assets/logo-navbar.svg'
 import PasswordInput from '@/components/ui/PasswordInput'
+import Turnstile from '@/components/ui/Turnstile'
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const { setUser, setProfile } = useAuthStore()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [captchaToken, setCaptchaToken] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -22,7 +24,7 @@ export default function LoginPage() {
     let data: any, authError: any
     try {
       const result = await Promise.race([
-        supabase.auth.signInWithPassword({ email, password }),
+        supabase.auth.signInWithPassword({ email, password, options: { captchaToken } }),
         new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout connexion Supabase')), 10000))
       ]) as any
       data = result.data
@@ -95,6 +97,7 @@ export default function LoginPage() {
                 Mot de passe oublié ?
               </Link>
             </div>
+            <Turnstile onVerify={setCaptchaToken} onExpire={() => setCaptchaToken('')} />
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">
                 {error}

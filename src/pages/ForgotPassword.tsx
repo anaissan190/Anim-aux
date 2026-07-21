@@ -3,19 +3,25 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import logoNavbar from '@/assets/logo-navbar.svg'
+import Turnstile from '@/components/ui/Turnstile'
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('')
+  const [captchaToken, setCaptchaToken] = useState('')
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   async function handle(e: React.FormEvent) {
     e.preventDefault()
+    setError('')
     setLoading(true)
-    await supabase.auth.resetPasswordForEmail(email, {
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      captchaToken,
       redirectTo: `${window.location.origin}/reset-password`,
     })
     setLoading(false)
+    if (resetError) { setError(resetError.message); return }
     setSent(true)
   }
 
@@ -44,6 +50,12 @@ export default function ForgotPassword() {
               <form onSubmit={handle} className="space-y-4">
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                   className="input" placeholder="vous@email.fr" required />
+                <Turnstile onVerify={setCaptchaToken} onExpire={() => setCaptchaToken('')} />
+                {error && (
+                  <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">
+                    {error}
+                  </div>
+                )}
                 <button type="submit" disabled={loading} className="btn-primary w-full">
                   {loading ? 'Envoi...' : 'Envoyer le lien'}
                 </button>
