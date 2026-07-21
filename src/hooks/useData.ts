@@ -1772,3 +1772,17 @@ export function useDeleteAccount() {
     },
   })
 }
+
+// Droit à la portabilité (RGPD, art. 20) — agrège toutes les données
+// personnelles de l'utilisateur connecté via une RPC SECURITY DEFINER
+// (voir migration 050_export_my_data.sql) et renvoie l'objet JSON brut ;
+// le composant appelant se charge de proposer le téléchargement.
+export function useExportMyData() {
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc('export_my_data')
+      if (error) throw new Error(error.message)
+      return data
+    },
+  })
+}

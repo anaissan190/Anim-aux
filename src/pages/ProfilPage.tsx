@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/lib/authStore'
-import { useCurrentDoctor, useUpdateProfile, useUpdateDoctor, useDeleteAccount } from '@/hooks/useData'
+import { useCurrentDoctor, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useExportMyData } from '@/hooks/useData'
 import { supabase } from '@/lib/supabase'
 import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
@@ -16,6 +16,8 @@ export default function ProfilPage() {
   const updateProfile = useUpdateProfile()
   const updateDoctor = useUpdateDoctor()
   const deleteAccount = useDeleteAccount()
+  const exportMyData = useExportMyData()
+  const [exportError, setExportError] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
   const [deleteError, setDeleteError] = useState('')
@@ -47,6 +49,22 @@ export default function ProfilPage() {
       navigate('/')
     } catch (e: any) {
       setDeleteError(e.message ?? 'Erreur lors de la suppression du compte.')
+    }
+  }
+
+  async function handleExportData() {
+    setExportError('')
+    try {
+      const data = await exportMyData.mutateAsync()
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `animeaux-mes-donnees-${new Date().toISOString().slice(0, 10)}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e: any) {
+      setExportError(e.message ?? "Erreur lors de l'export des données.")
     }
   }
 
@@ -294,6 +312,20 @@ export default function ProfilPage() {
           </button>
 
         </form>
+
+        {/* EXPORT DES DONNÉES — droit à la portabilité (RGPD art. 20) */}
+        <div className="card p-6 mt-8">
+          <h2 className="font-semibold text-gray-900 mb-1">Mes données</h2>
+          <p className="text-xs text-gray-500 mb-4">
+            Téléchargez une copie de toutes vos données personnelles (profil, animaux, rendez-vous, messages, avis…)
+            dans un fichier structuré.
+          </p>
+          {exportError && <p className="text-red-500 text-xs mb-3">{exportError}</p>}
+          <button onClick={handleExportData} disabled={exportMyData.isPending}
+            className="btn-secondary text-sm">
+            {exportMyData.isPending ? 'Préparation...' : '⬇️ Télécharger mes données'}
+          </button>
+        </div>
 
         {/* ZONE DE DANGER */}
         <div className="card p-6 mt-8 border border-red-100">

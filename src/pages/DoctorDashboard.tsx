@@ -9,7 +9,7 @@ import RichTextEditor from '@/components/ui/RichTextEditor'
 import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
-import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useDoctorServices, useAddDoctorService, useDeleteDoctorService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments, useInviteClinicSecretary, useClinicStaffList } from '@/hooks/useData'
+import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useDoctorServices, useAddDoctorService, useDeleteDoctorService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments, useInviteClinicSecretary, useClinicStaffList, useExportMyData } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { PRACTITIONER_TYPES } from '@/lib/practitionerTypes'
 import { SPECIES_EMOJI, PRACTICE_SPECIES_OPTIONS } from '@/lib/animalSpecies'
@@ -97,6 +97,24 @@ export default function DoctorDashboard() {
   const deleteAccount = useDeleteAccount()
   const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false)
   const [deleteAccountError, setDeleteAccountError] = useState('')
+  const exportMyData = useExportMyData()
+  const [exportError, setExportError] = useState('')
+
+  async function handleExportData() {
+    setExportError('')
+    try {
+      const data = await exportMyData.mutateAsync()
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `animeaux-mes-donnees-${new Date().toISOString().slice(0, 10)}.json`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (e: any) {
+      setExportError(e.message ?? "Erreur lors de l'export des données.")
+    }
+  }
 
   async function handleDeleteAccount() {
     setDeleteAccountError('')
@@ -1554,6 +1572,20 @@ export default function DoctorDashboard() {
                   {(updateProfile.isPending || updateDoctorInfo.isPending) ? 'Enregistrement...' : 'Enregistrer mes informations'}
                 </button>
               </div>
+            </div>
+
+            {/* EXPORT DES DONNÉES — droit à la portabilité (RGPD art. 20) */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+              <h2 className="font-semibold text-gray-900 mb-1">Mes données</h2>
+              <p className="text-xs text-gray-500 mb-4">
+                Téléchargez une copie de toutes vos données personnelles (profil, patients, rendez-vous, messages,
+                avis…) dans un fichier structuré.
+              </p>
+              {exportError && <p className="text-red-500 text-xs mb-3">{exportError}</p>}
+              <button onClick={handleExportData} disabled={exportMyData.isPending}
+                className="btn-secondary text-sm">
+                {exportMyData.isPending ? 'Préparation...' : '⬇️ Télécharger mes données'}
+              </button>
             </div>
 
             {/* ZONE DE DANGER */}
