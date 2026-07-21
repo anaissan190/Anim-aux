@@ -9,7 +9,8 @@ import RichTextEditor from '@/components/ui/RichTextEditor'
 import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
-import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useDoctorServices, useAddDoctorService, useDeleteDoctorService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments, useInviteClinicSecretary, useClinicStaffList, useExportMyData } from '@/hooks/useData'
+import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useDoctorServices, useAddDoctorService, useDeleteDoctorService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments, useInviteClinicSecretary, useClinicStaffList, useExportMyData,
+  useDoctorVerificationDocuments, useUploadVerificationDocument, useDeleteVerificationDocument } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { PRACTITIONER_TYPES } from '@/lib/practitionerTypes'
 import { SPECIES_EMOJI, PRACTICE_SPECIES_OPTIONS } from '@/lib/animalSpecies'
@@ -99,6 +100,26 @@ export default function DoctorDashboard() {
   const [deleteAccountError, setDeleteAccountError] = useState('')
   const exportMyData = useExportMyData()
   const [exportError, setExportError] = useState('')
+
+  const { data: verificationDocuments = [] } = useDoctorVerificationDocuments(doctor?.id)
+  const uploadVerificationDocument = useUploadVerificationDocument()
+  const deleteVerificationDocument = useDeleteVerificationDocument()
+  const [verificationDocType, setVerificationDocType] = useState('Diplôme')
+  const [verificationUploading, setVerificationUploading] = useState(false)
+  const [verificationError, setVerificationError] = useState('')
+
+  async function handleUploadVerificationDocument(file: File) {
+    if (!doctor) return
+    setVerificationUploading(true)
+    setVerificationError('')
+    try {
+      await uploadVerificationDocument.mutateAsync({ doctorId: doctor.id, file, documentType: verificationDocType })
+    } catch (e: any) {
+      setVerificationError(e.message ?? "Erreur lors de l'envoi du document.")
+    } finally {
+      setVerificationUploading(false)
+    }
+  }
 
   async function handleExportData() {
     setExportError('')
@@ -458,6 +479,38 @@ export default function DoctorDashboard() {
       <Navbar />
 
       <div className="max-w-5xl mx-auto px-4 py-8">
+
+        {/* Bannière de statut de vérification — visible sur tous les onglets
+            tant que le dossier n'est pas validé, pour rappeler que le profil
+            reste invisible en recherche jusque-là (voir useDoctors). */}
+        {doctor && doctor.verification_status !== 'verified' && (
+          <div className={`rounded-2xl p-4 mb-6 text-sm flex items-start gap-3 ${
+            doctor.verification_status === 'rejected'
+              ? 'bg-red-50 border border-red-100 text-red-700'
+              : 'bg-amber-50 border border-amber-100 text-amber-700'
+          }`}>
+            <span className="text-lg">{doctor.verification_status === 'rejected' ? '⚠️' : '⏳'}</span>
+            <div className="flex-1">
+              {doctor.verification_status === 'rejected' ? (
+                <>
+                  <p className="font-medium">Documents non validés</p>
+                  <p className="mt-0.5">
+                    {doctor.verification_rejected_reason || "Vos documents n'ont pas pu être validés."} Merci de les redéposer.
+                  </p>
+                </>
+              ) : (
+                <p>
+                  <span className="font-medium">Profil en attente de vérification.</span> Vous pouvez utiliser votre
+                  espace normalement, mais vous n'apparaîtrez dans les résultats de recherche qu'une fois vos
+                  documents justificatifs déposés et validés.
+                </p>
+              )}
+              <Link to="/dashboard/doctor?tab=profil" className="underline font-medium mt-1 inline-block">
+                Déposer mes documents
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* ── ACCUEIL ── */}
         {tab === 'home' && (
@@ -1572,6 +1625,60 @@ export default function DoctorDashboard() {
                   {(updateProfile.isPending || updateDoctorInfo.isPending) ? 'Enregistrement...' : 'Enregistrer mes informations'}
                 </button>
               </div>
+            </div>
+
+            {/* VÉRIFICATION DU PROFIL — dépôt des documents justificatifs */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+              <div className="flex items-center justify-between mb-1">
+                <h2 className="font-semibold text-gray-900">Vérification de mon profil</h2>
+                {doctor?.verification_status === 'verified' && (
+                  <span className="badge bg-sage-100 text-sage-700">✓ Vérifié</span>
+                )}
+                {doctor?.verification_status === 'pending' && (
+                  <span className="badge bg-amber-100 text-amber-700">En attente</span>
+                )}
+                {doctor?.verification_status === 'rejected' && (
+                  <span className="badge bg-red-100 text-red-700">Rejeté</span>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mb-4">
+                Déposez vos documents justificatifs (diplôme, carte professionnelle, numéro d&apos;ordre...) pour
+                que votre profil soit vérifié et visible dans les résultats de recherche.
+              </p>
+
+              <div className="flex flex-wrap gap-2 mb-4">
+                <select className="input text-sm w-auto" value={verificationDocType}
+                  onChange={e => setVerificationDocType(e.target.value)}>
+                  <option>Diplôme</option>
+                  <option>Carte professionnelle / Numéro d&apos;ordre</option>
+                  <option>Pièce d&apos;identité</option>
+                  <option>Autre</option>
+                </select>
+                <label className="btn-secondary text-sm cursor-pointer">
+                  {verificationUploading ? 'Envoi...' : '+ Ajouter un document'}
+                  <input type="file" accept="image/*,.pdf" className="hidden" disabled={verificationUploading}
+                    onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadVerificationDocument(f); e.target.value = '' }} />
+                </label>
+              </div>
+              {verificationError && <p className="text-red-500 text-xs mb-3">{verificationError}</p>}
+
+              {verificationDocuments.length === 0 ? (
+                <p className="text-xs text-gray-400">Aucun document déposé pour l&apos;instant.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {verificationDocuments.map((doc: any) => (
+                    <li key={doc.id} className="flex items-center justify-between text-sm bg-gray-50 rounded-xl px-3 py-2">
+                      <a href={doc.file_url} target="_blank" rel="noreferrer" className="text-sage-600 hover:underline">
+                        📄 {doc.document_type} — {doc.file_name}
+                      </a>
+                      <button onClick={() => deleteVerificationDocument.mutate({ id: doc.id, doctorId: doctor!.id })}
+                        className="text-gray-300 hover:text-red-500 transition-colors" title="Supprimer">
+                        ✕
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             {/* EXPORT DES DONNÉES — droit à la portabilité (RGPD art. 20) */}

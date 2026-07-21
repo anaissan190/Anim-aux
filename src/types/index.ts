@@ -9,6 +9,9 @@ export type NotificationType =
   | 'appointment_reminder'
   | 'new_message'
   | 'new_review'
+  | 'doctor_verified'
+  | 'doctor_rejected'
+export type DoctorVerificationStatus = 'pending' | 'verified' | 'rejected'
 
 export interface User {
   id: string
@@ -47,6 +50,8 @@ export interface Doctor {
   accepted_species?: string[]
   home_visit?: boolean
   is_verified: boolean
+  verification_status: DoctorVerificationStatus
+  verification_rejected_reason?: string | null
   average_rating: number
   review_count: number
   created_at: string

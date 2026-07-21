@@ -19,6 +19,11 @@ export function useDoctors(filters: SearchFilters = {}, enabled: boolean = true)
       let q = supabase
         .from('doctors')
         .select('*, profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url)')
+        // Un praticien dont le dossier de vérification n'est pas validé
+        // (documents en attente ou rejetés) reste invisible du public,
+        // même s'il peut déjà utiliser son tableau de bord — voir
+        // DoctorPage.tsx pour la même règle appliquée à la fiche directe.
+        .eq('verification_status', 'verified')
       if (filters.city)      q = q.ilike('city', `%${filters.city}%`)
       if (filters.maxPrice !== undefined) q = q.lte('consultation_price', filters.maxPrice)
       if (filters.minRating) q = q.gte('average_rating', filters.minRating)
@@ -1783,6 +1788,100 @@ export function useExportMyData() {
       const { data, error } = await supabase.rpc('export_my_data')
       if (error) throw new Error(error.message)
       return data
+    },
+  })
+}
+
+// ── VÉRIFICATION PRATICIEN (documents justificatifs) ──────────────────────────
+
+export function useDoctorVerificationDocuments(doctorId?: string) {
+  return useQuery({
+    queryKey: ['doctor_verification_documents', doctorId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('doctor_verification_documents')
+        .select('*')
+        .eq('doctor_id', doctorId!)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data ?? []
+    },
+    enabled: !!doctorId,
+  })
+}
+
+export function useUploadVerificationDocument() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ doctorId, file, documentType }: { doctorId: string; file: File; documentType: string }) => {
+      const ext = file.name.split('.').pop()
+      const path = `${doctorId}/${Date.now()}.${ext}`
+      const { error: uploadError } = await supabase.storage.from('verification-documents').upload(path, file)
+      if (uploadError) throw uploadError
+      const { data: signed } = await supabase.storage.from('verification-documents').createSignedUrl(path, 60 * 60 * 24 * 365)
+      const { error } = await supabase.from('doctor_verification_documents').insert({
+        doctor_id: doctorId,
+        file_url: signed?.signedUrl ?? path,
+        file_name: file.name,
+        document_type: documentType,
+      })
+      if (error) throw error
+    },
+    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['doctor_verification_documents', vars.doctorId] }),
+  })
+}
+
+export function useDeleteVerificationDocument() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id }: { id: string; doctorId: string }) => {
+      const { error } = await supabase.from('doctor_verification_documents').delete().eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['doctor_verification_documents', vars.doctorId] }),
+  })
+}
+
+// ── ADMINISTRATION — vérification des praticiens ───────────────────────────────
+// RPC SECURITY DEFINER (migration 051) : chacune vérifie is_admin() côté
+// serveur, indépendamment de ce que le client envoie.
+
+export function useAdminPendingDoctors() {
+  return useQuery({
+    queryKey: ['admin_pending_doctors'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('admin_list_pending_doctors')
+      if (error) throw error
+      return (data ?? []) as any[]
+    },
+  })
+}
+
+export function useAdminPendingDoctorsCount() {
+  return useQuery({
+    queryKey: ['admin_pending_doctors_count'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('admin_pending_doctors_count')
+      if (error) throw error
+      return (data ?? 0) as number
+    },
+  })
+}
+
+export function useAdminReviewDoctor() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ doctorId, approve, reason }: { doctorId: string; approve: boolean; reason?: string }) => {
+      const { error } = await supabase.rpc('admin_review_doctor', {
+        p_doctor_id: doctorId,
+        p_approve: approve,
+        p_reason: reason ?? null,
+      })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin_pending_doctors'] })
+      qc.invalidateQueries({ queryKey: ['admin_pending_doctors_count'] })
     },
   })
 }

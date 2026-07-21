@@ -58,6 +58,20 @@ export default function DoctorPage() {
     </div>
   )
 
+  // Un profil non vérifié reste invisible du public même via un lien direct
+  // (cohérent avec son absence des résultats de recherche, voir useDoctors) —
+  // sauf pour le praticien lui-même, qui doit pouvoir se prévisualiser.
+  const isOwnProfile = user?.id === doctor.user_id
+  if (doctor.verification_status !== 'verified' && !isOwnProfile) return (
+    <div className="min-h-screen bg-[#FFFAF0]">
+      <Navbar />
+      <div className="max-w-4xl mx-auto px-4 py-16 text-center">
+        <p className="text-gray-500">Ce profil n&apos;est pas encore disponible.</p>
+        <Link to="/search" className="btn-primary mt-4 inline-block">Retour à la recherche</Link>
+      </div>
+    </div>
+  )
+
   const name = doctor.profiles
     ? `${doctor.profiles.first_name} ${doctor.profiles.last_name}`
     : 'Praticien'
