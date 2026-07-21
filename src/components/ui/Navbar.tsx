@@ -92,20 +92,6 @@ export default function Navbar() {
           </div>
         )}
 
-        {/* Un praticien ou un patient peut aussi avoir un accès secrétariat
-            en plus de son rôle principal (les deux ne sont pas exclusifs) —
-            lien supplémentaire, discret, vers son espace cabinet. */}
-        {staffInfo && user?.role !== 'secretary' && (
-          <Link to="/dashboard/secretariat"
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors flex-shrink-0
-              ${location.pathname === '/dashboard/secretariat'
-                ? 'bg-sage-500 text-white'
-                : 'bg-sage-50 text-sage-600 hover:bg-sage-100'}`}>
-            <span>🏥</span>
-            <span className="hidden lg:inline">Espace secrétariat</span>
-          </Link>
-        )}
-
         {/* Secrétariat : espace dédié au cabinet uniquement, sans les liens
             patient/praticien (recherche, messages, profil personnel...). */}
         {user?.role === 'secretary' && (

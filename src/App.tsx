@@ -85,12 +85,12 @@ export default function App() {
         <Route path="/dashboard/admin" element={
           <ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>
         } />
-        {/* Pas de restriction de rôle : un praticien ou un patient peut
-            aussi avoir un accès secrétariat en plus de son rôle principal
-            (voir clinic_staff) — la page elle-même gère le cas où le
-            compte connecté n'est rattaché à aucun cabinet. */}
+        {/* L'espace secrétariat est un compte à part entière (role
+            'secretary'), jamais un accès ajouté à un compte praticien ou
+            patient existant — dashboard parallèle avec ses propres
+            identifiants (voir invite-clinic-secretary). */}
         <Route path="/dashboard/secretariat" element={
-          <ProtectedRoute><SecretaryDashboard /></ProtectedRoute>
+          <ProtectedRoute role="secretary"><SecretaryDashboard /></ProtectedRoute>
         } />
         <Route path="/messages" element={
           <ProtectedRoute><MessagesPage /></ProtectedRoute>
