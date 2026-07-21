@@ -74,6 +74,7 @@ export default function RegisterPage() {
           role:              form.role,
           specialty:         selectedType?.label ?? '',
           practitioner_type: form.practitioner_type,
+          terms_accepted:    acceptedTerms,
         }
       }
     })

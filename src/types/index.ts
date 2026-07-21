@@ -15,6 +15,7 @@ export interface User {
   email: string
   role: UserRole
   created_at: string
+  terms_accepted_at?: string | null
 }
 
 export interface Profile {
