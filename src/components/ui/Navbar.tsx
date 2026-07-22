@@ -73,12 +73,14 @@ export default function Navbar() {
           </div>
         )}
 
-        {/* Propriétaire d'animal (et admin) : à l'image de Doctolib, la
-            recherche ne se fait plus que depuis la barre de l'écran
-            d'accueil (accessible via le logo) — plus de raccourci direct
-            "Trouver un praticien" ici. Messages et Profil sont gérés plus
-            loin, en icônes à côté de la cloche. */}
-        {user && user.role !== 'doctor' && user.role !== 'secretary' && (
+        {/* Propriétaire d'animal : à l'image de Doctolib, la recherche ne se
+            fait plus que depuis la barre de l'écran d'accueil (accessible
+            via le logo) — plus de raccourci direct "Trouver un praticien"
+            ici. Messages et Profil sont gérés plus loin, en icônes à côté
+            de la cloche. Masqué pour un compte is_admin : son tableau de
+            bord est exclusivement l'espace admin (onglet ci-dessous), pas
+            un dashboard propriétaire d'animal. */}
+        {user && user.role !== 'doctor' && user.role !== 'secretary' && !user.is_admin && (
           <div className="flex-1 min-w-0 flex items-center justify-center gap-1.5 overflow-x-auto scrollbar-hide">
             <Link to={dashboardPath}
               className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors

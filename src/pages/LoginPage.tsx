@@ -80,7 +80,13 @@ export default function LoginPage() {
 
       await new Promise(r => setTimeout(r, 100))
 
-      if (finalUser.role === 'doctor') {
+      // Un compte is_admin sans usage praticien/patient réel (ex.
+      // contact.animeaux@gmail.com, dédié à l'administration) va
+      // directement sur le tableau de bord admin plutôt que sur le
+      // dashboard associé à son role technique ('patient' par défaut).
+      if (finalUser.is_admin) {
+        navigate('/dashboard/admin', { replace: true })
+      } else if (finalUser.role === 'doctor') {
         navigate('/dashboard/doctor', { replace: true })
       } else if (finalUser.role === 'secretary') {
         navigate('/dashboard/secretariat', { replace: true })
