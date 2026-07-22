@@ -118,11 +118,16 @@ function AdminOverview({ onSelectDoctor, onViewReviews, onViewPatients, onViewCl
       })
     : activeList
 
+  function goToDoctorsTab(t: Tab) {
+    setTab(t)
+    document.getElementById('dossiers-praticiens')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   const statCards = stats ? [
     { label: 'Propriétaires', value: stats.patients_count, icon: '🙋', onClick: onViewPatients },
-    { label: 'Praticiens vérifiés', value: stats.doctors_verified, icon: '✅' },
-    { label: 'Praticiens en attente', value: stats.doctors_pending, icon: '⏳' },
-    { label: 'Praticiens rejetés', value: stats.doctors_rejected, icon: '⛔' },
+    { label: 'Praticiens vérifiés', value: stats.doctors_verified, icon: '✅', onClick: () => goToDoctorsTab('verified') },
+    { label: 'Praticiens en attente', value: stats.doctors_pending, icon: '⏳', onClick: () => goToDoctorsTab('pending') },
+    { label: 'Praticiens rejetés', value: stats.doctors_rejected, icon: '⛔', onClick: () => goToDoctorsTab('rejected') },
     { label: 'Secrétariats', value: stats.secretaries_count, icon: '🏥' },
     { label: 'Cabinets', value: stats.clinics_count, icon: '🏢', onClick: onViewClinics },
     { label: 'RDV à venir', value: stats.appointments_upcoming, icon: '🗓️' },
@@ -225,7 +230,7 @@ function AdminOverview({ onSelectDoctor, onViewReviews, onViewPatients, onViewCl
         </div>
 
         {/* Dossiers praticiens */}
-        <div className="card p-6">
+        <div id="dossiers-praticiens" className="card p-6">
           <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
             <div className="flex gap-1.5 bg-gray-100 rounded-xl p-1">
               {(['pending', 'verified', 'rejected'] as Tab[]).map(t => (
