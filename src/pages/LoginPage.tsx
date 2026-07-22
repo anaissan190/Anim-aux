@@ -46,12 +46,12 @@ export default function LoginPage() {
     }
 
     if (data.user) {
-      const fallbackUser: User = { id: data.user.id, email: data.user.email!, role: 'patient', created_at: '' }
+      const fallbackUser: User = { id: data.user.id, email: data.user.email!, role: 'patient', is_admin: false, created_at: '' }
       let finalUser: User = fallbackUser
 
       const userData = await getMyUserDataWithRetry()
       if (userData) {
-        finalUser = { ...fallbackUser, role: userData.role ?? 'patient' }
+        finalUser = { ...fallbackUser, role: userData.role ?? 'patient', is_admin: userData.is_admin ?? false }
         setUser(finalUser)
         setProfile(userData.profile ?? null)
       } else {

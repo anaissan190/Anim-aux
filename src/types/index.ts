@@ -17,6 +17,7 @@ export interface User {
   id: string
   email: string
   role: UserRole
+  is_admin: boolean
   created_at: string
   terms_accepted_at?: string | null
 }

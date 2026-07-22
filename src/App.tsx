@@ -40,10 +40,10 @@ export default function App() {
         if (event !== 'SIGNED_IN' && event !== 'SIGNED_OUT' && event !== 'INITIAL_SESSION') return
 
         if (session?.user) {
-          const fallbackUser = { id: session.user.id, email: session.user.email!, role: 'patient' as const, created_at: '' }
+          const fallbackUser = { id: session.user.id, email: session.user.email!, role: 'patient' as const, is_admin: false, created_at: '' }
           const data = await getMyUserDataWithRetry()
           if (data) {
-            setUser({ ...fallbackUser, role: data.role ?? 'patient' })
+            setUser({ ...fallbackUser, role: data.role ?? 'patient', is_admin: data.is_admin ?? false })
             setProfile(data.profile ?? null)
           } else {
             // Timeout ou RPC indisponible même après retry : on ne bloque jamais l'utilisateur

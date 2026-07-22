@@ -8,6 +8,6 @@ export default function ProtectedRoute({ children, role }: Props) {
   const { user } = useAuthStore()
   if (!user) return <Navigate to="/login" replace />
   const allowedRoles = role ? (Array.isArray(role) ? role : [role]) : null
-  if (allowedRoles && !allowedRoles.includes(user.role) && user.role !== 'admin') return <Navigate to="/" replace />
+  if (allowedRoles && !allowedRoles.includes(user.role) && !user.is_admin) return <Navigate to="/" replace />
   return <>{children}</>
 }

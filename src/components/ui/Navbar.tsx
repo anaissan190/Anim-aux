@@ -37,7 +37,6 @@ export default function Navbar() {
 
   const dashboardPath =
     user?.role === 'doctor'    ? '/dashboard/doctor' :
-    user?.role === 'admin'     ? '/dashboard/admin'  :
     user?.role === 'secretary' ? '/dashboard/secretariat' :
     '/dashboard/patient'
 
@@ -100,6 +99,34 @@ export default function Navbar() {
               {staffInfo?.name ?? 'Cabinet'} <span className="text-gray-400 font-normal">· Espace secrétariat</span>
             </span>
           </div>
+        )}
+
+        {/* Simple raccourci vers la page de connexion, pour un praticien qui
+            gère aussi un espace secrétariat — c'est un compte à part entière
+            avec ses propres identifiants, jamais un accès ajouté à cette
+            session (voir invite-clinic-secretary). Se connecter ici bascule
+            simplement la session Supabase sur le compte secrétariat. */}
+        {user?.role === 'doctor' && (
+          <Link to="/login"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors flex-shrink-0 bg-sage-50 text-sage-600 hover:bg-sage-100">
+            <span>🏥</span>
+            <span className="hidden lg:inline">Espace secrétariat</span>
+          </Link>
+        )}
+
+        {/* Onglet admin : indépendant du rôle principal du compte (is_admin
+            est un booléen à part — voir migration 055) — visible pour
+            n'importe quel compte marqué administrateur, sans lui faire
+            perdre son tableau de bord habituel. */}
+        {user?.is_admin && (
+          <Link to="/dashboard/admin"
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors flex-shrink-0
+              ${location.pathname === '/dashboard/admin'
+                ? 'bg-sage-500 text-white'
+                : 'bg-sage-50 text-sage-600 hover:bg-sage-100'}`}>
+            <span>🛡️</span>
+            <span className="hidden lg:inline">Admin</span>
+          </Link>
         )}
 
         <div className="flex items-center gap-3 ml-auto flex-shrink-0">
