@@ -101,19 +101,6 @@ export default function Navbar() {
           </div>
         )}
 
-        {/* Simple raccourci vers la page de connexion, pour un praticien qui
-            gère aussi un espace secrétariat — c'est un compte à part entière
-            avec ses propres identifiants, jamais un accès ajouté à cette
-            session (voir invite-clinic-secretary). Se connecter ici bascule
-            simplement la session Supabase sur le compte secrétariat. */}
-        {user?.role === 'doctor' && (
-          <Link to="/login"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors flex-shrink-0 bg-sage-50 text-sage-600 hover:bg-sage-100">
-            <span>🏥</span>
-            <span className="hidden lg:inline">Secrétariat</span>
-          </Link>
-        )}
-
         {/* Onglet admin : indépendant du rôle principal du compte (is_admin
             est un booléen à part — voir migration 055) — visible pour
             n'importe quel compte marqué administrateur, sans lui faire
