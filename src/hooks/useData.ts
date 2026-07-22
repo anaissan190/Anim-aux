@@ -1881,6 +1881,39 @@ export function useAdminReviewDoctor() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin_pending_doctors'] })
       qc.invalidateQueries({ queryKey: ['admin_pending_doctors_count'] })
+      qc.invalidateQueries({ queryKey: ['admin_doctors_by_status'] })
+      qc.invalidateQueries({ queryKey: ['admin_platform_stats'] })
+    },
+  })
+}
+
+// Vue d'ensemble de la plateforme (compteurs) — migration 056.
+export function useAdminPlatformStats() {
+  return useQuery({
+    queryKey: ['admin_platform_stats'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('admin_platform_stats')
+      if (error) throw error
+      return data as {
+        patients_count: number; doctors_count: number; doctors_pending: number
+        doctors_verified: number; doctors_rejected: number; secretaries_count: number
+        clinics_count: number; appointments_total: number; appointments_upcoming: number
+        reviews_count: number
+      }
+    },
+  })
+}
+
+// Dossier complet des praticiens (profil + documents) filtrable par statut
+// de vérification — contrairement à useAdminPendingDoctors, couvre aussi
+// les praticiens déjà validés ou rejetés (migration 056).
+export function useAdminDoctorsByStatus(status: 'pending' | 'verified' | 'rejected' | null) {
+  return useQuery({
+    queryKey: ['admin_doctors_by_status', status],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('admin_list_doctors_by_status', { p_status: status })
+      if (error) throw error
+      return (data ?? []) as any[]
     },
   })
 }
