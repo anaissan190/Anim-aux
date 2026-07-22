@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [captchaToken, setCaptchaToken] = useState('')
+  const [turnstileKey, setTurnstileKey] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -36,11 +37,29 @@ export default function LoginPage() {
     }
 
     if (authError) {
-      const emailNotConfirmed = authError.code === 'email_not_confirmed'
-        || authError.message?.toLowerCase().includes('email not confirmed')
-      setError(emailNotConfirmed
-        ? 'Veuillez confirmer votre adresse email en cliquant sur le lien reçu par email avant de vous connecter.'
-        : 'Email ou mot de passe incorrect')
+      // Un token Turnstile déjà utilisé (nouvelle tentative après une
+      // première erreur) ou expiré (formulaire rempli trop lentement) est
+      // rejeté par Supabase avec une erreur captcha — sans ce cas séparé,
+      // le message générique ci-dessous affichait à tort "mot de passe
+      // incorrect" alors que le mot de passe n'était jamais vérifié.
+      const msg = authError.message?.toLowerCase() ?? ''
+      const emailNotConfirmed = authError.code === 'email_not_confirmed' || msg.includes('email not confirmed')
+      const captchaFailed = authError.code === 'captcha_failed' || msg.includes('captcha')
+      if (emailNotConfirmed) {
+        setError('Veuillez confirmer votre adresse email en cliquant sur le lien reçu par email avant de vous connecter.')
+      } else if (captchaFailed) {
+        setError('Vérification anti-robot expirée, merci de réessayer.')
+      } else if (msg.includes('rate limit') || msg.includes('too many requests')) {
+        setError('Trop de tentatives, merci de patienter quelques minutes avant de réessayer.')
+      } else {
+        setError('Email ou mot de passe incorrect')
+      }
+      // Un token Turnstile est à usage unique : on force le widget à se
+      // recréer (via sa key) pour que la prochaine tentative en obtienne un
+      // nouveau, sinon toute nouvelle soumission échouerait systématiquement
+      // avec l'erreur captcha ci-dessus, quel que soit le mot de passe saisi.
+      setCaptchaToken('')
+      setTurnstileKey(k => k + 1)
       setLoading(false)
       return
     }
@@ -97,7 +116,7 @@ export default function LoginPage() {
                 Mot de passe oublié ?
               </Link>
             </div>
-            <Turnstile onVerify={setCaptchaToken} onExpire={() => setCaptchaToken('')} />
+            <Turnstile key={turnstileKey} onVerify={setCaptchaToken} onExpire={() => setCaptchaToken('')} />
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">
                 {error}

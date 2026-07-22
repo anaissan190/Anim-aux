@@ -8,6 +8,7 @@ import Turnstile from '@/components/ui/Turnstile'
 export default function ForgotPassword() {
   const [email, setEmail] = useState('')
   const [captchaToken, setCaptchaToken] = useState('')
+  const [turnstileKey, setTurnstileKey] = useState(0)
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -21,7 +22,12 @@ export default function ForgotPassword() {
       redirectTo: `${window.location.origin}/reset-password`,
     })
     setLoading(false)
-    if (resetError) { setError(resetError.message); return }
+    if (resetError) {
+      setError(resetError.message)
+      setCaptchaToken('')
+      setTurnstileKey(k => k + 1)
+      return
+    }
     setSent(true)
   }
 
@@ -50,7 +56,7 @@ export default function ForgotPassword() {
               <form onSubmit={handle} className="space-y-4">
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)}
                   className="input" placeholder="vous@email.fr" required />
-                <Turnstile onVerify={setCaptchaToken} onExpire={() => setCaptchaToken('')} />
+                <Turnstile key={turnstileKey} onVerify={setCaptchaToken} onExpire={() => setCaptchaToken('')} />
                 {error && (
                   <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">
                     {error}

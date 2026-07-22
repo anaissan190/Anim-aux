@@ -29,6 +29,7 @@ export default function RegisterPage() {
   })
   const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [captchaToken, setCaptchaToken] = useState('')
+  const [turnstileKey, setTurnstileKey] = useState(0)
   const [errors, setErrors]       = useState<Record<string, string>>({})
   const [loading, setLoading]     = useState(false)
   const [success, setSuccess]     = useState(false)
@@ -79,7 +80,15 @@ export default function RegisterPage() {
       }
     })
     setLoading(false)
-    if (error) { setGlobalError(error.message); return }
+    if (error) {
+      setGlobalError(error.message)
+      // Un token Turnstile est à usage unique : sans ce reset, toute
+      // nouvelle tentative échoue avec une erreur captcha, quelle que soit
+      // la correction apportée au formulaire.
+      setCaptchaToken('')
+      setTurnstileKey(k => k + 1)
+      return
+    }
     setSuccess(true)
   }
 
@@ -197,7 +206,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <Turnstile onVerify={setCaptchaToken} onExpire={() => setCaptchaToken('')} />
+              <Turnstile key={turnstileKey} onVerify={setCaptchaToken} onExpire={() => setCaptchaToken('')} />
               {errors.captcha && <p className="text-red-500 text-xs mt-1">{errors.captcha}</p>}
             </div>
 
