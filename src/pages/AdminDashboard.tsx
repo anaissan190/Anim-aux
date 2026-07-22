@@ -1,11 +1,17 @@
 // src/pages/AdminDashboard.tsx
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import Navbar from '@/components/ui/Navbar'
 import {
   useAdminPendingDoctors, useAdminReviewDoctor, useAdminPlatformStats, useAdminDoctorsByStatus,
+  useAdminDoctorDetail,
 } from '@/hooks/useData'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import {
+  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
+  PieChart, Pie, Cell, BarChart, Bar, Legend,
+} from 'recharts'
 
 type Tab = 'pending' | 'verified' | 'rejected'
 
@@ -17,8 +23,26 @@ const STATUS_BADGE: Record<string, string> = {
 const STATUS_LABEL: Record<string, string> = {
   pending: 'En attente', verified: 'Vérifié', rejected: 'Rejeté',
 }
+const APPT_STATUS_LABEL: Record<string, string> = {
+  pending: 'En attente', confirmed: 'Confirmés', completed: 'Terminés',
+  cancelled: 'Annulés', no_show: 'Absences',
+}
+const APPT_STATUS_COLOR: Record<string, string> = {
+  pending: '#d1d5db', confirmed: '#8fa377', completed: '#f2820f',
+  cancelled: '#ef4444', no_show: '#fca5a5',
+}
 
 export default function AdminDashboard() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const selectedDoctorId = searchParams.get('doctor')
+
+  if (selectedDoctorId) {
+    return <AdminDoctorDetail doctorId={selectedDoctorId} onBack={() => setSearchParams({})} />
+  }
+  return <AdminOverview onSelectDoctor={id => setSearchParams({ doctor: id })} />
+}
+
+function AdminOverview({ onSelectDoctor }: { onSelectDoctor: (id: string) => void }) {
   const { data: stats } = useAdminPlatformStats()
   const [tab, setTab] = useState<Tab>('pending')
 
@@ -75,6 +99,24 @@ export default function AdminDashboard() {
     { label: 'Avis publiés', value: stats.reviews_count, icon: '⭐' },
   ] : []
 
+  const signupsData = (stats?.signups_weekly ?? []).map(w => ({
+    semaine: format(new Date(w.week_start), 'd MMM', { locale: fr }),
+    Praticiens: w.doctors,
+    Propriétaires: w.patients,
+  }))
+
+  const doctorsStatusData = stats ? [
+    { name: 'Vérifiés', value: stats.doctors_verified, color: '#16a34a' },
+    { name: 'En attente', value: stats.doctors_pending, color: '#f59e0b' },
+    { name: 'Rejetés', value: stats.doctors_rejected, color: '#ef4444' },
+  ].filter(d => d.value > 0) : []
+
+  const appointmentsStatusData = stats
+    ? Object.entries(stats.appointments_by_status ?? {}).map(([status, count]) => ({
+        status: APPT_STATUS_LABEL[status] ?? status, count, color: APPT_STATUS_COLOR[status] ?? '#9ca3af',
+      }))
+    : []
+
   return (
     <div className="min-h-screen bg-[#FFFAF0]">
       <Navbar />
@@ -84,8 +126,8 @@ export default function AdminDashboard() {
           Vue d'ensemble de la plateforme et vérification des praticiens.
         </p>
 
-        {/* Vue d'ensemble */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+        {/* Vue d'ensemble — compteurs */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
           {statCards.map(c => (
             <div key={c.label} className="card p-4">
               <div className="text-xl mb-1">{c.icon}</div>
@@ -93,6 +135,58 @@ export default function AdminDashboard() {
               <p className="text-xs text-gray-500 mt-0.5">{c.label}</p>
             </div>
           ))}
+        </div>
+
+        {/* Vue d'ensemble — graphiques */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-6">
+          <div className="card p-4 lg:col-span-1">
+            <h3 className="text-sm font-semibold text-gray-900 mb-1">Inscriptions</h3>
+            <p className="text-xs text-gray-400 mb-2">8 dernières semaines</p>
+            <ResponsiveContainer width="100%" height={150}>
+              <AreaChart data={signupsData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="semaine" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 10 }} allowDecimals={false} width={24} />
+                <Tooltip />
+                <Area type="monotone" dataKey="Praticiens" stroke="#f2820f" fill="#f2820f" fillOpacity={0.12} strokeWidth={2} />
+                <Area type="monotone" dataKey="Propriétaires" stroke="#8fa377" fill="#8fa377" fillOpacity={0.1} strokeWidth={2} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="card p-4">
+            <h3 className="text-sm font-semibold text-gray-900 mb-1">Praticiens par statut</h3>
+            <p className="text-xs text-gray-400 mb-2">Vérification</p>
+            {doctorsStatusData.length === 0 ? (
+              <p className="text-xs text-gray-400 py-8 text-center">Pas encore de données.</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={150}>
+                <PieChart>
+                  <Pie data={doctorsStatusData} dataKey="value" nameKey="name" innerRadius={38} outerRadius={58} paddingAngle={2}>
+                    {doctorsStatusData.map(d => <Cell key={d.name} fill={d.color} />)}
+                  </Pie>
+                  <Tooltip />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          <div className="card p-4">
+            <h3 className="text-sm font-semibold text-gray-900 mb-1">Rendez-vous par statut</h3>
+            <p className="text-xs text-gray-400 mb-2">Toutes périodes confondues</p>
+            <ResponsiveContainer width="100%" height={150}>
+              <BarChart data={appointmentsStatusData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="status" tick={{ fontSize: 9 }} interval={0} />
+                <YAxis tick={{ fontSize: 10 }} allowDecimals={false} width={24} />
+                <Tooltip />
+                <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                  {appointmentsStatusData.map(d => <Cell key={d.status} fill={d.color} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
         {/* Dossiers praticiens */}
@@ -133,7 +227,8 @@ export default function AdminDashboard() {
             <div className="space-y-4">
               {filteredList.map((d: any) => (
                 <div key={d.doctor_id} className="border border-gray-100 rounded-2xl p-4">
-                  <div className="flex items-start justify-between gap-4 mb-3">
+                  <button onClick={() => onSelectDoctor(d.doctor_id)}
+                    className="flex items-start justify-between gap-4 mb-3 w-full text-left hover:opacity-80 transition-opacity">
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="font-medium text-gray-900">{d.first_name} {d.last_name}</p>
@@ -154,7 +249,8 @@ export default function AdminDashboard() {
                         <p className="text-xs text-red-500 mt-1">Motif du rejet : {d.verification_rejected_reason}</p>
                       )}
                     </div>
-                  </div>
+                    <span className="text-gray-300 text-lg flex-shrink-0">›</span>
+                  </button>
 
                   {(!d.documents || d.documents.length === 0) ? (
                     <p className="text-xs text-amber-600 mb-3">Aucun document déposé pour l&apos;instant.</p>
@@ -207,6 +303,176 @@ export default function AdminDashboard() {
             </div>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+function AdminDoctorDetail({ doctorId, onBack }: { doctorId: string; onBack: () => void }) {
+  const { data: d, isLoading } = useAdminDoctorDetail(doctorId)
+  const reviewDoctor = useAdminReviewDoctor()
+  const [rejecting, setRejecting] = useState(false)
+  const [rejectReason, setRejectReason] = useState('')
+  const [error, setError] = useState('')
+
+  async function handleApprove() {
+    setError('')
+    try {
+      await reviewDoctor.mutateAsync({ doctorId, approve: true })
+    } catch (e: any) {
+      setError(e.message ?? 'Erreur lors de la validation.')
+    }
+  }
+
+  async function handleReject() {
+    setError('')
+    try {
+      await reviewDoctor.mutateAsync({ doctorId, approve: false, reason: rejectReason.trim() || undefined })
+      setRejecting(false)
+      setRejectReason('')
+    } catch (e: any) {
+      setError(e.message ?? 'Erreur lors du rejet.')
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-[#FFFAF0]">
+      <Navbar />
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        <button onClick={onBack} className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors mb-4">
+          ← Retour à l'administration
+        </button>
+
+        {isLoading || !d ? (
+          <p className="text-sm text-gray-400">Chargement...</p>
+        ) : (
+          <>
+            <div className="card p-6 mb-4">
+              <div className="flex items-start justify-between gap-4 mb-5">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-full bg-sage-500 flex items-center justify-center text-xl text-white font-bold overflow-hidden flex-shrink-0">
+                    {d.avatar_url ? <img src={d.avatar_url} className="w-full h-full object-cover" alt="" /> : (d.first_name?.[0] ?? '?').toUpperCase()}
+                  </div>
+                  <div>
+                    <h1 className="text-lg font-bold text-gray-900">{d.first_name} {d.last_name}</h1>
+                    <p className="text-sm text-gray-500">{d.specialty}</p>
+                  </div>
+                </div>
+                <span className={STATUS_BADGE[d.verification_status]}>{STATUS_LABEL[d.verification_status]}</span>
+              </div>
+
+              {d.verification_rejected_reason && (
+                <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl mb-4">
+                  Motif du rejet : {d.verification_rejected_reason}
+                </div>
+              )}
+
+              {/* Coordonnées */}
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Coordonnées</h3>
+              <div className="grid grid-cols-2 gap-3 text-sm text-gray-700 bg-gray-50 rounded-xl p-4 mb-5">
+                <div><span className="text-gray-400 text-xs block">Email</span>{d.email}</div>
+                <div><span className="text-gray-400 text-xs block">Téléphone</span>{d.phone || '—'}</div>
+                <div className="col-span-2"><span className="text-gray-400 text-xs block">Adresse</span>{d.address ? `${d.address}${d.city ? ', ' + d.city : ''}` : (d.city || '—')}</div>
+                <div><span className="text-gray-400 text-xs block">Cabinet</span>{d.clinic ? `${d.clinic.name}${d.clinic.is_owner ? ' (propriétaire)' : ' (membre)'}` : 'Aucun'}</div>
+                <div><span className="text-gray-400 text-xs block">N° RPPS</span>{d.rpps_number || '—'}</div>
+                <div><span className="text-gray-400 text-xs block">Tarif consultation</span>{d.consultation_price} €</div>
+                <div><span className="text-gray-400 text-xs block">Déplacement à domicile</span>{d.home_visit ? 'Oui' : 'Non'}</div>
+                <div className="col-span-2"><span className="text-gray-400 text-xs block">Espèces acceptées</span>{d.accepted_species?.length ? d.accepted_species.join(', ') : '—'}</div>
+                <div><span className="text-gray-400 text-xs block">Inscrit le</span>{format(new Date(d.created_at), "d MMMM yyyy", { locale: fr })}</div>
+              </div>
+
+              {d.bio && (
+                <>
+                  <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Biographie</h3>
+                  <p className="text-sm text-gray-600 bg-gray-50 rounded-xl p-4 mb-5">{d.bio}</p>
+                </>
+              )}
+
+              {/* Activité */}
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Activité</h3>
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-5">
+                <div className="text-center bg-gray-50 rounded-xl p-3">
+                  <p className="text-lg font-bold text-gray-900 tabular-nums">{d.appointments_total}</p>
+                  <p className="text-[11px] text-gray-400">RDV totaux</p>
+                </div>
+                <div className="text-center bg-gray-50 rounded-xl p-3">
+                  <p className="text-lg font-bold text-sage-600 tabular-nums">{d.appointments_upcoming}</p>
+                  <p className="text-[11px] text-gray-400">À venir</p>
+                </div>
+                <div className="text-center bg-gray-50 rounded-xl p-3">
+                  <p className="text-lg font-bold text-gray-900 tabular-nums">{d.appointments_completed}</p>
+                  <p className="text-[11px] text-gray-400">Terminés</p>
+                </div>
+                <div className="text-center bg-gray-50 rounded-xl p-3">
+                  <p className="text-lg font-bold text-red-500 tabular-nums">{d.appointments_cancelled}</p>
+                  <p className="text-[11px] text-gray-400">Annulés</p>
+                </div>
+                <div className="text-center bg-gray-50 rounded-xl p-3">
+                  <p className="text-lg font-bold text-gray-900 tabular-nums">{d.review_count > 0 ? `${d.average_rating} ★` : '—'}</p>
+                  <p className="text-[11px] text-gray-400">{d.review_count} avis</p>
+                </div>
+              </div>
+
+              {/* Documents */}
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Documents justificatifs</h3>
+              {(!d.documents || d.documents.length === 0) ? (
+                <p className="text-sm text-amber-600 mb-2">Aucun document déposé.</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {d.documents.map((doc: any) => (
+                    <li key={doc.id}>
+                      <a href={doc.file_url} target="_blank" rel="noreferrer" className="text-sm text-sage-600 hover:underline">
+                        📄 {doc.document_type} — {doc.file_name}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl mb-4">
+                {error}
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="card p-6">
+              {rejecting ? (
+                <div className="space-y-2">
+                  <input className="input text-sm" placeholder="Motif du rejet (optionnel, visible par le praticien)"
+                    value={rejectReason} onChange={e => setRejectReason(e.target.value)} autoFocus />
+                  <div className="flex gap-2">
+                    <button onClick={handleReject} disabled={reviewDoctor.isPending}
+                      className="btn-primary bg-red-500 hover:bg-red-600 text-sm px-4 py-2">
+                      Confirmer le rejet
+                    </button>
+                    <button onClick={() => { setRejecting(false); setRejectReason('') }} className="btn-secondary text-sm px-4 py-2">
+                      Annuler
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex gap-2 flex-wrap">
+                  {d.verification_status !== 'verified' && (
+                    <button onClick={handleApprove} disabled={reviewDoctor.isPending} className="btn-primary text-sm px-4 py-2">
+                      ✓ Valider
+                    </button>
+                  )}
+                  {d.verification_status !== 'rejected' && (
+                    <button onClick={() => setRejecting(true)} disabled={reviewDoctor.isPending}
+                      className="btn-secondary text-sm px-4 py-2 text-red-500">
+                      ✕ Rejeter
+                    </button>
+                  )}
+                  <a href={`mailto:${d.email}`} className="btn-secondary text-sm px-4 py-2">
+                    ✉️ Contacter
+                  </a>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

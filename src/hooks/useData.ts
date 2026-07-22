@@ -1887,7 +1887,9 @@ export function useAdminReviewDoctor() {
   })
 }
 
-// Vue d'ensemble de la plateforme (compteurs) — migration 056.
+// Vue d'ensemble de la plateforme (compteurs + séries pour les graphiques)
+// — migration 056, complétée en migration 057 (signups_weekly,
+// appointments_by_status).
 export function useAdminPlatformStats() {
   return useQuery({
     queryKey: ['admin_platform_stats'],
@@ -1899,6 +1901,8 @@ export function useAdminPlatformStats() {
         doctors_verified: number; doctors_rejected: number; secretaries_count: number
         clinics_count: number; appointments_total: number; appointments_upcoming: number
         reviews_count: number
+        signups_weekly: { week_start: string; doctors: number; patients: number }[]
+        appointments_by_status: { pending: number; confirmed: number; completed: number; cancelled: number; no_show: number }
       }
     },
   })
@@ -1915,5 +1919,19 @@ export function useAdminDoctorsByStatus(status: 'pending' | 'verified' | 'reject
       if (error) throw error
       return (data ?? []) as any[]
     },
+  })
+}
+
+// Fiche praticien exhaustive (coordonnées, cabinet, statistiques de
+// rendez-vous) pour la vue détail cliquée depuis une liste — migration 057.
+export function useAdminDoctorDetail(doctorId: string | null) {
+  return useQuery({
+    queryKey: ['admin_doctor_detail', doctorId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('admin_doctor_detail', { p_doctor_id: doctorId })
+      if (error) throw error
+      return data as any
+    },
+    enabled: !!doctorId,
   })
 }
