@@ -2000,3 +2000,31 @@ export function useAdminClinicDetail(clinicId: string | null) {
     enabled: !!clinicId,
   })
 }
+
+// Comptes secrétariat — atteint depuis la carte "Secrétariats" de la vue
+// d'ensemble admin (migration 061). Chaque ligne renvoie vers la fiche
+// du cabinet associé (AdminClinicDetail), pas de fiche dédiée séparée.
+export function useAdminSecretaries() {
+  return useQuery({
+    queryKey: ['admin_secretaries'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('admin_list_secretaries')
+      if (error) throw error
+      return (data ?? []) as any[]
+    },
+  })
+}
+
+// Rendez-vous de la plateforme (500 plus récents), atteint depuis les
+// cartes "RDV à venir" / "RDV au total" de la vue d'ensemble admin
+// (migration 061) — filtre appliqué côté client.
+export function useAdminAppointments() {
+  return useQuery({
+    queryKey: ['admin_appointments'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('admin_list_appointments')
+      if (error) throw error
+      return (data ?? []) as any[]
+    },
+  })
+}

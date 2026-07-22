@@ -5,7 +5,7 @@ import Navbar from '@/components/ui/Navbar'
 import {
   useAdminPendingDoctors, useAdminReviewDoctor, useAdminPlatformStats, useAdminDoctorsByStatus,
   useAdminDoctorDetail, useAdminReviews, useAdminPatients, useAdminPatientDetail,
-  useAdminClinics, useAdminClinicDetail,
+  useAdminClinics, useAdminClinicDetail, useAdminSecretaries, useAdminAppointments,
 } from '@/hooks/useData'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -31,6 +31,13 @@ const APPT_STATUS_LABEL: Record<string, string> = {
 const APPT_STATUS_COLOR: Record<string, string> = {
   pending: '#d1d5db', confirmed: '#8fa377', completed: '#f2820f',
   cancelled: '#ef4444', no_show: '#fca5a5',
+}
+const APPT_STATUS_BADGE: Record<string, string> = {
+  pending: 'badge bg-gray-100 text-gray-600',
+  confirmed: 'badge bg-moss-100 text-moss-700',
+  completed: 'badge bg-amber-100 text-amber-700',
+  cancelled: 'badge bg-red-100 text-red-700',
+  no_show: 'badge bg-red-100 text-red-700',
 }
 
 export default function AdminDashboard() {
@@ -61,18 +68,27 @@ export default function AdminDashboard() {
   if (view === 'clinics') {
     return <AdminClinicsView onBack={() => setSearchParams({})} onSelectClinic={id => setSearchParams({ clinic: id })} />
   }
+  if (view === 'secretaries') {
+    return <AdminSecretariesView onBack={() => setSearchParams({})} onSelectClinic={id => setSearchParams({ clinic: id })} />
+  }
+  if (view === 'appointments') {
+    return <AdminAppointmentsView onBack={() => setSearchParams({})} initialFilter={searchParams.get('filter') === 'upcoming' ? 'upcoming' : 'all'} />
+  }
   return (
     <AdminOverview
       onSelectDoctor={id => setSearchParams({ doctor: id })}
       onViewReviews={() => setSearchParams({ view: 'reviews' })}
       onViewPatients={() => setSearchParams({ view: 'patients' })}
       onViewClinics={() => setSearchParams({ view: 'clinics' })}
+      onViewSecretaries={() => setSearchParams({ view: 'secretaries' })}
+      onViewAppointments={filter => setSearchParams({ view: 'appointments', filter })}
     />
   )
 }
 
-function AdminOverview({ onSelectDoctor, onViewReviews, onViewPatients, onViewClinics }: {
+function AdminOverview({ onSelectDoctor, onViewReviews, onViewPatients, onViewClinics, onViewSecretaries, onViewAppointments }: {
   onSelectDoctor: (id: string) => void; onViewReviews: () => void; onViewPatients: () => void; onViewClinics: () => void
+  onViewSecretaries: () => void; onViewAppointments: (filter: 'upcoming' | 'all') => void
 }) {
   const { data: stats } = useAdminPlatformStats()
   const [tab, setTab] = useState<Tab>('pending')
@@ -128,10 +144,10 @@ function AdminOverview({ onSelectDoctor, onViewReviews, onViewPatients, onViewCl
     { label: 'Praticiens vérifiés', value: stats.doctors_verified, icon: '✅', onClick: () => goToDoctorsTab('verified') },
     { label: 'Praticiens en attente', value: stats.doctors_pending, icon: '⏳', onClick: () => goToDoctorsTab('pending') },
     { label: 'Praticiens rejetés', value: stats.doctors_rejected, icon: '⛔', onClick: () => goToDoctorsTab('rejected') },
-    { label: 'Secrétariats', value: stats.secretaries_count, icon: '🏥' },
+    { label: 'Secrétariats', value: stats.secretaries_count, icon: '🏥', onClick: onViewSecretaries },
     { label: 'Cabinets', value: stats.clinics_count, icon: '🏢', onClick: onViewClinics },
-    { label: 'RDV à venir', value: stats.appointments_upcoming, icon: '🗓️' },
-    { label: 'RDV au total', value: stats.appointments_total, icon: '📋' },
+    { label: 'RDV à venir', value: stats.appointments_upcoming, icon: '🗓️', onClick: () => onViewAppointments('upcoming') },
+    { label: 'RDV au total', value: stats.appointments_total, icon: '📋', onClick: () => onViewAppointments('all') },
     { label: 'Avis publiés', value: stats.reviews_count, icon: '⭐', onClick: onViewReviews },
   ] : []
 
@@ -162,19 +178,17 @@ function AdminOverview({ onSelectDoctor, onViewReviews, onViewPatients, onViewCl
           Vue d'ensemble de la plateforme et vérification des praticiens.
         </p>
 
-        {/* Vue d'ensemble — compteurs */}
+        {/* Vue d'ensemble — compteurs : toutes les cartes sont cliquables et
+            mènent au dossier ou à la liste correspondante. */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
-          {statCards.map(c => {
-            const Tag = c.onClick ? 'button' : 'div'
-            return (
-              <Tag key={c.label} onClick={c.onClick}
-                className={`card p-4 text-left ${c.onClick ? 'hover:border-sage-300 hover:shadow-md transition-shadow cursor-pointer' : ''}`}>
-                <div className="text-xl mb-1">{c.icon}</div>
-                <p className="text-2xl font-bold text-gray-900 tabular-nums">{c.value}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{c.label}{c.onClick && <span className="text-sage-500"> →</span>}</p>
-              </Tag>
-            )
-          })}
+          {statCards.map(c => (
+            <button key={c.label} onClick={c.onClick}
+              className="card p-4 text-left hover:border-sage-300 hover:shadow-md transition-shadow cursor-pointer">
+              <div className="text-xl mb-1">{c.icon}</div>
+              <p className="text-2xl font-bold text-gray-900 tabular-nums">{c.value}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{c.label} <span className="text-sage-500">→</span></p>
+            </button>
+          ))}
         </div>
 
         {/* Vue d'ensemble — graphiques */}
@@ -737,6 +751,148 @@ function AdminClinicDetail({ clinicId, onBack, onSelectDoctor }: {
                 ))}
               </ul>
             )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function AdminSecretariesView({ onBack, onSelectClinic }: { onBack: () => void; onSelectClinic: (id: string) => void }) {
+  const { data: secretaries = [], isLoading } = useAdminSecretaries()
+  const [search, setSearch] = useState('')
+
+  const list = search.trim()
+    ? secretaries.filter((s: any) => {
+        const q = search.trim().toLowerCase()
+        return `${s.first_name} ${s.last_name}`.toLowerCase().includes(q) || s.email?.toLowerCase().includes(q) || s.clinic_name?.toLowerCase().includes(q)
+      })
+    : secretaries
+
+  return (
+    <div className="min-h-screen bg-[#FFFAF0]">
+      <Navbar />
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        <button onClick={onBack} className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors mb-4">
+          ← Retour à l'administration
+        </button>
+
+        <h1 className="text-xl font-bold text-gray-900 mb-1">Secrétariats</h1>
+        <p className="text-sm text-gray-500 mb-5">{secretaries.length} compte{secretaries.length > 1 ? 's' : ''} au total</p>
+
+        <input value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="Rechercher par nom, email ou cabinet..."
+          className="input text-sm mb-4" />
+
+        {isLoading ? (
+          <p className="text-sm text-gray-400">Chargement...</p>
+        ) : list.length === 0 ? (
+          <div className="card p-10 text-center">
+            <p className="text-gray-400 text-sm">Aucun résultat.</p>
+          </div>
+        ) : (
+          <div className="card p-2">
+            {list.map((s: any) => (
+              <button key={s.user_id} onClick={() => s.clinic_id && onSelectClinic(s.clinic_id)}
+                disabled={!s.clinic_id}
+                className="flex items-center gap-3 w-full text-left p-3 rounded-xl hover:bg-gray-50 transition-colors disabled:hover:bg-transparent">
+                <div className="w-10 h-10 rounded-full bg-sage-100 flex items-center justify-center text-sage-700 font-bold text-sm flex-shrink-0">
+                  {(s.first_name?.[0] ?? '?').toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-800 truncate">{s.first_name} {s.last_name}</p>
+                  <p className="text-xs text-gray-400 truncate">{s.email}</p>
+                </div>
+                <div className="text-right text-xs text-gray-400 flex-shrink-0">
+                  {s.clinic_name || 'Aucun cabinet'}
+                </div>
+                {s.clinic_id && <span className="text-gray-300 text-lg flex-shrink-0">›</span>}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+const APPT_TAB_LABEL: Record<string, string> = { upcoming: 'À venir', all: 'Tous' }
+
+function AdminAppointmentsView({ onBack, initialFilter }: { onBack: () => void; initialFilter: 'upcoming' | 'all' }) {
+  const { data: appointments = [], isLoading } = useAdminAppointments()
+  const [filter, setFilter] = useState<'upcoming' | 'all'>(initialFilter)
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [search, setSearch] = useState('')
+
+  let list = appointments
+  if (filter === 'upcoming') {
+    const now = Date.now()
+    list = list.filter((a: any) => new Date(a.start_at).getTime() > now && ['pending', 'confirmed'].includes(a.status))
+  }
+  if (statusFilter !== 'all') list = list.filter((a: any) => a.status === statusFilter)
+  if (search.trim()) {
+    const q = search.trim().toLowerCase()
+    list = list.filter((a: any) => a.patient_name?.toLowerCase().includes(q) || a.doctor_name?.toLowerCase().includes(q))
+  }
+
+  return (
+    <div className="min-h-screen bg-[#FFFAF0]">
+      <Navbar />
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        <button onClick={onBack} className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors mb-4">
+          ← Retour à l'administration
+        </button>
+
+        <h1 className="text-xl font-bold text-gray-900 mb-1">Rendez-vous</h1>
+        <p className="text-sm text-gray-500 mb-5">{list.length} rendez-vous affiché{list.length > 1 ? 's' : ''} (500 plus récents chargés)</p>
+
+        <div className="card p-4 mb-4 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between flex-wrap">
+          <div className="flex gap-1.5">
+            {(['upcoming', 'all'] as const).map(f => (
+              <button key={f} onClick={() => setFilter(f)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${filter === f ? 'bg-sage-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                {APPT_TAB_LABEL[f]}
+              </button>
+            ))}
+          </div>
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="input text-xs py-2 w-auto">
+            <option value="all">Tous statuts</option>
+            <option value="pending">En attente</option>
+            <option value="confirmed">Confirmés</option>
+            <option value="completed">Terminés</option>
+            <option value="cancelled">Annulés</option>
+            <option value="no_show">Absences</option>
+          </select>
+        </div>
+
+        <input value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="Rechercher par praticien ou propriétaire..."
+          className="input text-sm mb-4" />
+
+        {isLoading ? (
+          <p className="text-sm text-gray-400">Chargement...</p>
+        ) : list.length === 0 ? (
+          <div className="card p-10 text-center">
+            <p className="text-gray-400 text-sm">Aucun rendez-vous pour ces filtres.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {list.map((a: any) => (
+              <div key={a.id} className="card p-4 flex items-center gap-3">
+                <div className="text-center flex-shrink-0 w-14">
+                  <p className="text-sm font-bold text-gray-900">{format(new Date(a.start_at), "d MMM", { locale: fr })}</p>
+                  <p className="text-xs text-gray-400">{format(new Date(a.start_at), "HH:mm")}</p>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-800 truncate">
+                    {a.patient_name || 'Propriétaire'} → <span className="font-medium">{a.doctor_name || 'Praticien'}</span>
+                    {a.doctor_specialty && <span className="text-gray-400"> ({a.doctor_specialty})</span>}
+                  </p>
+                  {a.reason && <p className="text-xs text-gray-400 truncate">{a.reason}</p>}
+                </div>
+                <span className={APPT_STATUS_BADGE[a.status] ?? 'badge bg-gray-100 text-gray-600'}>{APPT_STATUS_LABEL[a.status] ?? a.status}</span>
+              </div>
+            ))}
           </div>
         )}
       </div>
