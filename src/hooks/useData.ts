@@ -1949,3 +1949,29 @@ export function useAdminReviews() {
     },
   })
 }
+
+// Profils propriétaires d'animaux — symétrique aux dossiers praticiens,
+// atteint depuis la carte "Propriétaires" de la vue d'ensemble admin
+// (migration 059).
+export function useAdminPatients() {
+  return useQuery({
+    queryKey: ['admin_patients'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('admin_list_patients')
+      if (error) throw error
+      return (data ?? []) as any[]
+    },
+  })
+}
+
+export function useAdminPatientDetail(userId: string | null) {
+  return useQuery({
+    queryKey: ['admin_patient_detail', userId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('admin_patient_detail', { p_user_id: userId })
+      if (error) throw error
+      return data as any
+    },
+    enabled: !!userId,
+  })
+}

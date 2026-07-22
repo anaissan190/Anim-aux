@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom'
 import Navbar from '@/components/ui/Navbar'
 import {
   useAdminPendingDoctors, useAdminReviewDoctor, useAdminPlatformStats, useAdminDoctorsByStatus,
-  useAdminDoctorDetail, useAdminReviews,
+  useAdminDoctorDetail, useAdminReviews, useAdminPatients, useAdminPatientDetail,
 } from '@/hooks/useData'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -35,23 +35,33 @@ const APPT_STATUS_COLOR: Record<string, string> = {
 export default function AdminDashboard() {
   const [searchParams, setSearchParams] = useSearchParams()
   const selectedDoctorId = searchParams.get('doctor')
+  const selectedPatientId = searchParams.get('patient')
   const view = searchParams.get('view')
 
   if (selectedDoctorId) {
     return <AdminDoctorDetail doctorId={selectedDoctorId} onBack={() => setSearchParams({})} />
   }
+  if (selectedPatientId) {
+    return <AdminPatientDetail userId={selectedPatientId} onBack={() => setSearchParams({ view: 'patients' })} />
+  }
   if (view === 'reviews') {
     return <AdminReviewsView onBack={() => setSearchParams({})} />
+  }
+  if (view === 'patients') {
+    return <AdminPatientsView onBack={() => setSearchParams({})} onSelectPatient={id => setSearchParams({ patient: id })} />
   }
   return (
     <AdminOverview
       onSelectDoctor={id => setSearchParams({ doctor: id })}
       onViewReviews={() => setSearchParams({ view: 'reviews' })}
+      onViewPatients={() => setSearchParams({ view: 'patients' })}
     />
   )
 }
 
-function AdminOverview({ onSelectDoctor, onViewReviews }: { onSelectDoctor: (id: string) => void; onViewReviews: () => void }) {
+function AdminOverview({ onSelectDoctor, onViewReviews, onViewPatients }: {
+  onSelectDoctor: (id: string) => void; onViewReviews: () => void; onViewPatients: () => void
+}) {
   const { data: stats } = useAdminPlatformStats()
   const [tab, setTab] = useState<Tab>('pending')
 
@@ -97,7 +107,7 @@ function AdminOverview({ onSelectDoctor, onViewReviews }: { onSelectDoctor: (id:
     : activeList
 
   const statCards = stats ? [
-    { label: 'Propriétaires', value: stats.patients_count, icon: '🙋' },
+    { label: 'Propriétaires', value: stats.patients_count, icon: '🙋', onClick: onViewPatients },
     { label: 'Praticiens vérifiés', value: stats.doctors_verified, icon: '✅' },
     { label: 'Praticiens en attente', value: stats.doctors_pending, icon: '⏳' },
     { label: 'Praticiens rejetés', value: stats.doctors_rejected, icon: '⛔' },
@@ -414,6 +424,151 @@ function AdminReviewsView({ onBack }: { onBack: () => void }) {
                 </p>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function AdminPatientsView({ onBack, onSelectPatient }: { onBack: () => void; onSelectPatient: (id: string) => void }) {
+  const { data: patients = [], isLoading } = useAdminPatients()
+  const [search, setSearch] = useState('')
+
+  const list = search.trim()
+    ? patients.filter((p: any) => {
+        const q = search.trim().toLowerCase()
+        return `${p.first_name} ${p.last_name}`.toLowerCase().includes(q) || p.email?.toLowerCase().includes(q)
+      })
+    : patients
+
+  return (
+    <div className="min-h-screen bg-[#FFFAF0]">
+      <Navbar />
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        <button onClick={onBack} className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors mb-4">
+          ← Retour à l'administration
+        </button>
+
+        <h1 className="text-xl font-bold text-gray-900 mb-1">Propriétaires d'animaux</h1>
+        <p className="text-sm text-gray-500 mb-5">{patients.length} compte{patients.length > 1 ? 's' : ''} au total</p>
+
+        <input value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="Rechercher par nom ou email..."
+          className="input text-sm mb-4" />
+
+        {isLoading ? (
+          <p className="text-sm text-gray-400">Chargement...</p>
+        ) : list.length === 0 ? (
+          <div className="card p-10 text-center">
+            <p className="text-gray-400 text-sm">Aucun résultat.</p>
+          </div>
+        ) : (
+          <div className="card p-2">
+            {list.map((p: any) => (
+              <button key={p.user_id} onClick={() => onSelectPatient(p.user_id)}
+                className="flex items-center gap-3 w-full text-left p-3 rounded-xl hover:bg-gray-50 transition-colors">
+                <div className="w-10 h-10 rounded-full bg-sage-100 flex items-center justify-center text-sage-700 font-bold text-sm flex-shrink-0">
+                  {(p.first_name?.[0] ?? '?').toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-800 truncate">{p.first_name} {p.last_name}</p>
+                  <p className="text-xs text-gray-400 truncate">{p.email}</p>
+                </div>
+                <div className="text-right text-xs text-gray-400 flex-shrink-0">
+                  <p>{p.animals_count} animal{p.animals_count > 1 ? 'aux' : ''}</p>
+                  <p>{p.appointments_count} RDV</p>
+                </div>
+                <span className="text-gray-300 text-lg flex-shrink-0">›</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function AdminPatientDetail({ userId, onBack }: { userId: string; onBack: () => void }) {
+  const { data: p, isLoading } = useAdminPatientDetail(userId)
+
+  return (
+    <div className="min-h-screen bg-[#FFFAF0]">
+      <Navbar />
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        <button onClick={onBack} className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors mb-4">
+          ← Retour aux propriétaires
+        </button>
+
+        {isLoading || !p ? (
+          <p className="text-sm text-gray-400">Chargement...</p>
+        ) : (
+          <div className="card p-6">
+            <div className="flex items-center gap-4 mb-5">
+              <div className="w-14 h-14 rounded-full bg-sage-500 flex items-center justify-center text-xl text-white font-bold overflow-hidden flex-shrink-0">
+                {p.avatar_url ? <img src={p.avatar_url} className="w-full h-full object-cover" alt="" /> : (p.first_name?.[0] ?? '?').toUpperCase()}
+              </div>
+              <div>
+                <h1 className="text-lg font-bold text-gray-900">{p.first_name} {p.last_name}</h1>
+                <p className="text-sm text-gray-500">Propriétaire d'animal</p>
+              </div>
+            </div>
+
+            {/* Coordonnées */}
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Coordonnées</h3>
+            <div className="grid grid-cols-2 gap-3 text-sm text-gray-700 bg-gray-50 rounded-xl p-4 mb-5">
+              <div><span className="text-gray-400 text-xs block">Email</span>{p.email}</div>
+              <div><span className="text-gray-400 text-xs block">Téléphone</span>{p.phone || '—'}</div>
+              <div className="col-span-2"><span className="text-gray-400 text-xs block">Adresse</span>{p.address || '—'}</div>
+              <div><span className="text-gray-400 text-xs block">Date de naissance</span>{p.date_of_birth ? format(new Date(p.date_of_birth), "d MMMM yyyy", { locale: fr }) : '—'}</div>
+              <div><span className="text-gray-400 text-xs block">Inscrit le</span>{format(new Date(p.created_at), "d MMMM yyyy", { locale: fr })}</div>
+            </div>
+
+            {/* Activité */}
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Activité</h3>
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-5">
+              <div className="text-center bg-gray-50 rounded-xl p-3">
+                <p className="text-lg font-bold text-gray-900 tabular-nums">{p.animals?.length ?? 0}</p>
+                <p className="text-[11px] text-gray-400">Animaux</p>
+              </div>
+              <div className="text-center bg-gray-50 rounded-xl p-3">
+                <p className="text-lg font-bold text-gray-900 tabular-nums">{p.appointments_total}</p>
+                <p className="text-[11px] text-gray-400">RDV totaux</p>
+              </div>
+              <div className="text-center bg-gray-50 rounded-xl p-3">
+                <p className="text-lg font-bold text-sage-600 tabular-nums">{p.appointments_upcoming}</p>
+                <p className="text-[11px] text-gray-400">À venir</p>
+              </div>
+              <div className="text-center bg-gray-50 rounded-xl p-3">
+                <p className="text-lg font-bold text-red-500 tabular-nums">{p.appointments_cancelled}</p>
+                <p className="text-[11px] text-gray-400">Annulés</p>
+              </div>
+              <div className="text-center bg-gray-50 rounded-xl p-3">
+                <p className="text-lg font-bold text-gray-900 tabular-nums">{p.reviews_written}</p>
+                <p className="text-[11px] text-gray-400">Avis rédigés</p>
+              </div>
+            </div>
+
+            {/* Animaux */}
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Animaux</h3>
+            {(!p.animals || p.animals.length === 0) ? (
+              <p className="text-sm text-gray-400">Aucun animal enregistré.</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {p.animals.map((a: any) => (
+                  <div key={a.id} className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2">
+                    <div className="w-7 h-7 rounded-full bg-sage-100 flex items-center justify-center text-xs overflow-hidden flex-shrink-0">
+                      {a.avatar_url ? <img src={a.avatar_url} className="w-full h-full object-cover" alt="" /> : '🐾'}
+                    </div>
+                    <span className="text-sm text-gray-700">{a.name} <span className="text-gray-400">· {a.species}</span></span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <a href={`mailto:${p.email}`} className="btn-secondary text-sm px-4 py-2 inline-block mt-5">
+              ✉️ Contacter
+            </a>
           </div>
         )}
       </div>
