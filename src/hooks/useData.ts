@@ -1935,3 +1935,17 @@ export function useAdminDoctorDetail(doctorId: string | null) {
     enabled: !!doctorId,
   })
 }
+
+// Tous les avis de la plateforme, pour repérer les avis très négatifs
+// depuis la carte "Avis publiés" de la vue d'ensemble admin — tri/filtre
+// (note, date) gérés côté client vu le faible volume (migration 058).
+export function useAdminReviews() {
+  return useQuery({
+    queryKey: ['admin_reviews'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('admin_list_reviews')
+      if (error) throw error
+      return (data ?? []) as any[]
+    },
+  })
+}

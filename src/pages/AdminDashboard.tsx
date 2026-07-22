@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom'
 import Navbar from '@/components/ui/Navbar'
 import {
   useAdminPendingDoctors, useAdminReviewDoctor, useAdminPlatformStats, useAdminDoctorsByStatus,
-  useAdminDoctorDetail,
+  useAdminDoctorDetail, useAdminReviews,
 } from '@/hooks/useData'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -35,14 +35,23 @@ const APPT_STATUS_COLOR: Record<string, string> = {
 export default function AdminDashboard() {
   const [searchParams, setSearchParams] = useSearchParams()
   const selectedDoctorId = searchParams.get('doctor')
+  const view = searchParams.get('view')
 
   if (selectedDoctorId) {
     return <AdminDoctorDetail doctorId={selectedDoctorId} onBack={() => setSearchParams({})} />
   }
-  return <AdminOverview onSelectDoctor={id => setSearchParams({ doctor: id })} />
+  if (view === 'reviews') {
+    return <AdminReviewsView onBack={() => setSearchParams({})} />
+  }
+  return (
+    <AdminOverview
+      onSelectDoctor={id => setSearchParams({ doctor: id })}
+      onViewReviews={() => setSearchParams({ view: 'reviews' })}
+    />
+  )
 }
 
-function AdminOverview({ onSelectDoctor }: { onSelectDoctor: (id: string) => void }) {
+function AdminOverview({ onSelectDoctor, onViewReviews }: { onSelectDoctor: (id: string) => void; onViewReviews: () => void }) {
   const { data: stats } = useAdminPlatformStats()
   const [tab, setTab] = useState<Tab>('pending')
 
@@ -96,7 +105,7 @@ function AdminOverview({ onSelectDoctor }: { onSelectDoctor: (id: string) => voi
     { label: 'Cabinets', value: stats.clinics_count, icon: '🏢' },
     { label: 'RDV à venir', value: stats.appointments_upcoming, icon: '🗓️' },
     { label: 'RDV au total', value: stats.appointments_total, icon: '📋' },
-    { label: 'Avis publiés', value: stats.reviews_count, icon: '⭐' },
+    { label: 'Avis publiés', value: stats.reviews_count, icon: '⭐', onClick: onViewReviews },
   ] : []
 
   const signupsData = (stats?.signups_weekly ?? []).map(w => ({
@@ -128,13 +137,17 @@ function AdminOverview({ onSelectDoctor }: { onSelectDoctor: (id: string) => voi
 
         {/* Vue d'ensemble — compteurs */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
-          {statCards.map(c => (
-            <div key={c.label} className="card p-4">
-              <div className="text-xl mb-1">{c.icon}</div>
-              <p className="text-2xl font-bold text-gray-900 tabular-nums">{c.value}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{c.label}</p>
-            </div>
-          ))}
+          {statCards.map(c => {
+            const Tag = c.onClick ? 'button' : 'div'
+            return (
+              <Tag key={c.label} onClick={c.onClick}
+                className={`card p-4 text-left ${c.onClick ? 'hover:border-sage-300 hover:shadow-md transition-shadow cursor-pointer' : ''}`}>
+                <div className="text-xl mb-1">{c.icon}</div>
+                <p className="text-2xl font-bold text-gray-900 tabular-nums">{c.value}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{c.label}{c.onClick && <span className="text-sage-500"> →</span>}</p>
+              </Tag>
+            )
+          })}
         </div>
 
         {/* Vue d'ensemble — graphiques */}
@@ -303,6 +316,106 @@ function AdminOverview({ onSelectDoctor }: { onSelectDoctor: (id: string) => voi
             </div>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+type ReviewSort = 'recent' | 'old' | 'rating_asc' | 'rating_desc'
+
+function AdminReviewsView({ onBack }: { onBack: () => void }) {
+  const { data: reviews = [], isLoading } = useAdminReviews()
+  const [ratingFilter, setRatingFilter] = useState<number | 'all' | 'negative'>('all')
+  const [sort, setSort] = useState<ReviewSort>('recent')
+  const [search, setSearch] = useState('')
+
+  let list = reviews
+  if (ratingFilter === 'negative') list = list.filter((r: any) => r.rating <= 2)
+  else if (ratingFilter !== 'all') list = list.filter((r: any) => r.rating === ratingFilter)
+  if (search.trim()) {
+    const q = search.trim().toLowerCase()
+    list = list.filter((r: any) =>
+      r.doctor_name?.toLowerCase().includes(q) || r.patient_name?.toLowerCase().includes(q) || r.comment?.toLowerCase().includes(q))
+  }
+  list = [...list].sort((a: any, b: any) => {
+    if (sort === 'recent') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    if (sort === 'old') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    if (sort === 'rating_asc') return a.rating - b.rating
+    return b.rating - a.rating
+  })
+
+  const negativeCount = reviews.filter((r: any) => r.rating <= 2).length
+
+  return (
+    <div className="min-h-screen bg-[#FFFAF0]">
+      <Navbar />
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        <button onClick={onBack} className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors mb-4">
+          ← Retour à l'administration
+        </button>
+
+        <h1 className="text-xl font-bold text-gray-900 mb-1">Avis publiés</h1>
+        <p className="text-sm text-gray-500 mb-5">
+          {reviews.length} avis au total
+          {negativeCount > 0 && <span className="text-red-500"> · {negativeCount} avis à 1 ou 2 étoiles</span>}
+        </p>
+
+        <div className="card p-4 mb-4 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between flex-wrap">
+          <div className="flex gap-1.5 flex-wrap">
+            <button onClick={() => setRatingFilter('all')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${ratingFilter === 'all' ? 'bg-sage-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+              Tous
+            </button>
+            <button onClick={() => setRatingFilter('negative')}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${ratingFilter === 'negative' ? 'bg-red-500 text-white' : 'bg-red-50 text-red-500 hover:bg-red-100'}`}>
+              ⚠️ Négatifs (≤2★)
+            </button>
+            {[5, 4, 3, 2, 1].map(n => (
+              <button key={n} onClick={() => setRatingFilter(n)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${ratingFilter === n ? 'bg-sage-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                {n}★
+              </button>
+            ))}
+          </div>
+          <select value={sort} onChange={e => setSort(e.target.value as ReviewSort)} className="input text-xs py-2 w-auto">
+            <option value="recent">Plus récents</option>
+            <option value="old">Plus anciens</option>
+            <option value="rating_asc">Note croissante</option>
+            <option value="rating_desc">Note décroissante</option>
+          </select>
+        </div>
+
+        <input value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="Rechercher par praticien, propriétaire ou mot-clé..."
+          className="input text-sm mb-4" />
+
+        {isLoading ? (
+          <p className="text-sm text-gray-400">Chargement...</p>
+        ) : list.length === 0 ? (
+          <div className="card p-10 text-center">
+            <p className="text-gray-400 text-sm">Aucun avis pour ces filtres.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {list.map((r: any) => (
+              <div key={r.id} className={`card p-4 ${r.rating <= 2 ? 'border-red-200 bg-red-50/40' : ''}`}>
+                <div className="flex items-start justify-between gap-3 mb-1.5">
+                  <div className="text-sm">
+                    {'★'.repeat(r.rating)}<span className="text-gray-200">{'★'.repeat(5 - r.rating)}</span>
+                  </div>
+                  <span className="text-xs text-gray-400 flex-shrink-0">
+                    {format(new Date(r.created_at), "d MMM yyyy", { locale: fr })}
+                  </span>
+                </div>
+                {r.comment && <p className="text-sm text-gray-700 mb-2">{r.comment}</p>}
+                <p className="text-xs text-gray-400">
+                  {r.patient_name || 'Propriétaire'} → <span className="text-gray-600 font-medium">{r.doctor_name || 'Praticien'}</span>
+                  {r.doctor_specialty && ` (${r.doctor_specialty})`}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
