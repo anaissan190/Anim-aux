@@ -110,7 +110,7 @@ export default function Navbar() {
           <Link to="/login"
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors flex-shrink-0 bg-sage-50 text-sage-600 hover:bg-sage-100">
             <span>🏥</span>
-            <span className="hidden lg:inline">Espace secrétariat</span>
+            <span className="hidden lg:inline">Secrétariat</span>
           </Link>
         )}
 
