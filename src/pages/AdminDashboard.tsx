@@ -5,6 +5,7 @@ import Navbar from '@/components/ui/Navbar'
 import {
   useAdminPendingDoctors, useAdminReviewDoctor, useAdminPlatformStats, useAdminDoctorsByStatus,
   useAdminDoctorDetail, useAdminReviews, useAdminPatients, useAdminPatientDetail,
+  useAdminClinics, useAdminClinicDetail,
 } from '@/hooks/useData'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -36,6 +37,7 @@ export default function AdminDashboard() {
   const [searchParams, setSearchParams] = useSearchParams()
   const selectedDoctorId = searchParams.get('doctor')
   const selectedPatientId = searchParams.get('patient')
+  const selectedClinicId = searchParams.get('clinic')
   const view = searchParams.get('view')
 
   if (selectedDoctorId) {
@@ -44,23 +46,33 @@ export default function AdminDashboard() {
   if (selectedPatientId) {
     return <AdminPatientDetail userId={selectedPatientId} onBack={() => setSearchParams({ view: 'patients' })} />
   }
+  if (selectedClinicId) {
+    return (
+      <AdminClinicDetail clinicId={selectedClinicId} onBack={() => setSearchParams({ view: 'clinics' })}
+        onSelectDoctor={id => setSearchParams({ doctor: id })} />
+    )
+  }
   if (view === 'reviews') {
     return <AdminReviewsView onBack={() => setSearchParams({})} />
   }
   if (view === 'patients') {
     return <AdminPatientsView onBack={() => setSearchParams({})} onSelectPatient={id => setSearchParams({ patient: id })} />
   }
+  if (view === 'clinics') {
+    return <AdminClinicsView onBack={() => setSearchParams({})} onSelectClinic={id => setSearchParams({ clinic: id })} />
+  }
   return (
     <AdminOverview
       onSelectDoctor={id => setSearchParams({ doctor: id })}
       onViewReviews={() => setSearchParams({ view: 'reviews' })}
       onViewPatients={() => setSearchParams({ view: 'patients' })}
+      onViewClinics={() => setSearchParams({ view: 'clinics' })}
     />
   )
 }
 
-function AdminOverview({ onSelectDoctor, onViewReviews, onViewPatients }: {
-  onSelectDoctor: (id: string) => void; onViewReviews: () => void; onViewPatients: () => void
+function AdminOverview({ onSelectDoctor, onViewReviews, onViewPatients, onViewClinics }: {
+  onSelectDoctor: (id: string) => void; onViewReviews: () => void; onViewPatients: () => void; onViewClinics: () => void
 }) {
   const { data: stats } = useAdminPlatformStats()
   const [tab, setTab] = useState<Tab>('pending')
@@ -112,7 +124,7 @@ function AdminOverview({ onSelectDoctor, onViewReviews, onViewPatients }: {
     { label: 'Praticiens en attente', value: stats.doctors_pending, icon: '⏳' },
     { label: 'Praticiens rejetés', value: stats.doctors_rejected, icon: '⛔' },
     { label: 'Secrétariats', value: stats.secretaries_count, icon: '🏥' },
-    { label: 'Cabinets', value: stats.clinics_count, icon: '🏢' },
+    { label: 'Cabinets', value: stats.clinics_count, icon: '🏢', onClick: onViewClinics },
     { label: 'RDV à venir', value: stats.appointments_upcoming, icon: '🗓️' },
     { label: 'RDV au total', value: stats.appointments_total, icon: '📋' },
     { label: 'Avis publiés', value: stats.reviews_count, icon: '⭐', onClick: onViewReviews },
@@ -569,6 +581,157 @@ function AdminPatientDetail({ userId, onBack }: { userId: string; onBack: () => 
             <a href={`mailto:${p.email}`} className="btn-secondary text-sm px-4 py-2 inline-block mt-5">
               ✉️ Contacter
             </a>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function AdminClinicsView({ onBack, onSelectClinic }: { onBack: () => void; onSelectClinic: (id: string) => void }) {
+  const { data: clinics = [], isLoading } = useAdminClinics()
+  const [search, setSearch] = useState('')
+
+  const list = search.trim()
+    ? clinics.filter((c: any) => {
+        const q = search.trim().toLowerCase()
+        return c.name?.toLowerCase().includes(q) || c.city?.toLowerCase().includes(q) || c.owner_name?.toLowerCase().includes(q)
+      })
+    : clinics
+
+  return (
+    <div className="min-h-screen bg-[#FFFAF0]">
+      <Navbar />
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        <button onClick={onBack} className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors mb-4">
+          ← Retour à l'administration
+        </button>
+
+        <h1 className="text-xl font-bold text-gray-900 mb-1">Cabinets</h1>
+        <p className="text-sm text-gray-500 mb-5">{clinics.length} cabinet{clinics.length > 1 ? 's' : ''} au total</p>
+
+        <input value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="Rechercher par nom, ville ou propriétaire..."
+          className="input text-sm mb-4" />
+
+        {isLoading ? (
+          <p className="text-sm text-gray-400">Chargement...</p>
+        ) : list.length === 0 ? (
+          <div className="card p-10 text-center">
+            <p className="text-gray-400 text-sm">Aucun résultat.</p>
+          </div>
+        ) : (
+          <div className="card p-2">
+            {list.map((c: any) => (
+              <button key={c.clinic_id} onClick={() => onSelectClinic(c.clinic_id)}
+                className="flex items-center gap-3 w-full text-left p-3 rounded-xl hover:bg-gray-50 transition-colors">
+                <div className="w-10 h-10 rounded-xl bg-sage-100 flex items-center justify-center text-lg overflow-hidden flex-shrink-0">
+                  {c.logo_url ? <img src={c.logo_url} className="w-full h-full object-cover" alt="" /> : '🏥'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-800 truncate">{c.name}</p>
+                  <p className="text-xs text-gray-400 truncate">{c.city || '—'} · {c.owner_name || c.owner_email}</p>
+                </div>
+                <div className="text-right text-xs text-gray-400 flex-shrink-0">
+                  <p>{c.members_count} praticien{c.members_count > 1 ? 's' : ''}</p>
+                  <p>{c.secretaries_count} secrétariat{c.secretaries_count > 1 ? 's' : ''}</p>
+                </div>
+                <span className="text-gray-300 text-lg flex-shrink-0">›</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function AdminClinicDetail({ clinicId, onBack, onSelectDoctor }: {
+  clinicId: string; onBack: () => void; onSelectDoctor: (id: string) => void
+}) {
+  const { data: c, isLoading } = useAdminClinicDetail(clinicId)
+
+  return (
+    <div className="min-h-screen bg-[#FFFAF0]">
+      <Navbar />
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        <button onClick={onBack} className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors mb-4">
+          ← Retour aux cabinets
+        </button>
+
+        {isLoading || !c ? (
+          <p className="text-sm text-gray-400">Chargement...</p>
+        ) : (
+          <div className="card p-6">
+            <div className="flex items-center gap-4 mb-5">
+              <div className="w-14 h-14 rounded-2xl bg-sage-100 flex items-center justify-center text-2xl overflow-hidden flex-shrink-0">
+                {c.logo_url ? <img src={c.logo_url} className="w-full h-full object-cover" alt="" /> : '🏥'}
+              </div>
+              <div>
+                <h1 className="text-lg font-bold text-gray-900">{c.name}</h1>
+                <p className="text-sm text-gray-500">{c.city}</p>
+              </div>
+            </div>
+
+            {/* Coordonnées */}
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Coordonnées</h3>
+            <div className="grid grid-cols-2 gap-3 text-sm text-gray-700 bg-gray-50 rounded-xl p-4 mb-5">
+              <div className="col-span-2"><span className="text-gray-400 text-xs block">Adresse</span>{c.address ? `${c.address}${c.city ? ', ' + c.city : ''}` : (c.city || '—')}</div>
+              <div><span className="text-gray-400 text-xs block">Téléphone</span>{c.phone || '—'}</div>
+              <div><span className="text-gray-400 text-xs block">Code d'invitation</span>{c.invite_code || '—'}</div>
+              <div className="col-span-2"><span className="text-gray-400 text-xs block">Propriétaire</span>{c.owner_name} ({c.owner_email})</div>
+            </div>
+
+            {/* Activité */}
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Activité</h3>
+            <div className="grid grid-cols-3 gap-2 mb-5">
+              <div className="text-center bg-gray-50 rounded-xl p-3">
+                <p className="text-lg font-bold text-gray-900 tabular-nums">{c.members?.length ?? 0}</p>
+                <p className="text-[11px] text-gray-400">Praticiens</p>
+              </div>
+              <div className="text-center bg-gray-50 rounded-xl p-3">
+                <p className="text-lg font-bold text-gray-900 tabular-nums">{c.secretaries?.length ?? 0}</p>
+                <p className="text-[11px] text-gray-400">Secrétariats</p>
+              </div>
+              <div className="text-center bg-gray-50 rounded-xl p-3">
+                <p className="text-lg font-bold text-gray-900 tabular-nums">{c.appointments_total}</p>
+                <p className="text-[11px] text-gray-400">RDV totaux</p>
+              </div>
+            </div>
+
+            {/* Praticiens membres */}
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Praticiens membres</h3>
+            {(!c.members || c.members.length === 0) ? (
+              <p className="text-sm text-gray-400 mb-5">Aucun praticien membre.</p>
+            ) : (
+              <div className="space-y-1.5 mb-5">
+                {c.members.map((m: any) => (
+                  <button key={m.doctor_id} onClick={() => onSelectDoctor(m.doctor_id)}
+                    className="flex items-center gap-2 w-full text-left p-2 rounded-xl hover:bg-gray-50 transition-colors">
+                    <span className="text-sm text-gray-800 flex-1">
+                      {m.first_name} {m.last_name} <span className="text-gray-400">· {m.specialty}</span>
+                      {m.is_owner && <span className="text-xs text-sage-600 ml-1">(propriétaire)</span>}
+                    </span>
+                    <span className={STATUS_BADGE[m.verification_status]}>{STATUS_LABEL[m.verification_status]}</span>
+                    <span className="text-gray-300">›</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Secrétariat */}
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Secrétariat</h3>
+            {(!c.secretaries || c.secretaries.length === 0) ? (
+              <p className="text-sm text-gray-400">Aucun compte secrétariat.</p>
+            ) : (
+              <ul className="space-y-1">
+                {c.secretaries.map((s: any) => (
+                  <li key={s.user_id} className="text-sm text-gray-700">
+                    {s.first_name} {s.last_name} <span className="text-gray-400">· {s.email}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
       </div>

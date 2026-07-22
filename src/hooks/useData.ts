@@ -1975,3 +1975,28 @@ export function useAdminPatientDetail(userId: string | null) {
     enabled: !!userId,
   })
 }
+
+// Dossiers cabinets — troisième type de profil consultable depuis l'espace
+// admin, atteint depuis la carte "Cabinets" de la vue d'ensemble (migration 060).
+export function useAdminClinics() {
+  return useQuery({
+    queryKey: ['admin_clinics'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('admin_list_clinics')
+      if (error) throw error
+      return (data ?? []) as any[]
+    },
+  })
+}
+
+export function useAdminClinicDetail(clinicId: string | null) {
+  return useQuery({
+    queryKey: ['admin_clinic_detail', clinicId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('admin_clinic_detail', { p_clinic_id: clinicId })
+      if (error) throw error
+      return data as any
+    },
+    enabled: !!clinicId,
+  })
+}
