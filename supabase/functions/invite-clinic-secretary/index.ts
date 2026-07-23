@@ -26,12 +26,41 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Un tirage purement aleatoire dans un pool combine ne garantit pas la
+// presence de chiffres (un mot de passe 100% lettres reste possible, meme
+// improbable) : on force au moins 4 lettres et 4 chiffres pour que le mot
+// de passe se lise sans ambiguite comme une combinaison des deux.
 function generatePassword() {
-  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
-  let out = ''
-  for (let i = 0; i < 12; i++) out += chars[Math.floor(Math.random() * chars.length)]
+  const letters = 'ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz'
+  const digits = '23456789'
+  const pick = (pool: string) => pool[Math.floor(Math.random() * pool.length)]
+
+  const out: string[] = []
+  for (let i = 0; i < 4; i++) out.push(pick(digits))
+  for (let i = 0; i < 4; i++) out.push(pick(letters))
+  while (out.length < 12) out.push(pick(letters + digits))
+
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    const tmp = out[i]; out[i] = out[j]; out[j] = tmp
+  }
+  return out.join('')
+}
+
+// Identifiant de connexion du compte secretariat : un code genere
+// (ex. CAB4X9QZ), jamais l'email tape par le praticien. Ca evite toute
+// confusion entre "l'email de connexion secretariat" et un vrai email
+// personnel, et empeche par construction de rattacher l'acces a un
+// compte existant. L'email reste demande uniquement pour l'envoi des
+// identifiants (voir plus bas).
+function generateLoginIdentifier() {
+  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+  let out = 'CAB'
+  for (let i = 0; i < 6; i++) out += chars[Math.floor(Math.random() * chars.length)]
   return out
 }
+
+const SECRETARY_AUTH_DOMAIN = 'secretariat.animeaux.internal'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -64,25 +93,17 @@ Deno.serve(async (req) => {
 
     // L'espace secretariat doit toujours etre un compte a part entiere,
     // avec ses propres identifiants (dashboard parallele au tableau de
-    // bord praticien, jamais un lien ajoute a une session existante). Un
-    // email deja utilise par un autre compte Animeaux est donc refuse
-    // plutot que rattache a ce compte.
-    const { data: existingUser } = await supabaseAdmin
-      .from('users')
-      .select('id')
-      .eq('email', email)
-      .maybeSingle()
-
-    if (existingUser) {
-      return new Response(
-        JSON.stringify({ ok: false, error: 'Cette adresse email est deja utilisee par un autre compte Animeaux. Merci d\'utiliser une adresse email dediee pour l\'acces secretariat.' }),
-        { status: 400, headers: Object.assign({}, corsHeaders, { 'Content-Type': 'application/json' }) }
-      )
-    }
-
+    // bord praticien, jamais un lien ajoute a une session existante).
+    // L'identifiant de connexion Supabase Auth est un email synthetique
+    // construit a partir d'un code genere (jamais l'email tape par le
+    // praticien ci-dessous, qui ne sert qu'a l'envoi) : rattacher l'acces
+    // a un compte existant est donc impossible par construction.
+    const loginIdentifier = generateLoginIdentifier()
+    const authEmail = loginIdentifier.toLowerCase() + '@' + SECRETARY_AUTH_DOMAIN
     const password = generatePassword()
+
     const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
-      email: email,
+      email: authEmail,
       password: password,
       email_confirm: true,
       user_metadata: { role: 'secretary' },
@@ -116,9 +137,10 @@ Deno.serve(async (req) => {
         + '<p>Bonjour,</p>'
         + '<p>Un acces dedie au cabinet <strong>' + clinic.name + '</strong> vient d etre cree sur Animeaux.</p>'
         + '<ul style="line-height: 1.8;">'
-        + '<li><strong>Email de connexion :</strong> ' + email + '</li>'
+        + '<li><strong>Identifiant de connexion :</strong> ' + loginIdentifier + '</li>'
         + '<li><strong>Mot de passe :</strong> ' + password + '</li>'
         + '</ul>'
+        + '<p style="color: #6b7280; font-size: 13px;">A saisir dans le champ "Email" de la page de connexion : ce n est pas une adresse email, c est l identifiant propre a cet acces cabinet.</p>'
         + '<p><a href="' + loginUrl + '" style="color: #d9670b;">Se connecter a Animeaux</a></p>'
         + '<p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Le proprietaire du cabinet est en copie de cet email.</p>'
         + '</div>'
@@ -143,7 +165,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ ok: true, emailSent: emailSent }), {
+    return new Response(JSON.stringify({ ok: true, emailSent: emailSent, loginIdentifier: loginIdentifier }), {
       headers: Object.assign({}, corsHeaders, { 'Content-Type': 'application/json' }),
     })
   } catch (e) {

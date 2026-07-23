@@ -7,6 +7,17 @@ import logoNavbar from '@/assets/logo-navbar.svg'
 import PasswordInput from '@/components/ui/PasswordInput'
 import Turnstile from '@/components/ui/Turnstile'
 
+// Un compte secrétariat se connecte avec un identifiant généré (ex.
+// CAB4X9QZ), pas avec un email — doit rester synchronisé avec
+// SECRETARY_AUTH_DOMAIN dans supabase/functions/invite-clinic-secretary.
+// Sans "@" dans la saisie, on reconstruit l'email synthétique attendu par
+// Supabase Auth avant de tenter la connexion.
+const SECRETARY_AUTH_DOMAIN = 'secretariat.animeaux.internal'
+function resolveLoginEmail(input: string) {
+  const trimmed = input.trim()
+  return trimmed.includes('@') ? trimmed : `${trimmed.toLowerCase()}@${SECRETARY_AUTH_DOMAIN}`
+}
+
 export default function LoginPage() {
   const navigate = useNavigate()
   const { setUser, setProfile } = useAuthStore()
@@ -25,7 +36,7 @@ export default function LoginPage() {
     let data: any, authError: any
     try {
       const result = await Promise.race([
-        supabase.auth.signInWithPassword({ email, password, options: { captchaToken } }),
+        supabase.auth.signInWithPassword({ email: resolveLoginEmail(email), password, options: { captchaToken } }),
         new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout connexion Supabase')), 10000))
       ]) as any
       data = result.data
@@ -108,9 +119,9 @@ export default function LoginPage() {
         <div className="card p-8">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-                className="input" placeholder="vous@email.fr" required />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email ou identifiant</label>
+              <input type="text" value={email} onChange={e => setEmail(e.target.value)}
+                className="input" placeholder="vous@email.fr" required autoCapitalize="none" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>

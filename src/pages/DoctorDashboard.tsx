@@ -92,6 +92,7 @@ export default function DoctorDashboard() {
   const [secretaryEmail, setSecretaryEmail] = useState('')
   const [secretaryInviteError, setSecretaryInviteError] = useState('')
   const [secretaryInviteSuccess, setSecretaryInviteSuccess] = useState(false)
+  const [secretaryLoginIdentifier, setSecretaryLoginIdentifier] = useState('')
   const { user, signOut } = useAuthStore()
   const navigate = useNavigate()
   const isClinicAdmin = clinic?.owner_id === user?.id
@@ -1247,6 +1248,8 @@ export default function DoctorDashboard() {
                         <h3 className="font-semibold text-gray-900 mb-1">Secrétariat</h3>
                         <p className="text-xs text-gray-400 mb-4">
                           Donnez un accès dédié à votre équipe administrative, sans partager vos identifiants.
+                          L'email ci-dessous ne sert qu'à l'envoi : la connexion se fait avec un identifiant généré,
+                          pas avec cette adresse.
                         </p>
 
                         <div className="flex gap-2 mb-4">
@@ -1260,8 +1263,9 @@ export default function DoctorDashboard() {
                               setSecretaryInviteError('')
                               setSecretaryInviteSuccess(false)
                               try {
-                                await inviteSecretary.mutateAsync({ clinicId: clinic.id, email: secretaryEmail })
+                                const result = await inviteSecretary.mutateAsync({ clinicId: clinic.id, email: secretaryEmail })
                                 setSecretaryEmail('')
+                                setSecretaryLoginIdentifier(result?.loginIdentifier ?? '')
                                 setSecretaryInviteSuccess(true)
                               } catch (e: any) {
                                 setSecretaryInviteError(e.message ?? "Erreur lors de l'envoi des identifiants.")
@@ -1274,7 +1278,10 @@ export default function DoctorDashboard() {
                         </div>
                         {secretaryInviteError && <p className="text-red-500 text-sm mb-3">{secretaryInviteError}</p>}
                         {secretaryInviteSuccess && (
-                          <p className="text-sage-600 text-sm mb-3">✓ Identifiants envoyés par email.</p>
+                          <p className="text-sage-600 text-sm mb-3">
+                            ✓ Identifiants envoyés par email.
+                            {secretaryLoginIdentifier && <> Identifiant de connexion : <strong>{secretaryLoginIdentifier}</strong></>}
+                          </p>
                         )}
 
                         {clinicStaff.length > 0 && (
