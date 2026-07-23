@@ -1,5 +1,4 @@
 // src/hooks/useData.ts
-import { useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/authStore'
@@ -770,29 +769,6 @@ export function useCreateReview() {
 
 export function useConversation(otherUserId: string) {
   const { user } = useAuthStore()
-  const qc = useQueryClient()
-
-  // Écoute en temps réel les messages entrants de cet interlocuteur (les
-  // messages qu'on envoie soi-même sont déjà pris en compte par l'invalidation
-  // optimiste dans useSendMessage) — remplace le polling toutes les 5s par un
-  // affichage quasi instantané. Le filtre Realtime ne supporte qu'une seule
-  // condition de colonne, donc on filtre sur receiver_id côté serveur et on
-  // vérifie l'expéditeur côté client.
-  useEffect(() => {
-    if (!user || !otherUserId) return
-    const channel = supabase
-      .channel(`messages:${user.id}:${otherUserId}`)
-      .on('postgres_changes', {
-        event: 'INSERT', schema: 'public', table: 'messages', filter: `receiver_id=eq.${user.id}`,
-      }, payload => {
-        if (payload.new.sender_id === otherUserId) {
-          qc.invalidateQueries({ queryKey: ['messages', user.id, otherUserId] })
-        }
-      })
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [user?.id, otherUserId])
-
   return useQuery({
     queryKey: ['messages', user?.id, otherUserId],
     queryFn: async () => {
@@ -805,6 +781,7 @@ export function useConversation(otherUserId: string) {
       return data
     },
     enabled: !!user && !!otherUserId,
+    refetchInterval: 5000,
   })
 }
 
@@ -840,25 +817,6 @@ export function useSendMessage() {
 // certains embeds.
 export function useConversationPartners() {
   const { user } = useAuthStore()
-  const qc = useQueryClient()
-
-  // Toute nouvelle réception rafraîchit la liste (dernier message, compteur
-  // de non-lus) sans attendre le prochain polling — même filtre que
-  // useConversation, mais sans avoir besoin de vérifier l'expéditeur puisque
-  // n'importe quel nouveau message reçu doit mettre à jour ce résumé.
-  useEffect(() => {
-    if (!user) return
-    const channel = supabase
-      .channel(`conversation-partners:${user.id}`)
-      .on('postgres_changes', {
-        event: 'INSERT', schema: 'public', table: 'messages', filter: `receiver_id=eq.${user.id}`,
-      }, () => {
-        qc.invalidateQueries({ queryKey: ['conversation-partners', user.id] })
-      })
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [user?.id])
-
   return useQuery({
     queryKey: ['conversation-partners', user?.id],
     queryFn: async () => {
@@ -875,6 +833,7 @@ export function useConversationPartners() {
       }[]
     },
     enabled: !!user,
+    refetchInterval: 5000,
   })
 }
 
