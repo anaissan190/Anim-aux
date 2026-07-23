@@ -42,6 +42,18 @@ export default function App() {
         if (session?.user) {
           const fallbackUser = { id: session.user.id, email: session.user.email!, role: 'patient' as const, is_admin: false, created_at: '' }
           const data = await getMyUserDataWithRetry()
+          if (data?.is_suspended) {
+            // Compte suspendu par un admin : on refuse la session même si le
+            // token était encore valide (ex. onglet resté ouvert depuis avant
+            // la suspension) — jamais bloqué côté fallback réseau, seulement
+            // quand la RPC confirme explicitement is_suspended.
+            await supabase.auth.signOut()
+            setUser(null)
+            setProfile(null)
+            setLoading(false)
+            window.location.href = `/login?suspended=1${data.suspended_reason ? `&reason=${encodeURIComponent(data.suspended_reason)}` : ''}`
+            return
+          }
           if (data) {
             setUser({ ...fallbackUser, role: data.role ?? 'patient', is_admin: data.is_admin ?? false })
             setProfile(data.profile ?? null)

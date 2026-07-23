@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase, getMyUserDataWithRetry } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/authStore'
 import type { User } from '@/types'
@@ -20,13 +20,19 @@ function resolveLoginEmail(input: string) {
 
 export default function LoginPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { setUser, setProfile } = useAuthStore()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [captchaToken, setCaptchaToken] = useState('')
   const [turnstileKey, setTurnstileKey] = useState(0)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const suspendedReason = searchParams.get('suspended') ? searchParams.get('reason') : null
+  const [error, setError] = useState(
+    searchParams.get('suspended')
+      ? `Ce compte a été suspendu.${suspendedReason ? ` Motif : ${suspendedReason}.` : ''} Contactez-nous si vous pensez qu'il s'agit d'une erreur.`
+      : ''
+  )
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -80,6 +86,14 @@ export default function LoginPage() {
       let finalUser: User = fallbackUser
 
       const userData = await getMyUserDataWithRetry()
+      if (userData?.is_suspended) {
+        await supabase.auth.signOut()
+        setError(`Ce compte a été suspendu.${userData.suspended_reason ? ` Motif : ${userData.suspended_reason}.` : ''} Contactez-nous si vous pensez qu'il s'agit d'une erreur.`)
+        setCaptchaToken('')
+        setTurnstileKey(k => k + 1)
+        setLoading(false)
+        return
+      }
       if (userData) {
         finalUser = { ...fallbackUser, role: userData.role ?? 'patient', is_admin: userData.is_admin ?? false }
         setUser(finalUser)

@@ -6,6 +6,8 @@ import {
   useAdminPendingDoctors, useAdminReviewDoctor, useAdminPlatformStats, useAdminDoctorsByStatus,
   useAdminDoctorDetail, useAdminReviews, useAdminPatients, useAdminPatientDetail,
   useAdminClinics, useAdminClinicDetail, useAdminSecretaries, useAdminAppointments,
+  useAdminReports, useAdminResolveReport, useAdminDeleteReview, useAdminSuspendUser,
+  useAdminUnsuspendUser, useAdminActionsLog,
 } from '@/hooks/useData'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -74,6 +76,12 @@ export default function AdminDashboard() {
   if (view === 'appointments') {
     return <AdminAppointmentsView onBack={() => setSearchParams({})} initialFilter={searchParams.get('filter') === 'upcoming' ? 'upcoming' : 'all'} />
   }
+  if (view === 'reports') {
+    return <AdminReportsView onBack={() => setSearchParams({})} onSelectDoctor={id => setSearchParams({ doctor: id })} />
+  }
+  if (view === 'log') {
+    return <AdminActionsLogView onBack={() => setSearchParams({})} />
+  }
   return (
     <AdminOverview
       onSelectDoctor={id => setSearchParams({ doctor: id })}
@@ -82,13 +90,16 @@ export default function AdminDashboard() {
       onViewClinics={() => setSearchParams({ view: 'clinics' })}
       onViewSecretaries={() => setSearchParams({ view: 'secretaries' })}
       onViewAppointments={filter => setSearchParams({ view: 'appointments', filter })}
+      onViewReports={() => setSearchParams({ view: 'reports' })}
+      onViewLog={() => setSearchParams({ view: 'log' })}
     />
   )
 }
 
-function AdminOverview({ onSelectDoctor, onViewReviews, onViewPatients, onViewClinics, onViewSecretaries, onViewAppointments }: {
+function AdminOverview({ onSelectDoctor, onViewReviews, onViewPatients, onViewClinics, onViewSecretaries, onViewAppointments, onViewReports, onViewLog }: {
   onSelectDoctor: (id: string) => void; onViewReviews: () => void; onViewPatients: () => void; onViewClinics: () => void
   onViewSecretaries: () => void; onViewAppointments: (filter: 'upcoming' | 'all') => void
+  onViewReports: () => void; onViewLog: () => void
 }) {
   const { data: stats } = useAdminPlatformStats()
   const [tab, setTab] = useState<Tab>('pending')
@@ -149,6 +160,7 @@ function AdminOverview({ onSelectDoctor, onViewReviews, onViewPatients, onViewCl
     { label: 'RDV à venir', value: stats.appointments_upcoming, icon: '🗓️', onClick: () => onViewAppointments('upcoming') },
     { label: 'RDV au total', value: stats.appointments_total, icon: '📋', onClick: () => onViewAppointments('all') },
     { label: 'Avis publiés', value: stats.reviews_count, icon: '⭐', onClick: onViewReviews },
+    { label: 'Signalements en attente', value: stats.reports_pending, icon: '🚩', onClick: onViewReports, alert: stats.reports_pending > 0 },
   ] : []
 
   const signupsData = (stats?.signups_weekly ?? []).map(w => ({
@@ -183,13 +195,18 @@ function AdminOverview({ onSelectDoctor, onViewReviews, onViewPatients, onViewCl
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-4">
           {statCards.map(c => (
             <button key={c.label} onClick={c.onClick}
-              className="card p-4 text-left hover:border-sage-300 hover:shadow-md transition-shadow cursor-pointer">
+              className={`card p-4 text-left hover:shadow-md transition-shadow cursor-pointer
+                ${(c as any).alert ? 'border-red-200 bg-red-50/50 hover:border-red-300' : 'hover:border-sage-300'}`}>
               <div className="text-xl mb-1">{c.icon}</div>
-              <p className="text-2xl font-bold text-gray-900 tabular-nums">{c.value}</p>
+              <p className={`text-2xl font-bold tabular-nums ${(c as any).alert ? 'text-red-600' : 'text-gray-900'}`}>{c.value}</p>
               <p className="text-xs text-gray-500 mt-0.5">{c.label} <span className="text-sage-500">→</span></p>
             </button>
           ))}
         </div>
+
+        <button onClick={onViewLog} className="text-xs text-gray-400 hover:text-sage-600 transition-colors mb-6 inline-block">
+          📜 Journal d'actions admin →
+        </button>
 
         {/* Vue d'ensemble — graphiques */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-6">
@@ -366,9 +383,16 @@ type ReviewSort = 'recent' | 'old' | 'rating_asc' | 'rating_desc'
 
 function AdminReviewsView({ onBack }: { onBack: () => void }) {
   const { data: reviews = [], isLoading } = useAdminReviews()
+  const deleteReview = useAdminDeleteReview()
   const [ratingFilter, setRatingFilter] = useState<number | 'all' | 'negative'>('all')
   const [sort, setSort] = useState<ReviewSort>('recent')
   const [search, setSearch] = useState('')
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
+
+  async function handleDelete(id: string) {
+    await deleteReview.mutateAsync(id)
+    setConfirmingId(null)
+  }
 
   let list = reviews
   if (ratingFilter === 'negative') list = list.filter((r: any) => r.rating <= 2)
@@ -449,10 +473,26 @@ function AdminReviewsView({ onBack }: { onBack: () => void }) {
                   </span>
                 </div>
                 {r.comment && <p className="text-sm text-gray-700 mb-2">{r.comment}</p>}
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-gray-400 mb-2">
                   {r.patient_name || 'Propriétaire'} → <span className="text-gray-600 font-medium">{r.doctor_name || 'Praticien'}</span>
                   {r.doctor_specialty && ` (${r.doctor_specialty})`}
                 </p>
+                {confirmingId === r.id ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-red-600">Supprimer définitivement cet avis ?</span>
+                    <button onClick={() => handleDelete(r.id)} disabled={deleteReview.isPending}
+                      className="text-xs font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg px-3 py-1.5">
+                      Confirmer
+                    </button>
+                    <button onClick={() => setConfirmingId(null)} className="text-xs text-gray-500 hover:text-gray-700">
+                      Annuler
+                    </button>
+                  </div>
+                ) : (
+                  <button onClick={() => setConfirmingId(r.id)} className="text-xs text-red-500 hover:underline">
+                    🗑️ Supprimer
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -522,6 +562,16 @@ function AdminPatientsView({ onBack, onSelectPatient }: { onBack: () => void; on
 
 function AdminPatientDetail({ userId, onBack }: { userId: string; onBack: () => void }) {
   const { data: p, isLoading } = useAdminPatientDetail(userId)
+  const suspendUser = useAdminSuspendUser()
+  const unsuspendUser = useAdminUnsuspendUser()
+  const [suspending, setSuspending] = useState(false)
+  const [reason, setReason] = useState('')
+
+  async function handleSuspend() {
+    await suspendUser.mutateAsync({ userId, reason: reason.trim() || undefined })
+    setSuspending(false)
+    setReason('')
+  }
 
   return (
     <div className="min-h-screen bg-[#FFFAF0]">
@@ -543,7 +593,14 @@ function AdminPatientDetail({ userId, onBack }: { userId: string; onBack: () => 
                 <h1 className="text-lg font-bold text-gray-900">{p.first_name} {p.last_name}</h1>
                 <p className="text-sm text-gray-500">Propriétaire d'animal</p>
               </div>
+              {p.is_suspended && <span className="badge bg-red-100 text-red-700 ml-auto">⛔ Suspendu</span>}
             </div>
+
+            {p.is_suspended && (
+              <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl mb-5">
+                Compte suspendu{p.suspended_reason ? ` — Motif : ${p.suspended_reason}` : ''}
+              </div>
+            )}
 
             {/* Coordonnées */}
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Coordonnées</h3>
@@ -597,9 +654,33 @@ function AdminPatientDetail({ userId, onBack }: { userId: string; onBack: () => 
               </div>
             )}
 
-            <a href={`mailto:${p.email}`} className="btn-secondary text-sm px-4 py-2 inline-block mt-5">
-              ✉️ Contacter
-            </a>
+            <div className="flex items-center gap-2 mt-5 flex-wrap">
+              <a href={`mailto:${p.email}`} className="btn-secondary text-sm px-4 py-2 inline-block">
+                ✉️ Contacter
+              </a>
+              {p.is_suspended ? (
+                <button onClick={() => unsuspendUser.mutate(userId)} disabled={unsuspendUser.isPending}
+                  className="btn-secondary text-sm px-4 py-2 text-sage-600">
+                  ✓ Réactiver le compte
+                </button>
+              ) : suspending ? (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <input className="input text-sm w-56" placeholder="Motif (optionnel)"
+                    value={reason} onChange={e => setReason(e.target.value)} autoFocus />
+                  <button onClick={handleSuspend} disabled={suspendUser.isPending}
+                    className="btn-primary bg-red-500 hover:bg-red-600 text-sm px-4 py-2">
+                    Confirmer la suspension
+                  </button>
+                  <button onClick={() => { setSuspending(false); setReason('') }} className="btn-secondary text-sm px-4 py-2">
+                    Annuler
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => setSuspending(true)} className="btn-secondary text-sm px-4 py-2 text-red-500">
+                  ⛔ Suspendre le compte
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -903,9 +984,19 @@ function AdminAppointmentsView({ onBack, initialFilter }: { onBack: () => void; 
 function AdminDoctorDetail({ doctorId, onBack }: { doctorId: string; onBack: () => void }) {
   const { data: d, isLoading } = useAdminDoctorDetail(doctorId)
   const reviewDoctor = useAdminReviewDoctor()
+  const suspendUser = useAdminSuspendUser()
+  const unsuspendUser = useAdminUnsuspendUser()
   const [rejecting, setRejecting] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
+  const [suspending, setSuspending] = useState(false)
+  const [suspendReason, setSuspendReason] = useState('')
   const [error, setError] = useState('')
+
+  async function handleSuspend() {
+    await suspendUser.mutateAsync({ userId: d.user_id, reason: suspendReason.trim() || undefined })
+    setSuspending(false)
+    setSuspendReason('')
+  }
 
   async function handleApprove() {
     setError('')
@@ -950,12 +1041,21 @@ function AdminDoctorDetail({ doctorId, onBack }: { doctorId: string; onBack: () 
                     <p className="text-sm text-gray-500">{d.specialty}</p>
                   </div>
                 </div>
-                <span className={STATUS_BADGE[d.verification_status]}>{STATUS_LABEL[d.verification_status]}</span>
+                <div className="flex flex-col items-end gap-1">
+                  <span className={STATUS_BADGE[d.verification_status]}>{STATUS_LABEL[d.verification_status]}</span>
+                  {d.is_suspended && <span className="badge bg-red-100 text-red-700">⛔ Suspendu</span>}
+                </div>
               </div>
 
               {d.verification_rejected_reason && (
                 <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl mb-4">
                   Motif du rejet : {d.verification_rejected_reason}
+                </div>
+              )}
+
+              {d.is_suspended && (
+                <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl mb-4">
+                  Compte suspendu{d.suspended_reason ? ` — Motif : ${d.suspended_reason}` : ''}
                 </div>
               )}
 
@@ -1044,6 +1144,18 @@ function AdminDoctorDetail({ doctorId, onBack }: { doctorId: string; onBack: () 
                     </button>
                   </div>
                 </div>
+              ) : suspending ? (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <input className="input text-sm w-56" placeholder="Motif (optionnel)"
+                    value={suspendReason} onChange={e => setSuspendReason(e.target.value)} autoFocus />
+                  <button onClick={handleSuspend} disabled={suspendUser.isPending}
+                    className="btn-primary bg-red-500 hover:bg-red-600 text-sm px-4 py-2">
+                    Confirmer la suspension
+                  </button>
+                  <button onClick={() => { setSuspending(false); setSuspendReason('') }} className="btn-secondary text-sm px-4 py-2">
+                    Annuler
+                  </button>
+                </div>
               ) : (
                 <div className="flex gap-2 flex-wrap">
                   {d.verification_status !== 'verified' && (
@@ -1060,10 +1172,196 @@ function AdminDoctorDetail({ doctorId, onBack }: { doctorId: string; onBack: () 
                   <a href={`mailto:${d.email}`} className="btn-secondary text-sm px-4 py-2">
                     ✉️ Contacter
                   </a>
+                  {d.is_suspended ? (
+                    <button onClick={() => unsuspendUser.mutate(d.user_id)} disabled={unsuspendUser.isPending}
+                      className="btn-secondary text-sm px-4 py-2 text-sage-600">
+                      ✓ Réactiver le compte
+                    </button>
+                  ) : (
+                    <button onClick={() => setSuspending(true)} className="btn-secondary text-sm px-4 py-2 text-red-500">
+                      ⛔ Suspendre le compte
+                    </button>
+                  )}
                 </div>
               )}
             </div>
           </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+const REPORT_STATUS_LABEL: Record<string, string> = { pending: 'En attente', resolved: 'Résolu', dismissed: 'Rejeté' }
+const REPORT_STATUS_BADGE: Record<string, string> = {
+  pending: 'badge bg-amber-100 text-amber-700',
+  resolved: 'badge bg-green-100 text-green-700',
+  dismissed: 'badge bg-gray-100 text-gray-600',
+}
+const REPORT_TARGET_LABEL: Record<string, string> = { review: 'Avis', doctor: 'Praticien' }
+
+function AdminReportsView({ onBack, onSelectDoctor }: { onBack: () => void; onSelectDoctor: (id: string) => void }) {
+  const { data: reports = [], isLoading } = useAdminReports()
+  const resolveReport = useAdminResolveReport()
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'resolved' | 'dismissed'>('pending')
+  const [noteDraft, setNoteDraft] = useState<Record<string, string>>({})
+
+  const list = statusFilter === 'all' ? reports : reports.filter((r: any) => r.status === statusFilter)
+  const pendingCount = reports.filter((r: any) => r.status === 'pending').length
+
+  async function handleResolve(id: string, status: 'resolved' | 'dismissed') {
+    await resolveReport.mutateAsync({ reportId: id, status, note: noteDraft[id]?.trim() || undefined })
+  }
+
+  return (
+    <div className="min-h-screen bg-[#FFFAF0]">
+      <Navbar />
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        <button onClick={onBack} className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors mb-4">
+          ← Retour à l'administration
+        </button>
+
+        <h1 className="text-xl font-bold text-gray-900 mb-1">Signalements</h1>
+        <p className="text-sm text-gray-500 mb-5">
+          {reports.length} signalement{reports.length > 1 ? 's' : ''} au total
+          {pendingCount > 0 && <span className="text-amber-600"> · {pendingCount} en attente</span>}
+        </p>
+
+        <div className="flex gap-1.5 flex-wrap mb-4">
+          {(['pending', 'all', 'resolved', 'dismissed'] as const).map(f => (
+            <button key={f} onClick={() => setStatusFilter(f)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${statusFilter === f ? 'bg-sage-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+              {f === 'all' ? 'Tous' : REPORT_STATUS_LABEL[f]}
+            </button>
+          ))}
+        </div>
+
+        {isLoading ? (
+          <p className="text-sm text-gray-400">Chargement...</p>
+        ) : list.length === 0 ? (
+          <div className="card p-10 text-center">
+            <p className="text-gray-400 text-sm">Aucun signalement pour ce filtre.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {list.map((r: any) => (
+              <div key={r.id} className="card p-4">
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="badge bg-gray-100 text-gray-600">{REPORT_TARGET_LABEL[r.target_type] ?? r.target_type}</span>
+                    <span className={REPORT_STATUS_BADGE[r.status]}>{REPORT_STATUS_LABEL[r.status]}</span>
+                  </div>
+                  <span className="text-xs text-gray-400 flex-shrink-0">
+                    {format(new Date(r.created_at), "d MMM yyyy 'à' HH:mm", { locale: fr })}
+                  </span>
+                </div>
+
+                <p className="text-sm text-gray-700 mb-2">
+                  <span className="text-gray-400">Motif : </span>{r.reason}
+                </p>
+
+                {r.target_preview && (
+                  <div className="bg-gray-50 rounded-xl p-3 mb-2 text-sm">
+                    {r.target_type === 'review' ? (
+                      <>
+                        <p className="text-xs text-gray-400 mb-1">
+                          {'★'.repeat(r.target_preview.rating ?? 0)}<span className="text-gray-200">{'★'.repeat(5 - (r.target_preview.rating ?? 0))}</span>
+                          {' '}sur <button onClick={() => r.target_preview.doctor_id && onSelectDoctor(r.target_preview.doctor_id)}
+                            className="text-sage-600 hover:underline">{r.target_preview.doctor_name || 'praticien'}</button>
+                        </p>
+                        {r.target_preview.comment && <p className="text-gray-600">{r.target_preview.comment}</p>}
+                      </>
+                    ) : (
+                      <p className="text-gray-600">
+                        <button onClick={() => onSelectDoctor(r.target_id)} className="text-sage-600 hover:underline font-medium">
+                          {r.target_preview.doctor_name || 'Praticien'}
+                        </button>
+                        {r.target_preview.specialty && <span className="text-gray-400"> · {r.target_preview.specialty}</span>}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <p className="text-xs text-gray-400 mb-2">
+                  Signalé par {r.reporter_name || r.reporter_email || 'un utilisateur'}
+                </p>
+
+                {r.status === 'pending' ? (
+                  <div className="space-y-2">
+                    <input className="input text-xs" placeholder="Note admin (optionnel, non visible par les utilisateurs)"
+                      value={noteDraft[r.id] ?? ''} onChange={e => setNoteDraft(v => ({ ...v, [r.id]: e.target.value }))} />
+                    <div className="flex gap-2">
+                      <button onClick={() => handleResolve(r.id, 'resolved')} disabled={resolveReport.isPending}
+                        className="btn-primary text-xs px-3 py-1.5">
+                        ✓ Traité
+                      </button>
+                      <button onClick={() => handleResolve(r.id, 'dismissed')} disabled={resolveReport.isPending}
+                        className="btn-secondary text-xs px-3 py-1.5">
+                        Rejeter le signalement
+                      </button>
+                    </div>
+                  </div>
+                ) : r.admin_note && (
+                  <p className="text-xs text-gray-400 italic">Note : {r.admin_note}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+const LOG_ACTION_LABEL: Record<string, string> = {
+  delete_review: 'Avis supprimé', suspend_user: 'Compte suspendu', unsuspend_user: 'Compte réactivé',
+  resolve_report: 'Signalement traité',
+}
+const LOG_ACTION_ICON: Record<string, string> = {
+  delete_review: '🗑️', suspend_user: '⛔', unsuspend_user: '✓', resolve_report: '🚩',
+}
+
+function AdminActionsLogView({ onBack }: { onBack: () => void }) {
+  const { data: entries = [], isLoading } = useAdminActionsLog()
+
+  return (
+    <div className="min-h-screen bg-[#FFFAF0]">
+      <Navbar />
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        <button onClick={onBack} className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors mb-4">
+          ← Retour à l'administration
+        </button>
+
+        <h1 className="text-xl font-bold text-gray-900 mb-1">Journal d'actions admin</h1>
+        <p className="text-sm text-gray-500 mb-5">
+          Les {entries.length} action{entries.length > 1 ? 's' : ''} de modération les plus récentes.
+        </p>
+
+        {isLoading ? (
+          <p className="text-sm text-gray-400">Chargement...</p>
+        ) : entries.length === 0 ? (
+          <div className="card p-10 text-center">
+            <p className="text-gray-400 text-sm">Aucune action enregistrée pour l'instant.</p>
+          </div>
+        ) : (
+          <div className="card p-2">
+            {entries.map((e: any) => (
+              <div key={e.id} className="flex items-center gap-3 p-3 border-b border-gray-50 last:border-0">
+                <span className="text-lg flex-shrink-0">{LOG_ACTION_ICON[e.action] ?? '•'}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-gray-800">
+                    {LOG_ACTION_LABEL[e.action] ?? e.action}
+                    {e.details?.reason && <span className="text-gray-400"> — {e.details.reason}</span>}
+                    {e.details?.status && <span className="text-gray-400"> — {REPORT_STATUS_LABEL[e.details.status] ?? e.details.status}</span>}
+                  </p>
+                  <p className="text-xs text-gray-400">Par {e.admin_name || 'admin'}</p>
+                </div>
+                <span className="text-xs text-gray-400 flex-shrink-0">
+                  {format(new Date(e.created_at), "d MMM yyyy 'à' HH:mm", { locale: fr })}
+                </span>
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>

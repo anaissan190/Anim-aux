@@ -24,7 +24,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 // ponctuelles (voir status.supabase.com) qui font échouer le premier essai ;
 // sans retry, ça faisait basculer silencieusement le rôle sur 'patient' et
 // envoyait les praticiens sur le mauvais dashboard.
-export async function getMyUserDataWithRetry(timeoutMs = 8000): Promise<{ role: UserRole; is_admin: boolean; profile: Profile | null } | null> {
+export async function getMyUserDataWithRetry(timeoutMs = 8000): Promise<{ role: UserRole; is_admin: boolean; is_suspended: boolean; suspended_reason: string | null; profile: Profile | null } | null> {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeoutMs))

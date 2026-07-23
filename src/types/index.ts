@@ -18,6 +18,8 @@ export interface User {
   email: string
   role: UserRole
   is_admin: boolean
+  is_suspended?: boolean
+  suspended_reason?: string | null
   created_at: string
   terms_accepted_at?: string | null
 }

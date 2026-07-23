@@ -1,7 +1,7 @@
 // src/pages/DoctorPage.tsx
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { useDoctor, useDoctorReviews, useCreateReview, useDoctorPublicClinic } from '@/hooks/useData'
+import { useDoctor, useDoctorReviews, useCreateReview, useDoctorPublicClinic, useCreateReport } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
@@ -217,6 +217,11 @@ export default function DoctorPage() {
                         </span>
                       </div>
                       {r.comment && <p className="text-sm text-gray-600 ml-9">{r.comment}</p>}
+                      {user && (
+                        <div className="ml-9 mt-1">
+                          <ReportButton targetType="review" targetId={r.id} label="Signaler" />
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -254,9 +259,59 @@ export default function DoctorPage() {
                   📞 Cabinet : {clinic.phone}
                 </a>
               )}
+              {user && (
+                <div className="mt-3 text-center">
+                  <ReportButton targetType="doctor" targetId={doctor.id} label="Signaler ce praticien" />
+                </div>
+              )}
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  )
+}
+
+// Signalement d'un avis ou d'un praticien à l'équipe Animéaux — n'importe
+// quel utilisateur connecté peut l'utiliser (pas réservé aux patients,
+// contrairement au dépôt d'avis). Traité ensuite depuis l'admin
+// (AdminDashboard, vue "Signalements").
+function ReportButton({ targetType, targetId, label }: { targetType: 'review' | 'doctor'; targetId: string; label: string }) {
+  const createReport = useCreateReport()
+  const [open, setOpen] = useState(false)
+  const [reason, setReason] = useState('')
+  const [sent, setSent] = useState(false)
+
+  async function submit() {
+    if (!reason.trim()) return
+    await createReport.mutateAsync({ targetType, targetId, reason: reason.trim() })
+    setOpen(false)
+    setReason('')
+    setSent(true)
+    setTimeout(() => setSent(false), 4000)
+  }
+
+  if (sent) return <p className="text-xs text-green-600">✓ Signalement envoyé, merci.</p>
+
+  if (!open) return (
+    <button onClick={() => setOpen(true)} className="text-xs text-gray-400 hover:text-red-500 transition-colors">
+      🚩 {label}
+    </button>
+  )
+
+  return (
+    <div className="text-left bg-gray-50 rounded-xl p-3 mt-1">
+      <textarea value={reason} onChange={e => setReason(e.target.value)}
+        className="input text-xs resize-none" rows={2}
+        placeholder="Expliquez brièvement le problème..." autoFocus />
+      <div className="flex gap-2 mt-2">
+        <button onClick={submit} disabled={createReport.isPending || !reason.trim()}
+          className="btn-primary text-xs px-3 py-1.5">
+          {createReport.isPending ? 'Envoi...' : 'Envoyer le signalement'}
+        </button>
+        <button onClick={() => { setOpen(false); setReason('') }} className="btn-secondary text-xs px-3 py-1.5">
+          Annuler
+        </button>
       </div>
     </div>
   )

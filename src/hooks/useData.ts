@@ -1903,7 +1903,7 @@ export function useAdminPlatformStats() {
         patients_count: number; doctors_count: number; doctors_pending: number
         doctors_verified: number; doctors_rejected: number; secretaries_count: number
         clinics_count: number; appointments_total: number; appointments_upcoming: number
-        reviews_count: number
+        reviews_count: number; reports_pending: number
         signups_weekly: { week_start: string; doctors: number; patients: number }[]
         appointments_by_status: { pending: number; confirmed: number; completed: number; cancelled: number; no_show: number }
       }
@@ -2026,6 +2026,106 @@ export function useAdminAppointments() {
     queryKey: ['admin_appointments'],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('admin_list_appointments')
+      if (error) throw error
+      return (data ?? []) as any[]
+    },
+  })
+}
+
+// ── ADMINISTRATION — modération avancée (migration 063) ────────────────────
+// Suppression d'avis, suspension de compte, signalements, journal d'actions.
+
+// Signaler un avis ou un praticien — utilisable par n'importe quel
+// utilisateur connecté (bouton "Signaler" sur DoctorPage).
+export function useCreateReport() {
+  return useMutation({
+    mutationFn: async ({ targetType, targetId, reason }: { targetType: 'review' | 'doctor'; targetId: string; reason: string }) => {
+      const { error } = await supabase.rpc('create_report', {
+        p_target_type: targetType, p_target_id: targetId, p_reason: reason,
+      })
+      if (error) throw error
+    },
+  })
+}
+
+export function useAdminReports() {
+  return useQuery({
+    queryKey: ['admin_reports'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('admin_list_reports')
+      if (error) throw error
+      return (data ?? []) as any[]
+    },
+  })
+}
+
+export function useAdminResolveReport() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ reportId, status, note }: { reportId: string; status: 'resolved' | 'dismissed'; note?: string }) => {
+      const { error } = await supabase.rpc('admin_resolve_report', {
+        p_report_id: reportId, p_status: status, p_note: note ?? null,
+      })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin_reports'] })
+      qc.invalidateQueries({ queryKey: ['admin_platform_stats'] })
+      qc.invalidateQueries({ queryKey: ['admin_actions_log'] })
+    },
+  })
+}
+
+export function useAdminDeleteReview() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (reviewId: string) => {
+      const { error } = await supabase.rpc('admin_delete_review', { p_review_id: reviewId })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin_reviews'] })
+      qc.invalidateQueries({ queryKey: ['admin_platform_stats'] })
+      qc.invalidateQueries({ queryKey: ['admin_actions_log'] })
+    },
+  })
+}
+
+export function useAdminSuspendUser() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ userId, reason }: { userId: string; reason?: string }) => {
+      const { error } = await supabase.rpc('admin_suspend_user', { p_user_id: userId, p_reason: reason ?? null })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin_patient_detail'] })
+      qc.invalidateQueries({ queryKey: ['admin_doctor_detail'] })
+      qc.invalidateQueries({ queryKey: ['admin_actions_log'] })
+    },
+  })
+}
+
+export function useAdminUnsuspendUser() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await supabase.rpc('admin_unsuspend_user', { p_user_id: userId })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin_patient_detail'] })
+      qc.invalidateQueries({ queryKey: ['admin_doctor_detail'] })
+      qc.invalidateQueries({ queryKey: ['admin_actions_log'] })
+    },
+  })
+}
+
+export function useAdminActionsLog() {
+  return useQuery({
+    queryKey: ['admin_actions_log'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('admin_list_actions_log')
       if (error) throw error
       return (data ?? []) as any[]
     },
