@@ -6,6 +6,7 @@ import { useAuthStore } from '@/lib/authStore'
 import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
 import StarRating from '@/components/ui/StarRating'
+import LocationMap from '@/components/doctor/LocationMap'
 import { sanitizeHtml } from '@/lib/sanitizeHtml'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -138,11 +139,11 @@ export default function DoctorPage() {
             {doctor.lat && doctor.lng && (
               <div className="card p-6">
                 <h2 className="font-semibold text-gray-900 mb-3">Localisation</h2>
-                <div className="h-48 bg-sage-50 rounded-xl flex items-center justify-center text-sage-400 text-sm">
+                <LocationMap lat={doctor.lat} lng={doctor.lng}
+                  label={clinic ? (clinic.address ?? clinic.city ?? '') : (doctor.address ?? doctor.city ?? '')} />
+                <p className="text-xs text-gray-400 mt-2">
                   📍 {clinic ? (clinic.address ?? clinic.city) : (doctor.address ?? doctor.city)}
-                  <br />
-                  <span className="text-xs text-gray-400">(carte Leaflet — activée avec coordonnées réelles)</span>
-                </div>
+                </p>
               </div>
             )}
 
