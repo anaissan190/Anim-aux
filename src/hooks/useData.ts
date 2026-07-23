@@ -1309,7 +1309,10 @@ export function useDoctorPublicClinic(doctorId?: string) {
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_doctor_clinic', { p_doctor_id: doctorId })
       if (error) throw error
-      return (data?.[0] ?? null) as { clinic_id: string; clinic_name: string; address: string | null; city: string | null; phone: string | null; logo_url: string | null } | null
+      return (data?.[0] ?? null) as {
+        clinic_id: string; clinic_name: string; address: string | null; city: string | null
+        phone: string | null; logo_url: string | null; lat: number | null; lng: number | null
+      } | null
     },
     enabled: !!doctorId,
   })

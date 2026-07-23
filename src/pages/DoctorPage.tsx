@@ -135,17 +135,25 @@ export default function DoctorPage() {
               </div>
             )}
 
-            {/* Carte */}
-            {doctor.lat && doctor.lng && (
-              <div className="card p-6">
-                <h2 className="font-semibold text-gray-900 mb-3">Localisation</h2>
-                <LocationMap lat={doctor.lat} lng={doctor.lng}
-                  label={clinic ? (clinic.address ?? clinic.city ?? '') : (doctor.address ?? doctor.city ?? '')} />
-                <p className="text-xs text-gray-400 mt-2">
-                  📍 {clinic ? (clinic.address ?? clinic.city) : (doctor.address ?? doctor.city)}
-                </p>
-              </div>
-            )}
+            {/* Carte — coordonnées du cabinet si le praticien en est membre
+                (son adresse personnelle n'est alors pas renseignée),
+                sinon ses coordonnées propres. Même bascule que pour
+                l'adresse affichée juste au-dessus. */}
+            {(() => {
+              const mapLat = clinic ? clinic.lat : doctor.lat
+              const mapLng = clinic ? clinic.lng : doctor.lng
+              if (!mapLat || !mapLng) return null
+              return (
+                <div className="card p-6">
+                  <h2 className="font-semibold text-gray-900 mb-3">Localisation</h2>
+                  <LocationMap lat={mapLat} lng={mapLng}
+                    label={clinic ? (clinic.address ?? clinic.city ?? '') : (doctor.address ?? doctor.city ?? '')} />
+                  <p className="text-xs text-gray-400 mt-2">
+                    📍 {clinic ? (clinic.address ?? clinic.city) : (doctor.address ?? doctor.city)}
+                  </p>
+                </div>
+              )
+            })()}
 
             {/* Avis */}
             <div className="card p-6">
