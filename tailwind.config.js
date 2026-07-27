@@ -1,6 +1,11 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  // Fichiers de test exclus : leurs querySelector('.foo') et données
+  // factices contiennent des mots qui ressemblent à des classes Tailwind
+  // (ex: '.relative', '.overflow-hidden') sans en être un vrai usage JSX —
+  // sans cette exclusion, chaque nouveau test fait dériver légèrement le
+  // CSS de prod généré, pour des classes jamais réellement rendues.
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}', '!./src/**/*.test.{js,ts,jsx,tsx}', '!./src/test/**'],
   theme: {
     extend: {
       colors: {
