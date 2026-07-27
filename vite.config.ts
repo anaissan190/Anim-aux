@@ -10,5 +10,10 @@ export default defineConfig({
   server: {
     port: 3000,
     host: true // permet l'accès depuis le téléphone sur le réseau local
-  }
+  },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: './src/test/setup.ts',
+  },
 })
