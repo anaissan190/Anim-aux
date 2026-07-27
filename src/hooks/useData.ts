@@ -547,6 +547,57 @@ export function useCreateAppointment() {
   })
 }
 
+// Liste d'attente (migration 065) : un patient s'inscrit pour un praticien
+// donné et reçoit une notification in-app dès qu'un RDV chez ce praticien
+// est annulé (trigger notify_waitlist_on_cancellation, alerte à usage
+// unique — l'entrée est marquée notified_at et ne redéclenche plus rien).
+export function useMyWaitlistEntry(doctorId?: string) {
+  const { user } = useAuthStore()
+  return useQuery({
+    queryKey: ['waitlist_entry', doctorId, user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('waitlist_entries')
+        .select('id')
+        .eq('doctor_id', doctorId!)
+        .eq('patient_id', user!.id)
+        .maybeSingle()
+      if (error) throw error
+      return data
+    },
+    enabled: !!user && !!doctorId,
+  })
+}
+
+export function useJoinWaitlist() {
+  const qc = useQueryClient()
+  const { user } = useAuthStore()
+  return useMutation({
+    mutationFn: async (doctorId: string) => {
+      const { error } = await supabase.from('waitlist_entries').insert({
+        doctor_id: doctorId, patient_id: user!.id,
+      })
+      if (error) throw error
+    },
+    onSuccess: (_, doctorId) => qc.invalidateQueries({ queryKey: ['waitlist_entry', doctorId] }),
+  })
+}
+
+export function useLeaveWaitlist() {
+  const qc = useQueryClient()
+  const { user } = useAuthStore()
+  return useMutation({
+    mutationFn: async (doctorId: string) => {
+      const { error } = await supabase.from('waitlist_entries')
+        .delete()
+        .eq('doctor_id', doctorId)
+        .eq('patient_id', user!.id)
+      if (error) throw error
+    },
+    onSuccess: (_, doctorId) => qc.invalidateQueries({ queryKey: ['waitlist_entry', doctorId] }),
+  })
+}
+
 // Pièces jointes liées à un RDV (documents envoyés par le patient à la réservation)
 export function useAppointmentDocuments(appointmentId?: string) {
   return useQuery({

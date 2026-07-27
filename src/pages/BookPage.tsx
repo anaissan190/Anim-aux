@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useDoctor, useAnimals } from '@/hooks/useData'
-import { useCreateAppointment } from '@/hooks/useData'
+import { useCreateAppointment, useMyWaitlistEntry, useJoinWaitlist, useLeaveWaitlist } from '@/hooks/useData'
 import { supabase } from '@/lib/supabase'
 import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
@@ -19,6 +19,9 @@ export default function BookPage() {
   const { data: doctor } = useDoctor(doctorId!)
   const { data: animals = [] } = useAnimals()
   const createAppt = useCreateAppointment()
+  const { data: waitlistEntry } = useMyWaitlistEntry(doctorId)
+  const joinWaitlist = useJoinWaitlist()
+  const leaveWaitlist = useLeaveWaitlist()
 
   const [step, setStep] = useState<Step>(1)
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null)
@@ -140,6 +143,24 @@ export default function BookPage() {
               selected={selectedSlot}
               onSelect={setSelectedSlot}
             />
+
+            {/* Aucun créneau qui convient tout de suite ? Le patient peut
+                s'inscrire pour être prévenu dès qu'un RDV chez ce praticien
+                est annulé (alerte à usage unique, voir migration 065). */}
+            <div className="mt-4 pt-4 border-t border-gray-100 text-center">
+              {waitlistEntry ? (
+                <button onClick={() => leaveWaitlist.mutate(doctorId!)} disabled={leaveWaitlist.isPending}
+                  className="text-sm text-sage-600 hover:underline">
+                  🔔 Inscrit·e à la liste d'attente — se désinscrire
+                </button>
+              ) : (
+                <button onClick={() => joinWaitlist.mutate(doctorId!)} disabled={joinWaitlist.isPending}
+                  className="text-sm text-gray-500 hover:text-sage-600 transition-colors">
+                  🔔 Aucun créneau qui vous convient ? Me prévenir si un créneau se libère
+                </button>
+              )}
+            </div>
+
             {selectedSlot && (
               <div className="mt-5 pt-5 border-t border-gray-100 flex items-center justify-between">
                 <p className="text-sm text-sage-700 font-medium">
