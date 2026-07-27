@@ -507,6 +507,11 @@ export default function DoctorDashboard() {
   const fillRate = theoreticalSlots30Days > 0
     ? Math.min(100, Math.round((bookedLast30Days / theoreticalSlots30Days) * 100))
     : null
+  // Le revenu et le taux de no-show ne comptent que les RDV explicitement
+  // clôturés (boutons Terminé/Absent sur AppointmentCard) — un praticien
+  // qui n'a jamais l'habitude de les cliquer verrait sinon des stats à 0
+  // sans comprendre pourquoi, alors qu'il a bien eu des RDV passés.
+  const hasUnclosedPastAppts = pastAppts.length > 0 && completedAppts.length === 0 && noShowAppts.length === 0
 
   return (
     <div className={`relative min-h-screen ${tab === 'home' ? 'bg-sage-50' : 'bg-[#FFFAF0]'}`}>
@@ -2017,6 +2022,14 @@ export default function DoctorDashboard() {
             </Link>
             <h2 className="text-xl font-bold text-gray-900 mb-1">Statistiques</h2>
             <p className="text-sm text-gray-500 mb-6">Un aperçu de votre activité sur la plateforme.</p>
+
+            {hasUnclosedPastAppts && (
+              <div className="bg-amber-50 border border-amber-200 text-amber-800 text-sm px-4 py-3 rounded-xl mb-6">
+                💡 Vos statistiques resteront vides tant que vos rendez-vous passés ne sont pas clôturés.
+                Marquez-les en <strong>Terminé</strong> ou <strong>Absent(e)</strong> (bouton sur chaque RDV,
+                onglet Mon espace) pour voir apparaître revenu et taux de no-show.
+              </div>
+            )}
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
               <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center">
