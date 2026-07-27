@@ -11,6 +11,8 @@ export type NotificationType =
   | 'new_review'
   | 'doctor_verified'
   | 'doctor_rejected'
+  | 'waitlist_slot_available'
+  | 'vaccine_reminder'
 export type DoctorVerificationStatus = 'pending' | 'verified' | 'rejected'
 
 export interface User {

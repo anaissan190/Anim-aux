@@ -1,6 +1,7 @@
 // supabase/functions/send-reminders/index.ts
-// Cette Edge Function est appelée par un cron Supabase toutes les heures
-// Elle envoie des rappels pour les RDV dans les 24h
+// Cette Edge Function est appelée par un cron Supabase toutes les heures.
+// Elle envoie des rappels pour les RDV dans les 24h, et des rappels de
+// vaccin (vaccines.next_due_date, saisi par le praticien) dans les 7 jours.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -63,6 +64,23 @@ async function sendOvhSms(message: string, receiver: string) {
   })
   if (!res.ok) {
     console.error('OVH SMS error', await res.text())
+  }
+}
+
+async function sendReminderEmail(resendKey: string, to: string, subject: string, html: string) {
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${resendKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: Deno.env.get('EMAIL_FROM') ?? 'Animéaux <onboarding@resend.dev>',
+      to, subject, html,
+    }),
+  })
+  if (!res.ok) {
+    console.error('Resend error', await res.text())
   }
 }
 
@@ -129,22 +147,7 @@ Deno.serve(async (req) => {
           <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Animéaux — Votre animal, notre priorité.</p>
         </div>
       `
-      const resendRes = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${resendKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: Deno.env.get('EMAIL_FROM') ?? 'Animéaux <onboarding@resend.dev>',
-          to: patientEmail,
-          subject: 'Rappel de votre rendez-vous demain',
-          html,
-        }),
-      })
-      if (!resendRes.ok) {
-        console.error('Resend error', await resendRes.text())
-      }
+      await sendReminderEmail(resendKey, patientEmail, 'Rappel de votre rendez-vous demain', html)
     }
 
     const patientPhone = toE164(patientProfile?.phone)
@@ -161,7 +164,73 @@ Deno.serve(async (req) => {
     sent++
   }
 
-  return new Response(JSON.stringify({ sent }), {
+  // Rappels de vaccin : la date de rappel (next_due_date) est saisie une
+  // fois par le praticien sur la fiche santé de l'animal, potentiellement
+  // des mois à l'avance — on avertit le propriétaire dans la semaine qui
+  // précède l'échéance, une seule fois (reminder_sent_at empêche de le
+  // renvoyer à chaque exécution horaire tant que la date reste dans cette
+  // fenêtre de 7 jours).
+  const weekAhead = new Date()
+  weekAhead.setDate(weekAhead.getDate() + 7)
+
+  const { data: dueVaccines } = await supabase
+    .from('vaccines')
+    .select(`
+      id, name, next_due_date, animal_id,
+      animals!inner(name, owner:users!owner_id(email, profiles(first_name, last_name, phone)))
+    `)
+    .not('next_due_date', 'is', null)
+    .is('reminder_sent_at', null)
+    .lte('next_due_date', weekAhead.toISOString().slice(0, 10))
+    .gte('next_due_date', new Date().toISOString().slice(0, 10))
+
+  let vaccineReminders = 0
+  for (const vaccine of dueVaccines ?? []) {
+    const animal = (vaccine.animals as any)
+    const owner = animal?.owner
+    const ownerProfile = owner?.profiles
+    const ownerEmail = owner?.email
+    const dueDateStr = new Date(vaccine.next_due_date).toLocaleDateString('fr-FR', {
+      dateStyle: 'long', timeZone: 'Europe/Paris',
+    })
+
+    await supabase.from('notifications').insert({
+      user_id: animal?.owner_id ?? null,
+      type: 'vaccine_reminder',
+      title: 'Rappel de vaccin',
+      body: `${animal?.name ?? 'Votre animal'} doit recevoir un rappel de vaccin (${vaccine.name}) avant le ${dueDateStr}.`,
+      related_id: vaccine.animal_id,
+    })
+
+    if (resendKey && ownerEmail) {
+      const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #1f2937;">
+          <h2 style="color: #d9670b;">Rappel de vaccin 🐾</h2>
+          <p>Bonjour ${ownerProfile?.first_name ?? ''},</p>
+          <p>Le vétérinaire de <strong>${animal?.name ?? 'votre animal'}</strong> a indiqué un rappel de vaccin à prévoir prochainement :</p>
+          <ul style="line-height: 1.8;">
+            <li><strong>Vaccin :</strong> ${vaccine.name}</li>
+            <li><strong>À faire avant le :</strong> ${dueDateStr}</li>
+          </ul>
+          <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Animéaux — Votre animal, notre priorité.</p>
+        </div>
+      `
+      await sendReminderEmail(resendKey, ownerEmail, `Rappel de vaccin pour ${animal?.name ?? 'votre animal'}`, html)
+    }
+
+    const ownerPhone = toE164(ownerProfile?.phone)
+    if (ownerPhone) {
+      await sendOvhSms(
+        `Animeaux : rappel de vaccin (${vaccine.name}) pour ${animal?.name ?? 'votre animal'} avant le ${dueDateStr}.`,
+        ownerPhone
+      )
+    }
+
+    await supabase.from('vaccines').update({ reminder_sent_at: new Date().toISOString() }).eq('id', vaccine.id)
+    vaccineReminders++
+  }
+
+  return new Response(JSON.stringify({ sent, vaccineReminders }), {
     headers: { 'Content-Type': 'application/json' }
   })
 })
