@@ -466,6 +466,48 @@ export default function DoctorDashboard() {
     ? (reviews.reduce((s: number, r: any) => s + r.rating, 0) / reviews.length).toFixed(1)
     : null
 
+  // Statistiques praticien (onglet "Statistiques") — entièrement calculées
+  // côté client à partir des données déjà chargées (appointments,
+  // availabilities, doctor.consultation_price), sans requête dédiée.
+  const price = doctor?.consultation_price ?? 0
+  const pastAppts = appointments.filter(a => new Date(a.start_at) < today)
+  const completedAppts = pastAppts.filter(a => a.status === 'completed')
+  const noShowAppts = pastAppts.filter(a => a.status === 'no_show')
+  const cancelledAppts = pastAppts.filter(a => a.status === 'cancelled')
+  const noShowRate = completedAppts.length + noShowAppts.length > 0
+    ? Math.round((noShowAppts.length / (completedAppts.length + noShowAppts.length)) * 100)
+    : null
+  const cancellationRate = pastAppts.length > 0
+    ? Math.round((cancelledAppts.length / pastAppts.length) * 100)
+    : null
+  const totalRevenue = completedAppts.length * price
+
+  const thirtyDaysAgo = addDays(today, -30)
+  const revenueLast30Days = completedAppts
+    .filter(a => new Date(a.start_at) >= thirtyDaysAgo).length * price
+  const bookedLast30Days = appointments.filter(a => {
+    const d = new Date(a.start_at)
+    return d >= thirtyDaysAgo && d < today && a.status !== 'cancelled'
+  }).length
+  // Créneaux théoriques sur les 30 derniers jours d'après les disponibilités
+  // récurrentes (jour de la semaine × durée / slot_duration_minutes) — ne
+  // tient pas compte des congés (blocked_slots), donc légèrement
+  // surestimé : un indicateur, pas une mesure exacte.
+  let theoreticalSlots30Days = 0
+  for (let i = 0; i < 30; i++) {
+    const day = addDays(thirtyDaysAgo, i)
+    const dayOfWeek = day.getDay()
+    availabilities.filter((a: any) => a.day_of_week === dayOfWeek).forEach((a: any) => {
+      const [sh, sm] = a.start_time.split(':').map(Number)
+      const [eh, em] = a.end_time.split(':').map(Number)
+      const minutes = (eh * 60 + em) - (sh * 60 + sm)
+      theoreticalSlots30Days += Math.max(0, Math.floor(minutes / (a.slot_duration_minutes || 30)))
+    })
+  }
+  const fillRate = theoreticalSlots30Days > 0
+    ? Math.min(100, Math.round((bookedLast30Days / theoreticalSlots30Days) * 100))
+    : null
+
   return (
     <div className={`relative min-h-screen ${tab === 'home' ? 'bg-sage-50' : 'bg-[#FFFAF0]'}`}>
       {/* Le fond animaux n'est affiché que sur l'onglet Accueil — c'est le
@@ -1964,6 +2006,55 @@ export default function DoctorDashboard() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {tab === 'stats' && (
+          <div className="max-w-3xl">
+            <Link to="/dashboard/doctor?tab=home"
+              className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors mb-4">
+              ← Mon espace
+            </Link>
+            <h2 className="text-xl font-bold text-gray-900 mb-1">Statistiques</h2>
+            <p className="text-sm text-gray-500 mb-6">Un aperçu de votre activité sur la plateforme.</p>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center">
+                <p className="text-2xl font-bold text-sage-600">{totalRevenue.toLocaleString('fr-FR')} €</p>
+                <p className="text-xs text-gray-500 mt-1">Revenu total (RDV terminés)</p>
+              </div>
+              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center">
+                <p className="text-2xl font-bold text-sage-600">{revenueLast30Days.toLocaleString('fr-FR')} €</p>
+                <p className="text-xs text-gray-500 mt-1">Revenu (30 derniers jours)</p>
+              </div>
+              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center">
+                <p className={`text-2xl font-bold ${noShowRate !== null && noShowRate > 15 ? 'text-red-500' : 'text-sage-600'}`}>
+                  {noShowRate !== null ? `${noShowRate}%` : '—'}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">Taux de no-show</p>
+              </div>
+              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center">
+                <p className="text-2xl font-bold text-sage-600">{cancellationRate !== null ? `${cancellationRate}%` : '—'}</p>
+                <p className="text-xs text-gray-500 mt-1">Taux d'annulation</p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-semibold text-sm text-gray-900">Taux de remplissage (30 derniers jours)</h3>
+                <span className="text-lg font-bold text-sage-600">{fillRate !== null ? `${fillRate}%` : '—'}</span>
+              </div>
+              {fillRate !== null ? (
+                <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-sage-500 rounded-full transition-all" style={{ width: `${fillRate}%` }} />
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400">Renseignez vos disponibilités pour voir cette statistique.</p>
+              )}
+              <p className="text-xs text-gray-400 mt-2">
+                Estimation à partir de vos disponibilités récurrentes — ne tient pas compte des congés posés.
+              </p>
+            </div>
           </div>
         )}
       </div>

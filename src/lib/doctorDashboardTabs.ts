@@ -4,7 +4,7 @@
 // logo, pour qu'ils soient visibles dès l'arrivée sur la page d'accueil
 // sans avoir à cliquer sur quoi que ce soit).
 
-export type DoctorTab = 'home' | 'patients' | 'tarifs' | 'disponibilites' | 'profil' | 'avis' | 'messages'
+export type DoctorTab = 'home' | 'patients' | 'tarifs' | 'disponibilites' | 'profil' | 'avis' | 'messages' | 'stats'
 
 // Onglets affichés dans la barre. "Mon profil" et "Messages" restent des
 // DoctorTab valides (contenu inchangé, accessible via ?tab=...) mais ne sont
@@ -16,6 +16,7 @@ export const DOCTOR_TABS: { id: DoctorTab; label: string; icon: string }[] = [
   { id: 'tarifs',         label: 'Tarifs',           icon: '💰' },
   { id: 'disponibilites', label: 'Disponibilités',   icon: '🗓️' },
   { id: 'avis',           label: 'Avis',             icon: '⭐' },
+  { id: 'stats',          label: 'Statistiques',     icon: '📊' },
 ]
 
-export const ALL_DOCTOR_TAB_IDS: DoctorTab[] = ['home', 'patients', 'tarifs', 'disponibilites', 'profil', 'avis', 'messages']
+export const ALL_DOCTOR_TAB_IDS: DoctorTab[] = ['home', 'patients', 'tarifs', 'disponibilites', 'profil', 'avis', 'messages', 'stats']
