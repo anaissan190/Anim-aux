@@ -9,6 +9,8 @@ npm run dev       # Démarre le serveur de dev sur http://localhost:3000
 npm run build     # Vérification TypeScript + build production (tsc && vite build)
 npm run preview   # Prévisualise le build de production en local
 npm run lint      # ESLint sur tous les fichiers .ts/.tsx dans src/
+npm run test      # Lance les tests unitaires (Vitest) une fois
+npm run test:watch # Idem, en mode watch
 ```
 
 Environnement : copier `.env.example` en `.env.local` et renseigner `VITE_SUPABASE_URL` et `VITE_SUPABASE_ANON_KEY`.
