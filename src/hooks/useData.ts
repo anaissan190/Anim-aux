@@ -5,6 +5,7 @@ import { useAuthStore } from '@/lib/authStore'
 import type { SearchFilters, Appointment, AppointmentStatus } from '@/types'
 import { addMinutes } from 'date-fns'
 import { geocodeAddress } from '@/lib/geo'
+import { generateAvailableSlots } from '@/lib/slots'
 
 export function useDoctors(filters: SearchFilters = {}, enabled: boolean = true) {
   return useQuery({
@@ -258,7 +259,7 @@ export function useAvailableSlots(doctorId: string, date: Date | null) {
         p_to: dayEnd.toISOString(),
       })
       if (bookedErr) throw bookedErr
-      const bookedTimes = new Set((booked || []).map((a: any) => new Date(a.start_at).getTime()))
+      const bookedTimes = new Set<number>((booked || []).map((a: any) => new Date(a.start_at).getTime()))
 
       // Périodes de congés/indisponibilités posées par le praticien
       // (blocked_slots) : on exclut tout créneau qui tombe dedans.
@@ -268,7 +269,7 @@ export function useAvailableSlots(doctorId: string, date: Date | null) {
         .eq('doctor_id', doctorId)
         .lt('start_at', dayEnd.toISOString())
         .gt('end_at', dayStart.toISOString())
-      const blockedRanges = (blocked || []).map((b: any) => ({
+      const blockedRanges: { start: number; end: number }[] = (blocked || []).map((b: any) => ({
         start: new Date(b.start_at).getTime(),
         end: new Date(b.end_at).getTime(),
       }))
@@ -278,22 +279,7 @@ export function useAvailableSlots(doctorId: string, date: Date | null) {
       // journée reste visible normalement).
       const minStart = Date.now() + 15 * 60 * 1000
 
-      const slots: Date[] = []
-      for (const a of avail) {
-        const [sh, sm] = a.start_time.split(':').map(Number)
-        const [eh, em] = a.end_time.split(':').map(Number)
-        let cur = new Date(date)
-        cur.setHours(sh, sm, 0, 0)
-        const end = new Date(date)
-        end.setHours(eh, em, 0, 0)
-        while (cur < end) {
-          const t = cur.getTime()
-          const isBlocked = blockedRanges.some(r => t >= r.start && t < r.end)
-          if (t >= minStart && !bookedTimes.has(t) && !isBlocked) slots.push(new Date(cur))
-          cur = addMinutes(cur, a.slot_duration_minutes)
-        }
-      }
-      return slots
+      return generateAvailableSlots(date, avail, bookedTimes, blockedRanges, minStart)
     },
     enabled: !!doctorId && !!date,
   })

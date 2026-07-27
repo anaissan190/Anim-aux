@@ -15,6 +15,7 @@ import { useAuthStore } from '@/lib/authStore'
 import { PRACTITIONER_TYPES } from '@/lib/practitionerTypes'
 import { SPECIES_EMOJI, PRACTICE_SPECIES_OPTIONS } from '@/lib/animalSpecies'
 import { type DoctorTab as Tab, ALL_DOCTOR_TAB_IDS as ALL_TAB_IDS } from '@/lib/doctorDashboardTabs'
+import { computeDoctorStats } from '@/lib/doctorStats'
 
 // La barre d'onglets (Accueil, Mes patients, Tarifs, Disponibilités, Avis)
 // est désormais affichée dans la Navbar, à la suite du logo, pour être
@@ -466,52 +467,11 @@ export default function DoctorDashboard() {
     ? (reviews.reduce((s: number, r: any) => s + r.rating, 0) / reviews.length).toFixed(1)
     : null
 
-  // Statistiques praticien (onglet "Statistiques") — entièrement calculées
-  // côté client à partir des données déjà chargées (appointments,
-  // availabilities, doctor.consultation_price), sans requête dédiée.
-  const price = doctor?.consultation_price ?? 0
-  const pastAppts = appointments.filter(a => new Date(a.start_at) < today)
-  const completedAppts = pastAppts.filter(a => a.status === 'completed')
-  const noShowAppts = pastAppts.filter(a => a.status === 'no_show')
-  const cancelledAppts = pastAppts.filter(a => a.status === 'cancelled')
-  const noShowRate = completedAppts.length + noShowAppts.length > 0
-    ? Math.round((noShowAppts.length / (completedAppts.length + noShowAppts.length)) * 100)
-    : null
-  const cancellationRate = pastAppts.length > 0
-    ? Math.round((cancelledAppts.length / pastAppts.length) * 100)
-    : null
-  const totalRevenue = completedAppts.length * price
-
-  const thirtyDaysAgo = addDays(today, -30)
-  const revenueLast30Days = completedAppts
-    .filter(a => new Date(a.start_at) >= thirtyDaysAgo).length * price
-  const bookedLast30Days = appointments.filter(a => {
-    const d = new Date(a.start_at)
-    return d >= thirtyDaysAgo && d < today && a.status !== 'cancelled'
-  }).length
-  // Créneaux théoriques sur les 30 derniers jours d'après les disponibilités
-  // récurrentes (jour de la semaine × durée / slot_duration_minutes) — ne
-  // tient pas compte des congés (blocked_slots), donc légèrement
-  // surestimé : un indicateur, pas une mesure exacte.
-  let theoreticalSlots30Days = 0
-  for (let i = 0; i < 30; i++) {
-    const day = addDays(thirtyDaysAgo, i)
-    const dayOfWeek = day.getDay()
-    availabilities.filter((a: any) => a.day_of_week === dayOfWeek).forEach((a: any) => {
-      const [sh, sm] = a.start_time.split(':').map(Number)
-      const [eh, em] = a.end_time.split(':').map(Number)
-      const minutes = (eh * 60 + em) - (sh * 60 + sm)
-      theoreticalSlots30Days += Math.max(0, Math.floor(minutes / (a.slot_duration_minutes || 30)))
-    })
-  }
-  const fillRate = theoreticalSlots30Days > 0
-    ? Math.min(100, Math.round((bookedLast30Days / theoreticalSlots30Days) * 100))
-    : null
-  // Le revenu et le taux de no-show ne comptent que les RDV explicitement
-  // clôturés (boutons Terminé/Absent sur AppointmentCard) — un praticien
-  // qui n'a jamais l'habitude de les cliquer verrait sinon des stats à 0
-  // sans comprendre pourquoi, alors qu'il a bien eu des RDV passés.
-  const hasUnclosedPastAppts = pastAppts.length > 0 && completedAppts.length === 0 && noShowAppts.length === 0
+  // Statistiques praticien (onglet "Statistiques") — logique pure extraite
+  // dans src/lib/doctorStats.ts (testée indépendamment du composant).
+  const {
+    noShowRate, cancellationRate, totalRevenue, revenueLast30Days, fillRate, hasUnclosedPastAppts,
+  } = computeDoctorStats(appointments, availabilities, doctor?.consultation_price ?? 0, today)
 
   return (
     <div className={`relative min-h-screen ${tab === 'home' ? 'bg-sage-50' : 'bg-[#FFFAF0]'}`}>
