@@ -1,29 +1,42 @@
-import { useEffect } from 'react'
+import { useEffect, Suspense, lazy } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { supabase, getMyUserDataWithRetry } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/authStore'
 
-import LandingPage from '@/pages/LandingPage'
-import SearchPage from '@/pages/SearchPage'
-import DoctorPage from '@/pages/DoctorPage'
-import ClinicPage from '@/pages/ClinicPage'
-import BookPage from '@/pages/BookPage'
-import LoginPage from '@/pages/LoginPage'
-import RegisterPage from '@/pages/RegisterPage'
-import ForgotPassword from '@/pages/ForgotPassword'
-import ResetPassword from '@/pages/ResetPassword'
-import PatientDashboard from '@/pages/PatientDashboard'
-import DoctorDashboard from '@/pages/DoctorDashboard'
-import AdminDashboard from '@/pages/AdminDashboard'
-import SecretaryDashboard from '@/pages/SecretaryDashboard'
-import MessagesPage from '@/pages/MessagesPage'
-import AnimalHealthPage from '@/pages/AnimalHealthPage'
-import PatientDocumentsPage from '@/pages/PatientDocumentsPage'
-import RemindersPage from '@/pages/RemindersPage'
-import ProfilPage from '@/pages/ProfilPage'
+// Chaque page est chargée à la demande (React.lazy) plutôt qu'incluse dans le
+// bundle principal : sans ça, un visiteur qui arrive sur la page de connexion
+// téléchargeait aussi tout le code du dashboard praticien, de l'admin, des
+// statistiques, etc. ProtectedRoute reste en import statique (composant très
+// léger utilisé par la quasi-totalité des routes protégées).
+const LandingPage = lazy(() => import('@/pages/LandingPage'))
+const SearchPage = lazy(() => import('@/pages/SearchPage'))
+const DoctorPage = lazy(() => import('@/pages/DoctorPage'))
+const ClinicPage = lazy(() => import('@/pages/ClinicPage'))
+const BookPage = lazy(() => import('@/pages/BookPage'))
+const LoginPage = lazy(() => import('@/pages/LoginPage'))
+const RegisterPage = lazy(() => import('@/pages/RegisterPage'))
+const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'))
+const ResetPassword = lazy(() => import('@/pages/ResetPassword'))
+const PatientDashboard = lazy(() => import('@/pages/PatientDashboard'))
+const DoctorDashboard = lazy(() => import('@/pages/DoctorDashboard'))
+const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'))
+const SecretaryDashboard = lazy(() => import('@/pages/SecretaryDashboard'))
+const MessagesPage = lazy(() => import('@/pages/MessagesPage'))
+const AnimalHealthPage = lazy(() => import('@/pages/AnimalHealthPage'))
+const PatientDocumentsPage = lazy(() => import('@/pages/PatientDocumentsPage'))
+const RemindersPage = lazy(() => import('@/pages/RemindersPage'))
+const ProfilPage = lazy(() => import('@/pages/ProfilPage'))
+const LogoPreview = lazy(() => import('@/pages/LogoPreview'))
+const LegalPage = lazy(() => import('@/pages/LegalPage'))
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
-import LogoPreview from '@/pages/LogoPreview'
-import LegalPage from '@/pages/LegalPage'
+
+function RouteFallback() {
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="w-8 h-8 border-2 border-sage-200 border-t-sage-500 rounded-full animate-spin" />
+    </div>
+  )
+}
 
 export default function App() {
   const { setUser, setProfile, setLoading } = useAuthStore()
@@ -74,6 +87,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <Suspense fallback={<RouteFallback />}>
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/search" element={<SearchPage />} />
@@ -122,6 +136,7 @@ export default function App() {
         <Route path="/logo-preview" element={<LogoPreview />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </Suspense>
     </BrowserRouter>
   )
 }
