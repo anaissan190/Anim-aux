@@ -54,5 +54,8 @@ export function createSupabaseMock() {
       subscribe: vi.fn(function (this: any) { return this }),
     })),
     removeChannel: vi.fn(),
+    functions: {
+      invoke: vi.fn(() => Promise.resolve({ data: null, error: null })),
+    },
   }
 }
