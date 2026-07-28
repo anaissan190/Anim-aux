@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createQueryBuilderMock, createSupabaseMock } from '@/test/supabaseMock'
 
@@ -14,21 +14,30 @@ vi.mock('react-router-dom', () => ({
 import { supabase } from '@/lib/supabase'
 import SearchBar from './SearchBar'
 
+const SPECIALTIES_RESULT = { data: [{ name: 'Vétérinaire' }, { name: 'Vétérinaire équin' }, { name: 'Toiletteur' }], error: null }
+
 function renderBar(props: any = {}) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  vi.mocked(supabase.from).mockReturnValue(
-    createQueryBuilderMock({ data: [{ name: 'Vétérinaire' }, { name: 'Vétérinaire équin' }, { name: 'Toiletteur' }], error: null })
-  )
-  return render(<QueryClientProvider client={queryClient}><SearchBar {...props} /></QueryClientProvider>)
+  const builder = createQueryBuilderMock(SPECIALTIES_RESULT)
+  vi.mocked(supabase.from).mockReturnValue(builder)
+  const utils = render(<QueryClientProvider client={queryClient}><SearchBar {...props} /></QueryClientProvider>)
+  return { ...utils, builder }
 }
 
-// La liste de suggestions est recalculée depuis specialtiesRef (rempli par
-// un useEffect une fois useSpecialties() résolue) uniquement au moment de
-// la frappe — taper avant que la requête initiale n'ait résolu calculerait
-// les suggestions sur une liste encore vide. On laisse donc passer un tick
-// réel avant toute interaction qui dépend des suggestions.
-async function flushSpecialtiesQuery() {
-  await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)) })
+// La liste de suggestions est recalculée depuis specialtiesRef (rempli par un
+// useEffect une fois useSpecialties() résolue) uniquement au moment de la
+// frappe — taper avant que la requête initiale n'ait résolu calculerait les
+// suggestions sur une liste encore vide, et ce résultat ne serait jamais
+// recalculé tant qu'on ne retape pas. On attend donc explicitement que la
+// promesse du mock (celle interrogée par useSpecialties) soit résolue, puis
+// on laisse un tick supplémentaire à l'effet qui synchronise specialtiesRef,
+// avant de taper. Un unique setTimeout(0) sans attendre la promesse elle-même
+// s'est révélé insuffisant sous charge (suite complète, machine chargée).
+async function waitForSpecialtiesLoaded(builder: ReturnType<typeof createQueryBuilderMock>) {
+  await act(async () => {
+    await builder
+    await new Promise(resolve => setTimeout(resolve, 0))
+  })
 }
 
 beforeEach(() => {
@@ -46,25 +55,27 @@ describe('SearchBar', () => {
   })
 
   it('suggère les spécialités correspondantes après 2 caractères', async () => {
-    renderBar()
-    await flushSpecialtiesQuery()
-    fireEvent.change(screen.getByPlaceholderText('Spécialité, praticien...'), { target: { value: 'vé' } })
+    const { builder } = renderBar()
+    const input = screen.getByPlaceholderText('Spécialité, praticien...')
+    await waitForSpecialtiesLoaded(builder)
+    fireEvent.change(input, { target: { value: 'vé' } })
     expect(screen.getByText('Vétérinaire')).toBeInTheDocument()
     expect(screen.getByText('Vétérinaire équin')).toBeInTheDocument()
     expect(screen.queryByText('Toiletteur')).not.toBeInTheDocument()
   })
 
   it('ne montre aucune suggestion pour moins de 2 caractères', async () => {
-    renderBar()
-    await flushSpecialtiesQuery()
-    fireEvent.change(screen.getByPlaceholderText('Spécialité, praticien...'), { target: { value: 'v' } })
+    const { builder } = renderBar()
+    const input = screen.getByPlaceholderText('Spécialité, praticien...')
+    await waitForSpecialtiesLoaded(builder)
+    fireEvent.change(input, { target: { value: 'v' } })
     expect(screen.queryByText('Vétérinaire')).not.toBeInTheDocument()
   })
 
   it('remplit le champ spécialité au clic sur une suggestion', async () => {
-    renderBar()
-    await flushSpecialtiesQuery()
+    const { builder } = renderBar()
     const input = screen.getByPlaceholderText('Spécialité, praticien...')
+    await waitForSpecialtiesLoaded(builder)
     fireEvent.change(input, { target: { value: 'toi' } })
     expect(screen.getByText('Toiletteur')).toBeInTheDocument()
     fireEvent.click(screen.getByText('Toiletteur'))
