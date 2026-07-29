@@ -44,8 +44,12 @@ $$;
 
 grant execute on function public.reply_to_review(uuid, text) to authenticated;
 
--- get_doctor_reviews (043) doit désormais renvoyer la réponse.
-create or replace function public.get_doctor_reviews(p_doctor_id uuid)
+-- get_doctor_reviews (043) doit désormais renvoyer la réponse. Postgres
+-- refuse un CREATE OR REPLACE qui change le type de retour (colonnes OUT
+-- différentes) : il faut d'abord DROP la version existante.
+drop function if exists public.get_doctor_reviews(uuid);
+
+create function public.get_doctor_reviews(p_doctor_id uuid)
 returns table (
   id uuid,
   appointment_id uuid,
