@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase, getMyUserDataWithRetry } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/authStore'
 import type { User } from '@/types'
-import logoNavbar from '@/assets/logo-navbar.svg'
+import logoNavbar from '@/assets/logo-navbar.webp'
 import PasswordInput from '@/components/ui/PasswordInput'
 import Turnstile from '@/components/ui/Turnstile'
 

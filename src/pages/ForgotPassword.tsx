@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
-import logoNavbar from '@/assets/logo-navbar.svg'
+import logoNavbar from '@/assets/logo-navbar.webp'
 import Turnstile from '@/components/ui/Turnstile'
 
 export default function ForgotPassword() {

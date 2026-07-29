@@ -34,6 +34,21 @@ export default defineConfig({
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') }
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Sépare les grosses libs tierces (rarement modifiées) du code
+        // applicatif (modifié à chaque déploiement) : le navigateur d'un
+        // visiteur qui revient peut réutiliser ces chunks en cache même
+        // après une mise à jour de l'app, au lieu de tout retélécharger.
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-query': ['@tanstack/react-query'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+        },
+      },
+    },
+  },
   server: {
     port: 3000,
     host: true // permet l'accès depuis le téléphone sur le réseau local

@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
-import logoNavbar from '@/assets/logo-navbar.svg'
+import logoNavbar from '@/assets/logo-navbar.webp'
 import PasswordInput from '@/components/ui/PasswordInput'
 
 export default function ResetPassword() {

@@ -5,7 +5,7 @@ import { useAuthStore } from '@/lib/authStore'
 import NotificationBell from './NotificationBell'
 import { DOCTOR_TABS } from '@/lib/doctorDashboardTabs'
 import { useConversationPartners, useMyClinicStaffInfo } from '@/hooks/useData'
-import logoNavbar from '@/assets/logo-navbar.svg'
+import logoNavbar from '@/assets/logo-navbar.webp'
 
 export default function Navbar() {
   const { user, profile, signOut } = useAuthStore()

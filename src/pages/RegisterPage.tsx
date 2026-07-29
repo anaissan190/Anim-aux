@@ -4,7 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { z } from 'zod'
 import { supabase } from '@/lib/supabase'
 import { PRACTITIONER_TYPES } from '@/lib/practitionerTypes'
-import logoNavbar from '@/assets/logo-navbar.svg'
+import logoNavbar from '@/assets/logo-navbar.webp'
 import PasswordInput from '@/components/ui/PasswordInput'
 import Turnstile from '@/components/ui/Turnstile'
 
