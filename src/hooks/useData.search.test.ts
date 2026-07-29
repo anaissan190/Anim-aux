@@ -9,7 +9,7 @@ import { createQueryBuilderMock, createSupabaseMock } from '@/test/supabaseMock'
 vi.mock('@/lib/supabase', () => ({ supabase: createSupabaseMock() }))
 
 import { supabase } from '@/lib/supabase'
-import { useDoctors, useClinicsSearch, useClinicInfo, useClinicTeam, useDoctorsAvailabilities, useDoctor, useCurrentDoctor } from './useData'
+import { useDoctors, useClinicsSearch, useClinicInfo, useClinicTeam, useDoctorsAvailabilities, useDoctor, useCurrentDoctor, useNextAvailableSlots } from './useData'
 import { useAuthStore } from '@/lib/authStore'
 
 function wrapper({ children }: { children: ReactNode }) {
@@ -78,6 +78,39 @@ describe('useDoctors', () => {
 
   it('ne lance aucune requête tant que enabled=false', () => {
     renderHook(() => useDoctors({}, false), { wrapper })
+    expect(supabase.from).not.toHaveBeenCalled()
+  })
+})
+
+describe('useNextAvailableSlots', () => {
+  it("renvoie null pour un praticien sans disponibilités actives", async () => {
+    vi.mocked(supabase.from).mockReturnValue(createQueryBuilderMock({ data: [], error: null }))
+
+    const { result } = renderHook(() => useNextAvailableSlots(['doc-1']), { wrapper })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(result.current.data).toEqual({ 'doc-1': null })
+  })
+
+  it('calcule un prochain créneau non nul à partir des disponibilités, RDV pris et congés', async () => {
+    const dayOfWeek = new Date().getDay()
+    vi.mocked(supabase.from).mockImplementation((table: any) => {
+      if (table === 'availabilities') return createQueryBuilderMock({
+        data: [{ day_of_week: dayOfWeek, start_time: '00:00', end_time: '23:59', slot_duration_minutes: 30 }],
+        error: null,
+      })
+      return createQueryBuilderMock({ data: [], error: null }) // blocked_slots
+    })
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: [], error: null } as any) // get_booked_slots
+
+    const { result } = renderHook(() => useNextAvailableSlots(['doc-1']), { wrapper })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(result.current.data?.['doc-1']).not.toBeNull()
+  })
+
+  it("ne lance aucune requête pour une liste de praticiens vide", () => {
+    renderHook(() => useNextAvailableSlots([]), { wrapper })
     expect(supabase.from).not.toHaveBeenCalled()
   })
 })

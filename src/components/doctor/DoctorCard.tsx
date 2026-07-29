@@ -1,11 +1,12 @@
 // src/components/doctor/DoctorCard.tsx
 import { Link } from 'react-router-dom'
 import StarRating from '@/components/ui/StarRating'
+import { formatNextSlotLabel } from '@/lib/nextSlot'
 import type { Doctor } from '@/types'
 
-interface Props { doctor: Doctor & { profiles?: any }; distanceKm?: number }
+interface Props { doctor: Doctor & { profiles?: any }; distanceKm?: number; nextSlotAt?: string | null }
 
-export default function DoctorCard({ doctor, distanceKm }: Props) {
+export default function DoctorCard({ doctor, distanceKm, nextSlotAt }: Props) {
   const name = doctor.profiles
     ? `${doctor.profiles.first_name} ${doctor.profiles.last_name}`
     : 'Praticien'
@@ -55,6 +56,12 @@ export default function DoctorCard({ doctor, distanceKm }: Props) {
           )}
           <span className="font-medium text-gray-700">{doctor.consultation_price}€</span>
         </div>
+
+        {nextSlotAt && (
+          <p className="text-xs text-sage-600 font-medium mt-1.5">
+            🕐 {formatNextSlotLabel(new Date(nextSlotAt))}
+          </p>
+        )}
       </div>
 
       <div className="flex-shrink-0 self-center">

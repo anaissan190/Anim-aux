@@ -48,4 +48,15 @@ describe('DoctorCard', () => {
     renderCard({ doctor: baseDoctor() })
     expect(screen.getByRole('link')).toHaveAttribute('href', '/doctor/doc-1')
   })
+
+  it('affiche le prochain créneau disponible si fourni', () => {
+    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1); tomorrow.setHours(9, 0, 0, 0)
+    renderCard({ doctor: baseDoctor(), nextSlotAt: tomorrow.toISOString() })
+    expect(screen.getByText(/Demain à 09:00/)).toBeInTheDocument()
+  })
+
+  it('n\'affiche rien sur la disponibilité si nextSlotAt est absent ou null', () => {
+    renderCard({ doctor: baseDoctor(), nextSlotAt: null })
+    expect(screen.queryByText(/🕐/)).not.toBeInTheDocument()
+  })
 })

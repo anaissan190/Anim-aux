@@ -6,6 +6,7 @@ import type { SearchFilters, Appointment, AppointmentStatus } from '@/types'
 import { addMinutes } from 'date-fns'
 import { geocodeAddress } from '@/lib/geo'
 import { generateAvailableSlots } from '@/lib/slots'
+import { findNextAvailableSlot } from '@/lib/nextSlot'
 
 export function useDoctors(filters: SearchFilters = {}, enabled: boolean = true) {
   return useQuery({
@@ -114,6 +115,57 @@ async function hasAvailabilityInRange(doctorId: string, from: Date, to: Date): P
     }
   }
   return false
+}
+
+// Prochain créneau réservable de chaque praticien d'une liste — utilisé
+// pour le tri "Prochaine disponibilité" et le badge affiché sur chaque
+// DoctorCard en résultat de recherche. Même source de données que
+// hasAvailabilityInRange (disponibilités + RDV pris + congés), mais
+// renvoie la date exacte du premier créneau plutôt qu'un simple booléen,
+// sur une fenêtre de 30 jours.
+export function useNextAvailableSlots(doctorIds: string[]) {
+  const sortedIds = [...doctorIds].sort()
+  return useQuery({
+    queryKey: ['next-available-slots', sortedIds],
+    queryFn: async () => {
+      const now = new Date()
+      const to = new Date(now)
+      to.setDate(to.getDate() + 30)
+
+      const entries = await Promise.all(sortedIds.map(async (doctorId): Promise<[string, string | null]> => {
+        const { data: avail } = await supabase
+          .from('availabilities')
+          .select('day_of_week, start_time, end_time, slot_duration_minutes')
+          .eq('doctor_id', doctorId)
+          .eq('is_active', true)
+        if (!avail || avail.length === 0) return [doctorId, null]
+
+        const { data: booked } = await supabase.rpc('get_booked_slots', {
+          p_doctor_id: doctorId,
+          p_from: now.toISOString(),
+          p_to: to.toISOString(),
+        })
+        const bookedTimes = new Set<number>((booked || []).map((a: any) => new Date(a.start_at).getTime()))
+
+        const { data: blocked } = await supabase
+          .from('blocked_slots')
+          .select('start_at, end_at')
+          .eq('doctor_id', doctorId)
+          .lt('start_at', to.toISOString())
+          .gt('end_at', now.toISOString())
+        const blockedRanges = (blocked || []).map((b: any) => ({
+          start: new Date(b.start_at).getTime(),
+          end: new Date(b.end_at).getTime(),
+        }))
+
+        const next = findNextAvailableSlot(avail, bookedTimes, blockedRanges, now.getTime(), now, 30)
+        return [doctorId, next ? next.toISOString() : null]
+      }))
+
+      return Object.fromEntries(entries) as Record<string, string | null>
+    },
+    enabled: sortedIds.length > 0,
+  })
 }
 
 // Recherche de cabinets (équipe de plusieurs praticiens), groupés comme

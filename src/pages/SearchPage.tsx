@@ -5,7 +5,7 @@ import BackButton from '@/components/ui/BackButton'
 import SearchBar from '@/components/search/SearchBar'
 import DoctorCard from '@/components/doctor/DoctorCard'
 import ClinicCard from '@/components/doctor/ClinicCard'
-import { useDoctors, useClinicsSearch } from '@/hooks/useData'
+import { useDoctors, useClinicsSearch, useNextAvailableSlots } from '@/hooks/useData'
 import type { SearchFilters } from '@/types'
 import { haversineKm } from '@/lib/geo'
 import { PRACTICE_SPECIES_OPTIONS } from '@/lib/animalSpecies'
@@ -90,8 +90,31 @@ export default function SearchPage() {
     })
   }
 
-  const doctors = withDistance(doctorsRaw)
+  const doctorsWithDistance = withDistance(doctorsRaw)
   const clinics = withDistance(clinicsRaw)
+
+  // Tri "Prochaine disponibilité" : optionnel, en plus du tri par défaut
+  // (note/distance déjà appliqué par la requête et withDistance). Un
+  // praticien sans créneau libre sur 30 jours passe en fin de liste plutôt
+  // que d'être masqué.
+  const sort = params.get('sort') === 'next_slot' ? 'next_slot' : 'pertinence'
+  function setSort(next: string) {
+    const p = new URLSearchParams(params)
+    if (next === 'next_slot') p.set('sort', 'next_slot'); else p.delete('sort')
+    setParams(p, { replace: true })
+  }
+  const { data: nextSlots = {} } = useNextAvailableSlots(
+    sort === 'next_slot' ? doctorsWithDistance.map(d => d.id) : []
+  )
+  const doctors = sort === 'next_slot'
+    ? [...doctorsWithDistance].sort((a, b) => {
+        const sa = nextSlots[a.id], sb = nextSlots[b.id]
+        if (!sa && !sb) return 0
+        if (!sa) return 1
+        if (!sb) return -1
+        return new Date(sa).getTime() - new Date(sb).getTime()
+      })
+    : doctorsWithDistance
 
   return (
     <div className="min-h-screen bg-[#FFFAF0]">
@@ -206,6 +229,16 @@ export default function SearchPage() {
                   <p className="text-sm text-gray-500">
                     {!hasCriteria ? '' : loading ? 'Recherche...' : `${total} résultat${total > 1 ? 's' : ''} trouvé${total > 1 ? 's' : ''}`}
                   </p>
+                  {hasCriteria && doctors.length > 0 && (
+                    <label className="flex items-center gap-2 text-sm text-gray-500">
+                      Trier par
+                      <select value={sort} onChange={e => setSort(e.target.value)}
+                        className="input text-sm py-1.5">
+                        <option value="pertinence">Pertinence</option>
+                        <option value="next_slot">Prochaine disponibilité</option>
+                      </select>
+                    </label>
+                  )}
                 </div>
 
                 {!hasCriteria ? (
@@ -246,7 +279,7 @@ export default function SearchPage() {
                         {clinics.length > 0 && (
                           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Praticiens</h2>
                         )}
-                        {doctors.map(d => <DoctorCard key={d.id} doctor={d} distanceKm={d.distanceKm} />)}
+                        {doctors.map(d => <DoctorCard key={d.id} doctor={d} distanceKm={d.distanceKm} nextSlotAt={nextSlots[d.id]} />)}
                       </div>
                     )}
                   </>
