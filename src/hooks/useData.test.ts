@@ -18,6 +18,7 @@ import { useAuthStore } from '@/lib/authStore'
 import {
   useAvailabilities, useMyWaitlistEntry, useJoinWaitlist, useConversationPartners,
   useLeaveWaitlist, useSendMessage, useUpdateAppointmentStatus, useCreateReview,
+  useReplyToReview,
 } from './useData'
 
 const FAKE_PATIENT = { id: 'patient-1', email: 'a@a.fr', role: 'patient' as const, is_admin: false, created_at: '' }
@@ -190,5 +191,25 @@ describe('useCreateReview', () => {
     expect(builder.insert).toHaveBeenCalledWith({
       appointment_id: undefined, doctor_id: 'doc-1', patient_id: 'patient-1', rating: 5, comment: 'Très bien',
     })
+  })
+})
+
+describe('useReplyToReview', () => {
+  it('appelle la RPC reply_to_review avec l\'id de l\'avis et le texte de la réponse', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: null } as any)
+
+    const { result } = renderHook(() => useReplyToReview(), { wrapper })
+    await result.current.mutateAsync({ reviewId: 'review-1', doctorId: 'doc-1', reply: 'Merci pour votre visite !' })
+
+    expect(supabase.rpc).toHaveBeenCalledWith('reply_to_review', { p_review_id: 'review-1', p_reply: 'Merci pour votre visite !' })
+  })
+
+  it('propage l\'erreur si la RPC échoue (ex: avis non associé au praticien)', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: { message: 'Avis introuvable' } } as any)
+
+    const { result } = renderHook(() => useReplyToReview(), { wrapper })
+    await expect(
+      result.current.mutateAsync({ reviewId: 'review-1', doctorId: 'doc-1', reply: 'Merci !' })
+    ).rejects.toThrow('Avis introuvable')
   })
 })

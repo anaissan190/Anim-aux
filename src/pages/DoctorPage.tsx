@@ -217,6 +217,12 @@ export default function DoctorPage() {
                         </span>
                       </div>
                       {r.comment && <p className="text-sm text-gray-600 ml-9">{r.comment}</p>}
+                      {r.doctor_reply && (
+                        <div className="ml-9 mt-2 pl-3 border-l-2 border-sage-200">
+                          <p className="text-xs font-medium text-sage-600 mb-0.5">Réponse du praticien</p>
+                          <p className="text-sm text-gray-600">{r.doctor_reply}</p>
+                        </div>
+                      )}
                       {user && (
                         <div className="ml-9 mt-1">
                           <ReportButton targetType="review" targetId={r.id} label="Signaler" />

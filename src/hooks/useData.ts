@@ -803,6 +803,16 @@ export function useCreateReview() {
   })
 }
 
+export function useReplyToReview() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ reviewId, reply }: { reviewId: string; doctorId: string; reply: string }) => {
+      const { error } = await supabase.rpc('reply_to_review', { p_review_id: reviewId, p_reply: reply })
+      if (error) throw error
+    },
+    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['reviews', vars.doctorId] }),
+  })
+}
 
 export function useConversation(otherUserId: string) {
   const { user } = useAuthStore()

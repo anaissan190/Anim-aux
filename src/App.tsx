@@ -23,6 +23,7 @@ const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'))
 const SecretaryDashboard = lazy(() => import('@/pages/SecretaryDashboard'))
 const MessagesPage = lazy(() => import('@/pages/MessagesPage'))
 const AnimalHealthPage = lazy(() => import('@/pages/AnimalHealthPage'))
+const AnimalRecordExportPage = lazy(() => import('@/pages/AnimalRecordExportPage'))
 const PatientDocumentsPage = lazy(() => import('@/pages/PatientDocumentsPage'))
 const RemindersPage = lazy(() => import('@/pages/RemindersPage'))
 const ProfilPage = lazy(() => import('@/pages/ProfilPage'))
@@ -123,6 +124,9 @@ export default function App() {
         } />
         <Route path="/animal/:id" element={
           <ProtectedRoute role={['patient', 'doctor']}><AnimalHealthPage /></ProtectedRoute>
+        } />
+        <Route path="/animal/:id/carnet" element={
+          <ProtectedRoute role={['patient', 'doctor']}><AnimalRecordExportPage /></ProtectedRoute>
         } />
         <Route path="/documents" element={
           <ProtectedRoute role="patient"><PatientDocumentsPage /></ProtectedRoute>

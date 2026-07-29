@@ -110,6 +110,8 @@ export interface Review {
   rating: number
   comment?: string
   created_at: string
+  doctor_reply?: string | null
+  doctor_reply_at?: string | null
   profiles?: Profile
 }
 

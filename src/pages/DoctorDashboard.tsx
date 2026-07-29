@@ -9,7 +9,7 @@ import RichTextEditor from '@/components/ui/RichTextEditor'
 import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
-import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useDoctorServices, useAddDoctorService, useDeleteDoctorService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments, useInviteClinicSecretary, useClinicStaffList, useExportMyData,
+import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useReplyToReview, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useDoctorServices, useAddDoctorService, useDeleteDoctorService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments, useInviteClinicSecretary, useClinicStaffList, useExportMyData,
   useDoctorVerificationDocuments, useUploadVerificationDocument, useDeleteVerificationDocument } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { PRACTITIONER_TYPES } from '@/lib/practitionerTypes'
@@ -32,6 +32,28 @@ export default function DoctorDashboard() {
   const { data: appointments = [], isLoading } = useDoctorAppointments(doctor?.id)
   const { data: availabilities = [] } = useAvailabilities(doctor?.id ?? '')
   const { data: reviews = [] } = useDoctorReviews(doctor?.id ?? '')
+  const replyToReview = useReplyToReview()
+  const [replyingToId, setReplyingToId] = useState<string | null>(null)
+  const [replyDraft, setReplyDraft] = useState('')
+  const [replyError, setReplyError] = useState('')
+
+  function startReply(reviewId: string, existing?: string | null) {
+    setReplyError('')
+    setReplyingToId(reviewId)
+    setReplyDraft(existing ?? '')
+  }
+
+  async function submitReply(reviewId: string) {
+    if (!doctor) return
+    setReplyError('')
+    try {
+      await replyToReview.mutateAsync({ reviewId, doctorId: doctor.id, reply: replyDraft })
+      setReplyingToId(null)
+      setReplyDraft('')
+    } catch (e: any) {
+      setReplyError(e.message ?? "Erreur lors de l'envoi de la réponse.")
+    }
+  }
 
   const { data: clinic, isLoading: clinicLoading } = useMyClinic(doctor?.id)
   const { data: patientAnimals = [], isLoading: patientAnimalsLoading } = useDoctorPatientAnimals(doctor?.id, clinic?.id, !clinicLoading)
@@ -1967,6 +1989,38 @@ export default function DoctorDashboard() {
                       <span className="text-xs text-gray-400">{format(new Date(r.created_at), 'd MMM yyyy', { locale: fr })}</span>
                     </div>
                     {r.comment && <p className="text-sm text-gray-600">{r.comment}</p>}
+
+                    {r.doctor_reply && replyingToId !== r.id ? (
+                      <div className="mt-3 ml-4 pl-3 border-l-2 border-sage-200">
+                        <p className="text-xs font-medium text-sage-600 mb-0.5">Votre réponse</p>
+                        <p className="text-sm text-gray-600">{r.doctor_reply}</p>
+                        <button onClick={() => startReply(r.id, r.doctor_reply)}
+                          className="text-xs text-gray-400 hover:text-sage-600 transition-colors mt-1">
+                          Modifier
+                        </button>
+                      </div>
+                    ) : replyingToId === r.id ? (
+                      <div className="mt-3">
+                        <textarea value={replyDraft} onChange={e => setReplyDraft(e.target.value)}
+                          rows={2} placeholder="Votre réponse à cet avis..."
+                          className="input text-sm w-full" />
+                        {replyError && <p className="text-xs text-red-500 mt-1">{replyError}</p>}
+                        <div className="flex gap-2 mt-2">
+                          <button onClick={() => submitReply(r.id)} disabled={replyToReview.isPending}
+                            className="btn-primary text-xs px-3 py-1.5">
+                            {replyToReview.isPending ? 'Envoi...' : 'Envoyer'}
+                          </button>
+                          <button onClick={() => setReplyingToId(null)} className="btn-secondary text-xs px-3 py-1.5">
+                            Annuler
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button onClick={() => startReply(r.id)}
+                        className="text-xs text-sage-600 hover:underline mt-2">
+                        Répondre à cet avis
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>

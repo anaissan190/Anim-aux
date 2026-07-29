@@ -12,9 +12,10 @@ import AppointmentCard from './AppointmentCard'
 
 function baseAppointment(overrides: Record<string, any> = {}): any {
   const future = new Date(); future.setDate(future.getDate() + 5)
+  const futureEnd = new Date(future); futureEnd.setMinutes(futureEnd.getMinutes() + 30)
   return {
     id: 'appt-1', doctor_id: 'doc-1', patient_id: 'patient-1',
-    start_at: future.toISOString(), status: 'confirmed', reason: null,
+    start_at: future.toISOString(), end_at: futureEnd.toISOString(), status: 'confirmed', reason: null,
     profiles: { first_name: 'Anaïs', last_name: 'S' },
     doctors: { specialty: 'Vétérinaire', profiles: { first_name: 'Jean', last_name: 'Dupont' } },
     animals: [],
@@ -80,6 +81,38 @@ describe('AppointmentCard — affichage', () => {
     const pending = baseAppointment({ status: 'pending', animals: [{ id: 'a1', name: 'Rex' }] })
     renderCard({ appointment: pending, showPatient: true })
     expect(screen.queryByText(/Dossier de Rex/)).not.toBeInTheDocument()
+  })
+})
+
+describe('AppointmentCard — export calendrier (.ics)', () => {
+  it('propose "Ajouter à mon calendrier" pour un RDV confirmé', () => {
+    renderCard({ appointment: baseAppointment({ status: 'confirmed' }) })
+    expect(screen.getByText(/Ajouter à mon calendrier/)).toBeInTheDocument()
+  })
+
+  it('ne le propose pas pour un RDV en attente ou annulé', () => {
+    renderCard({ appointment: baseAppointment({ status: 'pending' }) })
+    expect(screen.queryByText(/Ajouter à mon calendrier/)).not.toBeInTheDocument()
+  })
+
+  it('déclenche le téléchargement du fichier .ics au clic', () => {
+    // jsdom n'implémente pas URL.createObjectURL/revokeObjectURL — on les
+    // stub pour vérifier que le composant déclenche bien un téléchargement,
+    // sans dépendre du contenu réel du Blob (couvert par ics.test.ts).
+    const createObjectURL = vi.fn(() => 'blob:fake-url')
+    const revokeObjectURL = vi.fn()
+    vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL })
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+    renderCard({ appointment: baseAppointment({ status: 'confirmed' }) })
+    fireEvent.click(screen.getByText(/Ajouter à mon calendrier/))
+
+    expect(createObjectURL).toHaveBeenCalled()
+    expect(clickSpy).toHaveBeenCalled()
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:fake-url')
+
+    clickSpy.mockRestore()
+    vi.unstubAllGlobals()
   })
 })
 

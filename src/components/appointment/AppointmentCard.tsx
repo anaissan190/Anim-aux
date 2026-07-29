@@ -4,6 +4,7 @@ import { fr } from 'date-fns/locale'
 import { Link } from 'react-router-dom'
 import { useUpdateAppointmentStatus, useAppointmentDocuments } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
+import { generateAppointmentIcs } from '@/lib/ics'
 import type { Appointment, AppointmentStatus } from '@/types'
 
 const STATUS_LABELS: Record<AppointmentStatus, string> = {
@@ -40,6 +41,30 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
     ['pending', 'confirmed'].includes(appointment.status) &&
     new Date(appointment.start_at) > new Date()
 
+  function handleAddToCalendar() {
+    const doctorProfile = (appointment.doctors as any)?.profiles
+    const doctorName = doctorProfile
+      ? `${doctorProfile.first_name ?? ''} ${doctorProfile.last_name ?? ''}`.trim()
+      : 'votre praticien'
+    const ics = generateAppointmentIcs({
+      id: appointment.id,
+      startAt: appointment.start_at,
+      endAt: appointment.end_at,
+      doctorName,
+      specialty: (appointment.doctors as any)?.specialty,
+      address: (appointment.doctors as any)?.address,
+      city: (appointment.doctors as any)?.city,
+      reason: appointment.reason,
+    })
+    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `rdv-animeaux-${appointment.id}.ics`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="card p-4 flex items-start gap-4">
       {/* Date bloc */}
@@ -57,6 +82,12 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
             <p className="text-sm text-sage-600">{(appointment.doctors as any)?.specialty ?? ''}</p>
             {appointment.reason && (
               <p className="text-xs text-gray-500 mt-1 truncate">Motif : {appointment.reason}</p>
+            )}
+            {appointment.status === 'confirmed' && (
+              <button onClick={handleAddToCalendar}
+                className="inline-flex items-center gap-1 text-xs text-sage-600 hover:underline mt-1">
+                📅 Ajouter à mon calendrier
+              </button>
             )}
             {attachments.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-1">

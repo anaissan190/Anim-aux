@@ -311,7 +311,13 @@ export default function AnimalHealthPage() {
       <Navbar />
       <div className="max-w-4xl mx-auto px-4 py-8">
 
-        <BackButton fallback={isDoctor ? '/dashboard/doctor?tab=patients' : '/dashboard/patient'} />
+        <div className="flex items-center justify-between mb-4">
+          <BackButton fallback={isDoctor ? '/dashboard/doctor?tab=patients' : '/dashboard/patient'} />
+          <Link to={`/animal/${id}/carnet`}
+            className="text-sm text-sage-600 hover:underline">
+            📄 Carnet de santé exportable
+          </Link>
+        </div>
 
         <div className="card p-6 mb-6 flex items-center gap-5">
           <div className="relative w-20 h-20 flex-shrink-0 group">
