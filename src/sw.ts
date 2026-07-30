@@ -6,10 +6,23 @@
 // nous-mêmes, en gardant le précaching de l'app shell (offline minimal, déjà
 // en place) via precacheAndRoute.
 
-import { precacheAndRoute } from 'workbox-precaching'
+import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching'
+import { clientsClaim } from 'workbox-core'
 import { urlForNotificationType } from '@/lib/pushNotifications'
 
 declare let self: ServiceWorkerGlobalScope
+
+// registerType: 'autoUpdate' (vite.config.ts) veut dire qu'on ne demande
+// jamais confirmation à l'utilisateur avant de mettre à jour — indispensable
+// ici : sans self.skipWaiting()/clientsClaim(), un ancien service worker
+// continue de servir un index.html qui référence des chunks JS déjà
+// supprimés du serveur au déploiement suivant (les noms de fichiers changent
+// à chaque build), ce qui fait planter l'app pour un visiteur déjà venu une
+// fois. cleanupOutdatedCaches() supprime aussi le précache de l'ancienne
+// version une fois la nouvelle activée.
+self.skipWaiting()
+clientsClaim()
+cleanupOutdatedCaches()
 
 precacheAndRoute(self.__WB_MANIFEST)
 
