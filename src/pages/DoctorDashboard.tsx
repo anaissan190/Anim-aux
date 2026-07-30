@@ -10,7 +10,8 @@ import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
 import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useReplyToReview, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useDoctorServices, useAddDoctorService, useDeleteDoctorService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments, useInviteClinicSecretary, useClinicStaffList, useExportMyData,
-  useDoctorVerificationDocuments, useUploadVerificationDocument, useDeleteVerificationDocument } from '@/hooks/useData'
+  useDoctorVerificationDocuments, useUploadVerificationDocument, useDeleteVerificationDocument,
+  usePushSubscriptionStatus, useEnablePushNotifications, useDisablePushNotifications } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { PRACTITIONER_TYPES } from '@/lib/practitionerTypes'
 import { SPECIES_EMOJI, PRACTICE_SPECIES_OPTIONS } from '@/lib/animalSpecies'
@@ -124,6 +125,21 @@ export default function DoctorDashboard() {
   const [deleteAccountError, setDeleteAccountError] = useState('')
   const exportMyData = useExportMyData()
   const [exportError, setExportError] = useState('')
+
+  const { data: pushStatus } = usePushSubscriptionStatus()
+  const enablePush = useEnablePushNotifications()
+  const disablePush = useDisablePushNotifications()
+  const [pushError, setPushError] = useState('')
+
+  async function handleTogglePush() {
+    setPushError('')
+    try {
+      if (pushStatus?.subscribed) await disablePush.mutateAsync()
+      else await enablePush.mutateAsync()
+    } catch (e: any) {
+      setPushError(e.message ?? "Erreur lors de l'activation des notifications.")
+    }
+  }
 
   const { data: verificationDocuments = [] } = useDoctorVerificationDocuments(doctor?.id)
   const uploadVerificationDocument = useUploadVerificationDocument()
@@ -1736,6 +1752,24 @@ export default function DoctorDashboard() {
                 </ul>
               )}
             </div>
+
+            {/* NOTIFICATIONS PUSH */}
+            {pushStatus?.supported && (
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                <h2 className="font-semibold text-gray-900 mb-1">🔔 Notifications</h2>
+                <p className="text-xs text-gray-500 mb-4">
+                  Reçois une notification sur cet appareil même quand Animéaux n'est pas ouvert
+                  (nouveau message, RDV, avis...).
+                </p>
+                {pushError && <p className="text-red-500 text-xs mb-3">{pushError}</p>}
+                <button onClick={handleTogglePush} disabled={enablePush.isPending || disablePush.isPending}
+                  className={pushStatus.subscribed ? 'btn-secondary text-sm' : 'btn-primary text-sm'}>
+                  {enablePush.isPending || disablePush.isPending
+                    ? '...'
+                    : pushStatus.subscribed ? 'Désactiver les notifications' : 'Activer les notifications'}
+                </button>
+              </div>
+            )}
 
             {/* EXPORT DES DONNÉES — droit à la portabilité (RGPD art. 20) */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">

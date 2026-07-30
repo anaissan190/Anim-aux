@@ -17,7 +17,7 @@ export default function ProfilPage() {
   const updateDoctor = useUpdateDoctor()
   const deleteAccount = useDeleteAccount()
   const exportMyData = useExportMyData()
-  const { data: pushStatus, error: pushStatusError, status: pushStatusQueryStatus } = usePushSubscriptionStatus()
+  const { data: pushStatus } = usePushSubscriptionStatus()
   const enablePush = useEnablePushNotifications()
   const disablePush = useDisablePushNotifications()
   const [pushError, setPushError] = useState('')
@@ -326,11 +326,6 @@ export default function ProfilPage() {
           </button>
 
         </form>
-
-        {/* DEBUG TEMPORAIRE — à retirer une fois le diagnostic terminé */}
-        <div className="card p-4 mt-8 bg-yellow-50 border-yellow-200 text-xs font-mono">
-          debug push: status={pushStatusQueryStatus} data={JSON.stringify(pushStatus)} error={String(pushStatusError ?? 'aucune')}
-        </div>
 
         {/* NOTIFICATIONS PUSH */}
         {pushStatus?.supported && (
