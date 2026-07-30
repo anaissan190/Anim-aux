@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/lib/authStore'
-import { useCurrentDoctor, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useExportMyData } from '@/hooks/useData'
+import { useCurrentDoctor, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useExportMyData, usePushSubscriptionStatus, useEnablePushNotifications, useDisablePushNotifications } from '@/hooks/useData'
 import { supabase } from '@/lib/supabase'
 import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
@@ -17,6 +17,10 @@ export default function ProfilPage() {
   const updateDoctor = useUpdateDoctor()
   const deleteAccount = useDeleteAccount()
   const exportMyData = useExportMyData()
+  const { data: pushStatus } = usePushSubscriptionStatus()
+  const enablePush = useEnablePushNotifications()
+  const disablePush = useDisablePushNotifications()
+  const [pushError, setPushError] = useState('')
   const [exportError, setExportError] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleteConfirmText, setDeleteConfirmText] = useState('')
@@ -65,6 +69,16 @@ export default function ProfilPage() {
       URL.revokeObjectURL(url)
     } catch (e: any) {
       setExportError(e.message ?? "Erreur lors de l'export des données.")
+    }
+  }
+
+  async function handleTogglePush() {
+    setPushError('')
+    try {
+      if (pushStatus?.subscribed) await disablePush.mutateAsync()
+      else await enablePush.mutateAsync()
+    } catch (e: any) {
+      setPushError(e.message ?? "Erreur lors de l'activation des notifications.")
     }
   }
 
@@ -312,6 +326,24 @@ export default function ProfilPage() {
           </button>
 
         </form>
+
+        {/* NOTIFICATIONS PUSH */}
+        {pushStatus?.supported && (
+          <div className="card p-6 mt-8">
+            <h2 className="font-semibold text-gray-900 mb-1">🔔 Notifications</h2>
+            <p className="text-xs text-gray-500 mb-4">
+              Reçois une notification sur cet appareil même quand Animéaux n'est pas ouvert
+              (nouveau message, RDV confirmé, avis...).
+            </p>
+            {pushError && <p className="text-red-500 text-xs mb-3">{pushError}</p>}
+            <button onClick={handleTogglePush} disabled={enablePush.isPending || disablePush.isPending}
+              className={pushStatus.subscribed ? 'btn-secondary text-sm' : 'btn-primary text-sm'}>
+              {enablePush.isPending || disablePush.isPending
+                ? '...'
+                : pushStatus.subscribed ? 'Désactiver les notifications' : 'Activer les notifications'}
+            </button>
+          </div>
+        )}
 
         {/* EXPORT DES DONNÉES — droit à la portabilité (RGPD art. 20) */}
         <div className="card p-6 mt-8">

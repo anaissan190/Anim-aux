@@ -8,6 +8,13 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      // injectManifest plutôt que generateSW (par défaut) : le service worker
+      // auto-généré ne peut pas recevoir de gestionnaires custom (push,
+      // notificationclick) — on fournit donc notre propre src/sw.ts, dans
+      // lequel le plugin injecte juste la liste de précache Workbox.
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       includeAssets: ['favicon.svg'],
       manifest: {
         name: 'Animéaux',
@@ -23,7 +30,7 @@ export default defineConfig({
           { src: '/pwa-512.png', sizes: '512x512', type: 'image/png' },
         ],
       },
-      workbox: {
+      injectManifest: {
         // Précache l'app shell (JS/CSS/HTML/icônes) pour un démarrage
         // hors-ligne minimal — les données restent dépendantes du réseau
         // (Supabase), seule l'interface se charge sans connexion.

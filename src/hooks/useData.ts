@@ -7,6 +7,7 @@ import { addMinutes } from 'date-fns'
 import { geocodeAddress } from '@/lib/geo'
 import { generateAvailableSlots } from '@/lib/slots'
 import { findNextAvailableSlot } from '@/lib/nextSlot'
+import { urlBase64ToUint8Array } from '@/lib/pushNotifications'
 
 export function useDoctors(filters: SearchFilters = {}, enabled: boolean = true) {
   return useQuery({
@@ -1890,6 +1891,65 @@ export function useExportMyData() {
       if (error) throw new Error(error.message)
       return data
     },
+  })
+}
+
+// ── NOTIFICATIONS PUSH NAVIGATEUR ──────────────────────────────────────────
+
+export function usePushSubscriptionStatus() {
+  const { user } = useAuthStore()
+  return useQuery({
+    queryKey: ['push-subscription-status', user?.id],
+    queryFn: async () => {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        return { supported: false, subscribed: false }
+      }
+      const registration = await navigator.serviceWorker.ready
+      const subscription = await registration.pushManager.getSubscription()
+      return { supported: true, subscribed: !!subscription }
+    },
+    enabled: !!user,
+  })
+}
+
+export function useEnablePushNotifications() {
+  const qc = useQueryClient()
+  const { user } = useAuthStore()
+  return useMutation({
+    mutationFn: async () => {
+      const permission = await Notification.requestPermission()
+      if (permission !== 'granted') throw new Error('Permission refusée pour les notifications.')
+
+      const registration = await navigator.serviceWorker.ready
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(import.meta.env.VITE_VAPID_PUBLIC_KEY as string) as BufferSource,
+      })
+      const json = subscription.toJSON()
+
+      const { error } = await supabase.from('push_subscriptions').upsert({
+        user_id: user!.id,
+        endpoint: json.endpoint!,
+        p256dh: json.keys!.p256dh,
+        auth: json.keys!.auth,
+      }, { onConflict: 'user_id,endpoint' })
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['push-subscription-status'] }),
+  })
+}
+
+export function useDisablePushNotifications() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async () => {
+      const registration = await navigator.serviceWorker.ready
+      const subscription = await registration.pushManager.getSubscription()
+      if (!subscription) return
+      await supabase.from('push_subscriptions').delete().eq('endpoint', subscription.endpoint)
+      await subscription.unsubscribe()
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['push-subscription-status'] }),
   })
 }
 
