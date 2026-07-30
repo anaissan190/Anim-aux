@@ -37,7 +37,13 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
     ? `${appointment.profiles?.first_name ?? ''} ${appointment.profiles?.last_name ?? ''}`
     : `${(appointment.doctors as any)?.profiles?.first_name ?? ''} ${(appointment.doctors as any)?.profiles?.last_name ?? ''}`
 
+  // Bouton "Annuler" générique — patient uniquement. Un praticien a ses
+  // propres actions dédiées (Refuser sur un RDV en attente, Terminé/Absent(e)
+  // sur un RDV confirmé, plus bas) : sans ce filtre par rôle, les deux
+  // jeux de boutons s'affichaient en même temps pour lui, redondants et
+  // ambigus (deux façons différentes d'annuler le même RDV en attente).
   const canCancel =
+    user?.role !== 'doctor' &&
     ['pending', 'confirmed'].includes(appointment.status) &&
     new Date(appointment.start_at) > new Date()
 

@@ -158,6 +158,20 @@ describe('AppointmentCard — actions praticien', () => {
     expect(screen.getByText('Absent(e)')).toBeInTheDocument()
   })
 
+  it('ne montre pas le bouton générique "Annuler" côté praticien (redondant avec Refuser/Terminé/Absent(e))', () => {
+    useAuthStore.setState({ user: FAKE_DOCTOR })
+    const { rerender } = renderCard({ appointment: baseAppointment({ status: 'pending' }) })
+    expect(screen.queryByText('Annuler')).not.toBeInTheDocument()
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter><AppointmentCard appointment={baseAppointment({ status: 'confirmed' })} /></MemoryRouter>
+      </QueryClientProvider>
+    )
+    expect(screen.queryByText('Annuler')).not.toBeInTheDocument()
+  })
+
   it('ne montre aucune action praticien pour un patient connecté', () => {
     useAuthStore.setState({ user: { id: 'patient-1', email: 'a@a.fr', role: 'patient', is_admin: false, created_at: '' } })
     renderCard({ appointment: baseAppointment({ status: 'pending' }) })
