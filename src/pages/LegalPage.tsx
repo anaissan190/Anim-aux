@@ -1,20 +1,12 @@
 // src/pages/LegalPage.tsx
 // CGU + politique de confidentialité, sur une seule page (ancres /cgu et
-// /confidentialite) — contenu de premier jet basé sur la checklist CNIL,
-// à faire relire par un professionnel du droit avant de retirer les
-// mentions "à compléter".
+// /confidentialite) — contenu basé sur la checklist CNIL, informations de
+// l'entreprise renseignées (SIRET obtenu le 29/07/2026), en attente de
+// relecture par un professionnel du droit avant validation définitive.
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
-
-function Fill({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="bg-amber-50 text-amber-700 text-sm px-1.5 py-0.5 rounded">
-      {children}
-    </span>
-  )
-}
 
 export default function LegalPage() {
   const location = useLocation()
@@ -31,19 +23,19 @@ export default function LegalPage() {
         <BackButton fallback="/" />
 
         <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800 mb-8">
-          Brouillon en cours de finalisation — certains passages restent à compléter avant validation définitive par un professionnel du droit.
+          Document renseigné avec les informations de l'entreprise — en attente de relecture par un professionnel du droit avant validation définitive.
         </div>
 
         <h1 id="cgu" className="text-2xl font-bold text-gray-900 mb-1 scroll-mt-24">
           Conditions Générales d'Utilisation
         </h1>
-        <p className="text-sm text-gray-400 mb-8">Dernière mise à jour : <Fill>à compléter lors de la publication</Fill></p>
+        <p className="text-sm text-gray-400 mb-8">Dernière mise à jour : 30 juillet 2026</p>
 
         <div className="card p-6 space-y-6 mb-10">
           <section>
             <h2 className="font-semibold text-gray-900 mb-2">1. Objet</h2>
             <p className="text-sm text-gray-600 leading-relaxed">
-              Les présentes Conditions Générales d'Utilisation (ci-après « CGU ») ont pour objet de définir les modalités et conditions d'utilisation de la plateforme Animéaux (ci-après « la Plateforme »), accessible à l'adresse <Fill>nom de domaine</Fill>, éditée par <Fill>nom / raison sociale, statut, adresse, SIRET</Fill>.
+              Les présentes Conditions Générales d'Utilisation (ci-après « CGU ») ont pour objet de définir les modalités et conditions d'utilisation de la plateforme Animéaux (ci-après « la Plateforme »), accessible à l'adresse monanimeaux.fr, éditée par Anaïs SAN BIAGIO, entrepreneur individuel, dont le siège est situé 169 avenue Vauban, 93190 Livry-Gargan, immatriculée sous le SIRET 107 512 907 00018.
             </p>
             <p className="text-sm text-gray-600 leading-relaxed mt-2">
               Animéaux est une plateforme de mise en relation entre propriétaires d'animaux et praticiens du secteur animalier (vétérinaires, ostéopathes, toiletteurs, éducateurs canins, et autres professions listées sur la Plateforme), permettant la recherche de praticiens, la prise de rendez-vous en ligne et le suivi du dossier de santé des animaux.
@@ -101,7 +93,7 @@ export default function LegalPage() {
           <section>
             <h2 className="font-semibold text-gray-900 mb-2">6. Signalement et modération</h2>
             <p className="text-sm text-gray-600 leading-relaxed">
-              Tout utilisateur peut signaler un contenu, un profil ou un comportement contraire aux présentes CGU (<Fill>canal de signalement à préciser</Fill>). Animéaux se réserve le droit de suspendre ou supprimer tout compte ou contenu en cas de manquement manifeste.
+              Tout utilisateur peut signaler un contenu, un profil ou un comportement contraire aux présentes CGU via le bouton « Signaler » disponible sous chaque avis et sur chaque fiche praticien, examiné par l'équipe de modération d'Animéaux. Animéaux se réserve le droit de suspendre ou supprimer tout compte ou contenu en cas de manquement manifeste.
             </p>
           </section>
 
@@ -122,7 +114,7 @@ export default function LegalPage() {
           <section>
             <h2 className="font-semibold text-gray-900 mb-2">9. Évolution des CGU</h2>
             <p className="text-sm text-gray-600 leading-relaxed">
-              Animéaux se réserve le droit de modifier les présentes CGU à tout moment. Les utilisateurs seront informés de toute modification substantielle (<Fill>mode d'information à préciser</Fill>). La poursuite de l'utilisation après modification vaut acceptation des nouvelles CGU.
+              Animéaux se réserve le droit de modifier les présentes CGU à tout moment. Les utilisateurs seront informés de toute modification substantielle par email. La poursuite de l'utilisation après modification vaut acceptation des nouvelles CGU.
             </p>
           </section>
 
@@ -143,7 +135,7 @@ export default function LegalPage() {
           <section>
             <h2 className="font-semibold text-gray-900 mb-2">1. Responsable du traitement</h2>
             <p className="text-sm text-gray-600 leading-relaxed">
-              Le responsable du traitement des données à caractère personnel collectées sur Animéaux est <Fill>nom / raison sociale</Fill>, <Fill>adresse</Fill>, contactable à <Fill>email de contact dédié</Fill>.
+              Le responsable du traitement des données à caractère personnel collectées sur Animéaux est Anaïs SAN BIAGIO (entrepreneur individuel, SIRET 107 512 907 00018), 169 avenue Vauban, 93190 Livry-Gargan, contactable à contact@monanimeaux.fr.
             </p>
           </section>
 
@@ -187,7 +179,6 @@ export default function LegalPage() {
             <ul className="text-sm text-gray-600 leading-relaxed list-disc list-inside space-y-1">
               <li><strong>Exécution du contrat</strong> — création de compte, prise de rendez-vous, dossier de santé animal.</li>
               <li><strong>Intérêt légitime</strong> — amélioration du service, prévention de la fraude.</li>
-              <li><strong>Consentement</strong> — communications non essentielles (<Fill>à ajuster selon ce qui est mis en place</Fill>).</li>
             </ul>
           </section>
 
@@ -204,7 +195,7 @@ export default function LegalPage() {
           <section>
             <h2 className="font-semibold text-gray-900 mb-2">5. Sous-traitants techniques</h2>
             <p className="text-sm text-gray-600 leading-relaxed">
-              Animéaux fait appel à <strong>Supabase</strong> (base de données, authentification), <strong>Vercel</strong> (hébergement du site) et <strong>Resend</strong> (emails transactionnels). Ces prestataires agissent en tant que sous-traitants au sens du RGPD. <Fill>À vérifier : localisation des serveurs (UE ou hors UE)</Fill>.
+              Animéaux fait appel à <strong>Supabase</strong> (base de données, authentification — hébergé dans l'Union européenne, région Frankfurt), <strong>Vercel</strong> (hébergement du site — hébergé aux États-Unis) et <strong>Resend</strong> (emails transactionnels — société américaine). Ces prestataires agissent en tant que sous-traitants au sens du RGPD ; les transferts hors UE s'appuient sur les garanties proposées par ces prestataires (clauses contractuelles types ou équivalent), à faire confirmer précisément lors de la relecture juridique.
             </p>
           </section>
 
@@ -232,14 +223,14 @@ export default function LegalPage() {
               <li><strong>Droit d'opposition et de limitation</strong> du traitement.</li>
             </ul>
             <p className="text-sm text-gray-600 leading-relaxed mt-2">
-              Ces droits peuvent être exercés en écrivant à <Fill>email de contact</Fill>. En cas de réponse insatisfaisante, réclamation possible auprès de la CNIL (www.cnil.fr).
+              Ces droits peuvent être exercés en écrivant à contact@monanimeaux.fr. En cas de réponse insatisfaisante, réclamation possible auprès de la CNIL (www.cnil.fr).
             </p>
           </section>
 
           <section>
             <h2 className="font-semibold text-gray-900 mb-2">9. Cookies et traceurs</h2>
             <p className="text-sm text-gray-600 leading-relaxed">
-              La Plateforme utilise uniquement un stockage technique nécessaire au fonctionnement du service (maintien de la session). <Fill>À confirmer si un outil de mesure d'audience est ajouté ultérieurement</Fill>.
+              La Plateforme utilise uniquement un stockage technique nécessaire au fonctionnement du service (maintien de la session). Aucun outil de mesure d'audience ou traceur publicitaire n'est utilisé à ce jour.
             </p>
           </section>
 
