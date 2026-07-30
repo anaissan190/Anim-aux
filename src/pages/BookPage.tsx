@@ -26,6 +26,11 @@ export default function BookPage() {
   const [step, setStep] = useState<Step>(1)
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null)
   const [reason, setReason] = useState('')
+  // Champ libre indépendant des puces de motif prédéfini — avant, les deux
+  // étaient liés à la même variable : cliquer une puce écrasait tout texte
+  // déjà tapé, et taper dans le champ libre écrasait la puce sélectionnée.
+  const [details, setDetails] = useState('')
+  const finalReason = [reason, details.trim()].filter(Boolean).join(' — ')
   const [animalIds, setAnimalIds] = useState<string[]>([])
   const [animalSearch, setAnimalSearch] = useState('')
   const [documents, setDocuments] = useState<{ file_name: string; file_url: string; file_type: string }[]>([])
@@ -86,7 +91,7 @@ export default function BookPage() {
       doctor_id: doctorId,
       start_at:  start.toISOString(),
       end_at:    end.toISOString(),
-      reason,
+      reason: finalReason || undefined,
       animal_ids: animalIds.length > 0 ? animalIds : undefined,
       documents: documents.length > 0 ? documents : undefined,
     })
@@ -241,7 +246,7 @@ export default function BookPage() {
                 </button>
               ))}
             </div>
-            <textarea value={reason} onChange={e => setReason(e.target.value)}
+            <textarea value={details} onChange={e => setDetails(e.target.value)}
               className="input resize-none" rows={2}
               placeholder="Précisez si nécessaire (facultatif)..." />
 
@@ -309,10 +314,10 @@ export default function BookPage() {
                   </span>
                 </div>
               )}
-              {reason && (
+              {finalReason && (
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Motif</span>
-                  <span>{reason}</span>
+                  <span>{finalReason}</span>
                 </div>
               )}
               {animalIds.length > 0 && (
