@@ -4,6 +4,7 @@ import Navbar from '@/components/ui/Navbar'
 import Footer from '@/components/ui/Footer'
 import SearchBar from '@/components/search/SearchBar'
 import AnimalBackground from '@/components/ui/AnimalBackground'
+import CatMascot from '@/components/mobile/CatMascot'
 import { useAuthStore } from '@/lib/authStore'
 import { PRACTITIONER_TYPES } from '@/lib/practitionerTypes'
 
@@ -29,87 +30,180 @@ const STEPS_DOCTOR = [
 export default function LandingPage() {
   const { user } = useAuthStore()
 
+  const steps = user?.role === 'doctor' ? STEPS_DOCTOR : STEPS_PATIENT
+
   return (
     <div className="relative min-h-screen bg-sage-50">
-      <AnimalBackground />
-      <div className="relative z-10">
-        <Navbar />
+      {/* Desktop : inchangé */}
+      <div className="hidden md:block">
+        <AnimalBackground />
+        <div className="relative z-10">
+          <Navbar />
 
-        {/* Hero */}
-        <section className="py-20 px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <span className="inline-block bg-sage-100 text-sage-700 text-sm font-medium px-4 py-1.5 rounded-full mb-6">
-              Votre animal, notre priorité
-            </span>
-            <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 leading-tight mb-4">
-              Trouvez un praticien,<br />
-              <span className="text-sage-600">prenez rendez-vous en ligne</span>
-            </h1>
-            <p className="text-lg text-gray-500 mb-10 max-w-xl mx-auto">
-              Plus de 5 000 professionnels de santé disponibles.
-              Consultez les avis, choisissez votre créneau, confirmez en 1 clic.
-            </p>
-            <div className="flex justify-center">
-              <SearchBar large />
-            </div>
-          </div>
-        </section>
-
-        {/* Comment ça marche */}
-        <section className="py-16 px-4 bg-[#FFFAF0]">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold text-gray-900 text-center mb-10">
-              Comment ça marche ?
-            </h2>
-            <div className="grid sm:grid-cols-3 gap-8">
-              {(user?.role === 'doctor' ? STEPS_DOCTOR : STEPS_PATIENT).map(step => (
-                <div key={step.n} className="text-center">
-                  <div className="w-12 h-12 bg-sage-500 text-white rounded-2xl flex items-center justify-center text-xl font-bold mx-auto mb-4">
-                    {step.n}
-                  </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">{step.t}</h3>
-                  <p className="text-sm text-gray-500">{step.d}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Spécialités */}
-        <section className="py-16 px-4">
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold text-gray-900 text-center mb-10">
-              Consultez par spécialité
-            </h2>
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-              {SPECIALTIES.map(s => (
-                <Link key={s.name} to={`/search?specialty=${encodeURIComponent(s.name)}`}
-                  className="card p-3 text-center hover:shadow-md hover:border-sage-200 transition-all group">
-                  <div className="text-2xl mb-2">{s.icon}</div>
-                  <p className="text-xs font-medium text-gray-700 group-hover:text-sage-600 transition-colors leading-tight">
-                    {s.name}
-                  </p>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* CTA médecins — en dernier, uniquement pour les visiteurs non
-            connectés : un patient ou un praticien déjà connecté n'a pas à
-            voir cette proposition de création de compte. */}
-        {!user && (
-          <section className="py-16 px-4 bg-[#FFFAF0]">
-            <div className="max-w-2xl mx-auto text-center">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Vous êtes praticien ?</h2>
-              <p className="text-gray-500 mb-6">
-                Rejoignez Animéaux et gérez votre agenda en ligne. Gratuit pendant 3 mois.
+          {/* Hero */}
+          <section className="py-20 px-4">
+            <div className="max-w-4xl mx-auto text-center">
+              <span className="inline-block bg-sage-100 text-sage-700 text-sm font-medium px-4 py-1.5 rounded-full mb-6">
+                Votre animal, notre priorité
+              </span>
+              <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 leading-tight mb-4">
+                Trouvez un praticien,<br />
+                <span className="text-sage-600">prenez rendez-vous en ligne</span>
+              </h1>
+              <p className="text-lg text-gray-500 mb-10 max-w-xl mx-auto">
+                Plus de 5 000 professionnels de santé disponibles.
+                Consultez les avis, choisissez votre créneau, confirmez en 1 clic.
               </p>
-              <Link to="/register?role=doctor" className="btn-primary inline-flex items-center gap-2">
-                Créer mon profil praticien →
-              </Link>
+              <div className="flex justify-center">
+                <SearchBar large />
+              </div>
             </div>
           </section>
+
+          {/* Comment ça marche */}
+          <section className="py-16 px-4 bg-[#FFFAF0]">
+            <div className="max-w-4xl mx-auto">
+              <h2 className="text-2xl font-bold text-gray-900 text-center mb-10">
+                Comment ça marche ?
+              </h2>
+              <div className="grid sm:grid-cols-3 gap-8">
+                {steps.map(step => (
+                  <div key={step.n} className="text-center">
+                    <div className="w-12 h-12 bg-sage-500 text-white rounded-2xl flex items-center justify-center text-xl font-bold mx-auto mb-4">
+                      {step.n}
+                    </div>
+                    <h3 className="font-semibold text-gray-900 mb-2">{step.t}</h3>
+                    <p className="text-sm text-gray-500">{step.d}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Spécialités */}
+          <section className="py-16 px-4">
+            <div className="max-w-4xl mx-auto">
+              <h2 className="text-2xl font-bold text-gray-900 text-center mb-10">
+                Consultez par spécialité
+              </h2>
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                {SPECIALTIES.map(s => (
+                  <Link key={s.name} to={`/search?specialty=${encodeURIComponent(s.name)}`}
+                    className="card p-3 text-center hover:shadow-md hover:border-sage-200 transition-all group">
+                    <div className="text-2xl mb-2">{s.icon}</div>
+                    <p className="text-xs font-medium text-gray-700 group-hover:text-sage-600 transition-colors leading-tight">
+                      {s.name}
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* CTA médecins — en dernier, uniquement pour les visiteurs non
+              connectés : un patient ou un praticien déjà connecté n'a pas à
+              voir cette proposition de création de compte. */}
+          {!user && (
+            <section className="py-16 px-4 bg-[#FFFAF0]">
+              <div className="max-w-2xl mx-auto text-center">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">Vous êtes praticien ?</h2>
+                <p className="text-gray-500 mb-6">
+                  Rejoignez Animéaux et gérez votre agenda en ligne. Gratuit pendant 3 mois.
+                </p>
+                <Link to="/register?role=doctor" className="btn-primary inline-flex items-center gap-2">
+                  Créer mon profil praticien →
+                </Link>
+              </div>
+            </section>
+          )}
+
+          <Footer />
+        </div>
+      </div>
+
+      {/* Mobile : accueil "Wow / Aurora" pour visiteur non connecté — plus
+          la page vitrine desktop compressée, un vrai écran d'entrée d'appli
+          avec accès direct à la connexion/inscription. */}
+      <div className="md:hidden min-h-screen bg-[#FFCB8A]">
+        <div className="flex items-center justify-between px-4 pt-4 pb-1">
+          <div className="flex items-center gap-2">
+            <img src="/pwa-192.png" alt="" className="w-8 h-8 rounded-lg shadow-sm" />
+            <span className="font-fredoka font-bold text-gray-900">Animéaux</span>
+          </div>
+          <Link to="/login" className="font-fredoka text-sm font-semibold text-gray-900 bg-white/70 backdrop-blur-sm rounded-full px-4 py-1.5 shadow-sm">
+            Connexion
+          </Link>
+        </div>
+
+        <div className="px-4 pt-3 pb-6 text-center">
+          <CatMascot size={104} animate className="mx-auto drop-shadow-lg" />
+          <span className="inline-block font-nunito bg-white/80 text-sage-700 text-xs font-bold px-3 py-1 rounded-full mt-3 mb-3">
+            Votre animal, notre priorité
+          </span>
+          <h1 className="font-fredoka text-[28px] font-semibold text-gray-900 leading-tight">
+            Trouvez un praticien,<br />prenez RDV en ligne
+          </h1>
+          <p className="font-nunito text-sm text-gray-700/90 mt-3 mb-5 max-w-[280px] mx-auto">
+            Plus de 5 000 professionnels disponibles. Avis, créneaux, confirmation en 1 clic.
+          </p>
+
+          <div className="bg-white/90 backdrop-blur-md rounded-2xl p-3 shadow-sm border border-white/70 mb-3 text-left">
+            <SearchBar />
+          </div>
+
+          <div className="flex gap-2">
+            <Link to="/register"
+              className="flex-1 font-fredoka font-semibold text-sm bg-white text-sage-700 rounded-2xl py-3 shadow-sm border border-white/70">
+              Créer un compte
+            </Link>
+            <Link to="/login"
+              className="flex-1 font-fredoka font-semibold text-sm bg-sage-800 text-white rounded-2xl py-3 shadow-sm">
+              Se connecter
+            </Link>
+          </div>
+        </div>
+
+        {/* Comment ça marche */}
+        <div className="bg-[#FFFAF0] px-4 py-8">
+          <h2 className="font-fredoka text-xl font-semibold text-gray-900 text-center mb-5">Comment ça marche ?</h2>
+          <div className="flex flex-col gap-3">
+            {steps.map(step => (
+              <div key={step.n} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex gap-3 items-start">
+                <div className="w-9 h-9 flex-shrink-0 bg-sage-500 text-white rounded-full flex items-center justify-center text-sm font-fredoka font-semibold">
+                  {step.n}
+                </div>
+                <div>
+                  <h3 className="font-fredoka font-semibold text-sm text-gray-900">{step.t}</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">{step.d}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Spécialités */}
+        <div className="px-4 py-8">
+          <h2 className="font-fredoka text-xl font-semibold text-gray-900 text-center mb-5">Consultez par spécialité</h2>
+          <div className="grid grid-cols-3 gap-2.5">
+            {SPECIALTIES.map(s => (
+              <Link key={s.name} to={`/search?specialty=${encodeURIComponent(s.name)}`}
+                className="bg-white rounded-2xl p-3 text-center shadow-sm border border-gray-100">
+                <div className="text-xl mb-1">{s.icon}</div>
+                <p className="text-[10px] font-bold text-gray-700 leading-tight">{s.name}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {!user && (
+          <div className="bg-[#FFFAF0] px-4 py-8 text-center">
+            <h2 className="font-fredoka text-lg font-semibold text-gray-900 mb-2">Vous êtes praticien ?</h2>
+            <p className="text-sm text-gray-500 mb-4">Rejoignez Animéaux, gratuit pendant 3 mois.</p>
+            <Link to="/register?role=doctor"
+              className="inline-block font-fredoka font-semibold text-sm bg-sage-500 text-white rounded-2xl px-5 py-3 shadow-sm">
+              Créer mon profil praticien →
+            </Link>
+          </div>
         )}
 
         <Footer />
