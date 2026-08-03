@@ -1,6 +1,6 @@
 // src/pages/PatientDashboard.tsx
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '@/components/ui/Navbar'
 import AnimalBackground from '@/components/ui/AnimalBackground'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
@@ -19,6 +19,18 @@ export default function PatientDashboard() {
   const { data: appointments = [], isLoading } = usePatientAppointments()
   const { data: animals = [] } = useAnimals()
   const createAnimal = useCreateAnimal()
+  const navigate = useNavigate()
+
+  const [mobileSpecialty, setMobileSpecialty] = useState('')
+  const [mobileCity, setMobileCity] = useState('')
+
+  function handleMobileSearch(e: React.FormEvent) {
+    e.preventDefault()
+    const p = new URLSearchParams()
+    if (mobileSpecialty) p.set('specialty', mobileSpecialty)
+    if (mobileCity) p.set('city', mobileCity)
+    navigate(`/search?${p.toString()}`)
+  }
 
   const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming')
   const [showAnimalForm, setShowAnimalForm] = useState(false)
@@ -318,12 +330,32 @@ export default function PatientDashboard() {
           </h1>
           <p className="font-nunito text-sm text-gray-700/80 mt-0.5">Prête pour la prochaine visite ?</p>
 
-          <Link to="/search"
-            className="font-nunito flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-2xl px-4 py-3 text-sm font-semibold text-gray-500 mt-4 shadow-sm">
-            🔍 Un praticien, une spécialité
-          </Link>
+          <form onSubmit={handleMobileSearch}
+            className="bg-white/95 rounded-2xl shadow-sm mt-4 overflow-hidden">
+            <div className="flex items-center gap-2 px-3 py-2.5 border-b border-gray-100">
+              <span className="text-sm">🩺</span>
+              <div className="flex-1 min-w-0">
+                <label className="block text-[8px] font-bold text-gray-400 tracking-wide">SPÉCIALITÉ OU NOM</label>
+                <input value={mobileSpecialty} onChange={e => setMobileSpecialty(e.target.value)}
+                  placeholder="Vétérinaire, Dr Martin..."
+                  className="w-full text-[13px] text-gray-900 placeholder:text-gray-400 outline-none bg-transparent" />
+              </div>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-2.5">
+              <span className="text-sm">📍</span>
+              <div className="flex-1 min-w-0">
+                <label className="block text-[8px] font-bold text-gray-400 tracking-wide">LIEU</label>
+                <input value={mobileCity} onChange={e => setMobileCity(e.target.value)}
+                  placeholder="Ville, code postal..."
+                  className="w-full text-[13px] text-gray-900 placeholder:text-gray-400 outline-none bg-transparent" />
+              </div>
+            </div>
+            <button type="submit" className="w-full bg-sage-500 py-2.5 font-fredoka text-sm font-semibold text-white">
+              🔍 Rechercher
+            </button>
+          </form>
           <div className="flex gap-2 mt-3 overflow-x-auto">
-            {['🩺 Vétérinaire', '✂️ Toiletteur', '🦴 Ostéo'].map(c => (
+            {['🩺 Vétérinaire', '✂️ Toiletteur', '🦴 Ostéo', '🧠 Comportementaliste', '🐕 Éducateur canin'].map(c => (
               <Link key={c} to="/search"
                 className="flex-shrink-0 bg-white/60 backdrop-blur-sm rounded-full px-3 py-1.5 text-xs font-bold text-sage-700">
                 {c}
@@ -349,9 +381,9 @@ export default function PatientDashboard() {
             </Link>
           )}
 
-          <div className="grid grid-cols-[1.3fr_1fr] grid-rows-2 gap-2.5 mt-4">
+          <div className="grid grid-cols-[1.3fr_1fr] grid-rows-3 gap-2.5 mt-4 mb-2">
             <Link to="/animaux"
-              className="row-span-2 bg-white/90 backdrop-blur-md rounded-2xl p-4 shadow-sm border border-white/70 flex flex-col items-center justify-center gap-2 animate-rise-in [animation-delay:.16s]">
+              className="row-span-3 bg-white/90 backdrop-blur-md rounded-2xl p-4 shadow-sm border border-white/70 flex flex-col items-center justify-center gap-2 animate-rise-in [animation-delay:.16s]">
               <span className="w-12 h-12 rounded-full bg-sage-100 flex items-center justify-center text-2xl -rotate-6">🐾</span>
               <span className="font-fredoka text-xs font-semibold text-gray-900">Mes animaux</span>
             </Link>
@@ -365,33 +397,12 @@ export default function PatientDashboard() {
               <span className="w-9 h-9 rounded-full bg-sage-100 flex items-center justify-center text-lg -rotate-3">🔔</span>
               <span className="font-fredoka text-[11px] font-semibold text-gray-900">Rappels</span>
             </Link>
+            <Link to="/documents"
+              className="bg-white/90 backdrop-blur-md rounded-2xl p-3 shadow-sm border border-white/70 flex items-center gap-2 animate-rise-in [animation-delay:.16s]">
+              <span className="w-9 h-9 rounded-full bg-moss-100 flex items-center justify-center text-lg">📄</span>
+              <span className="font-fredoka text-[11px] font-semibold text-gray-900">Mes documents</span>
+            </Link>
           </div>
-
-          {animals.length > 0 && (
-            <div className="mt-5 animate-rise-in [animation-delay:.24s]">
-              <p className="font-fredoka text-sm font-semibold text-gray-900 mb-2">Mes compagnons</p>
-              <div className="flex gap-3 overflow-x-auto pb-1">
-                {animals.map(a => (
-                  <Link key={a.id} to={`/animal/${a.id}`}
-                    className="flex-shrink-0 w-24 bg-white/90 backdrop-blur-md rounded-2xl p-3 shadow-sm border border-white/70 flex flex-col items-center gap-1.5 text-center">
-                    <div className="w-12 h-12 rounded-full bg-sage-100 overflow-hidden flex items-center justify-center text-xl">
-                      {a.avatar_url
-                        ? <img src={a.avatar_url} alt={a.name} className="w-full h-full object-cover" />
-                        : <span>{speciesEmoji[a.species] ?? '🐾'}</span>}
-                    </div>
-                    <span className="font-fredoka text-xs font-semibold text-gray-900 truncate w-full">{a.name}</span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <Link to="/documents"
-            className="mt-3 mb-2 bg-white/90 backdrop-blur-md rounded-2xl p-3 shadow-sm border border-white/70 flex items-center gap-3 animate-rise-in [animation-delay:.3s]">
-            <span className="w-9 h-9 rounded-full bg-moss-100 flex items-center justify-center text-lg">📄</span>
-            <span className="font-fredoka text-[13px] font-semibold text-gray-900">Mes documents</span>
-            <span className="ml-auto text-gray-300">›</span>
-          </Link>
         </div>
 
         <MobileTabBar />
