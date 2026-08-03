@@ -11,9 +11,56 @@ import Navbar from '@/components/ui/Navbar'
 import AnimalBackground from '@/components/ui/AnimalBackground'
 import MobileHeader from '@/components/mobile/MobileHeader'
 import MobileTabBar from '@/components/mobile/MobileTabBar'
-import { useAnimals, useCreateAnimal } from '@/hooks/useData'
+import { useAnimals, useCreateAnimal, useWeightTracking, useVaccines } from '@/hooks/useData'
 import { SPECIES_EMOJI, BREED_PLACEHOLDER } from '@/lib/animalSpecies'
 import SpeciesSelect from '@/components/ui/SpeciesSelect'
+import { format } from 'date-fns'
+import { fr } from 'date-fns/locale'
+
+// Rangée d'un animal sur mobile, avec pastilles poids/vaccin — chaque
+// rangée porte ses propres requêtes (peu de risque de perf avec 1-3 animaux
+// par foyer), pour ne pas alourdir useAnimals() côté liste.
+function PetRow({ animal, index }: { animal: any; index: number }) {
+  const { data: weights = [] } = useWeightTracking(animal.id)
+  const { data: vaccines = [] } = useVaccines(animal.id)
+  const latestWeight = weights[weights.length - 1]
+  const upcomingVaccine = vaccines.find((v: any) => v.next_due_date && new Date(v.next_due_date) > new Date())
+  const hasVaccineHistory = vaccines.length > 0
+
+  return (
+    <Link to={`/animal/${animal.id}`}
+      className="bg-white/90 backdrop-blur-md rounded-2xl p-4 shadow-sm border border-white/70 flex items-center gap-3 animate-rise-in"
+      style={{ animationDelay: `${index * 0.08}s` }}>
+      <div className="w-[62px] h-[62px] rounded-[46%_54%_60%_40%/50%_44%_56%_50%] overflow-hidden bg-sage-100 flex items-center justify-center flex-shrink-0">
+        {animal.avatar_url
+          ? <img src={animal.avatar_url} alt={animal.name} className="w-full h-full object-cover" />
+          : <span className="text-2xl">{SPECIES_EMOJI[animal.species] ?? '🐾'}</span>
+        }
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="font-fredoka font-semibold text-[15px] text-gray-900">{animal.name}</p>
+        <p className="text-[11.5px] font-bold text-gray-500 mb-1.5">{animal.breed ?? animal.species}</p>
+        <div className="flex gap-1.5 flex-wrap">
+          {latestWeight && (
+            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-moss-100 text-moss-800">
+              ⚖️ {latestWeight.weight_kg} kg
+            </span>
+          )}
+          {upcomingVaccine ? (
+            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+              💉 {format(new Date(upcomingVaccine.next_due_date), 'd MMM', { locale: fr })}
+            </span>
+          ) : hasVaccineHistory ? (
+            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-moss-100 text-moss-800">
+              ✅ À jour
+            </span>
+          ) : null}
+        </div>
+      </div>
+      <span className="text-gray-300 text-lg font-black flex-shrink-0">›</span>
+    </Link>
+  )
+}
 
 export default function AnimalsPage() {
   const { data: animals = [] } = useAnimals()
@@ -213,23 +260,7 @@ export default function AnimalsPage() {
     </div>
   ) : (
     <div className="flex flex-col gap-3">
-      {animals.map((a, i) => (
-        <Link key={a.id} to={`/animal/${a.id}`}
-          className="bg-white/90 backdrop-blur-md rounded-2xl p-4 shadow-sm border border-white/70 flex items-center gap-3 animate-rise-in"
-          style={{ animationDelay: `${i * 0.08}s` }}>
-          <div className="w-[62px] h-[62px] rounded-[46%_54%_60%_40%/50%_44%_56%_50%] overflow-hidden bg-sage-100 flex items-center justify-center flex-shrink-0">
-            {a.avatar_url
-              ? <img src={a.avatar_url} alt={a.name} className="w-full h-full object-cover" />
-              : <span className="text-2xl">{speciesEmoji[a.species] ?? '🐾'}</span>
-            }
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-fredoka font-semibold text-[15px] text-gray-900">{a.name}</p>
-            <p className="text-[11.5px] font-bold text-gray-500">{a.breed ?? a.species}</p>
-          </div>
-          <span className="text-gray-300 text-lg font-black">›</span>
-        </Link>
-      ))}
+      {animals.map((a, i) => <PetRow key={a.id} animal={a} index={i} />)}
     </div>
   )
 
