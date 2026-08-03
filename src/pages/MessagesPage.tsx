@@ -5,6 +5,8 @@ import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
+import MobileHeader from '@/components/mobile/MobileHeader'
+import MobileTabBar from '@/components/mobile/MobileTabBar'
 import { useConversation, useSendMessage, useConversationPartners, useMarkConversationRead } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { supabase } from '@/lib/supabase'
@@ -197,16 +199,44 @@ export default function MessagesPage() {
   // ci-dessus) ; on n'affiche rien ici le temps que la redirection s'exécute.
   if (user?.role === 'doctor') return null
 
+  const isPatient = user?.role === 'patient'
+
   return (
     <div className="min-h-screen bg-[#FFFAF0] flex flex-col">
-      <Navbar />
-      <div className="max-w-5xl w-full mx-auto px-4 pt-6 flex-shrink-0">
-        <BackButton fallback="/dashboard/patient" />
-      </div>
-      <div className="flex-1 min-h-0 max-w-5xl w-full mx-auto px-4 pb-6 flex gap-4">
+      {/* Sur mobile, seul le rôle patient bascule vers la nouvelle coquille
+          "Wow / Aurora" — les autres rôles (admin/secrétariat) gardent
+          Navbar/BackButton classiques à toutes les largeurs. */}
+      {isPatient ? (
+        <div className="hidden md:block">
+          <Navbar />
+          <div className="max-w-5xl w-full mx-auto px-4 pt-6 flex-shrink-0">
+            <BackButton fallback="/dashboard/patient" />
+          </div>
+        </div>
+      ) : (
+        <>
+          <Navbar />
+          <div className="max-w-5xl w-full mx-auto px-4 pt-6 flex-shrink-0">
+            <BackButton fallback="/dashboard/patient" />
+          </div>
+        </>
+      )}
 
-        {/* Liste contacts */}
-        <aside className="w-64 flex-shrink-0 card overflow-y-auto">
+      {isPatient && (
+        <div className="md:hidden">
+          <MobileHeader className="bg-sage-100/60">
+            <h1 className="font-fredoka text-2xl font-semibold text-gray-900">Messages</h1>
+            <p className="font-nunito text-sm text-gray-500 mt-0.5">Avec les praticiens</p>
+          </MobileHeader>
+        </div>
+      )}
+
+      <div className={`flex-1 min-h-0 max-w-5xl w-full mx-auto px-4 flex gap-4 ${isPatient ? 'pb-24 md:pb-6' : 'pb-6'}`}>
+
+        {/* Liste contacts — sur mobile, la liste et la conversation ouverte
+            s'affichent l'une à la fois (comme une vraie appli de messagerie)
+            plutôt que compressées côte à côte ; desktop inchangé. */}
+        <aside className={`w-full md:w-64 flex-shrink-0 card overflow-y-auto ${selectedUserId ? 'hidden md:block' : ''}`}>
           <div className="p-3 border-b border-gray-100">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm font-semibold text-gray-900">Conversations</p>
@@ -310,14 +340,17 @@ export default function MessagesPage() {
         </aside>
 
         {/* Zone de chat */}
-        <div className="flex-1 card flex flex-col overflow-hidden">
+        <div className={`w-full flex-1 card flex-col overflow-hidden ${selectedUserId ? 'flex' : 'hidden md:flex'}`}>
           {!selectedUserId ? (
             <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
               Sélectionnez une conversation
             </div>
           ) : (
             <>
-              <div className="p-4 border-b border-gray-100 flex-shrink-0">
+              <div className="p-4 border-b border-gray-100 flex-shrink-0 flex items-center gap-2">
+                <button onClick={() => setSelectedUserId(null)} className="md:hidden text-gray-400 hover:text-gray-600 -ml-1 p-1">
+                  ←
+                </button>
                 <p className="font-semibold text-sm text-gray-900">
                   {sortedContacts.find((c: any) => c.user_id === selectedUserId)?.name}
                 </p>
@@ -357,6 +390,7 @@ export default function MessagesPage() {
           )}
         </div>
       </div>
+      {isPatient && <MobileTabBar />}
     </div>
   )
 }

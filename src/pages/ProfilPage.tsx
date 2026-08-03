@@ -5,6 +5,8 @@ import { useCurrentDoctor, useUpdateProfile, useUpdateDoctor, useDeleteAccount, 
 import { supabase } from '@/lib/supabase'
 import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
+import MobileHeader from '@/components/mobile/MobileHeader'
+import MobileTabBar from '@/components/mobile/MobileTabBar'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 import { PRACTITIONER_TYPES, getPractitionerType } from '@/lib/practitionerTypes'
 import { PRACTICE_SPECIES_OPTIONS } from '@/lib/animalSpecies'
@@ -172,12 +174,36 @@ export default function ProfilPage() {
     }
   }
 
+  const isPatient = user?.role === 'patient'
+
   return (
     <div className="min-h-screen bg-[#FFFAF0]">
-      <Navbar />
-      <div className="max-w-2xl mx-auto px-4 py-8">
+      {/* Sur mobile, seul le rôle patient bascule vers la nouvelle coquille
+          "Wow / Aurora" (MobileHeader/MobileTabBar) — les autres rôles
+          gardent Navbar/BackButton classiques à toutes les largeurs. */}
+      {isPatient ? (
+        <div className="hidden md:block"><Navbar /></div>
+      ) : (
+        <Navbar />
+      )}
 
-        <BackButton fallback={isDoctor ? '/dashboard/doctor?tab=profil' : '/dashboard/patient'} />
+      {isPatient && (
+        <div className="md:hidden">
+          <MobileHeader className="bg-sage-100/60">
+            <h1 className="font-fredoka text-2xl font-semibold text-gray-900">Mon profil</h1>
+          </MobileHeader>
+        </div>
+      )}
+
+      <div className={`max-w-2xl mx-auto px-4 py-8 ${isPatient ? 'pb-24 md:pb-8' : ''}`}>
+
+        {isPatient ? (
+          <div className="hidden md:block">
+            <BackButton fallback="/dashboard/patient" />
+          </div>
+        ) : (
+          <BackButton fallback={isDoctor ? '/dashboard/doctor?tab=profil' : '/dashboard/patient'} />
+        )}
 
         {/* En-tête */}
         <div className="mb-8 flex items-center gap-4">
@@ -413,6 +439,7 @@ export default function ProfilPage() {
           </div>
         )}
       </div>
+      {isPatient && <MobileTabBar />}
     </div>
   )
 }

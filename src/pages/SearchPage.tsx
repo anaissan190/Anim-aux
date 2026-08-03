@@ -5,12 +5,21 @@ import BackButton from '@/components/ui/BackButton'
 import SearchBar from '@/components/search/SearchBar'
 import DoctorCard from '@/components/doctor/DoctorCard'
 import ClinicCard from '@/components/doctor/ClinicCard'
+import MobileHeader from '@/components/mobile/MobileHeader'
+import MobileTabBar from '@/components/mobile/MobileTabBar'
+import { useAuthStore } from '@/lib/authStore'
 import { useDoctors, useClinicsSearch, useNextAvailableSlots } from '@/hooks/useData'
 import type { SearchFilters } from '@/types'
 import { haversineKm } from '@/lib/geo'
 import { PRACTICE_SPECIES_OPTIONS } from '@/lib/animalSpecies'
 
 export default function SearchPage() {
+  // Page publique (accessible sans connexion) — seul le rôle patient
+  // bascule vers la coquille mobile "Wow / Aurora" sur mobile ; un visiteur
+  // non connecté ou un autre rôle garde le Navbar classique à toutes les
+  // largeurs, exactement comme avant ce chantier.
+  const { user } = useAuthStore()
+  const isPatient = user?.role === 'patient'
   // L'URL est l'unique source de vérité pour les filtres (specialty, city,
   // maxPrice, minRating) — plus de state React dupliqué. Comme ça, un
   // retour arrière depuis une fiche praticien restaure exactement l'URL
@@ -118,17 +127,29 @@ export default function SearchPage() {
 
   return (
     <div className="min-h-screen bg-[#FFFAF0]">
-      <Navbar />
-      <div className="bg-white border-b py-4 px-4">
+      {isPatient ? <div className="hidden md:block"><Navbar /></div> : <Navbar />}
+
+      {isPatient && (
+        <div className="md:hidden">
+          <MobileHeader className="bg-sage-100/60">
+            <h1 className="font-fredoka text-2xl font-semibold text-gray-900">Réserver</h1>
+            <p className="font-nunito text-sm text-gray-500 mt-0.5">Trouvez un praticien</p>
+          </MobileHeader>
+        </div>
+      )}
+
+      <div className={isPatient ? 'bg-[#FDF0DD] md:bg-white border-b py-4 px-4' : 'bg-white border-b py-4 px-4'}>
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center gap-3 [&>button]:mb-0">
-          <BackButton fallback="/" />
-          <div className="flex-1">
+          <div className={isPatient ? 'hidden md:block' : undefined}>
+            <BackButton fallback="/" />
+          </div>
+          <div className={isPatient ? 'flex-1 md:bg-transparent bg-white/90 backdrop-blur-md rounded-2xl p-3 shadow-sm border border-white/70' : 'flex-1'}>
             <SearchBar initialSpecialty={filters.specialty} initialCity={filters.city} />
           </div>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 py-6 flex gap-6">
+      <div className={`max-w-5xl mx-auto px-4 py-6 flex gap-6 ${isPatient ? 'pb-24 md:pb-6' : ''}`}>
         {/* Filtres latéraux */}
         <aside className="hidden md:block w-56 flex-shrink-0 space-y-4">
           <div className="card p-4">
@@ -242,9 +263,11 @@ export default function SearchPage() {
                 </div>
 
                 {!hasCriteria ? (
-                  <div className="card p-12 text-center">
+                  <div className={isPatient
+                    ? 'bg-white/90 backdrop-blur-md rounded-2xl p-12 text-center shadow-sm border border-white/70'
+                    : 'card p-12 text-center'}>
                     <div className="text-4xl mb-4">🔍</div>
-                    <h3 className="font-semibold text-gray-900 mb-2">Lancez une recherche</h3>
+                    <h3 className={isPatient ? 'font-fredoka font-semibold text-gray-900 mb-2' : 'font-semibold text-gray-900 mb-2'}>Lancez une recherche</h3>
                     <p className="text-sm text-gray-500">Saisissez une spécialité, une ville, ou utilisez la géolocalisation.</p>
                   </div>
                 ) : loading ? (
@@ -289,6 +312,7 @@ export default function SearchPage() {
           })()}
         </main>
       </div>
+      {isPatient && <MobileTabBar />}
     </div>
   )
 }

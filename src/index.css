@@ -2,6 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Fredoka/Nunito : utilisées uniquement par la refonte mobile (composants
+   src/components/mobile/*) pour donner à l'appli une identité typographique
+   distincte du site desktop, qui reste en Inter. Auto-hébergées (pas de CDN
+   Google Fonts) pour ne pas envoyer l'IP des visiteurs à un tiers. */
+@font-face {
+  font-family: 'Fredoka';
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('./assets/fonts/fredoka.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Nunito';
+  font-weight: 200 1000;
+  font-display: swap;
+  src: url('./assets/fonts/nunito.woff2') format('woff2');
+}
+
 @layer base {
   html { font-family: 'Inter', system-ui, sans-serif; }
   body { @apply bg-gray-50 text-gray-900 antialiased; }

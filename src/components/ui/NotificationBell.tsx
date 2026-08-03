@@ -21,10 +21,14 @@ export default function NotificationBell() {
   const qc = useQueryClient()
   const unread = notifications.filter(n => !n.is_read).length
 
-  // Écoute temps réel des nouvelles notifications
+  // Écoute temps réel des nouvelles notifications. Le nom du canal inclut
+  // l'id utilisateur : ce composant est désormais monté deux fois en
+  // parallèle (Navbar desktop + MobileHeader mobile, basculées en CSS) —
+  // un nom de canal fixe ferait échouer le second useEffect (Supabase
+  // refuse deux abonnements simultanés au même nom de canal).
   useEffect(() => {
     if (!user) return
-    const channel = supabase.channel('notifications')
+    const channel = supabase.channel(`notifications-${user.id}-${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',

@@ -26,6 +26,8 @@ const AnimalHealthPage = lazy(() => import('@/pages/AnimalHealthPage'))
 const AnimalRecordExportPage = lazy(() => import('@/pages/AnimalRecordExportPage'))
 const PatientDocumentsPage = lazy(() => import('@/pages/PatientDocumentsPage'))
 const RemindersPage = lazy(() => import('@/pages/RemindersPage'))
+const AnimalsPage = lazy(() => import('@/pages/AnimalsPage'))
+const RendezVousPage = lazy(() => import('@/pages/RendezVousPage'))
 const ProfilPage = lazy(() => import('@/pages/ProfilPage'))
 const LogoPreview = lazy(() => import('@/pages/LogoPreview'))
 const LegalPage = lazy(() => import('@/pages/LegalPage'))
@@ -133,6 +135,15 @@ export default function App() {
         } />
         <Route path="/rappels" element={
           <ProtectedRoute role="patient"><RemindersPage /></ProtectedRoute>
+        } />
+        {/* Destinations de la barre de navigation mobile (MobileTabBar) —
+            contenu extrait de PatientDashboard, jusqu'ici uniquement intégré
+            à l'Accueil (voir refonte "Wow / Aurora"). */}
+        <Route path="/animaux" element={
+          <ProtectedRoute role="patient"><AnimalsPage /></ProtectedRoute>
+        } />
+        <Route path="/rendez-vous" element={
+          <ProtectedRoute role="patient"><RendezVousPage /></ProtectedRoute>
         } />
         <Route path="/profil" element={
           <ProtectedRoute><ProfilPage /></ProtectedRoute>

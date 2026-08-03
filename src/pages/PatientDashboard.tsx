@@ -6,9 +6,13 @@ import AnimalBackground from '@/components/ui/AnimalBackground'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
 import { usePatientAppointments, useAnimals, useCreateAnimal } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
-import { isFuture, isPast } from 'date-fns'
+import { isFuture, isPast, format } from 'date-fns'
+import { fr } from 'date-fns/locale'
 import { SPECIES_EMOJI, BREED_PLACEHOLDER, SPECIES_MAX_WEIGHT } from '@/lib/animalSpecies'
 import SpeciesSelect from '@/components/ui/SpeciesSelect'
+import MobileHeader from '@/components/mobile/MobileHeader'
+import MobileTabBar from '@/components/mobile/MobileTabBar'
+import CatMascot from '@/components/mobile/CatMascot'
 
 export default function PatientDashboard() {
   const { profile } = useAuthStore()
@@ -93,8 +97,9 @@ export default function PatientDashboard() {
 
   return (
     <div className="relative min-h-screen bg-sage-50">
-      <AnimalBackground />
       <div className="relative z-10">
+      <div className="hidden md:block">
+      <AnimalBackground />
       <Navbar />
       <div className="max-w-3xl mx-auto px-4 py-8">
 
@@ -294,6 +299,102 @@ export default function PatientDashboard() {
             {display.map(a => <AppointmentCard key={a.id} appointment={a as any} />)}
           </div>
         )}
+      </div>
+      </div>
+
+      {/* Mobile : coquille "Wow / Aurora" — validée sur aperçu avant ce chantier */}
+      <div className="md:hidden pb-24 min-h-screen bg-[#FFCB8A]">
+        <MobileHeader>
+          {/* Mascotte : petite, casée dans le coin haut-droit près des
+              icônes — position exacte de l'aperçu validé (pas centrée/agrandie).
+              Sera remplacée par le dessin des deux chats de la cliente. */}
+          <CatMascot size={72} animate className="absolute top-[42px] right-2 drop-shadow-lg" />
+          <span className="absolute top-11 right-20 text-[12px] text-sage-100 animate-twinkle">✦</span>
+          <span className="absolute top-20 right-9 text-[18px] text-white animate-twinkle [animation-delay:.8s]">✦</span>
+          <span className="absolute top-3 right-28 text-[10px] text-sage-100 animate-twinkle [animation-delay:1.6s]">✦</span>
+
+          <h1 className="font-fredoka text-[28px] font-semibold text-gray-900 leading-tight mt-1">
+            Bonjour {profile?.first_name ?? 'Patient'}
+          </h1>
+          <p className="font-nunito text-sm text-gray-700/80 mt-0.5">Prête pour la prochaine visite ?</p>
+
+          <Link to="/search"
+            className="font-nunito flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-2xl px-4 py-3 text-sm font-semibold text-gray-500 mt-4 shadow-sm">
+            🔍 Un praticien, une spécialité
+          </Link>
+          <div className="flex gap-2 mt-3 overflow-x-auto">
+            {['🩺 Vétérinaire', '✂️ Toiletteur', '🦴 Ostéo'].map(c => (
+              <Link key={c} to="/search"
+                className="flex-shrink-0 bg-white/60 backdrop-blur-sm rounded-full px-3 py-1.5 text-xs font-bold text-sage-700">
+                {c}
+              </Link>
+            ))}
+          </div>
+        </MobileHeader>
+
+        <div className="px-4 -mt-1 relative z-10">
+          {upcoming[0] && (
+            <Link to="/rendez-vous"
+              className="font-nunito flex items-center gap-3 bg-white/90 backdrop-blur-md rounded-2xl p-4 shadow-md border border-white/70 animate-rise-in">
+              <div className="w-14 h-14 rounded-full bg-sage-100 flex items-center justify-center text-2xl flex-shrink-0">📅</div>
+              <div className="min-w-0">
+                <p className="font-fredoka text-[10.5px] font-semibold uppercase tracking-wide text-sage-700">Prochain rendez-vous</p>
+                <p className="font-fredoka font-semibold text-[15px] text-gray-900 truncate">
+                  {(upcoming[0].doctors as any)?.profiles?.first_name} {(upcoming[0].doctors as any)?.profiles?.last_name}
+                </p>
+                <p className="text-xs font-bold text-gray-500">
+                  {(upcoming[0].doctors as any)?.specialty} · {format(new Date(upcoming[0].start_at), "EEEE d MMMM, HH'h'mm", { locale: fr })}
+                </p>
+              </div>
+            </Link>
+          )}
+
+          <div className="grid grid-cols-[1.3fr_1fr] grid-rows-2 gap-2.5 mt-4">
+            <Link to="/animaux"
+              className="row-span-2 bg-white/90 backdrop-blur-md rounded-2xl p-4 shadow-sm border border-white/70 flex flex-col items-center justify-center gap-2 animate-rise-in [animation-delay:.16s]">
+              <span className="w-12 h-12 rounded-full bg-sage-100 flex items-center justify-center text-2xl -rotate-6">🐾</span>
+              <span className="font-fredoka text-xs font-semibold text-gray-900">Mes animaux</span>
+            </Link>
+            <Link to="/rendez-vous"
+              className="bg-white/90 backdrop-blur-md rounded-2xl p-3 shadow-sm border border-white/70 flex items-center gap-2 animate-rise-in [animation-delay:.16s]">
+              <span className="w-9 h-9 rounded-full bg-moss-100 flex items-center justify-center text-lg rotate-3">📋</span>
+              <span className="font-fredoka text-[11px] font-semibold text-gray-900">Mes RDV</span>
+            </Link>
+            <Link to="/rappels"
+              className="bg-white/90 backdrop-blur-md rounded-2xl p-3 shadow-sm border border-white/70 flex items-center gap-2 animate-rise-in [animation-delay:.16s]">
+              <span className="w-9 h-9 rounded-full bg-sage-100 flex items-center justify-center text-lg -rotate-3">🔔</span>
+              <span className="font-fredoka text-[11px] font-semibold text-gray-900">Rappels</span>
+            </Link>
+          </div>
+
+          {animals.length > 0 && (
+            <div className="mt-5 animate-rise-in [animation-delay:.24s]">
+              <p className="font-fredoka text-sm font-semibold text-gray-900 mb-2">Mes compagnons</p>
+              <div className="flex gap-3 overflow-x-auto pb-1">
+                {animals.map(a => (
+                  <Link key={a.id} to={`/animal/${a.id}`}
+                    className="flex-shrink-0 w-24 bg-white/90 backdrop-blur-md rounded-2xl p-3 shadow-sm border border-white/70 flex flex-col items-center gap-1.5 text-center">
+                    <div className="w-12 h-12 rounded-full bg-sage-100 overflow-hidden flex items-center justify-center text-xl">
+                      {a.avatar_url
+                        ? <img src={a.avatar_url} alt={a.name} className="w-full h-full object-cover" />
+                        : <span>{speciesEmoji[a.species] ?? '🐾'}</span>}
+                    </div>
+                    <span className="font-fredoka text-xs font-semibold text-gray-900 truncate w-full">{a.name}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <Link to="/documents"
+            className="mt-3 mb-2 bg-white/90 backdrop-blur-md rounded-2xl p-3 shadow-sm border border-white/70 flex items-center gap-3 animate-rise-in [animation-delay:.3s]">
+            <span className="w-9 h-9 rounded-full bg-moss-100 flex items-center justify-center text-lg">📄</span>
+            <span className="font-fredoka text-[13px] font-semibold text-gray-900">Mes documents</span>
+            <span className="ml-auto text-gray-300">›</span>
+          </Link>
+        </div>
+
+        <MobileTabBar />
       </div>
       </div>
     </div>

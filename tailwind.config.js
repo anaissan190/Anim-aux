@@ -51,11 +51,46 @@ export default {
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
+        // Utilisées uniquement par la refonte mobile (src/components/mobile/*
+        // et les blocs `md:hidden` des pages patient) — le reste de l'appli
+        // (desktop) continue en Inter (font-sans, ci-dessus).
+        fredoka: ['Fredoka', 'system-ui', 'sans-serif'],
+        nunito: ['Nunito', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         '2xl': '1rem',
         '3xl': '1.5rem',
-      }
+      },
+      keyframes: {
+        // Reprises telles quelles de l'aperçu "Wow / Aurora" validé par la cliente.
+        'mesh-drift': {
+          '0%':   { backgroundPosition: '10% 20%, 90% 10%, 55% 85%, 15% 90%, 0% 0%' },
+          '100%': { backgroundPosition: '30% 35%, 70% 25%, 35% 65%, 30% 75%, 0% 0%' },
+        },
+        'cat-bob': {
+          '0%, 100%': { transform: 'translateY(0) rotate(-3deg)' },
+          '50%':      { transform: 'translateY(-7px) rotate(-1deg)' },
+        },
+        twinkle: {
+          '0%, 100%': { opacity: '.2', transform: 'scale(.7) rotate(0deg)' },
+          '50%':      { opacity: '1', transform: 'scale(1.15) rotate(15deg)' },
+        },
+        'fab-pulse': {
+          '0%, 100%': { boxShadow: '0 8px 18px -4px rgba(217,103,11,.55)' },
+          '50%':      { boxShadow: '0 8px 26px -2px rgba(217,103,11,.85), 0 0 0 7px rgba(242,130,15,.14)' },
+        },
+        'rise-in': {
+          from: { opacity: '0', transform: 'translateY(16px)' },
+          to:   { opacity: '1', transform: 'translateY(0)' },
+        },
+      },
+      animation: {
+        'mesh-drift': 'mesh-drift 16s ease-in-out infinite alternate',
+        'cat-bob': 'cat-bob 3.4s ease-in-out infinite',
+        twinkle: 'twinkle 2.6s ease-in-out infinite',
+        'fab-pulse': 'fab-pulse 2.4s ease-in-out infinite',
+        'rise-in': 'rise-in .55s ease-out both',
+      },
     },
   },
   plugins: [],
