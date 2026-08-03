@@ -385,6 +385,14 @@ export default function ProfilPage() {
           </button>
         </div>
 
+        {/* Déconnexion — sur mobile, Navbar (seul endroit où ce bouton
+            existait) est masquée pour le rôle patient, remplacée par la
+            coquille "Wow / Aurora" ; sans ça, aucun moyen de se déconnecter. */}
+        <button onClick={() => signOut().then(() => navigate('/'))}
+          className="md:hidden w-full text-center text-sm text-gray-500 font-medium py-3 mt-8">
+          Déconnexion
+        </button>
+
         {/* ZONE DE DANGER */}
         <div className="card p-6 mt-8 border border-red-100">
           <h2 className="font-semibold text-red-600 mb-1">Zone de danger</h2>
