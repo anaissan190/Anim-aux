@@ -389,8 +389,8 @@ export default function ProfilPage() {
             existait) est masquée pour le rôle patient, remplacée par la
             coquille "Wow / Aurora" ; sans ça, aucun moyen de se déconnecter. */}
         <button onClick={() => signOut().then(() => navigate('/'))}
-          className="md:hidden w-full text-center text-sm text-gray-500 font-medium py-3 mt-8">
-          Déconnexion
+          className="md:hidden w-full flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-2xl shadow-sm text-sm text-red-500 font-fredoka font-semibold py-3.5 mt-8">
+          🚪 Déconnexion
         </button>
 
         {/* ZONE DE DANGER */}
