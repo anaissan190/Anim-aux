@@ -347,9 +347,20 @@ export default function ProfilPage() {
             </div>
           )}
 
-          <button type="submit" disabled={loading} className="btn-primary w-full">
-            {loading ? 'Enregistrement...' : 'Enregistrer les modifications'}
-          </button>
+          {isPatient ? (
+            <>
+              <button type="submit" disabled={loading} className="hidden md:block btn-primary w-full">
+                {loading ? 'Enregistrement...' : 'Enregistrer les modifications'}
+              </button>
+              <button type="submit" disabled={loading} className="md:hidden btn-outline-moss w-full">
+                {loading ? 'Enregistrement...' : 'Enregistrer les modifications'}
+              </button>
+            </>
+          ) : (
+            <button type="submit" disabled={loading} className="btn-primary w-full">
+              {loading ? 'Enregistrement...' : 'Enregistrer les modifications'}
+            </button>
+          )}
 
         </form>
 
@@ -362,12 +373,29 @@ export default function ProfilPage() {
               (nouveau message, RDV confirmé, avis...).
             </p>
             {pushError && <p className="text-red-500 text-xs mb-3">{pushError}</p>}
-            <button onClick={handleTogglePush} disabled={enablePush.isPending || disablePush.isPending}
-              className={pushStatus.subscribed ? 'btn-secondary text-sm' : 'btn-primary text-sm'}>
-              {enablePush.isPending || disablePush.isPending
-                ? '...'
-                : pushStatus.subscribed ? 'Désactiver les notifications' : 'Activer les notifications'}
-            </button>
+            {isPatient ? (
+              <>
+                <button onClick={handleTogglePush} disabled={enablePush.isPending || disablePush.isPending}
+                  className={`hidden md:block ${pushStatus.subscribed ? 'btn-secondary text-sm' : 'btn-primary text-sm'}`}>
+                  {enablePush.isPending || disablePush.isPending
+                    ? '...'
+                    : pushStatus.subscribed ? 'Désactiver les notifications' : 'Activer les notifications'}
+                </button>
+                <button onClick={handleTogglePush} disabled={enablePush.isPending || disablePush.isPending}
+                  className={`md:hidden ${pushStatus.subscribed ? 'btn-secondary text-sm' : 'btn-outline-moss text-sm'}`}>
+                  {enablePush.isPending || disablePush.isPending
+                    ? '...'
+                    : pushStatus.subscribed ? 'Désactiver les notifications' : 'Activer les notifications'}
+                </button>
+              </>
+            ) : (
+              <button onClick={handleTogglePush} disabled={enablePush.isPending || disablePush.isPending}
+                className={pushStatus.subscribed ? 'btn-secondary text-sm' : 'btn-primary text-sm'}>
+                {enablePush.isPending || disablePush.isPending
+                  ? '...'
+                  : pushStatus.subscribed ? 'Désactiver les notifications' : 'Activer les notifications'}
+              </button>
+            )}
           </div>
         )}
 
