@@ -14,8 +14,10 @@ import MobileTabBar from '@/components/mobile/MobileTabBar'
 import { useAnimals, useCreateAnimal, useWeightTracking, useVaccines } from '@/hooks/useData'
 import { SPECIES_EMOJI, BREED_PLACEHOLDER } from '@/lib/animalSpecies'
 import SpeciesSelect from '@/components/ui/SpeciesSelect'
-import { format } from 'date-fns'
+import { format, differenceInYears } from 'date-fns'
 import { fr } from 'date-fns/locale'
+
+const GENDER_SYMBOL: Record<string, string> = { 'Mâle': '♂', 'Femelle': '♀' }
 
 // Rangée d'un animal sur mobile, avec pastilles poids/vaccin — chaque
 // rangée porte ses propres requêtes (peu de risque de perf avec 1-3 animaux
@@ -27,18 +29,26 @@ function PetRow({ animal, index }: { animal: any; index: number }) {
   const upcomingVaccine = vaccines.find((v: any) => v.next_due_date && new Date(v.next_due_date) > new Date())
   const hasVaccineHistory = vaccines.length > 0
 
+  const age = animal.date_of_birth ? differenceInYears(new Date(), new Date(animal.date_of_birth)) : null
+  const genderSymbol = GENDER_SYMBOL[animal.gender as string]
+
   return (
     <Link to={`/animal/${animal.id}`}
-      className="bg-white/90 backdrop-blur-md rounded-2xl p-4 shadow-sm border border-white/70 flex items-center gap-3 animate-rise-in"
+      className="block bg-white/90 backdrop-blur-md rounded-2xl overflow-hidden shadow-sm border border-white/70 animate-rise-in"
       style={{ animationDelay: `${index * 0.08}s` }}>
-      <div className="w-[62px] h-[62px] rounded-[46%_54%_60%_40%/50%_44%_56%_50%] overflow-hidden bg-sage-100 flex items-center justify-center flex-shrink-0">
+      <div className="h-24 bg-sage-100 flex items-center justify-center">
         {animal.avatar_url
           ? <img src={animal.avatar_url} alt={animal.name} className="w-full h-full object-cover" />
-          : <span className="text-2xl">{SPECIES_EMOJI[animal.species] ?? '🐾'}</span>
+          : <span className="text-4xl">{SPECIES_EMOJI[animal.species] ?? '🐾'}</span>
         }
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="font-fredoka font-semibold text-[15px] text-gray-900">{animal.name}</p>
+      <div className="p-3">
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="font-fredoka font-semibold text-[15px] text-gray-900 truncate">
+            {animal.name}{genderSymbol ? ` ${genderSymbol}` : ''}
+          </p>
+          {age !== null && <p className="text-[10.5px] font-bold text-gray-500 flex-shrink-0">{age} an{age > 1 ? 's' : ''}</p>}
+        </div>
         <p className="text-[11.5px] font-bold text-gray-500 mb-1.5">{animal.breed ?? animal.species}</p>
         <div className="flex gap-1.5 flex-wrap">
           {latestWeight && (
@@ -57,7 +67,6 @@ function PetRow({ animal, index }: { animal: any; index: number }) {
           ) : null}
         </div>
       </div>
-      <span className="text-gray-300 text-lg font-black flex-shrink-0">›</span>
     </Link>
   )
 }
