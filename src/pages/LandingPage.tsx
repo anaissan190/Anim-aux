@@ -126,7 +126,7 @@ export default function LandingPage() {
           validé sur aperçu avant ce chantier. Volontairement épuré : rien
           sous le bloc recherche/CTA (pas de "Comment ça marche", spécialités
           ni CTA praticien — retirés à la demande de la cliente). */}
-      <div className="md:hidden min-h-screen bg-[#FFCB8A]">
+      <div className="md:hidden min-h-screen bg-[#FA7913]/35">
         <div className="flex items-center justify-between px-4 pt-4 pb-1">
           <img src={logoNavbar} alt="Animéaux" className="h-10 w-auto" />
           <Link to="/login" className="font-fredoka text-sm font-semibold text-gray-900 bg-white/70 backdrop-blur-sm rounded-full px-4 py-1.5 shadow-sm">
