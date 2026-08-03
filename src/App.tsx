@@ -1,7 +1,8 @@
-import { useEffect, Suspense, lazy } from 'react'
+import { useEffect, useState, Suspense, lazy } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { supabase, getMyUserDataWithRetry } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/authStore'
+import SplashScreen from '@/components/ui/SplashScreen'
 
 // Chaque page est chargée à la demande (React.lazy) plutôt qu'incluse dans le
 // bundle principal : sans ça, un visiteur qui arrive sur la page de connexion
@@ -41,8 +42,34 @@ function RouteFallback() {
   )
 }
 
+// "/" : un compte déjà connecté doit arriver directement sur son propre
+// espace (celui qu'on a conçu pour lui), jamais sur la page vitrine
+// publique — surtout sensible pour l'icône ajoutée à l'écran d'accueil,
+// dont le raccourci pointe toujours vers "/".
+function HomeRoute() {
+  const { user } = useAuthStore()
+  if (user) {
+    const dashboardPath =
+      user.role === 'doctor'    ? '/dashboard/doctor' :
+      user.role === 'secretary' ? '/dashboard/secretariat' :
+      '/dashboard/patient'
+    return <Navigate to={dashboardPath} replace />
+  }
+  return <LandingPage />
+}
+
 export default function App() {
-  const { setUser, setProfile, setLoading } = useAuthStore()
+  const { loading, setUser, setProfile, setLoading } = useAuthStore()
+  // Durée plancher pour l'écran de démarrage : sans ça, sur une session déjà
+  // connue (réhydratée depuis le stockage local), l'écran de chargement
+  // n'apparaîtrait qu'une fraction de seconde — un flash plus qu'un vrai
+  // écran de lancement façon appli native.
+  const [splashElapsed, setSplashElapsed] = useState(false)
+
+  useEffect(() => {
+    const t = setTimeout(() => setSplashElapsed(true), 600)
+    return () => clearTimeout(t)
+  }, [])
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -88,11 +115,13 @@ export default function App() {
     return () => subscription.unsubscribe()
   }, [])
 
+  if (loading || !splashElapsed) return <SplashScreen />
+
   return (
     <BrowserRouter>
       <Suspense fallback={<RouteFallback />}>
       <Routes>
-        <Route path="/" element={<LandingPage />} />
+        <Route path="/" element={<HomeRoute />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/doctor/:id" element={<DoctorPage />} />
         <Route path="/cabinet/:id" element={<ClinicPage />} />

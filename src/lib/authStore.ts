@@ -18,7 +18,11 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       profile: null,
-      loading: false,
+      // true au démarrage : le temps que App.tsx vérifie la session
+      // (écran de chargement affiché pendant ce court instant), plutôt que
+      // de risquer d'afficher brièvement une page publique/de connexion à
+      // quelqu'un déjà connecté.
+      loading: true,
       setUser: (user) => set({ user }),
       setProfile: (profile) => set({ profile }),
       setLoading: (loading) => set({ loading }),
