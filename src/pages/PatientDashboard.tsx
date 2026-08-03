@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import Navbar from '@/components/ui/Navbar'
 import AnimalBackground from '@/components/ui/AnimalBackground'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
-import { usePatientAppointments, useAnimals, useCreateAnimal, useVaccines } from '@/hooks/useData'
+import { usePatientAppointments, useAnimals, useCreateAnimal } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { isFuture, isPast, format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -303,7 +303,7 @@ export default function PatientDashboard() {
       </div>
 
       {/* Mobile : coquille "Wow / Aurora" — validée sur aperçu avant ce chantier */}
-      <div className="md:hidden pb-24 min-h-screen bg-[#EC9142]">
+      <div className="md:hidden pb-24 min-h-screen bg-sage-200">
         <MobileHeader>
           {/* Mascotte : petite, casée dans le coin haut-droit près des
               icônes — position exacte de l'aperçu validé (pas centrée/agrandie).
@@ -313,7 +313,7 @@ export default function PatientDashboard() {
           <span className="absolute top-20 right-9 text-[18px] text-white animate-twinkle [animation-delay:.8s]">✦</span>
           <span className="absolute top-3 right-28 text-[10px] text-sage-100 animate-twinkle [animation-delay:1.6s]">✦</span>
 
-          <h1 className="font-fredoka text-[28px] font-semibold text-gray-900 leading-tight mt-8">
+          <h1 className="font-fredoka text-[28px] font-semibold text-gray-900 leading-tight mt-1">
             Bonjour {profile?.first_name ?? 'Patient'}
           </h1>
           <p className="font-nunito text-sm text-gray-700/80 mt-0.5">Prête pour la prochaine visite ?</p>
@@ -371,7 +371,17 @@ export default function PatientDashboard() {
             <div className="mt-5 animate-rise-in [animation-delay:.24s]">
               <p className="font-fredoka text-sm font-semibold text-gray-900 mb-2">Mes compagnons</p>
               <div className="flex gap-3 overflow-x-auto pb-1">
-                {animals.map(a => <PetFiche key={a.id} animal={a} />)}
+                {animals.map(a => (
+                  <Link key={a.id} to={`/animal/${a.id}`}
+                    className="flex-shrink-0 w-24 bg-white/90 backdrop-blur-md rounded-2xl p-3 shadow-sm border border-white/70 flex flex-col items-center gap-1.5 text-center">
+                    <div className="w-12 h-12 rounded-full bg-sage-100 overflow-hidden flex items-center justify-center text-xl">
+                      {a.avatar_url
+                        ? <img src={a.avatar_url} alt={a.name} className="w-full h-full object-cover" />
+                        : <span>{speciesEmoji[a.species] ?? '🐾'}</span>}
+                    </div>
+                    <span className="font-fredoka text-xs font-semibold text-gray-900 truncate w-full">{a.name}</span>
+                  </Link>
+                ))}
               </div>
             </div>
           )}
@@ -388,29 +398,5 @@ export default function PatientDashboard() {
       </div>
       </div>
     </div>
-  )
-}
-
-// Carte "poster" pour la bande "Mes compagnons" de l'accueil mobile — la
-// photo remplit toute la carte, le prénom en surimpression (dégradé bas),
-// un point de couleur signale le statut vaccin. Validée sur aperçu.
-function PetFiche({ animal }: { animal: any }) {
-  const { data: vaccines = [] } = useVaccines(animal.id)
-  const upcomingVaccine = vaccines.find((v: any) => v.next_due_date && new Date(v.next_due_date) > new Date())
-  const hasVaccineHistory = vaccines.length > 0
-
-  return (
-    <Link to={`/animal/${animal.id}`}
-      className="flex-shrink-0 w-32 h-24 rounded-2xl bg-sage-100 relative overflow-hidden shadow-sm">
-      {animal.avatar_url
-        ? <img src={animal.avatar_url} alt={animal.name} className="absolute inset-0 w-full h-full object-cover" />
-        : <span className="absolute inset-0 flex items-center justify-center text-3xl">{SPECIES_EMOJI[animal.species] ?? '🐾'}</span>}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent flex items-end p-2">
-        <p className="font-fredoka text-sm font-semibold text-white truncate">{animal.name}</p>
-      </div>
-      {hasVaccineHistory && (
-        <span className={`absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full ring-2 ring-white/80 ${upcomingVaccine ? 'bg-amber-400' : 'bg-moss-500'}`} />
-      )}
-    </Link>
   )
 }
