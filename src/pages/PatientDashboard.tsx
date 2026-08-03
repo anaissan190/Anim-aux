@@ -313,7 +313,7 @@ export default function PatientDashboard() {
           <span className="absolute top-20 right-9 text-[18px] text-white animate-twinkle [animation-delay:.8s]">✦</span>
           <span className="absolute top-3 right-28 text-[10px] text-sage-100 animate-twinkle [animation-delay:1.6s]">✦</span>
 
-          <h1 className="font-fredoka text-[28px] font-semibold text-gray-900 leading-tight mt-5">
+          <h1 className="font-fredoka text-[28px] font-semibold text-gray-900 leading-tight mt-8">
             Bonjour {profile?.first_name ?? 'Patient'}
           </h1>
           <p className="font-nunito text-sm text-gray-700/80 mt-0.5">Prête pour la prochaine visite ?</p>
