@@ -303,7 +303,7 @@ export default function PatientDashboard() {
       </div>
 
       {/* Mobile : coquille "Wow / Aurora" — validée sur aperçu avant ce chantier */}
-      <div className="md:hidden pb-24 min-h-screen bg-sage-200">
+      <div className="md:hidden pb-24 min-h-screen bg-sage-300">
         <MobileHeader>
           {/* Mascotte : petite, casée dans le coin haut-droit près des
               icônes — position exacte de l'aperçu validé (pas centrée/agrandie).
