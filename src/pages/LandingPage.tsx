@@ -7,6 +7,7 @@ import AnimalBackground from '@/components/ui/AnimalBackground'
 import CatMascot from '@/components/mobile/CatMascot'
 import { useAuthStore } from '@/lib/authStore'
 import { PRACTITIONER_TYPES } from '@/lib/practitionerTypes'
+import logoNavbar from '@/assets/logo-navbar.webp'
 
 // Toutes les catégories de la liste fermée des métiers, sauf "Autre" qui
 // n'a pas de sens comme raccourci de recherche.
@@ -121,15 +122,13 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* Mobile : accueil "Wow / Aurora" pour visiteur non connecté — plus
-          la page vitrine desktop compressée, un vrai écran d'entrée d'appli
-          avec accès direct à la connexion/inscription. */}
+      {/* Mobile : écran d'entrée "Wow / Aurora" pour visiteur non connecté —
+          validé sur aperçu avant ce chantier. Volontairement épuré : rien
+          sous le bloc recherche/CTA (pas de "Comment ça marche", spécialités
+          ni CTA praticien — retirés à la demande de la cliente). */}
       <div className="md:hidden min-h-screen bg-[#FFCB8A]">
         <div className="flex items-center justify-between px-4 pt-4 pb-1">
-          <div className="flex items-center gap-2">
-            <img src="/pwa-192.png" alt="" className="w-8 h-8 rounded-lg shadow-sm" />
-            <span className="font-fredoka font-bold text-gray-900">Animéaux</span>
-          </div>
+          <img src={logoNavbar} alt="Animéaux" className="h-10 w-auto" />
           <Link to="/login" className="font-fredoka text-sm font-semibold text-gray-900 bg-white/70 backdrop-blur-sm rounded-full px-4 py-1.5 shadow-sm">
             Connexion
           </Link>
@@ -162,51 +161,6 @@ export default function LandingPage() {
             </Link>
           </div>
         </div>
-
-        {/* Comment ça marche */}
-        <div className="bg-[#FFFAF0] px-4 py-8">
-          <h2 className="font-fredoka text-xl font-semibold text-gray-900 text-center mb-5">Comment ça marche ?</h2>
-          <div className="flex flex-col gap-3">
-            {steps.map(step => (
-              <div key={step.n} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex gap-3 items-start">
-                <div className="w-9 h-9 flex-shrink-0 bg-sage-500 text-white rounded-full flex items-center justify-center text-sm font-fredoka font-semibold">
-                  {step.n}
-                </div>
-                <div>
-                  <h3 className="font-fredoka font-semibold text-sm text-gray-900">{step.t}</h3>
-                  <p className="text-xs text-gray-500 mt-0.5">{step.d}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Spécialités */}
-        <div className="px-4 py-8">
-          <h2 className="font-fredoka text-xl font-semibold text-gray-900 text-center mb-5">Consultez par spécialité</h2>
-          <div className="grid grid-cols-3 gap-2.5">
-            {SPECIALTIES.map(s => (
-              <Link key={s.name} to={`/search?specialty=${encodeURIComponent(s.name)}`}
-                className="bg-white rounded-2xl p-3 text-center shadow-sm border border-gray-100">
-                <div className="text-xl mb-1">{s.icon}</div>
-                <p className="text-[10px] font-bold text-gray-700 leading-tight">{s.name}</p>
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        {!user && (
-          <div className="bg-[#FFFAF0] px-4 py-8 text-center">
-            <h2 className="font-fredoka text-lg font-semibold text-gray-900 mb-2">Vous êtes praticien ?</h2>
-            <p className="text-sm text-gray-500 mb-4">Rejoignez Animéaux, gratuit pendant 3 mois.</p>
-            <Link to="/register?role=doctor"
-              className="inline-block font-fredoka font-semibold text-sm bg-sage-500 text-white rounded-2xl px-5 py-3 shadow-sm">
-              Créer mon profil praticien →
-            </Link>
-          </div>
-        )}
-
-        <Footer />
       </div>
     </div>
   )
