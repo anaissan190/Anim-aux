@@ -5,7 +5,7 @@
 // le temps du chargement donnait l'impression d'un bug/site cassé).
 export default function SplashScreen() {
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-4 bg-sage-500">
+    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-4 bg-[#FA7913]">
       <img src="/pwa-192.png" alt="" className="w-20 h-20 rounded-2xl shadow-lg" />
       <p className="font-bold text-2xl tracking-wide text-white">Animéaux</p>
       <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin mt-2" />
