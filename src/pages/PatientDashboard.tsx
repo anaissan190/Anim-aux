@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import Navbar from '@/components/ui/Navbar'
 import AnimalBackground from '@/components/ui/AnimalBackground'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
-import { usePatientAppointments, useAnimals, useCreateAnimal } from '@/hooks/useData'
+import { usePatientAppointments, useAnimals, useCreateAnimal, useWeightTracking, useVaccines } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { isFuture, isPast, format } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -371,17 +371,7 @@ export default function PatientDashboard() {
             <div className="mt-5 animate-rise-in [animation-delay:.24s]">
               <p className="font-fredoka text-sm font-semibold text-gray-900 mb-2">Mes compagnons</p>
               <div className="flex gap-3 overflow-x-auto pb-1">
-                {animals.map(a => (
-                  <Link key={a.id} to={`/animal/${a.id}`}
-                    className="flex-shrink-0 w-24 bg-white/90 backdrop-blur-md rounded-2xl p-3 shadow-sm border border-white/70 flex flex-col items-center gap-1.5 text-center">
-                    <div className="w-12 h-12 rounded-full bg-sage-100 overflow-hidden flex items-center justify-center text-xl">
-                      {a.avatar_url
-                        ? <img src={a.avatar_url} alt={a.name} className="w-full h-full object-cover" />
-                        : <span>{speciesEmoji[a.species] ?? '🐾'}</span>}
-                    </div>
-                    <span className="font-fredoka text-xs font-semibold text-gray-900 truncate w-full">{a.name}</span>
-                  </Link>
-                ))}
+                {animals.map(a => <PetFiche key={a.id} animal={a} />)}
               </div>
             </div>
           )}
@@ -398,5 +388,44 @@ export default function PatientDashboard() {
       </div>
       </div>
     </div>
+  )
+}
+
+// Fiche façon "passeport animal" pour la bande "Mes compagnons" de l'accueil
+// mobile — validée sur aperçu (bloc photo orange sage-500 + panneau d'infos,
+// sans scotch ni numérotation, typo Fredoka non graissée).
+function PetFiche({ animal }: { animal: any }) {
+  const { data: weights = [] } = useWeightTracking(animal.id)
+  const { data: vaccines = [] } = useVaccines(animal.id)
+  const latestWeight = weights[weights.length - 1]
+  const upcomingVaccine = vaccines.find((v: any) => v.next_due_date && new Date(v.next_due_date) > new Date())
+  const hasVaccineHistory = vaccines.length > 0
+
+  return (
+    <Link to={`/animal/${animal.id}`}
+      className="flex-shrink-0 w-[168px] bg-white/95 rounded-2xl shadow-sm border border-white/70 overflow-hidden flex">
+      <div className="w-14 bg-sage-500 flex items-center justify-center flex-shrink-0">
+        <div className="w-10 h-10 rounded-lg bg-white/85 overflow-hidden flex items-center justify-center">
+          {animal.avatar_url
+            ? <img src={animal.avatar_url} alt={animal.name} className="w-full h-full object-cover" />
+            : <span className="text-lg">{SPECIES_EMOJI[animal.species] ?? '🐾'}</span>}
+        </div>
+      </div>
+      <div className="flex-1 min-w-0 p-2.5">
+        <p className="font-fredoka text-[13px] text-gray-900 truncate">{animal.name}</p>
+        <p className="text-[9px] text-gray-500 truncate mb-1.5">
+          {animal.breed ?? animal.species}{latestWeight ? ` · ${latestWeight.weight_kg} kg` : ''}
+        </p>
+        {upcomingVaccine ? (
+          <span className="inline-block bg-amber-50 text-amber-700 text-[8px] font-semibold px-2 py-0.5 rounded-full">
+            💉 {format(new Date(upcomingVaccine.next_due_date), 'd MMM', { locale: fr })}
+          </span>
+        ) : hasVaccineHistory ? (
+          <span className="inline-block bg-moss-100 text-moss-800 text-[8px] font-semibold px-2 py-0.5 rounded-full">
+            ✅ à jour
+          </span>
+        ) : null}
+      </div>
+    </Link>
   )
 }
