@@ -800,7 +800,13 @@ export function useUpdateAppointmentStatus() {
     mutationFn: async ({ id, status, notes }: { id: string; status: AppointmentStatus; notes?: string }) => {
       const { error } = await supabase
         .from('appointments')
-        .update({ status, notes, updated_at: new Date().toISOString() })
+        .update({
+          status, notes, updated_at: new Date().toISOString(),
+          // Point de départ de la fenêtre du rappel "laisser un avis"
+          // (voir send-reminders) : ne se déclenche que sur ce passage à
+          // completed, jamais réécrit ensuite par une autre transition.
+          ...(status === 'completed' ? { completed_at: new Date().toISOString() } : {}),
+        })
         .eq('id', id)
       if (error) throw error
     },

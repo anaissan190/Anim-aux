@@ -1,7 +1,9 @@
 // supabase/functions/send-reminders/index.ts
 // Cette Edge Function est appelée par un cron Supabase toutes les heures.
-// Elle envoie des rappels pour les RDV dans les 24h, et des rappels de
-// vaccin (vaccines.next_due_date, saisi par le praticien) dans les 7 jours.
+// Elle envoie des rappels pour les RDV dans les 24h, des rappels de
+// vaccin (vaccines.next_due_date, saisi par le praticien) dans les 7
+// jours, et une invitation à laisser un avis quelques heures après un
+// RDV marqué terminé par le praticien.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -230,7 +232,70 @@ Deno.serve(async (req) => {
     vaccineReminders++
   }
 
-  return new Response(JSON.stringify({ sent, vaccineReminders }), {
+  // Rappel "laissez un avis" : quelques heures après qu'un RDV a été
+  // marqué terminé par le praticien (bouton "Terminé" sur AppointmentCard,
+  // completed_at posé par useUpdateAppointmentStatus) — pas immédiatement,
+  // le patient vient probablement de quitter le cabinet. Fenêtre de 3 à 4h
+  // après complétion (la fonction tourne toutes les heures), même logique
+  // de fenêtre glissante que le rappel de RDV à 24h ci-dessus.
+  // review_reminder_sent_at évite tout renvoi.
+  const reviewFrom = new Date()
+  reviewFrom.setHours(reviewFrom.getHours() - 4)
+  const reviewTo = new Date(reviewFrom)
+  reviewTo.setHours(reviewTo.getHours() + 1)
+
+  const { data: completedAppointments } = await supabase
+    .from('appointments')
+    .select(`
+      id, doctor_id, patient_id,
+      patient:users!patient_id(email, profiles(first_name, phone)),
+      doctors!inner(profiles!inner(first_name, last_name))
+    `)
+    .eq('status', 'completed')
+    .is('review_reminder_sent_at', null)
+    .gte('completed_at', reviewFrom.toISOString())
+    .lt('completed_at', reviewTo.toISOString())
+
+  let reviewReminders = 0
+  for (const appt of completedAppointments ?? []) {
+    const patientProfile = (appt.patient as any)?.profiles
+    const patientEmail = (appt.patient as any)?.email
+    const doctorProfile = (appt.doctors as any)?.profiles
+    const doctorName = doctorProfile ? `Dr ${doctorProfile.first_name} ${doctorProfile.last_name}` : 'votre praticien'
+
+    await supabase.from('notifications').insert({
+      user_id: appt.patient_id,
+      type: 'review_reminder',
+      title: "Comment s'est passé votre rendez-vous ?",
+      body: `Partagez votre avis sur ${doctorName}, ça aide les autres propriétaires d'animaux.`,
+      related_id: appt.doctor_id,
+    })
+
+    if (resendKey && patientEmail) {
+      const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #1f2937;">
+          <h2 style="color: #d9670b;">Un avis sur votre rendez-vous ? 🐾</h2>
+          <p>Bonjour ${patientProfile?.first_name ?? ''},</p>
+          <p>Votre rendez-vous avec <strong>${doctorName}</strong> est terminé. Si vous avez un instant, votre avis aide les autres propriétaires d'animaux à choisir un praticien.</p>
+          <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Animéaux — Votre animal, notre priorité.</p>
+        </div>
+      `
+      await sendReminderEmail(resendKey, patientEmail, 'Un avis sur votre dernier rendez-vous ?', html)
+    }
+
+    const patientPhone = toE164(patientProfile?.phone)
+    if (patientPhone) {
+      await sendOvhSms(
+        `Animeaux : votre RDV avec ${doctorName} est termine. Donnez votre avis sur l'appli !`,
+        patientPhone
+      )
+    }
+
+    await supabase.from('appointments').update({ review_reminder_sent_at: new Date().toISOString() }).eq('id', appt.id)
+    reviewReminders++
+  }
+
+  return new Response(JSON.stringify({ sent, vaccineReminders, reviewReminders }), {
     headers: { 'Content-Type': 'application/json' }
   })
 })

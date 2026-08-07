@@ -1,5 +1,6 @@
 // src/components/ui/NotificationBell.tsx
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useNotifications, useMarkNotificationsRead, useDeleteNotification, useDeleteAllNotifications } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { supabase } from '@/lib/supabase'
@@ -9,6 +10,7 @@ import { fr } from 'date-fns/locale'
 
 export default function NotificationBell({ large = false }: { large?: boolean }) {
   const [open, setOpen] = useState(false)
+  const navigate = useNavigate()
   const { user } = useAuthStore()
   const { data: allNotifications = [] } = useNotifications()
   // Les nouveaux messages ont désormais leur propre indicateur (pastille
@@ -42,6 +44,17 @@ export default function NotificationBell({ large = false }: { large?: boolean })
   function handleOpen() {
     setOpen(!open)
     if (!open && unread > 0) markRead.mutate()
+  }
+
+  // Seul le rappel d'avis mène quelque part pour l'instant (related_id =
+  // doctor_id) : les autres types n'ont pas de destination unique et
+  // évidente, on ne les rend donc pas cliquables plutôt que de deviner un
+  // lien approximatif.
+  function handleNotificationClick(n: { type: string; related_id: string | null }) {
+    if (n.type === 'review_reminder' && n.related_id) {
+      setOpen(false)
+      navigate(`/doctor/${n.related_id}`)
+    }
   }
 
   return (
@@ -79,7 +92,8 @@ export default function NotificationBell({ large = false }: { large?: boolean })
                 <p className="text-center text-sm text-gray-400 py-8">Aucune notification</p>
               ) : notifications.map(n => (
                 <div key={n.id}
-                  className={`px-4 py-3 text-sm flex items-start gap-2 ${n.is_read ? 'bg-white' : 'bg-sage-50'}`}>
+                  onClick={() => handleNotificationClick(n)}
+                  className={`px-4 py-3 text-sm flex items-start gap-2 ${n.is_read ? 'bg-white' : 'bg-sage-50'} ${n.type === 'review_reminder' ? 'cursor-pointer hover:bg-sage-50' : ''}`}>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900">{n.title}</p>
                     <p className="text-gray-500 text-xs mt-0.5">{n.body}</p>
@@ -88,7 +102,7 @@ export default function NotificationBell({ large = false }: { large?: boolean })
                     </p>
                   </div>
                   <button
-                    onClick={() => deleteNotification.mutate(n.id)}
+                    onClick={e => { e.stopPropagation(); deleteNotification.mutate(n.id) }}
                     className="flex-shrink-0 text-gray-300 hover:text-red-500 transition-colors"
                     title="Supprimer">
                     ✕
