@@ -147,7 +147,7 @@ export default function Navbar() {
                     : '👤'}
                 </Link>
                 <button onClick={() => signOut().then(() => navigate('/'))}
-                  className="text-sm text-gray-500 hover:text-red-500 transition-colors hidden md:block">
+                  className="text-sm text-gray-500 hover:text-red-500 transition-colors">
                   Déconnexion
                 </button>
               </div>
