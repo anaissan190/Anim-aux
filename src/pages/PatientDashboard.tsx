@@ -6,8 +6,7 @@ import AnimalBackground from '@/components/ui/AnimalBackground'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
 import { usePatientAppointments, useAnimals, useCreateAnimal } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
-import { isFuture, isPast, format } from 'date-fns'
-import { fr } from 'date-fns/locale'
+import { isFuture, isPast } from 'date-fns'
 import { SPECIES_EMOJI, BREED_PLACEHOLDER, SPECIES_MAX_WEIGHT } from '@/lib/animalSpecies'
 import SpeciesSelect from '@/components/ui/SpeciesSelect'
 import MobileHeader from '@/components/mobile/MobileHeader'
@@ -45,6 +44,22 @@ export default function PatientDashboard() {
   const upcoming = appointments.filter(a => isFuture(new Date(a.start_at)) && a.status !== 'cancelled')
   const past = appointments.filter(a => isPast(new Date(a.start_at)) || a.status === 'cancelled')
   const display = tab === 'upcoming' ? upcoming : past
+
+  // Praticiens distincts, dans l'ordre du RDV le plus récent (appointments
+  // est déjà trié par start_at décroissant côté requête) — pour la section
+  // "Derniers praticiens consultés" de l'accueil mobile.
+  const recentDoctors = (() => {
+    const seen = new Set<string>()
+    const list: any[] = []
+    for (const a of appointments) {
+      const doc = (a as any).doctors
+      if (doc?.id && !seen.has(doc.id)) {
+        seen.add(doc.id)
+        list.push(doc)
+      }
+    }
+    return list.slice(0, 5)
+  })()
 
   const speciesEmoji = SPECIES_EMOJI
   const breedPlaceholder = BREED_PLACEHOLDER
@@ -365,20 +380,37 @@ export default function PatientDashboard() {
         </MobileHeader>
 
         <div className="px-4 -mt-1 relative z-10">
-          {upcoming[0] && (
-            <Link to="/rendez-vous"
-              className="font-nunito flex items-center gap-3 bg-white/90 backdrop-blur-md rounded-2xl p-4 shadow-md border border-white/70 animate-rise-in">
-              <div className="w-14 h-14 rounded-full bg-sage-100 flex items-center justify-center text-2xl flex-shrink-0">📅</div>
-              <div className="min-w-0">
-                <p className="font-fredoka text-[10.5px] font-semibold uppercase tracking-wide text-sage-700">Prochain rendez-vous</p>
-                <p className="font-fredoka font-semibold text-[15px] text-gray-900 truncate">
-                  {(upcoming[0].doctors as any)?.profiles?.first_name} {(upcoming[0].doctors as any)?.profiles?.last_name}
-                </p>
-                <p className="text-xs font-bold text-gray-500">
-                  {(upcoming[0].doctors as any)?.specialty} · {format(new Date(upcoming[0].start_at), "EEEE d MMMM, HH'h'mm", { locale: fr })}
-                </p>
+          {recentDoctors.length > 0 && (
+            <div className="animate-rise-in">
+              <p className="font-fredoka text-sm font-semibold text-gray-900 mb-2">Derniers praticiens consultés</p>
+              <div className="bg-white rounded-2xl shadow-sm border border-white/70 overflow-hidden">
+                {recentDoctors.map((doc, i) => {
+                  const profile = doc.profiles
+                  const name = profile ? `${profile.first_name} ${profile.last_name}` : 'Praticien'
+                  const initials = profile
+                    ? `${profile.first_name?.[0] ?? ''}${profile.last_name?.[0] ?? ''}`.toUpperCase()
+                    : '?'
+                  const bg = ['bg-sage-500', 'bg-moss-500', 'bg-[#c96406]'][i % 3]
+                  return (
+                    <Link key={doc.id} to={`/doctor/${doc.id}`}
+                      className={`flex items-center gap-2.5 px-3 py-2 ${i < recentDoctors.length - 1 ? 'border-b border-gray-50' : ''}`}>
+                      {profile?.avatar_url ? (
+                        <img src={profile.avatar_url} alt={name} className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
+                      ) : (
+                        <span className={`w-7 h-7 rounded-full ${bg} text-white font-fredoka font-semibold text-[10px] flex items-center justify-center flex-shrink-0`}>
+                          {initials}
+                        </span>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-fredoka text-[11.5px] font-semibold text-gray-900 truncate">{name}</p>
+                        <p className="text-[9px] text-gray-500">{doc.specialty}</p>
+                      </div>
+                      <span className="text-gray-300 font-bold">›</span>
+                    </Link>
+                  )
+                })}
               </div>
-            </Link>
+            </div>
           )}
 
           <div className="grid grid-cols-[1.3fr_1fr] grid-rows-3 gap-2.5 mt-4 mb-2">

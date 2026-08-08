@@ -423,7 +423,7 @@ export function usePatientAppointments() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('appointments')
-        .select('*, doctors!inner(specialty, city, profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url)), reviews(id, rating, comment)')
+        .select('*, doctors!inner(id, specialty, city, profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url)), reviews(id, rating, comment)')
         .eq('patient_id', user!.id)
         .order('start_at', { ascending: false })
       if (error) throw error
