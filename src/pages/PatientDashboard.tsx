@@ -393,48 +393,25 @@ export default function PatientDashboard() {
                   const bg = ['bg-sage-500', 'bg-moss-500', 'bg-[#c96406]'][i % 3]
                   return (
                     <Link key={doc.id} to={`/doctor/${doc.id}`}
-                      className={`flex items-center gap-2.5 px-3 py-2 ${i < recentDoctors.length - 1 ? 'border-b border-gray-50' : ''}`}>
+                      className={`flex items-center gap-3 px-3.5 py-3 ${i < recentDoctors.length - 1 ? 'border-b border-gray-50' : ''}`}>
                       {profile?.avatar_url ? (
-                        <img src={profile.avatar_url} alt={name} className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
+                        <img src={profile.avatar_url} alt={name} className="w-11 h-11 rounded-full object-cover flex-shrink-0" />
                       ) : (
-                        <span className={`w-7 h-7 rounded-full ${bg} text-white font-fredoka font-semibold text-[10px] flex items-center justify-center flex-shrink-0`}>
+                        <span className={`w-11 h-11 rounded-full ${bg} text-white font-fredoka font-semibold text-sm flex items-center justify-center flex-shrink-0`}>
                           {initials}
                         </span>
                       )}
                       <div className="flex-1 min-w-0">
-                        <p className="font-fredoka text-[11.5px] font-semibold text-gray-900 truncate">{name}</p>
-                        <p className="text-[9px] text-gray-500">{doc.specialty}</p>
+                        <p className="font-fredoka text-[15px] font-semibold text-gray-900 truncate">{name}</p>
+                        <p className="text-[12px] text-gray-500">{doc.specialty}</p>
                       </div>
-                      <span className="text-gray-300 font-bold">›</span>
+                      <span className="text-gray-300 font-bold text-lg">›</span>
                     </Link>
                   )
                 })}
               </div>
             </div>
           )}
-
-          <div className="grid grid-cols-[1.3fr_1fr] grid-rows-3 gap-2.5 mt-4 mb-2">
-            <Link to="/animaux"
-              className="row-span-3 bg-white/90 backdrop-blur-md rounded-2xl p-4 shadow-sm border border-white/70 flex flex-col items-center justify-center gap-2 animate-rise-in [animation-delay:.16s]">
-              <span className="w-12 h-12 rounded-full bg-sage-100 flex items-center justify-center text-2xl -rotate-6">🐾</span>
-              <span className="font-fredoka text-xs font-semibold text-gray-900">Mes animaux</span>
-            </Link>
-            <Link to="/rendez-vous"
-              className="bg-white/90 backdrop-blur-md rounded-2xl p-3 shadow-sm border border-white/70 flex items-center gap-2 animate-rise-in [animation-delay:.16s]">
-              <span className="w-9 h-9 rounded-full bg-moss-100 flex items-center justify-center text-lg rotate-3">📋</span>
-              <span className="font-fredoka text-[11px] font-semibold text-gray-900">Mes RDV</span>
-            </Link>
-            <Link to="/rappels"
-              className="bg-white/90 backdrop-blur-md rounded-2xl p-3 shadow-sm border border-white/70 flex items-center gap-2 animate-rise-in [animation-delay:.16s]">
-              <span className="w-9 h-9 rounded-full bg-sage-100 flex items-center justify-center text-lg -rotate-3">🔔</span>
-              <span className="font-fredoka text-[11px] font-semibold text-gray-900">Rappels</span>
-            </Link>
-            <Link to="/documents"
-              className="bg-white/90 backdrop-blur-md rounded-2xl p-3 shadow-sm border border-white/70 flex items-center gap-2 animate-rise-in [animation-delay:.16s]">
-              <span className="w-9 h-9 rounded-full bg-moss-100 flex items-center justify-center text-lg">📄</span>
-              <span className="font-fredoka text-[11px] font-semibold text-gray-900">Mes documents</span>
-            </Link>
-          </div>
         </div>
 
         <MobileTabBar />
