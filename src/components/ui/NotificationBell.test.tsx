@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createQueryBuilderMock, createSupabaseMock } from '@/test/supabaseMock'
 
@@ -14,7 +15,7 @@ const FAKE_USER = { id: 'u1', email: 'a@a.fr', role: 'patient' as const, is_admi
 function renderBell(notifications: any[]) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   vi.mocked(supabase.from).mockReturnValue(createQueryBuilderMock({ data: notifications, error: null }))
-  return render(<QueryClientProvider client={queryClient}><NotificationBell /></QueryClientProvider>)
+  return render(<QueryClientProvider client={queryClient}><MemoryRouter><NotificationBell /></MemoryRouter></QueryClientProvider>)
 }
 
 beforeEach(() => {
@@ -65,7 +66,7 @@ describe('NotificationBell', () => {
     const builder = createQueryBuilderMock({ data: [notif({ is_read: false })], error: null })
     vi.mocked(supabase.from).mockReturnValue(builder)
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
-    render(<QueryClientProvider client={queryClient}><NotificationBell /></QueryClientProvider>)
+    render(<QueryClientProvider client={queryClient}><MemoryRouter><NotificationBell /></MemoryRouter></QueryClientProvider>)
 
     // Le badge ne reflète le compteur "non lues" qu'une fois la requête
     // useNotifications résolue — cliquer avant verrait unread=0 et ne
@@ -80,7 +81,7 @@ describe('NotificationBell', () => {
     const builder = createQueryBuilderMock({ data: [notif({ id: 'n1' })], error: null })
     vi.mocked(supabase.from).mockReturnValue(builder)
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
-    render(<QueryClientProvider client={queryClient}><NotificationBell /></QueryClientProvider>)
+    render(<QueryClientProvider client={queryClient}><MemoryRouter><NotificationBell /></MemoryRouter></QueryClientProvider>)
 
     fireEvent.click(screen.getByRole('button'))
     await screen.findByTitle('Supprimer')
@@ -97,6 +98,10 @@ describe('NotificationBell', () => {
 
   it('souscrit au canal notifications filtré par utilisateur connecté', () => {
     renderBell([])
-    expect(supabase.channel).toHaveBeenCalledWith('notifications')
+    // Nom de canal suffixé par l'id utilisateur + un aléa (voir
+    // NotificationBell.tsx) : ce composant est monté deux fois en
+    // parallèle (desktop/mobile), un nom fixe ferait échouer le second
+    // abonnement Supabase.
+    expect(supabase.channel).toHaveBeenCalledWith(expect.stringMatching(/^notifications-u1-/))
   })
 })

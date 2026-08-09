@@ -54,7 +54,7 @@ export default function NotificationBell({ large = false }: { large?: boolean })
     if (n.type === 'review_reminder' && n.related_id) {
       setOpen(false)
       navigate(`/doctor/${n.related_id}`)
-    } else if (n.type === 'appointment_cancelled') {
+    } else if (n.type === 'appointment_cancelled' || n.type === 'appointment_rescheduled') {
       setOpen(false)
       navigate('/rendez-vous')
     }
@@ -96,7 +96,7 @@ export default function NotificationBell({ large = false }: { large?: boolean })
               ) : notifications.map(n => (
                 <div key={n.id}
                   onClick={() => handleNotificationClick(n)}
-                  className={`px-4 py-3 text-sm flex items-start gap-2 ${n.is_read ? 'bg-white' : 'bg-sage-50'} ${['review_reminder', 'appointment_cancelled'].includes(n.type) ? 'cursor-pointer hover:bg-sage-50' : ''}`}>
+                  className={`px-4 py-3 text-sm flex items-start gap-2 ${n.is_read ? 'bg-white' : 'bg-sage-50'} ${['review_reminder', 'appointment_cancelled', 'appointment_rescheduled'].includes(n.type) ? 'cursor-pointer hover:bg-sage-50' : ''}`}>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900">{n.title}</p>
                     <p className="text-gray-500 text-xs mt-0.5">{n.body}</p>

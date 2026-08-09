@@ -158,18 +158,28 @@ describe('AppointmentCard — actions praticien', () => {
     expect(screen.getByText('Absent(e)')).toBeInTheDocument()
   })
 
-  it('ne montre pas le bouton générique "Annuler" côté praticien (redondant avec Refuser/Terminé/Absent(e))', () => {
+  it('ne montre pas le bouton "Annuler" générique du patient sur un RDV en attente (redondant avec Confirmer/Refuser)', () => {
     useAuthStore.setState({ user: FAKE_DOCTOR })
-    const { rerender } = renderCard({ appointment: baseAppointment({ status: 'pending' }) })
+    renderCard({ appointment: baseAppointment({ status: 'pending' }) })
     expect(screen.queryByText('Annuler')).not.toBeInTheDocument()
+  })
 
-    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
-    rerender(
-      <QueryClientProvider client={queryClient}>
-        <MemoryRouter><AppointmentCard appointment={baseAppointment({ status: 'confirmed' })} /></MemoryRouter>
-      </QueryClientProvider>
-    )
-    expect(screen.queryByText('Annuler')).not.toBeInTheDocument()
+  it('propose un bouton "Annuler" dédié pour un RDV confirmé (avec confirmation)', () => {
+    useAuthStore.setState({ user: FAKE_DOCTOR })
+    renderCard({ appointment: baseAppointment({ status: 'confirmed' }) })
+    expect(screen.getByText('Annuler')).toBeInTheDocument()
+  })
+
+  it('propose un bouton "Reporter" pour un RDV confirmé', () => {
+    useAuthStore.setState({ user: FAKE_DOCTOR })
+    renderCard({ appointment: baseAppointment({ status: 'confirmed' }) })
+    expect(screen.getByText('Reporter')).toBeInTheDocument()
+  })
+
+  it('ne montre pas le bouton "Reporter" sur un RDV en attente', () => {
+    useAuthStore.setState({ user: FAKE_DOCTOR })
+    renderCard({ appointment: baseAppointment({ status: 'pending' }) })
+    expect(screen.queryByText('Reporter')).not.toBeInTheDocument()
   })
 
   it('ne montre aucune action praticien pour un patient connecté', () => {

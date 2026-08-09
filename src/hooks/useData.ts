@@ -814,6 +814,24 @@ export function useUpdateAppointmentStatus() {
   })
 }
 
+// Report d'un RDV confirmé par le praticien (nouveau créneau plutôt
+// qu'une annulation) — la notification patient (in-app + email + SMS) est
+// gérée côté base par un trigger sur ce changement de start_at, pas ici
+// (même mécanisme que l'annulation, voir migrations 076/077).
+export function useRescheduleAppointment() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, start_at, end_at }: { id: string; start_at: string; end_at: string }) => {
+      const { error } = await supabase
+        .from('appointments')
+        .update({ start_at, end_at, updated_at: new Date().toISOString() })
+        .eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['appointments'] }),
+  })
+}
+
 // Praticiens favoris du patient — accès rapide depuis l'accueil,
 // indépendant de tout historique de RDV (contrairement à
 // usePatientAppointments, utilisé pour "derniers praticiens consultés").

@@ -6,6 +6,7 @@ import { useAuthStore } from '@/lib/authStore'
 const mockNavigateComponent = vi.fn()
 vi.mock('react-router-dom', () => ({
   Navigate: (props: any) => { mockNavigateComponent(props); return <div data-testid="navigate" data-to={props.to} /> },
+  useLocation: () => ({ pathname: '/dashboard/patient', search: '' }),
 }))
 
 beforeEach(() => {
@@ -20,7 +21,9 @@ function baseUser(overrides: Record<string, any> = {}) {
 describe('ProtectedRoute', () => {
   it('redirige vers /login si personne n\'est connecté', () => {
     render(<ProtectedRoute><div>Contenu</div></ProtectedRoute>)
-    expect(screen.getByTestId('navigate')).toHaveAttribute('data-to', '/login')
+    // Le chemin d'origine est transmis en paramètre pour y revenir après
+    // connexion — voir LoginPage.tsx.
+    expect(screen.getByTestId('navigate')).toHaveAttribute('data-to', '/login?redirect=%2Fdashboard%2Fpatient')
     expect(screen.queryByText('Contenu')).not.toBeInTheDocument()
   })
 

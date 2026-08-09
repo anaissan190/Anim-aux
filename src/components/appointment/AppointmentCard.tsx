@@ -1,10 +1,12 @@
 // src/components/appointment/AppointmentCard.tsx
-import { format } from 'date-fns'
+import { useState } from 'react'
+import { format, differenceInMinutes, addMinutes } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { Link } from 'react-router-dom'
-import { useUpdateAppointmentStatus, useAppointmentDocuments } from '@/hooks/useData'
+import { useUpdateAppointmentStatus, useRescheduleAppointment, useAppointmentDocuments } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { generateAppointmentIcs } from '@/lib/ics'
+import AvailabilityCalendar from '@/components/appointment/AvailabilityCalendar'
 import type { Appointment, AppointmentStatus } from '@/types'
 
 const STATUS_LABELS: Record<AppointmentStatus, string> = {
@@ -30,8 +32,11 @@ interface Props {
 export default function AppointmentCard({ appointment, showPatient }: Props) {
   const { user } = useAuthStore()
   const update = useUpdateAppointmentStatus()
+  const reschedule = useRescheduleAppointment()
   const { data: attachments = [] } = useAppointmentDocuments(appointment.id)
   const start = new Date(appointment.start_at)
+  const [showReschedule, setShowReschedule] = useState(false)
+  const [newSlot, setNewSlot] = useState<Date | null>(null)
 
   const name = showPatient
     ? `${appointment.profiles?.first_name ?? ''} ${appointment.profiles?.last_name ?? ''}`
@@ -71,8 +76,22 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
     URL.revokeObjectURL(url)
   }
 
+  // Durée d'origine préservée sur le nouveau créneau plutôt qu'une valeur
+  // fixe : la réservation utilise 30 min par défaut, mais un RDV existant
+  // peut avoir une durée différente selon la spécialité/tarif du praticien.
+  const durationMinutes = differenceInMinutes(new Date(appointment.end_at), new Date(appointment.start_at))
+
+  function handleConfirmReschedule() {
+    if (!newSlot) return
+    reschedule.mutate(
+      { id: appointment.id, start_at: newSlot.toISOString(), end_at: addMinutes(newSlot, durationMinutes).toISOString() },
+      { onSuccess: () => { setShowReschedule(false); setNewSlot(null) } }
+    )
+  }
+
   return (
-    <div className="card p-4 flex items-start gap-4">
+    <div className="card p-4">
+    <div className="flex items-start gap-4">
       {/* Date bloc */}
       <div className="flex-shrink-0 w-14 text-center bg-sage-50 rounded-xl py-2">
         <p className="text-xs text-sage-600 font-medium uppercase">{format(start, 'MMM', { locale: fr })}</p>
@@ -168,6 +187,11 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
             Absent(e)
           </button>
           <button
+            onClick={() => { setShowReschedule(v => !v); setNewSlot(null) }}
+            className="text-xs text-sage-600 hover:text-sage-700 transition-colors py-1 px-3">
+            {showReschedule ? 'Annuler le report' : 'Reporter'}
+          </button>
+          <button
             onClick={() => {
               if (window.confirm('Annuler ce rendez-vous confirmé ? Le patient sera prévenu.')) {
                 update.mutate({ id: appointment.id, status: 'cancelled' })
@@ -179,6 +203,26 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
           </button>
         </div>
       )}
+    </div>
+
+    {/* Report de RDV : le praticien choisit directement un nouveau
+        créneau (pas de proposition à valider par le patient — le patient
+        est simplement notifié du changement, in-app/email/SMS via un
+        trigger sur la mise à jour de start_at, voir migrations 076/077). */}
+    {showReschedule && (
+      <div className="mt-4 pt-4 border-t border-gray-100">
+        <p className="text-sm font-medium text-gray-700 mb-3">Choisir un nouveau créneau</p>
+        <AvailabilityCalendar doctorId={appointment.doctor_id} selected={newSlot} onSelect={setNewSlot} />
+        {newSlot && (
+          <div className="mt-4 flex items-center gap-3">
+            <button onClick={handleConfirmReschedule} disabled={reschedule.isPending}
+              className="btn-primary text-sm">
+              {reschedule.isPending ? 'Report en cours...' : `Confirmer le report au ${format(newSlot, "d MMM 'à' HH:mm", { locale: fr })}`}
+            </button>
+          </div>
+        )}
+      </div>
+    )}
     </div>
   )
 }

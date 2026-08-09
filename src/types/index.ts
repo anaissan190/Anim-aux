@@ -6,6 +6,7 @@ export type AppointmentStatus = 'pending' | 'confirmed' | 'cancelled' | 'complet
 export type NotificationType =
   | 'appointment_confirmed'
   | 'appointment_cancelled'
+  | 'appointment_rescheduled'
   | 'appointment_reminder'
   | 'new_message'
   | 'new_review'
