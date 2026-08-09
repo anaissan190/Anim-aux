@@ -133,6 +133,9 @@ Deno.serve(async (req) => {
 
     if (resendKey) {
       const html = '<div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #1f2937;">'
+        + '<div style="text-align: center; margin-bottom: 16px;">'
+        + '<img src="https://monanimeaux.fr/pwa-192.png" width="56" height="56" alt="Animeaux" style="border-radius: 14px; display: inline-block;" />'
+        + '</div>'
         + '<h2 style="color: #d9670b;">Acces a l espace cabinet</h2>'
         + '<p>Bonjour,</p>'
         + '<p>Un acces dedie au cabinet <strong>' + clinic.name + '</strong> vient d etre cree sur Animeaux.</p>'

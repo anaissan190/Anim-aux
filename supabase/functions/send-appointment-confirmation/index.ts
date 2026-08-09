@@ -141,6 +141,9 @@ Deno.serve(async (req) => {
     if (resendKey && patientEmail) {
       const html = `
         <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #1f2937;">
+          <div style="text-align: center; margin-bottom: 16px;">
+            <img src="https://monanimeaux.fr/pwa-192.png" width="56" height="56" alt="Animéaux" style="border-radius: 14px; display: inline-block;" />
+          </div>
           <h2 style="color: #d9670b;">Rendez-vous confirmé 🐾</h2>
           <p>Bonjour ${patientProfile?.first_name ?? ''},</p>
           <p>Votre rendez-vous vient d'être confirmé :</p>

@@ -138,6 +138,9 @@ Deno.serve(async (req) => {
     if (resendKey && patientEmail) {
       const html = `
         <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #1f2937;">
+          <div style="text-align: center; margin-bottom: 16px;">
+            <img src="https://monanimeaux.fr/pwa-192.png" width="56" height="56" alt="Animéaux" style="border-radius: 14px; display: inline-block;" />
+          </div>
           <h2 style="color: #d9670b;">Rappel de rendez-vous 🐾</h2>
           <p>Bonjour ${patientProfile?.first_name ?? ''},</p>
           <p>Petit rappel : vous avez un rendez-vous demain.</p>
@@ -207,6 +210,9 @@ Deno.serve(async (req) => {
     if (resendKey && ownerEmail) {
       const html = `
         <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #1f2937;">
+          <div style="text-align: center; margin-bottom: 16px;">
+            <img src="https://monanimeaux.fr/pwa-192.png" width="56" height="56" alt="Animéaux" style="border-radius: 14px; display: inline-block;" />
+          </div>
           <h2 style="color: #d9670b;">Rappel de vaccin 🐾</h2>
           <p>Bonjour ${ownerProfile?.first_name ?? ''},</p>
           <p>Le vétérinaire de <strong>${animal?.name ?? 'votre animal'}</strong> a indiqué un rappel de vaccin à prévoir prochainement :</p>
@@ -274,6 +280,9 @@ Deno.serve(async (req) => {
     if (resendKey && patientEmail) {
       const html = `
         <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #1f2937;">
+          <div style="text-align: center; margin-bottom: 16px;">
+            <img src="https://monanimeaux.fr/pwa-192.png" width="56" height="56" alt="Animéaux" style="border-radius: 14px; display: inline-block;" />
+          </div>
           <h2 style="color: #d9670b;">Un avis sur votre rendez-vous ? 🐾</h2>
           <p>Bonjour ${patientProfile?.first_name ?? ''},</p>
           <p>Votre rendez-vous avec <strong>${doctorName}</strong> est terminé. Si vous avez un instant, votre avis aide les autres propriétaires d'animaux à choisir un praticien.</p>
