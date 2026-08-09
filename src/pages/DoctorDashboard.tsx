@@ -5,6 +5,7 @@ import { format, startOfWeek, addDays, isSameDay } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import Navbar from '@/components/ui/Navbar'
 import AnimalBackground from '@/components/ui/AnimalBackground'
+import PushNotificationBanner from '@/components/ui/PushNotificationBanner'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
@@ -571,6 +572,8 @@ export default function DoctorDashboard() {
                 </p>
               </div>
             </div>
+
+            <PushNotificationBanner />
 
             {nextAppt && (
               <div className="bg-sage-500 text-white rounded-2xl p-5 mb-6 flex items-center justify-between">

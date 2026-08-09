@@ -13,6 +13,7 @@ import MobileHeader from '@/components/mobile/MobileHeader'
 import MobileTabBar from '@/components/mobile/MobileTabBar'
 import CatMascot from '@/components/mobile/CatMascot'
 import DoctorMiniRow from '@/components/doctor/DoctorMiniRow'
+import PushNotificationBanner from '@/components/ui/PushNotificationBanner'
 
 export default function PatientDashboard() {
   const { profile } = useAuthStore()
@@ -139,6 +140,8 @@ export default function PatientDashboard() {
           </h1>
           <p className="text-gray-500 text-sm mt-1">Gérez vos animaux et vos rendez-vous.</p>
         </div>
+
+        <PushNotificationBanner />
 
         {/* Mes animaux */}
         <div className="mb-8">
@@ -382,6 +385,8 @@ export default function PatientDashboard() {
         </MobileHeader>
 
         <div className="px-4 -mt-1 relative z-10">
+          <PushNotificationBanner />
+
           {favorites.length > 0 && (
             <div className="animate-rise-in mb-5">
               <p className="font-fredoka text-sm font-semibold text-gray-900 mb-2">⭐ Mes favoris</p>
