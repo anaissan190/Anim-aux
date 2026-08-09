@@ -105,11 +105,19 @@ export default function LoginPage() {
 
       await new Promise(r => setTimeout(r, 100))
 
-      // Un compte is_admin sans usage praticien/patient réel (ex.
-      // contact.animeaux@gmail.com, dédié à l'administration) va
-      // directement sur le tableau de bord admin plutôt que sur le
-      // dashboard associé à son role technique ('patient' par défaut).
-      if (finalUser.is_admin) {
+      // Un lien vers une page protégée (ex. "Voir mes rendez-vous" dans un
+      // email) ouvert sans session active repasse par ici avec ?redirect=...
+      // (voir ProtectedRoute.tsx) : on y renvoie plutôt que vers le
+      // dashboard par défaut. Le "/" en tête exclut toute URL absolue
+      // (//evil.com, https://...) glissée dans le paramètre.
+      const redirect = searchParams.get('redirect')
+      if (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) {
+        navigate(redirect, { replace: true })
+      } else if (finalUser.is_admin) {
+        // Un compte is_admin sans usage praticien/patient réel (ex.
+        // contact.animeaux@gmail.com, dédié à l'administration) va
+        // directement sur le tableau de bord admin plutôt que sur le
+        // dashboard associé à son role technique ('patient' par défaut).
         navigate('/dashboard/admin', { replace: true })
       } else if (finalUser.role === 'doctor') {
         navigate('/dashboard/doctor', { replace: true })
