@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '@/components/ui/Navbar'
 import AnimalBackground from '@/components/ui/AnimalBackground'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
-import { usePatientAppointments, useAnimals, useCreateAnimal } from '@/hooks/useData'
+import { usePatientAppointments, useAnimals, useCreateAnimal, useFavorites } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { isFuture, isPast } from 'date-fns'
 import { SPECIES_EMOJI, BREED_PLACEHOLDER, SPECIES_MAX_WEIGHT } from '@/lib/animalSpecies'
@@ -12,11 +12,13 @@ import SpeciesSelect from '@/components/ui/SpeciesSelect'
 import MobileHeader from '@/components/mobile/MobileHeader'
 import MobileTabBar from '@/components/mobile/MobileTabBar'
 import CatMascot from '@/components/mobile/CatMascot'
+import DoctorMiniRow from '@/components/doctor/DoctorMiniRow'
 
 export default function PatientDashboard() {
   const { profile } = useAuthStore()
   const { data: appointments = [], isLoading } = usePatientAppointments()
   const { data: animals = [] } = useAnimals()
+  const { data: favorites = [] } = useFavorites()
   const createAnimal = useCreateAnimal()
   const navigate = useNavigate()
 
@@ -380,35 +382,24 @@ export default function PatientDashboard() {
         </MobileHeader>
 
         <div className="px-4 -mt-1 relative z-10">
+          {favorites.length > 0 && (
+            <div className="animate-rise-in mb-5">
+              <p className="font-fredoka text-sm font-semibold text-gray-900 mb-2">⭐ Mes favoris</p>
+              <div className="bg-white rounded-2xl shadow-sm border border-white/70 overflow-hidden">
+                {favorites.map((fav: any, i) => (
+                  <DoctorMiniRow key={fav.id} doctor={fav.doctors} colorIndex={i} isLast={i === favorites.length - 1} />
+                ))}
+              </div>
+            </div>
+          )}
+
           {recentDoctors.length > 0 && (
             <div className="animate-rise-in">
               <p className="font-fredoka text-sm font-semibold text-gray-900 mb-2">Derniers praticiens consultés</p>
               <div className="bg-white rounded-2xl shadow-sm border border-white/70 overflow-hidden">
-                {recentDoctors.map((doc, i) => {
-                  const profile = doc.profiles
-                  const name = profile ? `${profile.first_name} ${profile.last_name}` : 'Praticien'
-                  const initials = profile
-                    ? `${profile.first_name?.[0] ?? ''}${profile.last_name?.[0] ?? ''}`.toUpperCase()
-                    : '?'
-                  const bg = ['bg-sage-500', 'bg-moss-500', 'bg-[#c96406]'][i % 3]
-                  return (
-                    <Link key={doc.id} to={`/doctor/${doc.id}`}
-                      className={`flex items-center gap-3 px-3.5 py-3 ${i < recentDoctors.length - 1 ? 'border-b border-gray-50' : ''}`}>
-                      {profile?.avatar_url ? (
-                        <img src={profile.avatar_url} alt={name} className="w-11 h-11 rounded-full object-cover flex-shrink-0" />
-                      ) : (
-                        <span className={`w-11 h-11 rounded-full ${bg} text-white font-fredoka font-semibold text-sm flex items-center justify-center flex-shrink-0`}>
-                          {initials}
-                        </span>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="font-fredoka text-[15px] font-semibold text-gray-900 truncate">{name}</p>
-                        <p className="text-[12px] text-gray-500">{doc.specialty}</p>
-                      </div>
-                      <span className="text-gray-300 font-bold text-lg">›</span>
-                    </Link>
-                  )
-                })}
+                {recentDoctors.map((doc, i) => (
+                  <DoctorMiniRow key={doc.id} doctor={doc} colorIndex={i} isLast={i === recentDoctors.length - 1} />
+                ))}
               </div>
             </div>
           )}

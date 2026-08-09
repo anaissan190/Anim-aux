@@ -814,6 +814,64 @@ export function useUpdateAppointmentStatus() {
   })
 }
 
+// Praticiens favoris du patient — accès rapide depuis l'accueil,
+// indépendant de tout historique de RDV (contrairement à
+// usePatientAppointments, utilisé pour "derniers praticiens consultés").
+export function useFavorites() {
+  const { user } = useAuthStore()
+  return useQuery({
+    queryKey: ['favorites', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('favorites')
+        .select('id, doctor_id, created_at, doctors!inner(id, specialty, profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url))')
+        .eq('patient_id', user!.id)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data
+    },
+    enabled: !!user,
+  })
+}
+
+export function useIsFavorite(doctorId: string) {
+  const { user } = useAuthStore()
+  return useQuery({
+    queryKey: ['favorite', user?.id, doctorId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('favorites')
+        .select('id')
+        .eq('patient_id', user!.id)
+        .eq('doctor_id', doctorId)
+        .maybeSingle()
+      if (error) throw error
+      return !!data
+    },
+    enabled: !!user && !!doctorId,
+  })
+}
+
+export function useToggleFavorite() {
+  const { user } = useAuthStore()
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ doctorId, isFavorite }: { doctorId: string; isFavorite: boolean }) => {
+      if (isFavorite) {
+        const { error } = await supabase.from('favorites').delete().eq('patient_id', user!.id).eq('doctor_id', doctorId)
+        if (error) throw error
+      } else {
+        const { error } = await supabase.from('favorites').insert({ patient_id: user!.id, doctor_id: doctorId })
+        if (error) throw error
+      }
+    },
+    onSuccess: (_, { doctorId }) => {
+      qc.invalidateQueries({ queryKey: ['favorite', user?.id, doctorId] })
+      qc.invalidateQueries({ queryKey: ['favorites', user?.id] })
+    },
+  })
+}
+
 export function useDoctorReviews(doctorId: string) {
   return useQuery({
     queryKey: ['reviews', doctorId],

@@ -1,7 +1,7 @@
 // src/pages/DoctorPage.tsx
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { useDoctor, useDoctorReviews, useCreateReview, useDoctorPublicClinic, useCreateReport } from '@/hooks/useData'
+import { useDoctor, useDoctorReviews, useCreateReview, useDoctorPublicClinic, useCreateReport, useIsFavorite, useToggleFavorite } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
@@ -18,6 +18,8 @@ export default function DoctorPage() {
   const { data: reviews = [] } = useDoctorReviews(id!)
   const { data: clinic } = useDoctorPublicClinic(id)
   const createReview = useCreateReview()
+  const { data: isFavorite = false } = useIsFavorite(id ?? '')
+  const toggleFavorite = useToggleFavorite()
 
   const [showReviewForm, setShowReviewForm] = useState(false)
   const [rating, setRating] = useState(5)
@@ -87,7 +89,16 @@ export default function DoctorPage() {
           {/* Colonne principale */}
           <div className="md:col-span-2 space-y-5">
             {/* En-tête */}
-            <div className="card p-6 flex gap-5">
+            <div className="card p-6 flex gap-5 relative">
+              {user?.role === 'patient' && id && (
+                <button
+                  onClick={() => toggleFavorite.mutate({ doctorId: id, isFavorite })}
+                  disabled={toggleFavorite.isPending}
+                  title={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                  className={`absolute top-4 right-4 text-2xl leading-none transition-colors ${isFavorite ? 'text-amber-400' : 'text-gray-300 hover:text-amber-300'}`}>
+                  {isFavorite ? '★' : '☆'}
+                </button>
+              )}
               <div className="w-20 h-20 rounded-2xl bg-sage-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
                 {doctor.profiles?.avatar_url ? (
                   <img src={doctor.profiles.avatar_url} alt={name} className="w-full h-full object-cover" />

@@ -167,6 +167,16 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
             className="text-xs btn-secondary py-1 px-3">
             Absent(e)
           </button>
+          <button
+            onClick={() => {
+              if (window.confirm('Annuler ce rendez-vous confirmé ? Le patient sera prévenu.')) {
+                update.mutate({ id: appointment.id, status: 'cancelled' })
+              }
+            }}
+            disabled={update.isPending}
+            className="text-xs text-red-500 hover:text-red-700 transition-colors py-1 px-3">
+            Annuler
+          </button>
         </div>
       )}
     </div>
