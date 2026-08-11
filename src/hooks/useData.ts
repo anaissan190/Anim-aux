@@ -682,7 +682,7 @@ export function useDoctorPatientAnimals(doctorId?: string, clinicId?: string, cl
 
       const { data: appts, error: apptErr } = await supabase
         .from('appointments')
-        .select('patient_id, doctor_id')
+        .select('patient_id, doctor_id, start_at')
         .in('doctor_id', doctorIds)
         .neq('status', 'cancelled')
         .order('start_at', { ascending: true })
@@ -692,6 +692,18 @@ export function useDoctorPatientAnimals(doctorId?: string, clinicId?: string, cl
       // récent pour ce patient (dernier itéré, grâce au tri croissant).
       const referentByPatient = new Map<string, string>()
       ;(appts ?? []).forEach((a: any) => referentByPatient.set(a.patient_id, a.doctor_id))
+
+      // Fidélité : nombre de RDV et date du dernier, tous confrères du
+      // cabinet confondus (même périmètre que le praticien référent
+      // ci-dessus) — affiché sur "Mes patients" pour repérer les habitués.
+      const loyaltyByPatient = new Map<string, { count: number; lastAt: string }>()
+      ;(appts ?? []).forEach((a: any) => {
+        const prev = loyaltyByPatient.get(a.patient_id)
+        loyaltyByPatient.set(a.patient_id, {
+          count: (prev?.count ?? 0) + 1,
+          lastAt: a.start_at, // tri croissant : la dernière itération est la plus récente
+        })
+      })
 
       const patientIds = [...new Set((appts ?? []).map((a: any) => a.patient_id))]
       if (patientIds.length === 0) return []
@@ -723,6 +735,8 @@ export function useDoctorPatientAnimals(doctorId?: string, clinicId?: string, cl
         ...an,
         ownerName: ownerNames.get(an.owner_id) ?? '',
         referentDoctorId: referentByPatient.get(an.owner_id) ?? null,
+        ownerAppointmentCount: loyaltyByPatient.get(an.owner_id)?.count ?? 0,
+        ownerLastAppointmentAt: loyaltyByPatient.get(an.owner_id)?.lastAt ?? null,
       }))
     },
     enabled: !!doctorId && clinicReady,

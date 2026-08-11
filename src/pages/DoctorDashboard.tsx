@@ -777,6 +777,11 @@ export default function DoctorDashboard() {
                       <p className="font-semibold text-sm text-gray-900">{a.name}</p>
                       <p className="text-xs text-gray-400">{a.breed ?? a.species}</p>
                       <p className="text-xs text-sage-600 mt-1">{a.ownerName}</p>
+                      {a.ownerAppointmentCount > 0 && (
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {a.ownerAppointmentCount} RDV · dernier le {format(new Date(a.ownerLastAppointmentAt), 'd MMM yyyy', { locale: fr })}
+                        </p>
+                      )}
                       {isColleaguePatient && referentName && (
                         <p className="text-xs text-amber-600 mt-0.5">Suivi par {referentName}</p>
                       )}

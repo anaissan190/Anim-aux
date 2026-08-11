@@ -88,7 +88,10 @@ describe('useDeleteBlockedSlot', () => {
 
 describe('useDoctorPatientAnimals', () => {
   it('sans cabinet : cherche les patients du seul praticien donné', async () => {
-    const appts = [{ patient_id: 'p1', doctor_id: 'doc-1' }]
+    const appts = [
+      { patient_id: 'p1', doctor_id: 'doc-1', start_at: '2026-01-10T09:00:00Z' },
+      { patient_id: 'p1', doctor_id: 'doc-1', start_at: '2026-03-15T09:00:00Z' },
+    ]
     const profiles = [{ user_id: 'p1', first_name: 'Anaïs', last_name: 'S' }]
     const animals = [{ id: 'a1', name: 'Rex', owner_id: 'p1' }]
 
@@ -103,7 +106,12 @@ describe('useDoctorPatientAnimals', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(result.current.data).toEqual([
-      { id: 'a1', name: 'Rex', owner_id: 'p1', ownerName: 'Anaïs S', referentDoctorId: 'doc-1' },
+      {
+        id: 'a1', name: 'Rex', owner_id: 'p1', ownerName: 'Anaïs S', referentDoctorId: 'doc-1',
+        // Deux RDV pour ce patient, le plus récent (tri croissant côté
+        // requête, donc dernier itéré) doit ressortir comme "dernier RDV".
+        ownerAppointmentCount: 2, ownerLastAppointmentAt: '2026-03-15T09:00:00Z',
+      },
     ])
     expect(supabase.from).not.toHaveBeenCalledWith('clinic_members')
   })
