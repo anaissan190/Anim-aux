@@ -824,7 +824,10 @@ export function useRescheduleAppointment() {
     mutationFn: async ({ id, start_at, end_at }: { id: string; start_at: string; end_at: string }) => {
       const { error } = await supabase
         .from('appointments')
-        .update({ start_at, end_at, updated_at: new Date().toISOString() })
+        // Le patient n'a confirmé sa présence que pour l'ancien créneau —
+        // sans cette remise à zéro, le badge "Présence confirmée" resterait
+        // affiché à tort après un report vers une toute autre date.
+        .update({ start_at, end_at, confirmed_by_patient_at: null, updated_at: new Date().toISOString() })
         .eq('id', id)
       if (error) throw error
     },
