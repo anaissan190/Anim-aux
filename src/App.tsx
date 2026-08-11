@@ -32,6 +32,7 @@ const RendezVousPage = lazy(() => import('@/pages/RendezVousPage'))
 const ProfilPage = lazy(() => import('@/pages/ProfilPage'))
 const LogoPreview = lazy(() => import('@/pages/LogoPreview'))
 const LegalPage = lazy(() => import('@/pages/LegalPage'))
+const ConfirmPresencePage = lazy(() => import('@/pages/ConfirmPresencePage'))
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 
 function RouteFallback() {
@@ -129,6 +130,7 @@ export default function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/confirmer-presence/:id" element={<ConfirmPresencePage />} />
         <Route path="/cgu" element={<LegalPage />} />
         <Route path="/confidentialite" element={<LegalPage />} />
         <Route path="/book/:doctorId" element={

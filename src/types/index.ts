@@ -97,6 +97,7 @@ export interface Appointment {
   notes?: string
   created_at: string
   updated_at: string
+  confirmed_by_patient_at?: string
   // Jointures
   doctors?: Doctor & { profiles?: Profile }
   profiles?: Profile // profil du patient

@@ -149,6 +149,11 @@ Deno.serve(async (req) => {
             <li><strong>Le :</strong> ${dateStr}</li>
             ${appt.reason ? `<li><strong>Motif :</strong> ${appt.reason}</li>` : ''}
           </ul>
+          <p style="margin-top: 20px;">
+            <a href="https://monanimeaux.fr/confirmer-presence/${appt.id}" style="background: #d9670b; color: #fff; padding: 10px 20px; border-radius: 10px; text-decoration: none; font-weight: 500;">
+              ✓ Je confirme ma présence
+            </a>
+          </p>
           <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Animéaux — Votre animal, notre priorité.</p>
         </div>
       `

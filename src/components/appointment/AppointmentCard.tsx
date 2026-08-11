@@ -108,6 +108,9 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
             {appointment.reason && (
               <p className="text-xs text-gray-500 mt-1 truncate">Motif : {appointment.reason}</p>
             )}
+            {showPatient && appointment.status === 'confirmed' && appointment.confirmed_by_patient_at && (
+              <p className="text-xs text-green-600 font-medium mt-1">✓ Présence confirmée par le patient</p>
+            )}
             {appointment.status === 'confirmed' && (
               <button onClick={handleAddToCalendar}
                 className="inline-flex items-center gap-1 text-xs text-sage-600 hover:underline mt-1">
