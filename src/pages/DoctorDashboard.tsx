@@ -1821,6 +1821,11 @@ export default function DoctorDashboard() {
                 </div>
               )}
             </div>
+
+            <button onClick={() => signOut().then(() => navigate('/'))}
+              className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-2xl shadow-sm text-sm text-red-500 font-medium py-3.5">
+              🚪 Déconnexion
+            </button>
           </div>
         )}
 
