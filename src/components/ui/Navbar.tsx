@@ -146,8 +146,14 @@ export default function Navbar() {
                     ? <img src={profile.avatar_url} className="w-full h-full object-cover" alt="Mon profil" />
                     : '👤'}
                 </Link>
+                {/* Masqué sur mobile côté praticien : la barre y est déjà
+                    serrée (onglets + icônes), et un bouton dédié existe
+                    désormais en fin de page Profil (DoctorDashboard.tsx) —
+                    contrairement au patient/admin/secrétariat, qui n'ont
+                    pas cette alternative, ce bouton reste leur seul moyen
+                    de se déconnecter sur mobile. */}
                 <button onClick={() => signOut().then(() => navigate('/'))}
-                  className="text-sm text-gray-500 hover:text-red-500 transition-colors">
+                  className={`text-sm text-gray-500 hover:text-red-500 transition-colors ${user.role === 'doctor' ? 'hidden md:block' : ''}`}>
                   Déconnexion
                 </button>
               </div>
