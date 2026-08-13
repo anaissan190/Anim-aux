@@ -25,14 +25,20 @@ export default function DoctorMobileTabBar() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden">
-      <div className="flex items-center bg-white border-t border-gray-100 pt-2 pb-[calc(env(safe-area-inset-bottom,0px)+8px)] px-1">
-        {TABS.map(tab => (
-          <Link key={tab.id} to={`/dashboard/doctor?tab=${tab.id}`}
-            className={`flex-1 flex flex-col items-center gap-0.5 py-1 ${onDashboard && activeTab === tab.id ? 'text-sage-600' : 'text-gray-400'}`}>
-            <span className="text-lg leading-none">{tab.icon}</span>
-            <span className="text-[9.5px] font-semibold leading-tight">{tab.label}</span>
-          </Link>
-        ))}
+      <div className="flex items-center bg-sage-50 border-t-[1.5px] border-sage-100 pt-2.5 pb-[calc(env(safe-area-inset-bottom,0px)+10px)] px-1">
+        {TABS.map(tab => {
+          const active = onDashboard && activeTab === tab.id
+          return (
+            <Link key={tab.id} to={`/dashboard/doctor?tab=${tab.id}`}
+              className={`relative flex-1 flex flex-col items-center gap-[3px] ${active ? 'text-sage-600' : 'text-gray-400'}`}>
+              {active && (
+                <span className="absolute -top-[10px] left-1/2 -translate-x-1/2 w-4 h-[3px] rounded-full bg-sage-500" />
+              )}
+              <span className={`text-xl leading-none transition-transform ${active ? 'scale-110' : ''}`}>{tab.icon}</span>
+              <span className="text-[9.5px] font-bold leading-tight">{tab.label}</span>
+            </Link>
+          )
+        })}
       </div>
     </div>
   )
