@@ -58,8 +58,12 @@ export default function Navbar() {
         {/* Praticien : les catégories du dashboard (Accueil, Mes patients,
             Tarifs, Disponibilités, Avis) sont affichées ici, à la suite du
             logo — visibles dès la page d'accueil, sans clic supplémentaire. */}
+        {/* Repris en bas d'écran sur mobile (DoctorMobileTabBar, montée dans
+            DoctorDashboard.tsx) — la barre du haut restait illisible avec
+            6 onglets qui débordaient sur petit écran ; masqué ici plutôt
+            que dupliqué. */}
         {user?.role === 'doctor' && (
-          <div className="flex-1 min-w-0 flex items-center justify-center gap-1.5 overflow-x-auto scrollbar-hide">
+          <div className="hidden md:flex flex-1 min-w-0 items-center justify-center gap-1.5 overflow-x-auto scrollbar-hide">
             {DOCTOR_TABS.map(t => (
               <Link key={t.id} to={`/dashboard/doctor?tab=${t.id}`}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors

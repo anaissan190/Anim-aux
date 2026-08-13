@@ -6,6 +6,7 @@ import { fr } from 'date-fns/locale'
 import Navbar from '@/components/ui/Navbar'
 import AnimalBackground from '@/components/ui/AnimalBackground'
 import PushNotificationBanner from '@/components/ui/PushNotificationBanner'
+import DoctorMobileTabBar from '@/components/mobile/DoctorMobileTabBar'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
@@ -525,7 +526,7 @@ export default function DoctorDashboard() {
           voir src/components/ui/Navbar.tsx. */}
       <Navbar />
 
-      <div className="max-w-5xl mx-auto px-4 py-8">
+      <div className="max-w-5xl mx-auto px-4 pt-8 pb-20 md:pb-8">
 
         {/* Bannière de statut de vérification — visible sur tous les onglets
             tant que le dossier n'est pas validé, pour rappeler que le profil
@@ -2210,6 +2211,7 @@ export default function DoctorDashboard() {
         </div>
       )}
       </div>
+      <DoctorMobileTabBar />
     </div>
   )
 }
