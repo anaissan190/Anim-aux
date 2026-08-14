@@ -12,7 +12,7 @@ const TABS: { id: DoctorTab; label: string; icon: string }[] = [
   { id: 'home',           label: 'Espace',   icon: '🏠' },
   { id: 'patients',       label: 'Patients', icon: '🐾' },
   { id: 'tarifs',         label: 'Tarifs',   icon: '💰' },
-  { id: 'disponibilites', label: 'Dispos',   icon: '🗓️' },
+  { id: 'disponibilites', label: 'RDV',      icon: '📅' },
   { id: 'avis',           label: 'Avis',     icon: '⭐' },
   { id: 'stats',          label: 'Stats',    icon: '📊' },
 ]

@@ -602,110 +602,42 @@ export default function DoctorDashboard() {
               ))}
             </div>
 
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="md:col-span-2 space-y-5">
-                {/* Mini calendrier */}
-                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-sm font-semibold text-gray-700">
-                      Semaine du {format(weekStart, 'd MMM', { locale: fr })}
-                    </span>
-                    <div className="flex gap-1">
-                      <button onClick={() => setWeekStart(d => addDays(d, -7))}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 text-lg leading-none">‹</button>
-                      <button onClick={() => setWeekStart(d => addDays(d, 7))}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 text-lg leading-none">›</button>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-7 gap-1">
-                    {weekDays.map(day => {
-                      const dayAppts = appointments.filter(a => isSameDay(new Date(a.start_at), day))
-                      const isToday    = isSameDay(day, today)
-                      const isSelected = !!selectedDay && isSameDay(day, selectedDay)
-                      return (
-                        <button key={day.toISOString()} type="button"
-                          onClick={() => setSelectedDay(d => d && isSameDay(d, day) ? null : day)}
-                          className={`p-2 rounded-xl text-center text-xs transition-colors cursor-pointer
-                            ${isToday ? 'bg-sage-500 text-white' : isSelected ? 'bg-sage-100 text-sage-700 ring-2 ring-sage-400' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}>
-                          <p className="font-medium mb-1">{format(day, 'EEE', { locale: fr })}</p>
-                          <p>{format(day, 'd')}</p>
-                          {dayAppts.length > 0 && (
-                            <div className={`w-1.5 h-1.5 rounded-full mx-auto mt-1.5
-                              ${isToday ? 'bg-white' : 'bg-sage-400'}`} />
-                          )}
-                        </button>
-                      )
-                    })}
-                  </div>
-                  {selectedDay && (
-                    <p className="text-xs text-sage-600 mt-2">
-                      Rendez-vous du {format(selectedDay, "EEEE d MMMM", { locale: fr })}
-                      <button onClick={() => setSelectedDay(null)} className="ml-2 text-gray-400 hover:underline">Réinitialiser</button>
-                    </p>
-                  )}
+            {/* Vue d'ensemble seulement ici — la liste détaillée des RDV et
+                le mini calendrier ont déménagé dans l'onglet RDV (id
+                'disponibilites', conservé pour ne pas casser les liens
+                existants), qui regroupe désormais rendez-vous et gestion
+                des disponibilités sur une même page. */}
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                <h3 className="font-semibold text-sm text-gray-900 mb-4">Mon profil</h3>
+                <div className="space-y-2 text-sm text-gray-600">
+                  <div className="flex items-center gap-2"><span>🩺</span><span>{doctor?.specialty || '—'}</span></div>
+                  <div className="flex items-center gap-2"><span>📍</span><span>{doctor?.city || 'Ville non renseignée'}</span></div>
+                  {avgRating && <div className="flex items-center gap-2"><span>⭐</span><span>{avgRating} / 5 ({reviews.length} avis)</span></div>}
                 </div>
-
-                {/* Liste RDV */}
-                <div>
-                  <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-4 w-fit">
-                    {(['today', 'week', 'all'] as const).map(t => (
-                      <button key={t} onClick={() => { setApptTab(t); setSelectedDay(null) }}
-                        className={`px-4 py-1.5 text-xs font-medium rounded-lg transition-colors
-                          ${!selectedDay && apptTab === t ? 'bg-white text-sage-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
-                        {t === 'today' ? "Aujourd'hui" : t === 'week' ? 'Semaine' : 'Tous'}
-                      </button>
-                    ))}
-                  </div>
-                  {isLoading ? (
-                    <div className="space-y-3">
-                      {[...Array(3)].map((_, i) => <div key={i} className="bg-white rounded-2xl h-20 animate-pulse border border-gray-100" />)}
-                    </div>
-                  ) : displayAppts.length === 0 ? (
-                    <div className="bg-white rounded-2xl p-10 text-center border border-gray-100">
-                      <p className="text-3xl mb-3">📭</p>
-                      <p className="text-gray-500 text-sm">Aucun rendez-vous pour cette période.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {displayAppts.map(a => <AppointmentCard key={a.id} appointment={a as any} showPatient />)}
-                    </div>
-                  )}
-                </div>
+                <Link to="/dashboard/doctor?tab=profil" className="block w-full mt-4 text-sm py-2 px-4 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors text-center">
+                  Modifier mon profil
+                </Link>
               </div>
-
-              {/* Sidebar */}
-              <div className="space-y-4">
-                <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-                  <h3 className="font-semibold text-sm text-gray-900 mb-4">Mon profil</h3>
-                  <div className="space-y-2 text-sm text-gray-600">
-                    <div className="flex items-center gap-2"><span>🩺</span><span>{doctor?.specialty || '—'}</span></div>
-                    <div className="flex items-center gap-2"><span>📍</span><span>{doctor?.city || 'Ville non renseignée'}</span></div>
-                    {avgRating && <div className="flex items-center gap-2"><span>⭐</span><span>{avgRating} / 5 ({reviews.length} avis)</span></div>}
-                  </div>
-                  <Link to="/dashboard/doctor?tab=profil" className="block w-full mt-4 text-sm py-2 px-4 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors text-center">
-                    Modifier mon profil
+              <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                <h3 className="font-semibold text-sm text-gray-900 mb-4">Actions rapides</h3>
+                <div className="space-y-2">
+                  <Link to="/dashboard/doctor?tab=disponibilites" className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+                    <span>📅</span> Mes rendez-vous
                   </Link>
-                </div>
-                <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-                  <h3 className="font-semibold text-sm text-gray-900 mb-4">Actions rapides</h3>
-                  <div className="space-y-2">
-                    <Link to="/dashboard/doctor?tab=messages" className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
-                      <span>💬</span> Messages
-                    </Link>
-                    <Link to="/dashboard/doctor?tab=disponibilites" className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
-                      <span>🗓️</span> Mes disponibilités
-                    </Link>
-                    <Link to="/dashboard/doctor?tab=tarifs" className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
-                      <span>💰</span> Mes tarifs
-                    </Link>
-                    {/* Espace secrétariat : compte à part entière avec ses
-                        propres identifiants — ce lien renvoie vers la page
-                        de connexion, pas vers un dashboard partagé avec
-                        cette session (voir invite-clinic-secretary). */}
-                    <Link to="/login" className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
-                      <span>🏥</span> Espace secrétariat
-                    </Link>
-                  </div>
+                  <Link to="/dashboard/doctor?tab=messages" className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+                    <span>💬</span> Messages
+                  </Link>
+                  <Link to="/dashboard/doctor?tab=tarifs" className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+                    <span>💰</span> Mes tarifs
+                  </Link>
+                  {/* Espace secrétariat : compte à part entière avec ses
+                      propres identifiants — ce lien renvoie vers la page
+                      de connexion, pas vers un dashboard partagé avec
+                      cette session (voir invite-clinic-secretary). */}
+                  <Link to="/login" className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+                    <span>🏥</span> Espace secrétariat
+                  </Link>
                 </div>
               </div>
             </div>
@@ -951,7 +883,7 @@ export default function DoctorDashboard() {
           </div>
         )}
 
-        {/* ── DISPONIBILITÉS ── */}
+        {/* ── RDV (+ disponibilités en bas de page) ── */}
         {tab === 'disponibilites' && (
           <div className="max-w-3xl">
             <Link to="/dashboard/doctor?tab=home"
@@ -959,7 +891,81 @@ export default function DoctorDashboard() {
               ← Mon espace
             </Link>
             <div className="mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Disponibilités</h2>
+              <h2 className="text-xl font-bold text-gray-900">Rendez-vous</h2>
+            </div>
+
+            {/* Mini calendrier */}
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-5">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-sm font-semibold text-gray-700">
+                  Semaine du {format(weekStart, 'd MMM', { locale: fr })}
+                </span>
+                <div className="flex gap-1">
+                  <button onClick={() => setWeekStart(d => addDays(d, -7))}
+                    className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 text-lg leading-none">‹</button>
+                  <button onClick={() => setWeekStart(d => addDays(d, 7))}
+                    className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 text-lg leading-none">›</button>
+                </div>
+              </div>
+              <div className="grid grid-cols-7 gap-1">
+                {weekDays.map(day => {
+                  const dayAppts = appointments.filter(a => isSameDay(new Date(a.start_at), day))
+                  const isToday    = isSameDay(day, today)
+                  const isSelected = !!selectedDay && isSameDay(day, selectedDay)
+                  return (
+                    <button key={day.toISOString()} type="button"
+                      onClick={() => setSelectedDay(d => d && isSameDay(d, day) ? null : day)}
+                      className={`p-2 rounded-xl text-center text-xs transition-colors cursor-pointer
+                        ${isToday ? 'bg-sage-500 text-white' : isSelected ? 'bg-sage-100 text-sage-700 ring-2 ring-sage-400' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}>
+                      <p className="font-medium mb-1">{format(day, 'EEE', { locale: fr })}</p>
+                      <p>{format(day, 'd')}</p>
+                      {dayAppts.length > 0 && (
+                        <div className={`w-1.5 h-1.5 rounded-full mx-auto mt-1.5
+                          ${isToday ? 'bg-white' : 'bg-sage-400'}`} />
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+              {selectedDay && (
+                <p className="text-xs text-sage-600 mt-2">
+                  Rendez-vous du {format(selectedDay, "EEEE d MMMM", { locale: fr })}
+                  <button onClick={() => setSelectedDay(null)} className="ml-2 text-gray-400 hover:underline">Réinitialiser</button>
+                </p>
+              )}
+            </div>
+
+            {/* Liste RDV */}
+            <div className="mb-10">
+              <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-4 w-fit">
+                {(['today', 'week', 'all'] as const).map(t => (
+                  <button key={t} onClick={() => { setApptTab(t); setSelectedDay(null) }}
+                    className={`px-4 py-1.5 text-xs font-medium rounded-lg transition-colors
+                      ${!selectedDay && apptTab === t ? 'bg-white text-sage-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                    {t === 'today' ? "Aujourd'hui" : t === 'week' ? 'Semaine' : 'Tous'}
+                  </button>
+                ))}
+              </div>
+              {isLoading ? (
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, i) => <div key={i} className="bg-white rounded-2xl h-20 animate-pulse border border-gray-100" />)}
+                </div>
+              ) : displayAppts.length === 0 ? (
+                <div className="bg-white rounded-2xl p-10 text-center border border-gray-100">
+                  <p className="text-3xl mb-3">📭</p>
+                  <p className="text-gray-500 text-sm">Aucun rendez-vous pour cette période.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {displayAppts.map(a => <AppointmentCard key={a.id} appointment={a as any} showPatient />)}
+                </div>
+              )}
+            </div>
+
+            {/* Disponibilités : repoussées tout en bas de la page RDV,
+                plutôt qu'un onglet séparé — demandé le 14/08/2026. */}
+            <div className="mb-4 pt-6 border-t border-gray-100">
+              <h2 className="text-xl font-bold text-gray-900">🗓️ Mes disponibilités</h2>
             </div>
 
             {/* Sous-onglets */}

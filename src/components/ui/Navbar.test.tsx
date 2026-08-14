@@ -66,7 +66,7 @@ describe('Navbar — praticien', () => {
     useAuthStore.setState({ user: fakeUser({ role: 'doctor' }) })
     renderNavbar('/dashboard/doctor')
     expect(screen.getByText('Mes patients')).toBeInTheDocument()
-    expect(screen.getByText('Disponibilités')).toBeInTheDocument()
+    expect(screen.getByText('RDV')).toBeInTheDocument()
   })
 
   it('le lien Messages pointe vers l\'onglet dédié du dashboard praticien', () => {

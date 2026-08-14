@@ -14,7 +14,11 @@ export const DOCTOR_TABS: { id: DoctorTab; label: string; icon: string }[] = [
   { id: 'home',           label: 'Mon espace',      icon: '🏠' },
   { id: 'patients',       label: 'Mes patients',    icon: '🐾' },
   { id: 'tarifs',         label: 'Tarifs',           icon: '💰' },
-  { id: 'disponibilites', label: 'Disponibilités',   icon: '🗓️' },
+  // Libellé "RDV" depuis le 14/08/2026 : cet onglet montre désormais la
+  // liste des rendez-vous en premier, la gestion des disponibilités ayant
+  // été repoussée en bas de la même page (id technique inchangé pour ne
+  // pas casser les liens ?tab=disponibilites existants).
+  { id: 'disponibilites', label: 'RDV',              icon: '📅' },
   { id: 'avis',           label: 'Avis',             icon: '⭐' },
   { id: 'stats',          label: 'Statistiques',     icon: '📊' },
 ]
