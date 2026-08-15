@@ -1,7 +1,7 @@
 // src/pages/DoctorPage.tsx
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { useDoctor, useDoctorReviews, useCreateReview, useDoctorPublicClinic, useCreateReport, useIsFavorite, useToggleFavorite } from '@/hooks/useData'
+import { useDoctor, useDoctorReviews, useCreateReview, useDoctorPublicClinic, useCreateReport, useIsFavorite, useToggleFavorite, useMyHistoryWithDoctor } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
@@ -20,6 +20,7 @@ export default function DoctorPage() {
   const createReview = useCreateReview()
   const { data: isFavorite = false } = useIsFavorite(id ?? '')
   const toggleFavorite = useToggleFavorite()
+  const { data: myHistory } = useMyHistoryWithDoctor(id)
 
   const [showReviewForm, setShowReviewForm] = useState(false)
   const [rating, setRating] = useState(5)
@@ -132,6 +133,12 @@ export default function DoctorPage() {
                   </span>
                   {doctor.is_verified && <span className="badge-green">✓ Vérifié</span>}
                 </div>
+                {!!myHistory?.count && (
+                  <p className="text-xs text-sage-600 mt-1.5">
+                    🩺 Vous avez déjà consulté ce praticien {myHistory.count} fois
+                    {myHistory.lastAt && ` · dernier RDV le ${format(new Date(myHistory.lastAt), 'd MMMM yyyy', { locale: fr })}`}
+                  </p>
+                )}
               </div>
             </div>
 

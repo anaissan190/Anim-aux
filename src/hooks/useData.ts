@@ -887,6 +887,28 @@ export function useIsFavorite(doctorId: string) {
   })
 }
 
+// Historique du patient avec CE praticien précis (fiche praticien) —
+// symétrique à l'indicateur de fidélité affiché côté praticien sur
+// "Mes patients" (voir useDoctorPatientAnimals).
+export function useMyHistoryWithDoctor(doctorId?: string) {
+  const { user } = useAuthStore()
+  return useQuery({
+    queryKey: ['my-history-with-doctor', user?.id, doctorId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('start_at')
+        .eq('patient_id', user!.id)
+        .eq('doctor_id', doctorId!)
+        .neq('status', 'cancelled')
+        .order('start_at', { ascending: false })
+      if (error) throw error
+      return { count: data.length, lastAt: data[0]?.start_at ?? null }
+    },
+    enabled: !!user && user.role === 'patient' && !!doctorId,
+  })
+}
+
 export function useToggleFavorite() {
   const { user } = useAuthStore()
   const qc = useQueryClient()
