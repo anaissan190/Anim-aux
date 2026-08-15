@@ -59,6 +59,17 @@ describe('AppointmentCard — affichage', () => {
     expect(screen.getByText(/Vaccination/)).toBeInTheDocument()
   })
 
+  it("n'affiche pas l'année pour un RDV de l'année en cours", () => {
+    renderCard({ appointment: baseAppointment() })
+    expect(screen.queryByText(String(new Date().getFullYear()))).not.toBeInTheDocument()
+  })
+
+  it("affiche l'année pour un RDV d'une année passée (ambiguïté mois+jour)", () => {
+    const pastYear = baseAppointment({ status: 'completed', start_at: new Date('2020-03-15').toISOString() })
+    renderCard({ appointment: pastYear })
+    expect(screen.getByText('2020')).toBeInTheDocument()
+  })
+
   it('propose de laisser un avis uniquement côté patient (pas côté praticien)', () => {
     const { rerender } = renderCard({ appointment: baseAppointment(), showPatient: false })
     expect(screen.getByText(/Laisser un avis/)).toBeInTheDocument()

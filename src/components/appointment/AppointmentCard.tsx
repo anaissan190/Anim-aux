@@ -97,6 +97,12 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
         <p className="text-xs text-sage-600 font-medium uppercase">{format(start, 'MMM', { locale: fr })}</p>
         <p className="text-2xl font-bold text-sage-700 leading-none">{format(start, 'd')}</p>
         <p className="text-xs text-gray-500 mt-0.5">{format(start, 'HH:mm')}</p>
+        {/* Année affichée seulement si différente de l'année en cours —
+            un RDV passé peut dater de plusieurs années, mois+jour seuls
+            seraient ambigus (ex. "12 juil." 2025 vs 2026). */}
+        {start.getFullYear() !== new Date().getFullYear() && (
+          <p className="text-[9px] text-gray-400 leading-none mt-0.5">{format(start, 'yyyy')}</p>
+        )}
       </div>
 
       {/* Infos */}
