@@ -131,7 +131,7 @@ export default function PatientDashboard() {
       <div className="hidden md:block">
       <AnimalBackground />
       <Navbar />
-      <div className="max-w-3xl mx-auto px-4 py-8">
+      <div className="max-w-5xl mx-auto px-4 py-8">
 
         {/* Bienvenue */}
         <div className="mb-8">
@@ -143,8 +143,16 @@ export default function PatientDashboard() {
 
         <PushNotificationBanner />
 
+        {/* Colonne principale (animaux + RDV) + barre latérale (actions
+            rapides, favoris, derniers praticiens consultés — ces deux
+            dernières sections n'existaient jusqu'ici que sur mobile).
+            Élargi à max-w-5xl (au lieu de max-w-3xl) : une seule colonne
+            étroite laissait beaucoup de vide sur grand écran. */}
+        <div className="grid md:grid-cols-3 gap-8">
+        <div className="md:col-span-2 space-y-8">
+
         {/* Mes animaux */}
-        <div className="mb-8">
+        <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-gray-900">🐾 Mes animaux</h2>
             <button onClick={() => setShowAnimalForm(true)} className="btn-primary text-sm">+ Ajouter</button>
@@ -275,62 +283,92 @@ export default function PatientDashboard() {
           )}
         </div>
 
-        {/* Actions rapides */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
-          <Link to="/search" className="card p-4 text-center hover:shadow-md transition-shadow">
-            <div className="text-3xl mb-2">🔍</div>
-            <p className="text-sm font-medium text-gray-700">Nouveau RDV</p>
-          </Link>
-          <Link to="/rappels" className="card p-4 text-center hover:shadow-md transition-shadow">
-            <div className="text-3xl mb-2">🔔</div>
-            <p className="text-sm font-medium text-gray-700">Rappels</p>
-          </Link>
-          <Link to="/documents" className="card p-4 text-center hover:shadow-md transition-shadow">
-            <div className="text-3xl mb-2">📄</div>
-            <p className="text-sm font-medium text-gray-700">Documents</p>
-          </Link>
-        </div>
-
-        {/* Onglets RDV */}
-        <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-5 w-fit">
-          {(['upcoming', 'past'] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors
-                ${tab === t ? 'bg-white text-sage-600 shadow-sm' : 'text-gray-500'}`}>
-              {t === 'upcoming' ? `À venir (${upcoming.length})` : `Passés (${past.length})`}
-            </button>
-          ))}
-        </div>
-
-        {isLoading ? (
-          <div className="space-y-3">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="card p-4 flex gap-4 animate-pulse">
-                <div className="w-14 h-16 bg-gray-100 rounded-xl flex-shrink-0" />
-                <div className="flex-1 space-y-2 py-1">
-                  <div className="h-4 bg-gray-100 rounded w-1/3" />
-                  <div className="h-3 bg-gray-100 rounded w-1/4" />
-                </div>
-              </div>
+        {/* Mes rendez-vous */}
+        <div>
+          <h2 className="font-semibold text-gray-900 mb-4">Mes rendez-vous</h2>
+          <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-5 w-fit">
+            {(['upcoming', 'past'] as const).map(t => (
+              <button key={t} onClick={() => setTab(t)}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors
+                  ${tab === t ? 'bg-white text-sage-600 shadow-sm' : 'text-gray-500'}`}>
+                {t === 'upcoming' ? `À venir (${upcoming.length})` : `Passés (${past.length})`}
+              </button>
             ))}
           </div>
-        ) : display.length === 0 ? (
-          <div className="card p-12 text-center">
-            <div className="text-4xl mb-4">{tab === 'upcoming' ? '📅' : '📂'}</div>
-            <p className="font-medium text-gray-700 mb-2">
-              {tab === 'upcoming' ? 'Aucun rendez-vous à venir' : 'Aucun rendez-vous passé'}
-            </p>
-            {tab === 'upcoming' && (
-              <Link to="/search" className="btn-primary inline-block mt-2 text-sm">
-                Prendre un rendez-vous
+
+          {isLoading ? (
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="card p-4 flex gap-4 animate-pulse">
+                  <div className="w-14 h-16 bg-gray-100 rounded-xl flex-shrink-0" />
+                  <div className="flex-1 space-y-2 py-1">
+                    <div className="h-4 bg-gray-100 rounded w-1/3" />
+                    <div className="h-3 bg-gray-100 rounded w-1/4" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : display.length === 0 ? (
+            <div className="card p-12 text-center">
+              <div className="text-4xl mb-4">{tab === 'upcoming' ? '📅' : '📂'}</div>
+              <p className="font-medium text-gray-700 mb-2">
+                {tab === 'upcoming' ? 'Aucun rendez-vous à venir' : 'Aucun rendez-vous passé'}
+              </p>
+              {tab === 'upcoming' && (
+                <Link to="/search" className="btn-primary inline-block mt-2 text-sm">
+                  Prendre un rendez-vous
+                </Link>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {display.map(a => <AppointmentCard key={a.id} appointment={a as any} />)}
+            </div>
+          )}
+        </div>
+        </div>
+
+        {/* Barre latérale : actions rapides + favoris + derniers
+            praticiens consultés (repris de la coquille mobile). */}
+        <div className="space-y-6">
+          <div>
+            <h3 className="font-semibold text-sm text-gray-900 mb-3">Actions rapides</h3>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-2 space-y-1">
+              <Link to="/search" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+                <span>🔍</span> Nouveau RDV
               </Link>
-            )}
+              <Link to="/rappels" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+                <span>🔔</span> Rappels
+              </Link>
+              <Link to="/documents" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+                <span>📄</span> Documents
+              </Link>
+            </div>
           </div>
-        ) : (
-          <div className="space-y-3">
-            {display.map(a => <AppointmentCard key={a.id} appointment={a as any} />)}
-          </div>
-        )}
+
+          {favorites.length > 0 && (
+            <div>
+              <h3 className="font-semibold text-sm text-gray-900 mb-3">⭐ Mes favoris</h3>
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                {favorites.map((fav: any, i) => (
+                  <DoctorMiniRow key={fav.id} doctor={fav.doctors} colorIndex={i} isLast={i === favorites.length - 1} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {recentDoctors.length > 0 && (
+            <div>
+              <h3 className="font-semibold text-sm text-gray-900 mb-3">Derniers praticiens consultés</h3>
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                {recentDoctors.map((doc, i) => (
+                  <DoctorMiniRow key={doc.id} doctor={doc} colorIndex={i} isLast={i === recentDoctors.length - 1} />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        </div>
       </div>
       </div>
 
