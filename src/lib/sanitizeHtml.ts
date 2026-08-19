@@ -28,7 +28,11 @@ function sanitizeNode(node: Element) {
     }
 
     if (!ALLOWED_TAGS.has(el.tagName)) {
-      // Dépile la balise non autorisée mais garde son contenu (texte/mise en forme interne)
+      // Nettoie D'ABORD le sous-arbre, avant de dépiler — sinon un contenu
+      // dangereux niché dans une balise non autorisée (ex. <a><img
+      // onerror=...></a>) survivait intact : la boucle ci-dessus ne
+      // repassait jamais sur les enfants tout juste remontés dans `node`.
+      sanitizeNode(el)
       while (el.firstChild) node.insertBefore(el.firstChild, el)
       node.removeChild(el)
       continue

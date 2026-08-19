@@ -42,4 +42,12 @@ describe('sanitizeHtml', () => {
   it('supprime les commentaires HTML', () => {
     expect(sanitizeHtml('<p>Texte<!-- commentaire --></p>')).toBe('<p>Texte</p>')
   })
+
+  it('nettoie un élément dangereux niché DANS une balise non autorisée avant de la dépiler', () => {
+    // Régression : dépiler <a> sans repasser sur les enfants qu'on vient d'y
+    // remonter laissait un <img onerror=...> niché à l'intérieur totalement
+    // intact — faille XSS sur la bio praticien (page publique sans connexion).
+    expect(sanitizeHtml('<a href="x"><img src="x" onerror="alert(1)"></a>')).toBe('')
+    expect(sanitizeHtml('<span><b onclick="alert(1)">Gras</b></span>')).toBe('<b>Gras</b>')
+  })
 })
