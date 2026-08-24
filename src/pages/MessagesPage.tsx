@@ -134,25 +134,46 @@ export default function MessagesPage() {
   useEffect(() => {
     if (!user) return
     async function loadContacts() {
-      const { data } = await supabase
+      if (user!.role === 'patient') {
+        const { data, error } = await supabase
+          .from('appointments')
+          .select('doctor_id, doctors!inner(profiles!inner(first_name, last_name, user_id))')
+          .eq('patient_id', user!.id)
+        if (error) { console.error('loadContacts', error); return }
+        const seen = new Set<string>()
+        const list: any[] = []
+        ;(data ?? []).forEach((a: any) => {
+          const p = a.doctors?.profiles
+          if (p && !seen.has(p.user_id)) {
+            seen.add(p.user_id)
+            list.push({ user_id: p.user_id, name: `${p.first_name} ${p.last_name}` })
+          }
+        })
+        setContacts(list)
+        return
+      }
+
+      // Côté praticien : "profiles!patient_id(...)" n'est pas un embed
+      // PostgREST valide (appointments.patient_id référence users, pas
+      // profiles) — et même en repassant par users, aucune policy RLS ne
+      // permet à un praticien de lire la ligne users d'un patient (même
+      // constat que DoctorDashboard.tsx, voir son commentaire équivalent).
+      // Requête en deux temps : patient_ids depuis appointments, puis
+      // profiles directement (policy RLS dédiée qui, elle, l'autorise).
+      const doctorRow = await supabase.from('doctors').select('id').eq('user_id', user!.id).single()
+      const { data: appts, error: apptsErr } = await supabase
         .from('appointments')
-        .select(user!.role === 'patient'
-          ? 'doctor_id, doctors!inner(profiles!inner(first_name, last_name, user_id))'
-          : 'patient_id, profiles!patient_id(first_name, last_name, user_id)'
-        )
-        .eq(user!.role === 'patient' ? 'patient_id' : 'doctor_id',
-            user!.role === 'patient' ? user!.id : (await supabase.from('doctors').select('id').eq('user_id', user!.id).single()).data?.id
-        )
-      const seen = new Set<string>()
-      const list: any[] = []
-      ;(data ?? []).forEach((a: any) => {
-        const p = user!.role === 'patient' ? a.doctors?.profiles : a.profiles
-        if (p && !seen.has(p.user_id)) {
-          seen.add(p.user_id)
-          list.push({ user_id: p.user_id, name: `${p.first_name} ${p.last_name}` })
-        }
-      })
-      setContacts(list)
+        .select('patient_id')
+        .eq('doctor_id', doctorRow.data?.id)
+      if (apptsErr) { console.error('loadContacts', apptsErr); return }
+      const patientIds = [...new Set((appts ?? []).map((a: any) => a.patient_id))]
+      if (patientIds.length === 0) { setContacts([]); return }
+      const { data: profilesData, error: profilesErr } = await supabase
+        .from('profiles')
+        .select('user_id, first_name, last_name')
+        .in('user_id', patientIds)
+      if (profilesErr) { console.error('loadContacts', profilesErr); return }
+      setContacts((profilesData ?? []).map((p: any) => ({ user_id: p.user_id, name: `${p.first_name} ${p.last_name}` })))
     }
     loadContacts()
   }, [user])
@@ -167,8 +188,14 @@ export default function MessagesPage() {
   // à jour la liste (tri + badge non-lus) dès qu'un message arrive.
   useEffect(() => {
     if (!user) return
-    const channel = supabase.channel('msgs')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload: any) => {
+    // Filtre côté serveur sur receiver_id : sans lui, ce canal se
+    // déclenchait sur CHAQUE message envoyé par N'IMPORTE QUEL utilisateur
+    // de la plateforme (invalidation inutile pour tout le monde). Pas de
+    // dépendance à selectedUserId non plus : rien dans le handler ne le lit,
+    // recréer le canal à chaque changement de conversation ne faisait que
+    // rouvrir une souscription identique.
+    const channel = supabase.channel(`msgs-${user.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `receiver_id=eq.${user.id}` }, (payload: any) => {
         qc.invalidateQueries({ queryKey: ['messages'] })
         qc.invalidateQueries({ queryKey: ['conversation-partners'] })
         // Si la personne qui vient de nous écrire avait été masquée (suite à
@@ -176,11 +203,11 @@ export default function MessagesPage() {
         // un nouveau message mérite de réapparaître dans le feed, même si on
         // ne lui a pas encore répondu nous-même.
         const m = payload.new
-        if (m && m.receiver_id === user.id) unhideContact(m.sender_id)
+        if (m) unhideContact(m.sender_id)
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [user, selectedUserId])
+  }, [user])
 
   // Scroll au dernier message
   useEffect(() => {

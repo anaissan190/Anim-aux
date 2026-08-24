@@ -45,8 +45,7 @@ export default function ConfirmPresencePage() {
               <div className="text-4xl mb-3">✅</div>
               <h1 className="text-lg font-bold text-gray-900 mb-2">Présence confirmée</h1>
               <p className="text-sm text-gray-600">
-                Merci ! {state.doctorName} sait que vous serez présent(e) le<br />
-                <strong>{state.dateStr}</strong>.
+                Merci ! {state.doctorName || 'Votre praticien'} sait que vous serez présent(e){state.dateStr ? <> le<br /><strong>{state.dateStr}</strong></> : ''}.
               </p>
             </>
           )}

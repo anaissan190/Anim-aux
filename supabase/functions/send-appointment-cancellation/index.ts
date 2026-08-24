@@ -64,6 +64,15 @@ async function sendOvhSms(message: string, receiver: string) {
 }
 
 Deno.serve(async (req) => {
+  // N'accepte que l'appel du trigger SQL (migration 075), qui envoie déjà
+  // Authorization: Bearer <service_role_key> (voir vault.decrypted_secrets).
+  // Sans cette vérification, n'importe qui muni de la clé anon publique
+  // (embarquée dans le JS client) pouvait appeler cette fonction pour un
+  // notification_id qu'il peut lire, et déclencher email/SMS à volonté.
+  if (req.headers.get('Authorization') !== `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`) {
+    return new Response('Unauthorized', { status: 401 })
+  }
+
   let notificationId: string | undefined
   try {
     ({ notification_id: notificationId } = await req.json())

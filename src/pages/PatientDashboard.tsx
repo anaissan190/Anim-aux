@@ -69,7 +69,10 @@ export default function PatientDashboard() {
 
   async function uploadAnimalPhoto(file: File): Promise<string | null> {
     const ext = file.name.split('.').pop()
-    const path = `animals/${Date.now()}.${ext}`
+    // Date.now() seul peut collisionner (deux envois dans la même
+    // milliseconde, ex. double-clic) et, avec upsert:true, écraser
+    // silencieusement la photo d'un autre animal au même chemin.
+    const path = `animals/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
     const { supabase } = await import('@/lib/supabase')
     const timeout = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('timeout')), 15000)

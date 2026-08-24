@@ -79,19 +79,24 @@ async function hasAvailabilityInRange(doctorId: string, from: Date, to: Date): P
     .eq('is_active', true)
   if (!avail || avail.length === 0) return false
 
-  const { data: booked } = await supabase.rpc('get_booked_slots', {
+  const { data: booked, error: bookedErr } = await supabase.rpc('get_booked_slots', {
     p_doctor_id: doctorId,
     p_from: from.toISOString(),
     p_to: to.toISOString(),
   })
+  // En échec, on ne sait plus ce qui est réellement pris : mieux vaut
+  // sous-déclarer la disponibilité (fail closed) que risquer d'afficher
+  // "disponible" pour un créneau en réalité déjà occupé ou en congé.
+  if (bookedErr) return false
   const bookedTimes = new Set((booked || []).map((a: any) => new Date(a.start_at).getTime()))
 
-  const { data: blocked } = await supabase
+  const { data: blocked, error: blockedErr } = await supabase
     .from('blocked_slots')
     .select('start_at, end_at')
     .eq('doctor_id', doctorId)
     .lt('start_at', to.toISOString())
     .gt('end_at', from.toISOString())
+  if (blockedErr) return false
   const blockedRanges = (blocked || []).map((b: any) => ({
     start: new Date(b.start_at).getTime(),
     end: new Date(b.end_at).getTime(),
@@ -141,19 +146,24 @@ export function useNextAvailableSlots(doctorIds: string[]) {
           .eq('is_active', true)
         if (!avail || avail.length === 0) return [doctorId, null]
 
-        const { data: booked } = await supabase.rpc('get_booked_slots', {
+        const { data: booked, error: bookedErr } = await supabase.rpc('get_booked_slots', {
           p_doctor_id: doctorId,
           p_from: now.toISOString(),
           p_to: to.toISOString(),
         })
+        // Fail closed : sur erreur, on ne peut plus garantir qu'un créneau
+        // proposé est réellement libre, donc on n'en propose aucun pour ce
+        // praticien plutôt que d'ignorer silencieusement ses RDV/congés.
+        if (bookedErr) return [doctorId, null]
         const bookedTimes = new Set<number>((booked || []).map((a: any) => new Date(a.start_at).getTime()))
 
-        const { data: blocked } = await supabase
+        const { data: blocked, error: blockedErr } = await supabase
           .from('blocked_slots')
           .select('start_at, end_at')
           .eq('doctor_id', doctorId)
           .lt('start_at', to.toISOString())
           .gt('end_at', now.toISOString())
+        if (blockedErr) return [doctorId, null]
         const blockedRanges = (blocked || []).map((b: any) => ({
           start: new Date(b.start_at).getTime(),
           end: new Date(b.end_at).getTime(),
@@ -316,12 +326,13 @@ export function useAvailableSlots(doctorId: string, date: Date | null) {
 
       // Périodes de congés/indisponibilités posées par le praticien
       // (blocked_slots) : on exclut tout créneau qui tombe dedans.
-      const { data: blocked } = await supabase
+      const { data: blocked, error: blockedErr } = await supabase
         .from('blocked_slots')
         .select('start_at, end_at')
         .eq('doctor_id', doctorId)
         .lt('start_at', dayEnd.toISOString())
         .gt('end_at', dayStart.toISOString())
+      if (blockedErr) throw blockedErr
       const blockedRanges: { start: number; end: number }[] = (blocked || []).map((b: any) => ({
         start: new Date(b.start_at).getTime(),
         end: new Date(b.end_at).getTime(),
@@ -540,12 +551,21 @@ export function useCreateAppointment() {
         .single()
       if (error) throw error
 
-      // Lie le(s) animal(aux) choisi(s) au RDV (table de liaison many-to-many)
+      // Lie le(s) animal(aux) choisi(s) au RDV (table de liaison many-to-many).
+      // Sur échec ici ou pour les documents ci-dessous, on annule le RDV déjà
+      // inséré plutôt que de le laisser orphelin : sans ça, il restait
+      // "confirmed" sans animal rattaché, occupait quand même le créneau
+      // (index unique partiel, migration 070), et un nouvel essai de
+      // réservation entrait en collision avec ce propre RDV cassé — impossible
+      // à corriger par un simple nouvel essai.
       if (animal_ids && animal_ids.length > 0) {
         const { error: linkError } = await supabase
           .from('appointment_animals')
           .insert(animal_ids.map(animal_id => ({ appointment_id: appt.id, animal_id })))
-        if (linkError) throw linkError
+        if (linkError) {
+          await supabase.from('appointments').delete().eq('id', appt.id)
+          throw linkError
+        }
       }
 
       // Pièces jointes (documents/photos) : déjà uploadées vers le storage au
@@ -561,7 +581,11 @@ export function useCreateAppointment() {
             file_type: d.file_type,
           }))
         )
-        if (docError) throw docError
+        if (docError) {
+          await supabase.from('appointment_animals').delete().eq('appointment_id', appt.id)
+          await supabase.from('appointments').delete().eq('id', appt.id)
+          throw docError
+        }
       }
 
       // Email de confirmation + notification in-app (Edge Function
@@ -682,7 +706,7 @@ export function useDoctorPatientAnimals(doctorId?: string, clinicId?: string, cl
 
       const { data: appts, error: apptErr } = await supabase
         .from('appointments')
-        .select('patient_id, doctor_id, start_at')
+        .select('patient_id, doctor_id, start_at, status')
         .in('doctor_id', doctorIds)
         .neq('status', 'cancelled')
         .order('start_at', { ascending: true })
@@ -696,8 +720,14 @@ export function useDoctorPatientAnimals(doctorId?: string, clinicId?: string, cl
       // Fidélité : nombre de RDV et date du dernier, tous confrères du
       // cabinet confondus (même périmètre que le praticien référent
       // ci-dessus) — affiché sur "Mes patients" pour repérer les habitués.
+      // Ne compte que des visites réellement passées et honorées : un RDV
+      // à venir (encore juste réservé) ou un no_show gonflait le compteur
+      // et pouvait même s'afficher comme "dernier RDV" alors qu'il n'a
+      // jamais eu lieu.
+      const now = Date.now()
       const loyaltyByPatient = new Map<string, { count: number; lastAt: string }>()
       ;(appts ?? []).forEach((a: any) => {
+        if (a.status === 'no_show' || new Date(a.start_at).getTime() > now) return
         const prev = loyaltyByPatient.get(a.patient_id)
         loyaltyByPatient.set(a.patient_id, {
           count: (prev?.count ?? 0) + 1,
@@ -845,7 +875,11 @@ export function useRescheduleAppointment() {
         .eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['appointments'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['appointments'] })
+      qc.invalidateQueries({ queryKey: ['slots'] })
+      qc.invalidateQueries({ queryKey: ['clinic_appointments'] })
+    },
   })
 }
 
@@ -2086,7 +2120,20 @@ export function useDoctorVerificationDocuments(doctorId?: string) {
         .eq('doctor_id', doctorId!)
         .order('created_at', { ascending: false })
       if (error) throw error
-      return data ?? []
+      // file_url stocke le CHEMIN de stockage (pas une URL signée figée) —
+      // un lien signé à durée fixe stocké tel quel expirait sans jamais
+      // pouvoir être régénéré, cassant l'examen des documents par l'admin
+      // un an après coup. Re-signé à chaque lecture, valable 1h. Les lignes
+      // créées avant ce correctif ont encore une URL complète (commence par
+      // http) en base : on la garde telle quelle plutôt que de la re-signer.
+      const withFreshUrls = await Promise.all((data ?? []).map(async (doc: any) => {
+        if (!doc.file_url || doc.file_url.startsWith('http')) return doc
+        const { data: signed } = await supabase.storage
+          .from('verification-documents')
+          .createSignedUrl(doc.file_url, 60 * 60)
+        return signed?.signedUrl ? { ...doc, file_url: signed.signedUrl } : doc
+      }))
+      return withFreshUrls
     },
     enabled: !!doctorId,
   })
@@ -2100,10 +2147,9 @@ export function useUploadVerificationDocument() {
       const path = `${doctorId}/${Date.now()}.${ext}`
       const { error: uploadError } = await supabase.storage.from('verification-documents').upload(path, file)
       if (uploadError) throw uploadError
-      const { data: signed } = await supabase.storage.from('verification-documents').createSignedUrl(path, 60 * 60 * 24 * 365)
       const { error } = await supabase.from('doctor_verification_documents').insert({
         doctor_id: doctorId,
-        file_url: signed?.signedUrl ?? path,
+        file_url: path,
         file_name: file.name,
         document_type: documentType,
       })
@@ -2202,6 +2248,11 @@ export function useAdminDoctorsByStatus(status: 'pending' | 'verified' | 'reject
       if (error) throw error
       return (data ?? []) as any[]
     },
+    // p_status=null renvoie TOUS les praticiens de la plateforme (voir la
+    // RPC) — sans ce garde-fou, les deux appels "verified"/"rejected" de
+    // AdminDashboard passaient status=null au chargement de l'onglet
+    // "pending" par défaut et déclenchaient chacun un fetch complet inutile.
+    enabled: status !== null,
   })
 }
 

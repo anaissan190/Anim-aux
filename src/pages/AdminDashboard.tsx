@@ -147,6 +147,10 @@ function AdminOverview({ onSelectDoctor, onViewReviews, onViewPatients, onViewCl
 
   function goToDoctorsTab(t: Tab) {
     setTab(t)
+    // Sans ça, une recherche tapée sur l'onglet "Vérifiés"/"Rejetés" restait
+    // active en arrivant sur "En attente" via une carte de stat — dont le
+    // champ recherche est masqué, donc invisible et impossible à effacer.
+    setSearch('')
     document.getElementById('dossiers-praticiens')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
@@ -388,10 +392,19 @@ function AdminReviewsView({ onBack }: { onBack: () => void }) {
   const [sort, setSort] = useState<ReviewSort>('recent')
   const [search, setSearch] = useState('')
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState('')
 
   async function handleDelete(id: string) {
-    await deleteReview.mutateAsync(id)
-    setConfirmingId(null)
+    setDeleteError('')
+    try {
+      await deleteReview.mutateAsync(id)
+      setConfirmingId(null)
+    } catch (e: any) {
+      // Sans ce try/catch, un échec (RLS, réseau) laissait le bouton
+      // "Confirmer" cliquable sans aucune indication que rien ne s'était
+      // passé — contrairement à handleApprove/handleReject côté praticiens.
+      setDeleteError(e.message ?? "Erreur lors de la suppression.")
+    }
   }
 
   let list = reviews
@@ -480,6 +493,7 @@ function AdminReviewsView({ onBack }: { onBack: () => void }) {
                 {confirmingId === r.id ? (
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-red-600">Supprimer définitivement cet avis ?</span>
+                    {deleteError && <span className="text-xs text-red-600">{deleteError}</span>}
                     <button onClick={() => handleDelete(r.id)} disabled={deleteReview.isPending}
                       className="text-xs font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg px-3 py-1.5">
                       Confirmer
@@ -566,11 +580,26 @@ function AdminPatientDetail({ userId, onBack }: { userId: string; onBack: () => 
   const unsuspendUser = useAdminUnsuspendUser()
   const [suspending, setSuspending] = useState(false)
   const [reason, setReason] = useState('')
+  const [actionError, setActionError] = useState('')
 
   async function handleSuspend() {
-    await suspendUser.mutateAsync({ userId, reason: reason.trim() || undefined })
-    setSuspending(false)
-    setReason('')
+    setActionError('')
+    try {
+      await suspendUser.mutateAsync({ userId, reason: reason.trim() || undefined })
+      setSuspending(false)
+      setReason('')
+    } catch (e: any) {
+      setActionError(e.message ?? 'Erreur lors de la suspension.')
+    }
+  }
+
+  async function handleUnsuspend() {
+    setActionError('')
+    try {
+      await unsuspendUser.mutateAsync(userId)
+    } catch (e: any) {
+      setActionError(e.message ?? 'Erreur lors de la réactivation.')
+    }
   }
 
   return (
@@ -659,7 +688,7 @@ function AdminPatientDetail({ userId, onBack }: { userId: string; onBack: () => 
                 ✉️ Contacter
               </a>
               {p.is_suspended ? (
-                <button onClick={() => unsuspendUser.mutate(userId)} disabled={unsuspendUser.isPending}
+                <button onClick={handleUnsuspend} disabled={unsuspendUser.isPending}
                   className="btn-secondary text-sm px-4 py-2 text-sage-600">
                   ✓ Réactiver le compte
                 </button>
@@ -680,6 +709,7 @@ function AdminPatientDetail({ userId, onBack }: { userId: string; onBack: () => 
                   ⛔ Suspendre le compte
                 </button>
               )}
+              {actionError && <span className="text-xs text-red-600">{actionError}</span>}
             </div>
           </div>
         )}
@@ -993,9 +1023,23 @@ function AdminDoctorDetail({ doctorId, onBack }: { doctorId: string; onBack: () 
   const [error, setError] = useState('')
 
   async function handleSuspend() {
-    await suspendUser.mutateAsync({ userId: d.user_id, reason: suspendReason.trim() || undefined })
-    setSuspending(false)
-    setSuspendReason('')
+    setError('')
+    try {
+      await suspendUser.mutateAsync({ userId: d.user_id, reason: suspendReason.trim() || undefined })
+      setSuspending(false)
+      setSuspendReason('')
+    } catch (e: any) {
+      setError(e.message ?? 'Erreur lors de la suspension.')
+    }
+  }
+
+  async function handleUnsuspend() {
+    setError('')
+    try {
+      await unsuspendUser.mutateAsync(d.user_id)
+    } catch (e: any) {
+      setError(e.message ?? 'Erreur lors de la réactivation.')
+    }
   }
 
   async function handleApprove() {
@@ -1173,7 +1217,7 @@ function AdminDoctorDetail({ doctorId, onBack }: { doctorId: string; onBack: () 
                     ✉️ Contacter
                   </a>
                   {d.is_suspended ? (
-                    <button onClick={() => unsuspendUser.mutate(d.user_id)} disabled={unsuspendUser.isPending}
+                    <button onClick={handleUnsuspend} disabled={unsuspendUser.isPending}
                       className="btn-secondary text-sm px-4 py-2 text-sage-600">
                       ✓ Réactiver le compte
                     </button>
@@ -1205,12 +1249,18 @@ function AdminReportsView({ onBack, onSelectDoctor }: { onBack: () => void; onSe
   const resolveReport = useAdminResolveReport()
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'resolved' | 'dismissed'>('pending')
   const [noteDraft, setNoteDraft] = useState<Record<string, string>>({})
+  const [resolveErrors, setResolveErrors] = useState<Record<string, string>>({})
 
   const list = statusFilter === 'all' ? reports : reports.filter((r: any) => r.status === statusFilter)
   const pendingCount = reports.filter((r: any) => r.status === 'pending').length
 
   async function handleResolve(id: string, status: 'resolved' | 'dismissed') {
-    await resolveReport.mutateAsync({ reportId: id, status, note: noteDraft[id]?.trim() || undefined })
+    setResolveErrors(v => ({ ...v, [id]: '' }))
+    try {
+      await resolveReport.mutateAsync({ reportId: id, status, note: noteDraft[id]?.trim() || undefined })
+    } catch (e: any) {
+      setResolveErrors(v => ({ ...v, [id]: e.message ?? 'Erreur, réessaie.' }))
+    }
   }
 
   return (
@@ -1290,6 +1340,7 @@ function AdminReportsView({ onBack, onSelectDoctor }: { onBack: () => void; onSe
                   <div className="space-y-2">
                     <input className="input text-xs" placeholder="Note admin (optionnel, non visible par les utilisateurs)"
                       value={noteDraft[r.id] ?? ''} onChange={e => setNoteDraft(v => ({ ...v, [r.id]: e.target.value }))} />
+                    {resolveErrors[r.id] && <p className="text-xs text-red-600">{resolveErrors[r.id]}</p>}
                     <div className="flex gap-2">
                       <button onClick={() => handleResolve(r.id, 'resolved')} disabled={resolveReport.isPending}
                         className="btn-primary text-xs px-3 py-1.5">

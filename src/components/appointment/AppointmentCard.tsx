@@ -37,6 +37,7 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
   const start = new Date(appointment.start_at)
   const [showReschedule, setShowReschedule] = useState(false)
   const [newSlot, setNewSlot] = useState<Date | null>(null)
+  const [rescheduleError, setRescheduleError] = useState('')
 
   const name = showPatient
     ? `${appointment.profiles?.first_name ?? ''} ${appointment.profiles?.last_name ?? ''}`
@@ -83,9 +84,21 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
 
   function handleConfirmReschedule() {
     if (!newSlot) return
+    setRescheduleError('')
     reschedule.mutate(
       { id: appointment.id, start_at: newSlot.toISOString(), end_at: addMinutes(newSlot, durationMinutes).toISOString() },
-      { onSuccess: () => { setShowReschedule(false); setNewSlot(null) } }
+      {
+        onSuccess: () => { setShowReschedule(false); setNewSlot(null) },
+        // Course possible entre l'affichage du créneau "libre" et la
+        // confirmation : un autre RDV a pu le prendre entre-temps (index
+        // unique partiel, migration 070) — sans ce message, le bouton
+        // redevenait juste cliquable sans aucune explication.
+        onError: (e: any) => {
+          setRescheduleError(e?.code === '23505'
+            ? 'Ce créneau vient d\'être pris. Choisis-en un autre.'
+            : 'Erreur lors du report, réessaie.')
+        },
+      }
     )
   }
 
@@ -171,11 +184,13 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
         <div className="flex flex-col gap-1">
           <button
             onClick={() => update.mutate({ id: appointment.id, status: 'confirmed' })}
+            disabled={update.isPending}
             className="text-xs btn-primary py-1 px-3">
             Confirmer
           </button>
           <button
             onClick={() => update.mutate({ id: appointment.id, status: 'cancelled' })}
+            disabled={update.isPending}
             className="text-xs btn-secondary py-1 px-3">
             Refuser
           </button>
@@ -196,7 +211,7 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
             Absent(e)
           </button>
           <button
-            onClick={() => { setShowReschedule(v => !v); setNewSlot(null) }}
+            onClick={() => { setShowReschedule(v => !v); setNewSlot(null); setRescheduleError('') }}
             className="text-xs text-sage-600 hover:text-sage-700 transition-colors py-1 px-3">
             {showReschedule ? 'Annuler le report' : 'Reporter'}
           </button>
@@ -222,6 +237,7 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
       <div className="mt-4 pt-4 border-t border-gray-100">
         <p className="text-sm font-medium text-gray-700 mb-3">Choisir un nouveau créneau</p>
         <AvailabilityCalendar doctorId={appointment.doctor_id} selected={newSlot} onSelect={setNewSlot} />
+        {rescheduleError && <p className="text-red-500 text-xs mt-2">{rescheduleError}</p>}
         {newSlot && (
           <div className="mt-4 flex items-center gap-3">
             <button onClick={handleConfirmReschedule} disabled={reschedule.isPending}

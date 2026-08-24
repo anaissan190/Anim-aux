@@ -119,12 +119,22 @@ export default function AnimalHealthPage() {
 
   async function handlePhotoUpload(file: File) {
     setPhotoUploading(true)
-    const ext  = file.name.split('.').pop()
-    const path = `animals/${id}-${Date.now()}.${ext}`
-    await supabase.storage.from('avatars').upload(path, file, { upsert: true })
-    const { data } = supabase.storage.from('avatars').getPublicUrl(path)
-    await updateAnimal.mutateAsync({ id: id!, avatar_url: data.publicUrl })
-    setPhotoUploading(false)
+    try {
+      const ext  = file.name.split('.').pop()
+      const path = `animals/${id}-${Date.now()}.${ext}`
+      const { error: uploadErr } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
+      if (uploadErr) throw uploadErr
+      const { data } = supabase.storage.from('avatars').getPublicUrl(path)
+      await updateAnimal.mutateAsync({ id: id!, avatar_url: data.publicUrl })
+    } catch (e) {
+      // Best-effort silencieux comme le reste de la page (pas de state
+      // d'erreur dédié ici) — mais sans avaler l'échec en enregistrant
+      // quand même une avatar_url cassée, et sans laisser "..." affiché
+      // indéfiniment si l'upload ou la sauvegarde échoue.
+      console.error('Upload photo animal', e)
+    } finally {
+      setPhotoUploading(false)
+    }
   }
 
   const [tab, setTab] = useState<'overview' | 'vaccines' | 'weight' | 'records' | 'documents'>('overview')
@@ -163,7 +173,13 @@ export default function AnimalHealthPage() {
   if (!animal) return <div className="min-h-screen bg-[#FFFAF0]"><Navbar /><div className="flex items-center justify-center h-64"><p className="text-gray-400">Animal introuvable</p></div></div>
 
   const lastWeight = weights.length > 0 ? weights[weights.length - 1] : null
-  const nextVaccine = vaccines.find(v => v.next_due_date)
+  // `vaccines` est trié par date_administered décroissante (voir
+  // useVaccines) — prendre le premier avec un next_due_date renvoyait le
+  // vaccin le plus RÉCEMMENT administré, pas le rappel le plus proche (donc
+  // potentiellement le moins urgent). Trié ici par échéance croissante.
+  const nextVaccine = [...vaccines]
+    .filter(v => v.next_due_date)
+    .sort((a, b) => new Date(a.next_due_date!).getTime() - new Date(b.next_due_date!).getTime())[0]
 
   const emoji = SPECIES_EMOJI[animal.species] ?? '🐾'
 

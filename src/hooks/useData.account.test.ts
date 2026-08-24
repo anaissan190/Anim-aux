@@ -138,34 +138,49 @@ describe('useDoctorVerificationDocuments', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(result.current.data).toEqual([])
   })
+
+  it('re-signe file_url quand c\'est un chemin de stockage (pas une URL figée)', async () => {
+    vi.mocked(supabase.from).mockReturnValue(createQueryBuilderMock({
+      data: [{ id: 'd1', doctor_id: 'doc-1', file_url: 'doc-1/123.pdf', file_name: 'diplome.pdf' }],
+      error: null,
+    }))
+    const createSignedUrl = vi.fn(() => Promise.resolve({ data: { signedUrl: 'https://signed/fresh.pdf' }, error: null }))
+    vi.mocked(supabase.storage.from).mockReturnValue({ createSignedUrl } as any)
+
+    const { result } = renderHook(() => useDoctorVerificationDocuments('doc-1'), { wrapper })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(createSignedUrl).toHaveBeenCalledWith('doc-1/123.pdf', 60 * 60)
+    expect(result.current.data?.[0].file_url).toBe('https://signed/fresh.pdf')
+  })
+
+  it('laisse intacte une file_url déjà en URL complète (ligne créée avant le correctif)', async () => {
+    vi.mocked(supabase.from).mockReturnValue(createQueryBuilderMock({
+      data: [{ id: 'd1', doctor_id: 'doc-1', file_url: 'https://old-signed-url/diplome.pdf', file_name: 'diplome.pdf' }],
+      error: null,
+    }))
+    const createSignedUrl = vi.fn()
+    vi.mocked(supabase.storage.from).mockReturnValue({ createSignedUrl } as any)
+
+    const { result } = renderHook(() => useDoctorVerificationDocuments('doc-1'), { wrapper })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+    expect(createSignedUrl).not.toHaveBeenCalled()
+    expect(result.current.data?.[0].file_url).toBe('https://old-signed-url/diplome.pdf')
+  })
 })
 
 describe('useUploadVerificationDocument', () => {
-  it('envoie le fichier, génère une URL signée, puis enregistre la ligne', async () => {
+  it('envoie le fichier et enregistre son CHEMIN de stockage (pas une URL signée figée)', async () => {
+    // Une URL signée à durée fixe stockée telle quelle expirait sans
+    // pouvoir être régénérée (voir useDoctorVerificationDocuments, qui
+    // re-signe désormais à chaque lecture) — l'upload ne signe donc plus
+    // rien lui-même.
     const docsBuilder = createQueryBuilderMock({ data: null, error: null })
     vi.mocked(supabase.from).mockReturnValue(docsBuilder)
     vi.mocked(supabase.storage.from).mockReturnValue({
       upload: vi.fn(() => Promise.resolve({ data: null, error: null })),
       getPublicUrl: vi.fn(),
-      createSignedUrl: vi.fn(() => Promise.resolve({ data: { signedUrl: 'https://signed/diplome.pdf' }, error: null })),
-    } as any)
-
-    const file = new File(['x'], 'diplome.pdf', { type: 'application/pdf' })
-    const { result } = renderHook(() => useUploadVerificationDocument(), { wrapper })
-    await result.current.mutateAsync({ doctorId: 'doc-1', file, documentType: 'diplome' })
-
-    expect(docsBuilder.insert).toHaveBeenCalledWith({
-      doctor_id: 'doc-1', file_url: 'https://signed/diplome.pdf', file_name: 'diplome.pdf', document_type: 'diplome',
-    })
-  })
-
-  it('utilise le chemin de stockage si l\'URL signée n\'a pas pu être générée', async () => {
-    const docsBuilder = createQueryBuilderMock({ data: null, error: null })
-    vi.mocked(supabase.from).mockReturnValue(docsBuilder)
-    vi.mocked(supabase.storage.from).mockReturnValue({
-      upload: vi.fn(() => Promise.resolve({ data: null, error: null })),
-      getPublicUrl: vi.fn(),
-      createSignedUrl: vi.fn(() => Promise.resolve({ data: null, error: { message: 'boom' } })),
     } as any)
 
     const file = new File(['x'], 'diplome.pdf', { type: 'application/pdf' })
@@ -174,6 +189,7 @@ describe('useUploadVerificationDocument', () => {
 
     const payload = docsBuilder.insert.mock.calls[0][0]
     expect(payload.file_url).toMatch(/^doc-1\//)
+    expect(payload).toMatchObject({ doctor_id: 'doc-1', file_name: 'diplome.pdf', document_type: 'diplome' })
   })
 
   it('propage l\'échec d\'upload sans jamais insérer la ligne', async () => {

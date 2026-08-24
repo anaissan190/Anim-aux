@@ -59,8 +59,12 @@ export function computeDoctorStats(
   // récurrentes (jour de la semaine × durée / slot_duration_minutes) — ne
   // tient pas compte des congés (blocked_slots), donc légèrement
   // surestimé : un indicateur, pas une mesure exacte.
+  // i <= 30 (31 valeurs) plutôt que i < 30 : bookedLast30Days compte les RDV
+  // jusqu'à `now` inclus (donc ceux du jour même, même partiel), alors que
+  // ce calcul s'arrêtait la veille — le jour courant gonflait le numérateur
+  // sans jamais compter ses créneaux théoriques au dénominateur.
   let theoreticalSlots30Days = 0
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i <= 30; i++) {
     const day = new Date(thirtyDaysAgo)
     day.setDate(day.getDate() + i)
     const dayOfWeek = day.getDay()

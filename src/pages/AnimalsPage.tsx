@@ -27,6 +27,10 @@ function PetRow({ animal, index }: { animal: any; index: number }) {
   const { data: vaccines = [] } = useVaccines(animal.id)
   const latestWeight = weights[weights.length - 1]
   const upcomingVaccine = vaccines.find((v: any) => v.next_due_date && new Date(v.next_due_date) > new Date())
+  // Distinct d'un simple "pas de rappel à venir" : un rappel dont la date
+  // est déjà passée affichait "✅ À jour" (upcomingVaccine ne le matchait
+  // pas, faute de filtre séparé), donnant une fausse impression de sécurité.
+  const overdueVaccine = vaccines.find((v: any) => v.next_due_date && new Date(v.next_due_date) <= new Date())
   const hasVaccineHistory = vaccines.length > 0
 
   const age = animal.date_of_birth ? differenceInYears(new Date(), new Date(animal.date_of_birth)) : null
@@ -56,7 +60,11 @@ function PetRow({ animal, index }: { animal: any; index: number }) {
               ⚖️ {latestWeight.weight_kg} kg
             </span>
           )}
-          {upcomingVaccine ? (
+          {overdueVaccine ? (
+            <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+              ⚠️ Rappel en retard
+            </span>
+          ) : upcomingVaccine ? (
             <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
               💉 {format(new Date(upcomingVaccine.next_due_date), 'd MMM', { locale: fr })}
             </span>

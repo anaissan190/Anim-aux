@@ -22,6 +22,14 @@ webpush.setVapidDetails(
 )
 
 Deno.serve(async (req) => {
+  // N'accepte que l'appel du trigger SQL (migration 068), qui envoie déjà
+  // Authorization: Bearer <service_role_key>. Sans cette vérification,
+  // n'importe qui muni de la clé anon publique pouvait déclencher l'envoi
+  // de push à volonté pour un notification_id qu'il peut lire.
+  if (req.headers.get('Authorization') !== `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`) {
+    return new Response('Unauthorized', { status: 401 })
+  }
+
   let notificationId: string | undefined
   try {
     ({ notification_id: notificationId } = await req.json())

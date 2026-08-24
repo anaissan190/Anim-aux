@@ -183,6 +183,13 @@ Deno.serve(async (req) => {
   const weekAhead = new Date()
   weekAhead.setDate(weekAhead.getDate() + 7)
 
+  // next_due_date est une simple DATE (sans heure) saisie par le praticien
+  // en pensant en heure française — toISOString().slice(0,10) prend la date
+  // UTC, décalée d'un jour par rapport à Paris entre ~22h et minuit UTC (le
+  // reste du fichier utilise explicitement Europe/Paris pour l'affichage,
+  // mais ces deux bornes ne le faisaient pas).
+  const parisDateStr = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: 'Europe/Paris' })
+
   const { data: dueVaccines } = await supabase
     .from('vaccines')
     .select(`
@@ -191,8 +198,8 @@ Deno.serve(async (req) => {
     `)
     .not('next_due_date', 'is', null)
     .is('reminder_sent_at', null)
-    .lte('next_due_date', weekAhead.toISOString().slice(0, 10))
-    .gte('next_due_date', new Date().toISOString().slice(0, 10))
+    .lte('next_due_date', parisDateStr(weekAhead))
+    .gte('next_due_date', parisDateStr(new Date()))
 
   let vaccineReminders = 0
   for (const vaccine of dueVaccines ?? []) {

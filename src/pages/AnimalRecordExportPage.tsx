@@ -55,7 +55,10 @@ export default function AnimalRecordExportPage() {
           {animal.date_of_birth && (
             <p><span className="text-gray-400">Date de naissance : </span>{format(new Date(animal.date_of_birth), 'd MMMM yyyy', { locale: fr })}</p>
           )}
-          {animal.weight_kg && <p><span className="text-gray-400">Dernier poids connu : </span>{animal.weight_kg} kg</p>}
+          {/* animal.weight_kg n'existe pas (le poids ne vit que dans
+              weight_tracking) — ce champ n'affichait donc jamais rien,
+              même avec un historique de poids complet. */}
+          {weights.length > 0 && <p><span className="text-gray-400">Dernier poids connu : </span>{weights[weights.length - 1].weight_kg} kg</p>}
           {animal.microchip_number && <p><span className="text-gray-400">Puce : </span>{animal.microchip_number}</p>}
           {animal.tattoo_number && <p><span className="text-gray-400">Tatouage : </span>{animal.tattoo_number}</p>}
           {ownerName && <p className="col-span-2"><span className="text-gray-400">Propriétaire : </span>{ownerName}</p>}

@@ -104,7 +104,18 @@ export default function SecretaryDashboard() {
                         {m.avatar_url ? <img src={m.avatar_url} className="w-full h-full object-cover" alt="" /> : (m.first_name?.[0]?.toUpperCase() ?? '?')}
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-800">{m.first_name} {m.last_name}</p>
+                        <p className="text-sm font-medium text-gray-800 flex items-center gap-1.5">
+                          {m.first_name} {m.last_name}
+                          {/* Un praticien encore en attente/rejeté s'affichait
+                              identique à un praticien vérifié — rien ne
+                              distinguait un profil pas encore visible en
+                              recherche publique. */}
+                          {m.is_verified === false && (
+                            <span className="text-[10px] font-medium bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">
+                              Vérification en attente
+                            </span>
+                          )}
+                        </p>
                         <p className="text-xs text-gray-400">{m.specialty}</p>
                       </div>
                     </div>

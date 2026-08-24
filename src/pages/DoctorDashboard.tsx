@@ -125,6 +125,7 @@ export default function DoctorDashboard() {
   const deleteAccount = useDeleteAccount()
   const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false)
   const [deleteAccountError, setDeleteAccountError] = useState('')
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
   const exportMyData = useExportMyData()
   const [exportError, setExportError] = useState('')
 
@@ -446,8 +447,11 @@ export default function DoctorDashboard() {
 
   useEffect(() => {
     if (!user) return
-    const channel = supabase.channel('doctor-msgs')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload: any) => {
+    // Filtre côté serveur sur receiver_id : sans lui, ce canal se
+    // déclenchait sur CHAQUE message envoyé par n'importe quel utilisateur
+    // de la plateforme, pas seulement ceux adressés à ce praticien.
+    const channel = supabase.channel(`doctor-msgs-${user.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `receiver_id=eq.${user.id}` }, (payload: any) => {
         qc.invalidateQueries({ queryKey: ['messages'] })
         qc.invalidateQueries({ queryKey: ['conversation-partners'] })
         // Si le patient qui vient d'écrire avait été masqué (suite à une
@@ -1816,12 +1820,24 @@ export default function DoctorDashboard() {
               ) : (
                 <div className="space-y-3">
                   <p className="text-sm text-gray-700 font-medium">Es-tu sûr(e) ? Cette action est irréversible.</p>
+                  {/* Même friction volontaire que côté patient (ProfilPage) :
+                      un compte praticien peut posséder un cabinet et
+                      l'historique de plusieurs patients — deux clics sans
+                      confirmation tapée n'étaient pas cohérents avec la
+                      gravité de l'action. */}
+                  <label className="text-xs text-gray-500 block">
+                    Tapez <strong>SUPPRIMER</strong> pour confirmer
+                  </label>
+                  <input className="input text-sm max-w-xs" value={deleteConfirmText}
+                    onChange={e => setDeleteConfirmText(e.target.value)}
+                    placeholder="SUPPRIMER" autoFocus />
                   <div className="flex gap-2">
-                    <button onClick={handleDeleteAccount} disabled={deleteAccount.isPending}
+                    <button onClick={handleDeleteAccount}
+                      disabled={deleteConfirmText !== 'SUPPRIMER' || deleteAccount.isPending}
                       className="btn-primary bg-red-500 hover:bg-red-600 text-sm px-4 py-2">
                       {deleteAccount.isPending ? 'Suppression...' : 'Oui, supprimer définitivement'}
                     </button>
-                    <button onClick={() => setConfirmDeleteAccount(false)} className="btn-secondary text-sm px-4 py-2">
+                    <button onClick={() => { setConfirmDeleteAccount(false); setDeleteConfirmText('') }} className="btn-secondary text-sm px-4 py-2">
                       Annuler
                     </button>
                   </div>
@@ -1829,8 +1845,12 @@ export default function DoctorDashboard() {
               )}
             </div>
 
+            {/* md:hidden : sur desktop la Navbar affiche déjà son propre
+                bouton pour ce rôle (elle ne le masque que sur mobile, voir
+                son commentaire) — sans ce filtre, les deux étaient visibles
+                en même temps sur grand écran. */}
             <button onClick={() => signOut().then(() => navigate('/'))}
-              className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-2xl shadow-sm text-sm text-red-500 font-medium py-3.5">
+              className="md:hidden w-full flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-2xl shadow-sm text-sm text-red-500 font-medium py-3.5">
               🚪 Déconnexion
             </button>
           </div>
