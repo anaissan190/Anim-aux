@@ -7,7 +7,7 @@ import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
 import MobileHeader from '@/components/mobile/MobileHeader'
 import MobileTabBar from '@/components/mobile/MobileTabBar'
-import { useConversation, useSendMessage, useConversationPartners, useMarkConversationRead } from '@/hooks/useData'
+import { useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useMessagingRealtime } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
@@ -185,29 +185,9 @@ export default function MessagesPage() {
   }, [sortedContacts.length])
 
   // Realtime messages : écoute même sans conversation ouverte pour mettre
-  // à jour la liste (tri + badge non-lus) dès qu'un message arrive.
-  useEffect(() => {
-    if (!user) return
-    // Filtre côté serveur sur receiver_id : sans lui, ce canal se
-    // déclenchait sur CHAQUE message envoyé par N'IMPORTE QUEL utilisateur
-    // de la plateforme (invalidation inutile pour tout le monde). Pas de
-    // dépendance à selectedUserId non plus : rien dans le handler ne le lit,
-    // recréer le canal à chaque changement de conversation ne faisait que
-    // rouvrir une souscription identique.
-    const channel = supabase.channel(`msgs-${user.id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `receiver_id=eq.${user.id}` }, (payload: any) => {
-        qc.invalidateQueries({ queryKey: ['messages'] })
-        qc.invalidateQueries({ queryKey: ['conversation-partners'] })
-        // Si la personne qui vient de nous écrire avait été masquée (suite à
-        // une suppression de conversation de notre côté), on la ré-affiche :
-        // un nouveau message mérite de réapparaître dans le feed, même si on
-        // ne lui a pas encore répondu nous-même.
-        const m = payload.new
-        if (m) unhideContact(m.sender_id)
-      })
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [user])
+  // à jour la liste (tri + badge non-lus) dès qu'un message arrive. Logique
+  // partagée avec DoctorDashboard.tsx, voir useMessagingRealtime.
+  useMessagingRealtime(user?.id, 'msgs', unhideContact)
 
   // Scroll au dernier message
   useEffect(() => {

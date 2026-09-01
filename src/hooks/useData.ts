@@ -1,4 +1,5 @@
 // src/hooks/useData.ts
+import { useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/authStore'
@@ -1126,6 +1127,36 @@ export function useMarkConversationRead() {
 // masquage 100% personnel (localStorage, voir hiddenIds/hiddenConvIds dans
 // MessagesPage.tsx et DoctorDashboard.tsx) : ça ne retire rien à l'autre
 // personne, qui garde tout son historique.
+
+// Abonnement temps réel aux nouveaux messages reçus, partagé entre
+// MessagesPage.tsx (patient) et DoctorDashboard.tsx (médecin) — logique
+// identique dans les deux, seul le préfixe de canal changeait. Filtre côté
+// serveur sur receiver_id : sans lui, ce canal se déclenchait sur CHAQUE
+// message envoyé par n'importe quel utilisateur de la plateforme, pas
+// seulement ceux adressés à cet utilisateur.
+export function useMessagingRealtime(
+  userId: string | undefined,
+  channelPrefix: string,
+  onNewMessage: (senderId: string) => void
+) {
+  const qc = useQueryClient()
+  useEffect(() => {
+    if (!userId) return
+    const channel = supabase.channel(`${channelPrefix}-${userId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `receiver_id=eq.${userId}` }, (payload: any) => {
+        qc.invalidateQueries({ queryKey: ['messages'] })
+        qc.invalidateQueries({ queryKey: ['conversation-partners'] })
+        // Si la personne qui vient d'écrire avait été masquée (suite à une
+        // suppression de conversation de notre côté), on la ré-affiche : un
+        // nouveau message mérite de réapparaître dans le feed, même sans
+        // réponse de notre part.
+        const m = payload.new
+        if (m) onNewMessage(m.sender_id)
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [userId])
+}
 
 export function useNotifications() {
   const { user } = useAuthStore()

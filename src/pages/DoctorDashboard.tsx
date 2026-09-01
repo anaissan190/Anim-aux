@@ -13,7 +13,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
 import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useReplyToReview, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useDoctorServices, useAddDoctorService, useDeleteDoctorService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments, useInviteClinicSecretary, useClinicStaffList, useExportMyData,
   useDoctorVerificationDocuments, useUploadVerificationDocument, useDeleteVerificationDocument,
-  usePushSubscriptionStatus, useEnablePushNotifications, useDisablePushNotifications } from '@/hooks/useData'
+  usePushSubscriptionStatus, useEnablePushNotifications, useDisablePushNotifications, useMessagingRealtime } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { PRACTITIONER_TYPES } from '@/lib/practitionerTypes'
 import { SPECIES_EMOJI, PRACTICE_SPECIES_OPTIONS } from '@/lib/animalSpecies'
@@ -445,25 +445,8 @@ export default function DoctorDashboard() {
     c.name.toLowerCase().includes(searchQuery.trim().toLowerCase())
   )
 
-  useEffect(() => {
-    if (!user) return
-    // Filtre côté serveur sur receiver_id : sans lui, ce canal se
-    // déclenchait sur CHAQUE message envoyé par n'importe quel utilisateur
-    // de la plateforme, pas seulement ceux adressés à ce praticien.
-    const channel = supabase.channel(`doctor-msgs-${user.id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `receiver_id=eq.${user.id}` }, (payload: any) => {
-        qc.invalidateQueries({ queryKey: ['messages'] })
-        qc.invalidateQueries({ queryKey: ['conversation-partners'] })
-        // Si le patient qui vient d'écrire avait été masqué (suite à une
-        // suppression de conversation de notre côté), on le ré-affiche : un
-        // nouveau message mérite de réapparaître dans le feed, même sans
-        // réponse de notre part.
-        const m = payload.new
-        if (m && m.receiver_id === user.id) unhideConversation(m.sender_id)
-      })
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [user])
+  // Logique partagée avec MessagesPage.tsx, voir useMessagingRealtime.
+  useMessagingRealtime(user?.id, 'doctor-msgs', unhideConversation)
   const [newService, setNewService] = useState({ name: '', price: '', duration: '' })
   const [addingService, setAddingService] = useState(false)
 
