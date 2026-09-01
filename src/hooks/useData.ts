@@ -505,9 +505,13 @@ export function useDoctorAppointments(doctorId?: string) {
       // sur "Liste RDV"). Même bug que useDoctorPatientAnimals/
       // useClinicAppointments : deux requêtes séparées (RDV, puis profils
       // des patients via `profiles`, autorisé) fusionnées côté client.
+      // Colonnes explicites plutôt que "*" : `notes` (notes internes du
+      // médecin) n'est lu nulle part dans l'UI — aucune raison de le
+      // renvoyer, et la colonne est de toute façon verrouillée en lecture
+      // côté base (migration 080) pour le rôle authenticated.
       const { data, error } = await supabase
         .from('appointments')
-        .select('*, appointment_animals(animals(id, name, species, avatar_url))')
+        .select('id, patient_id, doctor_id, start_at, end_at, status, reason, confirmed_by_patient_at, appointment_animals(animals(id, name, species, avatar_url))')
         .eq('doctor_id', doctorId!)
         .order('start_at', { ascending: true })
       if (error) throw error
@@ -548,10 +552,13 @@ export function useCreateAppointment() {
       documents?: { file_name: string; file_url: string; file_type: string }[]
     }) => {
       const { animal_ids, documents, ...apptData } = data
+      // .select('id') plutôt que .select() ("*" implicite) : seul appt.id
+      // sert plus bas, et "*" inclurait notes (verrouillée en lecture,
+      // migration 080) alors qu'elle est toujours vide à la création.
       const { data: appt, error } = await supabase
         .from('appointments')
         .insert({ ...apptData, patient_id: user!.id, status: 'confirmed' })
-        .select()
+        .select('id')
         .single()
       if (error) throw error
 
@@ -1726,9 +1733,11 @@ export function useClinicAppointments(clinicId?: string) {
       // est bloqué par le RLS pour un praticien qui n'est ni l'utilisateur
       // ni admin (revient null silencieusement). Donc : deux requêtes
       // séparées puis fusion côté client, comme pour "Mes patients".
+      // Colonnes explicites plutôt que "*" : voir useDoctorAppointments,
+      // même raison (notes verrouillée en lecture, migration 080).
       const { data, error } = await supabase
         .from('appointments')
-        .select(`*,
+        .select(`id, patient_id, doctor_id, start_at, end_at, status, reason, confirmed_by_patient_at,
           doctors!inner(specialty, user_id, profiles!doctors_user_id_profiles_fkey(first_name, last_name)),
           appointment_animals(animals(id, name, species))
         `)
