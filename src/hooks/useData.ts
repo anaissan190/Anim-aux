@@ -432,9 +432,13 @@ export function usePatientAppointments() {
   return useQuery({
     queryKey: ['appointments', 'patient', user?.id],
     queryFn: async () => {
+      // Colonnes explicites plutôt que "*" : `notes` (notes internes du
+      // médecin, voir 001_schema.sql) ne doit jamais transiter jusqu'au
+      // navigateur du patient, même si rien ne l'affiche à l'écran —
+      // "*" l'incluait quand même dans la réponse réseau.
       const { data, error } = await supabase
         .from('appointments')
-        .select('*, doctors!inner(id, specialty, city, profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url)), reviews(id, rating, comment)')
+        .select('id, patient_id, doctor_id, start_at, end_at, status, reason, confirmed_by_patient_at, doctors!inner(id, specialty, city, profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url)), reviews(id, rating, comment)')
         .eq('patient_id', user!.id)
         .order('start_at', { ascending: false })
       if (error) throw error
