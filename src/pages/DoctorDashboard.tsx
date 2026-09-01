@@ -84,12 +84,14 @@ export default function DoctorDashboard() {
   const [profileForm, setProfileForm] = useState({
     first_name: '', last_name: '', specialty: '', city: '', address: '', bio: '', phone: '',
     accepted_species: [] as string[], home_visit: false,
-    // Adresse et contact d'urgence PERSONNELS (table profiles, distincts de
-    // l'adresse du cabinet ci-dessus) — présents sur /profil (patient) mais
-    // jusqu'ici jamais exposés ici, alors qu'un médecin y a accès en
-    // naviguant directement vers /profil (le lien "Mon profil" de la
-    // navbar l'évite en pointant vers cet onglet, mais la route existe).
-    home_address: '', emergency_contact_name: '', emergency_contact_phone: '',
+    // Adresse personnelle (table profiles, distincte de l'adresse du
+    // cabinet ci-dessus) — présente sur /profil (patient) mais jusqu'ici
+    // jamais exposée ici, alors qu'un médecin y a accès en naviguant
+    // directement vers /profil (le lien "Mon profil" de la navbar l'évite
+    // en pointant vers cet onglet, mais la route existe). Le contact
+    // d'urgence a été ajouté en même temps puis retiré : jugé sans
+    // pertinence côté praticien.
+    home_address: '',
   })
   const [profileError, setProfileError] = useState('')
   const [profileSaved, setProfileSaved] = useState(false)
@@ -217,8 +219,6 @@ export default function DoctorDashboard() {
       accepted_species: doctor.accepted_species ?? [],
       home_visit: doctor.home_visit ?? false,
       home_address: profile.address ?? '',
-      emergency_contact_name: profile.emergency_contact_name ?? '',
-      emergency_contact_phone: profile.emergency_contact_phone ?? '',
     })
     profileInitialized.current = true
   }, [profile, doctor])
@@ -242,8 +242,6 @@ export default function DoctorDashboard() {
           last_name: profileForm.last_name,
           phone: profileForm.phone,
           address: profileForm.home_address,
-          emergency_contact_name: profileForm.emergency_contact_name,
-          emergency_contact_phone: profileForm.emergency_contact_phone,
         }),
         updateDoctorInfo.mutateAsync({
           specialty: profileForm.specialty,
@@ -1710,24 +1708,6 @@ export default function DoctorDashboard() {
                   <input className="input" value={profileForm.home_address}
                     onChange={e => setProfileForm(f => ({ ...f, home_address: e.target.value }))}
                     placeholder="12 rue des Lilas, 75001 Paris" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-1">🚨 Contact d'urgence</h3>
-                  <p className="text-xs text-gray-400 mb-3">Facultatif — une personne à prévenir en cas d'urgence.</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
-                      <input className="input" value={profileForm.emergency_contact_name}
-                        onChange={e => setProfileForm(f => ({ ...f, emergency_contact_name: e.target.value }))}
-                        placeholder="Ex: Marie Dupont" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
-                      <input className="input" value={profileForm.emergency_contact_phone}
-                        onChange={e => setProfileForm(f => ({ ...f, emergency_contact_phone: e.target.value }))}
-                        placeholder="06 00 00 00 00" type="tel" />
-                    </div>
-                  </div>
                 </div>
                 {profileError && <p className="text-red-500 text-sm">{profileError}</p>}
                 {profileSaved && <p className="text-sage-600 text-sm">✓ Informations enregistrées.</p>}
