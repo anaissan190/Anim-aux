@@ -64,6 +64,17 @@ Le schéma est dans `supabase/migrations/001_schema.sql`. 17 tables confirmées 
 
 Les requêtes directes sur `users` et `profiles` depuis le client **causent des timeouts** à cause de politiques RLS récursives. Toujours passer par le RPC `get_my_user_data()` pour récupérer le rôle et le profil de l'utilisateur connecté. Les fonctions `is_doctor()` et `get_my_doctor_id()` sont utilisées dans les politiques RLS pour éviter les sous-requêtes récursives.
 
+### Edge Functions déclenchées par pg_cron
+
+`supabase/functions/send-reminders/` (rappels RDV 24h, vaccin, avis) est appelée par un job `pg_cron` (`cron.job`, `select jobid, schedule, command from cron.job;`) via `net.http_post`, avec un secret custom (`CRON_SECRET`) en Authorization Bearer — **pas** un JWT Supabase, contrairement aux 4 autres Edge Functions déclenchées par trigger SQL (`send-appointment-cancellation`, `send-appointment-reschedule`, `send-push`, `send-waitlist-email`) qui utilisent `SUPABASE_SERVICE_ROLE_KEY`, un vrai JWT.
+
+Trois pièges découverts le 03/09/2026, tous invisibles dans `cron.job_run_details` (qui reste "healthy" quoi qu'il arrive — il ne reflète que l'exécution du SQL, jamais la réponse HTTP réelle) — **toujours diagnostiquer via `select * from net._http_response order by created desc limit 5;`** :
+1. **Vérification JWT de la plateforme** : par défaut, Supabase exige un vrai JWT dans `Authorization`. Un secret custom comme `CRON_SECRET` échoue ce contrôle *avant* même d'atteindre le code de la fonction (401 `UNAUTHORIZED_INVALID_JWT_FORMAT`). Fix : Edge Functions → `send-reminders` → Settings → désactiver **"Verify JWT with legacy secret"**.
+2. **Timeout de `net.http_post`** : défaut/hardcodé à 1000ms dans `cron.job.command`, trop court pour une fonction qui boucle sur plusieurs envois (Resend + SMS OVH). Fix : `select cron.alter_job(job_id := 1, command := $$ ... timeout_milliseconds:=30000 ... $$);`.
+3. **`CRON_SECRET` désynchronisé** entre la valeur dans `cron.job.command` (en clair dans le SQL) et la valeur enregistrée dans Edge Functions → Secrets — les deux doivent être identiques mot pour mot.
+
+Si un futur job cron+Edge Function silencieusement "ne fait rien", vérifier ces trois points dans l'ordre avant de chercher un bug côté code applicatif.
+
 ### Alias de chemin
 
 `@/` pointe vers `src/` (configuré dans `vite.config.ts`). Toujours utiliser les imports `@/`, pas les chemins relatifs.
