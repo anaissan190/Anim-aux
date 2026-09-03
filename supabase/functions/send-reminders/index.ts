@@ -99,16 +99,23 @@ Deno.serve(async (req) => {
   const to = new Date(from)
   to.setHours(to.getHours() + 1)
 
-  const { data: appointments } = await supabase
+  const { data: appointments, error: apptError } = await supabase
     .from('appointments')
     .select(`
       id, start_at, reason, patient_id,
       patient:users!patient_id(email, profiles(first_name, last_name, phone)),
-      doctors!inner(profiles!inner(first_name, last_name, specialty))
+      doctors!inner(profiles!doctors_user_id_profiles_fkey(first_name, last_name, specialty))
     `)
     .gte('start_at', from.toISOString())
     .lt('start_at', to.toISOString())
     .eq('status', 'confirmed')
+  // Erreur PostgREST (ex: embed ambigu) auparavant silencieusement avalée
+  // (seul `data` était déstructuré) : `appointments ?? []` masquait tout
+  // échec de requête en "0 rappel à envoyer", indiscernable d'une absence
+  // légitime de RDV. Voir CLAUDE.md pour l'historique du hint d'embed
+  // profiles!doctors_user_id_profiles_fkey, nécessaire ici comme partout
+  // ailleurs dans le code (migration 042).
+  if (apptError) console.error('appointments query error', apptError)
 
   const resendKey = Deno.env.get('RESEND_API_KEY')
 
@@ -190,7 +197,7 @@ Deno.serve(async (req) => {
   // mais ces deux bornes ne le faisaient pas).
   const parisDateStr = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: 'Europe/Paris' })
 
-  const { data: dueVaccines } = await supabase
+  const { data: dueVaccines, error: vaccError } = await supabase
     .from('vaccines')
     .select(`
       id, name, next_due_date, animal_id,
@@ -200,6 +207,7 @@ Deno.serve(async (req) => {
     .is('reminder_sent_at', null)
     .lte('next_due_date', parisDateStr(weekAhead))
     .gte('next_due_date', parisDateStr(new Date()))
+  if (vaccError) console.error('vaccines query error', vaccError)
 
   let vaccineReminders = 0
   for (const vaccine of dueVaccines ?? []) {
@@ -262,17 +270,18 @@ Deno.serve(async (req) => {
   const reviewTo = new Date(reviewFrom)
   reviewTo.setHours(reviewTo.getHours() + 1)
 
-  const { data: completedAppointments } = await supabase
+  const { data: completedAppointments, error: reviewApptError } = await supabase
     .from('appointments')
     .select(`
       id, doctor_id, patient_id,
       patient:users!patient_id(email, profiles(first_name, phone)),
-      doctors!inner(profiles!inner(first_name, last_name))
+      doctors!inner(profiles!doctors_user_id_profiles_fkey(first_name, last_name))
     `)
     .eq('status', 'completed')
     .is('review_reminder_sent_at', null)
     .gte('completed_at', reviewFrom.toISOString())
     .lt('completed_at', reviewTo.toISOString())
+  if (reviewApptError) console.error('completed appointments query error', reviewApptError)
 
   let reviewReminders = 0
   for (const appt of completedAppointments ?? []) {
@@ -316,7 +325,14 @@ Deno.serve(async (req) => {
     reviewReminders++
   }
 
-  return new Response(JSON.stringify({ sent, vaccineReminders, reviewReminders }), {
+  return new Response(JSON.stringify({
+    sent, vaccineReminders, reviewReminders,
+    // Erreurs éventuelles des 3 requêtes ci-dessus, exposées ici en plus de
+    // console.error (visible dans net._http_response sans avoir à ouvrir
+    // les Logs de la fonction — pratique pour diagnostiquer un cron qui
+    // tourne "sans erreur" mais n'envoie rien).
+    errors: { apptError: apptError?.message, vaccError: vaccError?.message, reviewApptError: reviewApptError?.message },
+  }), {
     headers: { 'Content-Type': 'application/json' }
   })
 })
