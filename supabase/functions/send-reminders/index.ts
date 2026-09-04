@@ -104,7 +104,7 @@ Deno.serve(async (req) => {
     .select(`
       id, start_at, reason, patient_id,
       patient:users!patient_id(email, profiles(first_name, last_name, phone)),
-      doctors!inner(profiles!doctors_user_id_profiles_fkey(first_name, last_name, specialty))
+      doctors!inner(specialty, profiles!doctors_user_id_profiles_fkey(first_name, last_name))
     `)
     .gte('start_at', from.toISOString())
     .lt('start_at', to.toISOString())
@@ -124,6 +124,7 @@ Deno.serve(async (req) => {
     const patientProfile = (appt.patient as any)?.profiles
     const patientEmail = (appt.patient as any)?.email
     const doctorProfile = (appt.doctors as any)?.profiles
+    const doctorSpecialty = (appt.doctors as any)?.specialty
     const doctorName = doctorProfile ? `Dr ${doctorProfile.first_name} ${doctorProfile.last_name}` : 'votre praticien'
 
     const dateStr = new Date(appt.start_at).toLocaleString('fr-FR', {
@@ -152,7 +153,7 @@ Deno.serve(async (req) => {
           <p>Bonjour ${patientProfile?.first_name ?? ''},</p>
           <p>Petit rappel : vous avez un rendez-vous demain.</p>
           <ul style="line-height: 1.8;">
-            <li><strong>Avec :</strong> ${doctorName}${doctorProfile?.specialty ? ` (${doctorProfile.specialty})` : ''}</li>
+            <li><strong>Avec :</strong> ${doctorName}${doctorSpecialty ? ` (${doctorSpecialty})` : ''}</li>
             <li><strong>Le :</strong> ${dateStr}</li>
             ${appt.reason ? `<li><strong>Motif :</strong> ${appt.reason}</li>` : ''}
           </ul>
