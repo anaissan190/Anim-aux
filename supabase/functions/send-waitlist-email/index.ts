@@ -42,11 +42,15 @@ Deno.serve(async (req) => {
     return new Response('Notification introuvable', { status: 404 })
   }
 
-  const { data: recipient } = await supabase
+  const { data: recipient, error: recipientError } = await supabase
     .from('users')
     .select('email')
     .eq('id', notification.user_id)
     .single()
+  // Erreur auparavant silencieusement avalée : sans elle, un vrai échec de
+  // requête se confondait avec "pas d'email trouvé", voir send-reminders
+  // (même piège, identifié le 04/09/2026).
+  if (recipientError) console.error('recipient query error', recipientError)
 
   const resendKey = Deno.env.get('RESEND_API_KEY')
   if (!resendKey || !recipient?.email) {

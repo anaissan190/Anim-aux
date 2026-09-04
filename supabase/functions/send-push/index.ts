@@ -47,10 +47,14 @@ Deno.serve(async (req) => {
     return new Response('Notification introuvable', { status: 404 })
   }
 
-  const { data: subscriptions } = await supabase
+  const { data: subscriptions, error: subsError } = await supabase
     .from('push_subscriptions')
     .select('id, endpoint, p256dh, auth')
     .eq('user_id', notification.user_id)
+  // Erreur auparavant silencieusement avalée : sans elle, un vrai échec de
+  // requête se confondait avec "aucun abonnement push", voir
+  // send-reminders (même piège, identifié le 04/09/2026).
+  if (subsError) console.error('push_subscriptions query error', subsError)
 
   if (!subscriptions || subscriptions.length === 0) {
     return new Response(JSON.stringify({ sent: 0 }), { headers: { 'Content-Type': 'application/json' } })
