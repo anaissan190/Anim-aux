@@ -122,6 +122,8 @@ export default function DoctorDashboard() {
   const updateClinic      = useUpdateClinic()
   const removeClinicMember = useRemoveClinicMember()
   const [removeMemberError, setRemoveMemberError] = useState('')
+  const [confirmRemoveMemberId, setConfirmRemoveMemberId] = useState<string | null>(null)
+  const [confirmDeleteServiceId, setConfirmDeleteServiceId] = useState<string | null>(null)
   const inviteSecretary = useInviteClinicSecretary()
   const [secretaryEmail, setSecretaryEmail] = useState('')
   const [secretaryInviteError, setSecretaryInviteError] = useState('')
@@ -798,8 +800,21 @@ export default function DoctorDashboard() {
                                   {service.price !== null ? `${service.price} €` : 'Sur devis'}
                                 </span>
                                 {(group.doctorId === doctor?.id || isClinicAdmin) && (
-                                  <button onClick={() => deleteClinicService.mutate({ id: service.id, clinicId: clinic.id })}
-                                    className="text-gray-300 hover:text-red-400 transition-colors text-lg">✕</button>
+                                  confirmDeleteServiceId === service.id ? (
+                                    <span className="flex items-center gap-2 text-xs">
+                                      <button
+                                        onClick={() => { deleteClinicService.mutate({ id: service.id, clinicId: clinic.id }); setConfirmDeleteServiceId(null) }}
+                                        className="text-red-500 hover:underline font-semibold">
+                                        Supprimer
+                                      </button>
+                                      <button onClick={() => setConfirmDeleteServiceId(null)} className="text-gray-400 hover:underline">
+                                        Annuler
+                                      </button>
+                                    </span>
+                                  ) : (
+                                    <button onClick={() => setConfirmDeleteServiceId(service.id)}
+                                      className="text-gray-300 hover:text-red-400 transition-colors text-lg">✕</button>
+                                  )
                                 )}
                               </div>
                             </div>
@@ -1114,8 +1129,16 @@ export default function DoctorDashboard() {
                           }
                           setBlockedError('')
                           try {
-                            const start = new Date(blockedForm.start_date); start.setHours(0, 0, 0, 0)
-                            const end = new Date(blockedForm.end_date); end.setHours(23, 59, 59, 999)
+                            // new Date("YYYY-MM-DD") est interprété comme minuit UTC,
+                            // pas minuit local — pour un fuseau à l'ouest de
+                            // Greenwich, .setHours(0,0,0,0) (heure locale) atterrit
+                            // alors sur la veille. On construit la date à partir des
+                            // composants explicites (heure locale dès le départ),
+                            // même précaution que src/lib/slots.ts.
+                            const [sy, sm, sd] = blockedForm.start_date.split('-').map(Number)
+                            const [ey, em, ed] = blockedForm.end_date.split('-').map(Number)
+                            const start = new Date(sy, sm - 1, sd, 0, 0, 0, 0)
+                            const end = new Date(ey, em - 1, ed, 23, 59, 59, 999)
                             await createBlockedSlot.mutateAsync({
                               doctor_id: doctor.id,
                               start_at: start.toISOString(),
@@ -1279,19 +1302,33 @@ export default function DoctorDashboard() {
                               <span className="ml-auto text-xs bg-sage-100 text-sage-700 px-2 py-0.5 rounded-full">Admin</span>
                             ) : (
                               isClinicAdmin && (
-                                <button
-                                  onClick={async () => {
-                                    setRemoveMemberError('')
-                                    try {
-                                      await removeClinicMember.mutateAsync({ clinicMemberId: m.id, clinicId: clinic.id })
-                                    } catch (e: any) {
-                                      setRemoveMemberError(e.message ?? 'Erreur lors du retrait du membre.')
-                                    }
-                                  }}
-                                  disabled={removeClinicMember.isPending}
-                                  className="ml-auto text-xs text-red-500 hover:underline">
-                                  Retirer
-                                </button>
+                                confirmRemoveMemberId === m.id ? (
+                                  <span className="ml-auto flex flex-col items-end gap-0.5 text-xs">
+                                    <button
+                                      onClick={async () => {
+                                        setRemoveMemberError('')
+                                        try {
+                                          await removeClinicMember.mutateAsync({ clinicMemberId: m.id, clinicId: clinic.id })
+                                          setConfirmRemoveMemberId(null)
+                                        } catch (e: any) {
+                                          setRemoveMemberError(e.message ?? 'Erreur lors du retrait du membre.')
+                                        }
+                                      }}
+                                      disabled={removeClinicMember.isPending}
+                                      className="text-red-500 hover:underline font-semibold">
+                                      Confirmer le retrait
+                                    </button>
+                                    <button onClick={() => setConfirmRemoveMemberId(null)} className="text-gray-400 hover:underline">
+                                      Annuler
+                                    </button>
+                                  </span>
+                                ) : (
+                                  <button
+                                    onClick={() => { setRemoveMemberError(''); setConfirmRemoveMemberId(m.id) }}
+                                    className="ml-auto text-xs text-red-500 hover:underline">
+                                    Retirer
+                                  </button>
+                                )
                               )
                             )}
                           </div>

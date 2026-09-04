@@ -49,6 +49,12 @@ export default function LoginPage() {
       authError = result.error
     } catch (e: any) {
       setError(`Erreur réseau : ${e.message}`)
+      // Manquait ici (présent sur les deux autres branches d'erreur plus
+      // bas) : sans ça, un retry après un timeout/coupure réseau réutilise
+      // le même token Turnstile à usage unique et échoue systématiquement
+      // avec une erreur captcha, même avec les bons identifiants.
+      setCaptchaToken('')
+      setTurnstileKey(k => k + 1)
       setLoading(false)
       return
     }
@@ -126,6 +132,13 @@ export default function LoginPage() {
       } else {
         navigate('/dashboard/patient', { replace: true })
       }
+    } else {
+      // Ni authError ni data.user : cas normalement jamais renvoyé par
+      // Supabase, mais laissait jusqu'ici l'utilisateur bloqué sur le
+      // formulaire sans aucun message. Filet de sécurité.
+      setError('Une erreur inattendue est survenue. Merci de réessayer.')
+      setCaptchaToken('')
+      setTurnstileKey(k => k + 1)
     }
 
     setLoading(false)

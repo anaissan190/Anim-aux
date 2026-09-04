@@ -40,10 +40,19 @@ describe('useMyClinic', () => {
   })
 
   it('renvoie null (pas une erreur) si le praticien n\'a pas de cabinet', async () => {
-    vi.mocked(supabase.from).mockReturnValue(createQueryBuilderMock({ data: null, error: { message: 'no rows' } }))
+    // PGRST116 = code PostgREST pour "single() sur 0 ligne" — le cas
+    // légitime "pas de cabinet", à distinguer d'une vraie erreur réseau/RLS.
+    vi.mocked(supabase.from).mockReturnValue(createQueryBuilderMock({ data: null, error: { message: 'no rows', code: 'PGRST116' } }))
     const { result } = renderHook(() => useMyClinic('doc-1'), { wrapper })
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(result.current.data).toBeNull()
+  })
+
+  it('propage une vraie erreur (réseau/RLS) au lieu de la confondre avec "pas de cabinet"', async () => {
+    vi.mocked(supabase.from).mockReturnValue(createQueryBuilderMock({ data: null, error: { message: 'network error', code: 'PGRST000' } }))
+    const { result } = renderHook(() => useMyClinic('doc-1'), { wrapper })
+    await waitFor(() => expect(result.current.isError).toBe(true))
+    expect(result.current.data).toBeUndefined()
   })
 })
 

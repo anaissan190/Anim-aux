@@ -1,7 +1,7 @@
 // src/pages/BookPage.tsx
 import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { useDoctor, useAnimals } from '@/hooks/useData'
+import { useDoctor, useAnimals, useAvailabilities } from '@/hooks/useData'
 import { useCreateAppointment, useMyWaitlistEntry, useJoinWaitlist, useLeaveWaitlist } from '@/hooks/useData'
 import { supabase } from '@/lib/supabase'
 import Navbar from '@/components/ui/Navbar'
@@ -18,6 +18,7 @@ export default function BookPage() {
   const navigate = useNavigate()
   const { data: doctor } = useDoctor(doctorId!)
   const { data: animals = [] } = useAnimals()
+  const { data: availabilities = [] } = useAvailabilities(doctorId!)
   const createAppt = useCreateAppointment()
   const { data: waitlistEntry } = useMyWaitlistEntry(doctorId)
   const joinWaitlist = useJoinWaitlist()
@@ -86,7 +87,20 @@ export default function BookPage() {
   async function confirm() {
     if (!selectedSlot || !doctorId) return
     const start = selectedSlot
-    const end   = addMinutes(start, 30)
+    // Durée réelle du créneau choisi plutôt qu'une constante de 30 min :
+    // un praticien peut configurer des créneaux de 45/60 min
+    // (slot_duration_minutes par règle de disponibilité), et cette durée
+    // se propage ensuite partout (agenda, export .ics, reports).
+    const startMinutes = start.getHours() * 60 + start.getMinutes()
+    const matchingRule = availabilities.find((a: any) => {
+      if (a.day_of_week !== start.getDay()) return false
+      const [sh, sm] = a.start_time.split(':').map(Number)
+      const [eh, em] = a.end_time.split(':').map(Number)
+      const ruleStart = sh * 60 + sm
+      const ruleEnd = eh * 60 + em
+      return startMinutes >= ruleStart && startMinutes < ruleEnd
+    })
+    const end = addMinutes(start, matchingRule?.slot_duration_minutes ?? 30)
     await createAppt.mutateAsync({
       doctor_id: doctorId,
       start_at:  start.toISOString(),

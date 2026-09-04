@@ -30,7 +30,6 @@ const RemindersPage = lazy(() => import('@/pages/RemindersPage'))
 const AnimalsPage = lazy(() => import('@/pages/AnimalsPage'))
 const RendezVousPage = lazy(() => import('@/pages/RendezVousPage'))
 const ProfilPage = lazy(() => import('@/pages/ProfilPage'))
-const LogoPreview = lazy(() => import('@/pages/LogoPreview'))
 const LegalPage = lazy(() => import('@/pages/LegalPage'))
 const ConfirmPresencePage = lazy(() => import('@/pages/ConfirmPresencePage'))
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
@@ -50,9 +49,15 @@ function RouteFallback() {
 function HomeRoute() {
   const { user } = useAuthStore()
   if (user) {
+    // is_admin d'abord, comme sur LoginPage : un compte is_admin sans usage
+    // praticien/patient réel (ex. contact.animeaux@gmail.com, role='patient'
+    // par défaut) atterrissait sur /dashboard/patient au lieu de
+    // /dashboard/admin en repassant par ici (icône PWA, qui pointe toujours
+    // vers "/").
     const dashboardPath =
-      user.role === 'doctor'    ? '/dashboard/doctor' :
-      user.role === 'secretary' ? '/dashboard/secretariat' :
+      user.is_admin              ? '/dashboard/admin' :
+      user.role === 'doctor'     ? '/dashboard/doctor' :
+      user.role === 'secretary'  ? '/dashboard/secretariat' :
       '/dashboard/patient'
     return <Navigate to={dashboardPath} replace />
   }
@@ -102,9 +107,19 @@ export default function App() {
             setUser({ ...fallbackUser, role: data.role ?? 'patient', is_admin: data.is_admin ?? false })
             setProfile(data.profile ?? null)
           } else {
-            // Timeout ou RPC indisponible même après retry : on ne bloque jamais l'utilisateur
-            setUser(fallbackUser)
-            setProfile(null)
+            // Timeout ou RPC indisponible même après retry : on ne bloque
+            // jamais l'utilisateur, mais on ne doit pas non plus l'écraser
+            // en simple "patient" — un médecin/admin avec une connexion
+            // instable se retrouvait éjecté de son propre dashboard
+            // (ProtectedRoute le renvoie vers "/" faute du bon rôle) alors
+            // que sa session est valide. Le store persisté (localStorage)
+            // garde le dernier rôle connu pour ce même compte : on le
+            // réutilise plutôt que de deviner "patient" par défaut, et on
+            // ne retombe sur le fallback générique que pour une toute
+            // première connexion sans aucun historique local.
+            const persisted = useAuthStore.getState().user
+            setUser(persisted && persisted.id === session.user.id ? persisted : fallbackUser)
+            setProfile(persisted && persisted.id === session.user.id ? useAuthStore.getState().profile : null)
           }
         } else {
           setUser(null)
@@ -179,7 +194,6 @@ export default function App() {
         <Route path="/profil" element={
           <ProtectedRoute><ProfilPage /></ProtectedRoute>
         } />
-        <Route path="/logo-preview" element={<LogoPreview />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       </Suspense>

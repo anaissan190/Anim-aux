@@ -64,21 +64,33 @@ export default function RegisterPage() {
     setLoading(true)
     const selectedType = PRACTITIONER_TYPES.find(p => p.id === form.practitioner_type)
 
-    const { error } = await supabase.auth.signUp({
-      email: form.email,
-      password: form.password,
-      options: {
-        captchaToken,
-        data: {
-          first_name:        form.first_name,
-          last_name:         form.last_name,
-          role:              form.role,
-          specialty:         selectedType?.label ?? '',
-          practitioner_type: form.practitioner_type,
-          terms_accepted:    acceptedTerms,
+    let error: any
+    try {
+      ({ error } = await supabase.auth.signUp({
+        email: form.email,
+        password: form.password,
+        options: {
+          captchaToken,
+          data: {
+            first_name:        form.first_name,
+            last_name:         form.last_name,
+            role:              form.role,
+            specialty:         selectedType?.label ?? '',
+            practitioner_type: form.practitioner_type,
+            terms_accepted:    acceptedTerms,
+          }
         }
-      }
-    })
+      }))
+    } catch (e: any) {
+      // Sans ce try/catch, une coupure réseau/timeout laissait le bouton
+      // bloqué sur "Création..." indéfiniment (setLoading(false) jamais
+      // atteint) et le token Turnstile à usage unique jamais réinitialisé.
+      setLoading(false)
+      setGlobalError(`Erreur réseau : ${e.message}`)
+      setCaptchaToken('')
+      setTurnstileKey(k => k + 1)
+      return
+    }
     setLoading(false)
     if (error) {
       setGlobalError(error.message)

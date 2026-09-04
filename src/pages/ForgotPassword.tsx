@@ -17,10 +17,22 @@ export default function ForgotPassword() {
     e.preventDefault()
     setError('')
     setLoading(true)
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      captchaToken,
-      redirectTo: `${window.location.origin}/reset-password`,
-    })
+    let resetError: any
+    try {
+      ({ error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        captchaToken,
+        redirectTo: `${window.location.origin}/reset-password`,
+      }))
+    } catch (e: any) {
+      // Sans ce try/catch, une coupure réseau/timeout laissait le bouton
+      // bloqué sur "Envoi..." indéfiniment et le token Turnstile à usage
+      // unique jamais réinitialisé.
+      setLoading(false)
+      setError(`Erreur réseau : ${e.message}`)
+      setCaptchaToken('')
+      setTurnstileKey(k => k + 1)
+      return
+    }
     setLoading(false)
     if (resetError) {
       setError(resetError.message)

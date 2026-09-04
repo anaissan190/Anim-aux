@@ -1,5 +1,5 @@
 // src/hooks/useData.ts
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/authStore'
@@ -866,7 +866,14 @@ export function useUpdateAppointmentStatus() {
         .eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['appointments'] }),
+    // ['slots']/['clinic_appointments'] manquaient : un patient annulé/
+    // no-show ne libérait pas le créneau immédiatement dans le cache — il
+    // restait affiché comme indisponible jusqu'à expiration naturelle.
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['appointments'] })
+      qc.invalidateQueries({ queryKey: ['slots'] })
+      qc.invalidateQueries({ queryKey: ['clinic_appointments'] })
+    },
   })
 }
 
@@ -1015,10 +1022,11 @@ export function useCreateReview() {
       })
       if (error) throw error
     },
-    onSuccess: (_, vars) => {
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['appointments'] })
       qc.invalidateQueries({ queryKey: ['reviews'] })
-      qc.invalidateQueries({ queryKey: ['my-review', vars.doctorId] })
+      // ['my-review', doctorId] retiré : aucun useQuery n'utilise cette clé,
+      // c'était un no-op silencieux.
     },
   })
 }
@@ -1140,6 +1148,15 @@ export function useMessagingRealtime(
   onNewMessage: (senderId: string) => void
 ) {
   const qc = useQueryClient()
+  // Ref plutôt que dépendance directe : l'effet ne doit se ré-abonner que
+  // si userId change, mais doit toujours appeler la DERNIÈRE version de
+  // onNewMessage (ex: unhideContact, qui ferme sur hiddenIds) — sinon un
+  // message arrivant après que la liste masquée ait changé retombe sur une
+  // version obsolète du callback et le "révéler à l'arrivée d'un message"
+  // ne se déclenche jamais.
+  const onNewMessageRef = useRef(onNewMessage)
+  onNewMessageRef.current = onNewMessage
+
   useEffect(() => {
     if (!userId) return
     const channel = supabase.channel(`${channelPrefix}-${userId}`)
@@ -1151,7 +1168,7 @@ export function useMessagingRealtime(
         // nouveau message mérite de réapparaître dans le feed, même sans
         // réponse de notre part.
         const m = payload.new
-        if (m) onNewMessage(m.sender_id)
+        if (m) onNewMessageRef.current(m.sender_id)
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
@@ -1575,7 +1592,12 @@ export function useDeleteAnimalDocument() {
       const { error } = await supabase.from('animal_documents').delete().eq('id', id)
       if (error) throw error
     },
-    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['animal_documents', vars.animal_id] }),
+    // ['patient-doctor-documents'] manquait (présent sur useCreateAnimalDocument) :
+    // le document supprimé restait visible dans la vue agrégée côté médecin.
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['animal_documents', vars.animal_id] })
+      qc.invalidateQueries({ queryKey: ['patient-doctor-documents'] })
+    },
   })
 }
 
@@ -1590,7 +1612,15 @@ export function useMyClinic(doctorId?: string) {
         .select('clinic_id, clinics(id, name, address, city, phone, logo_url, invite_code, owner_id)')
         .eq('doctor_id', doctorId!)
         .single()
-      if (error) return null
+      // PGRST116 = aucune ligne ("single()" sur 0 résultat) : cas légitime
+      // "ce médecin n'a pas de cabinet". Toute autre erreur (réseau, RLS,
+      // timeout) était traitée pareil avant ce correctif — un blip réseau
+      // faisait passer un médecin membre d'un cabinet pour un médecin sans
+      // cabinet, au lieu de laisser TanStack Query réessayer/signaler l'échec.
+      if (error) {
+        if (error.code === 'PGRST116') return null
+        throw error
+      }
       return (data?.clinics ?? null) as any
     },
     enabled: !!doctorId,
@@ -2027,8 +2057,10 @@ export function useUpdateProfile() {
       return data
     },
     onSuccess: (data) => {
+      // setProfile(data) est la vraie source de vérité lue partout (store
+      // Zustand) — aucun useQuery(['profile']) n'existe dans le code,
+      // l'invalidation qui était ici ne faisait donc rien.
       setProfile(data)
-      qc.invalidateQueries({ queryKey: ['profile'] })
     },
   })
 }
@@ -2145,7 +2177,12 @@ export function useDisablePushNotifications() {
       const registration = await navigator.serviceWorker.ready
       const subscription = await registration.pushManager.getSubscription()
       if (!subscription) return
-      await supabase.from('push_subscriptions').delete().eq('endpoint', subscription.endpoint)
+      // Erreur non vérifiée auparavant : si la suppression échouait (RLS,
+      // réseau), on désabonnait quand même côté navigateur — la ligne
+      // restait en base, et un futur envoi de rappel tentait de livrer vers
+      // un endpoint mort.
+      const { error } = await supabase.from('push_subscriptions').delete().eq('endpoint', subscription.endpoint)
+      if (error) throw error
       await subscription.unsubscribe()
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['push-subscription-status'] }),
