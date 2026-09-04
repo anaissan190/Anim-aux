@@ -62,6 +62,20 @@ function generateLoginIdentifier() {
 
 const SECRETARY_AUTH_DOMAIN = 'secretariat.animeaux.internal'
 
+// clinic.name est un texte libre choisi par le proprietaire du cabinet,
+// interpole tel quel dans un email HTML contenant un mot de passe : sans
+// echappement, un nom de cabinet contenant du HTML/JS pouvait rendre un
+// lien ou un script arbitraire dans un email officiel Animeaux, ouvrant la
+// porte a du phishing credible visant la secretaire destinataire.
+function escapeHtml(input: string) {
+  return input
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -132,13 +146,14 @@ Deno.serve(async (req) => {
     const loginUrl = (Deno.env.get('APP_URL') || 'https://anim-aux-a2qn.vercel.app') + '/login'
 
     if (resendKey) {
+      const safeClinicName = escapeHtml(clinic.name)
       const html = '<div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #1f2937;">'
         + '<div style="text-align: center; margin-bottom: 16px;">'
         + '<img src="https://monanimeaux.fr/pwa-192.png" width="56" height="56" alt="Animeaux" style="border-radius: 14px; display: inline-block;" />'
         + '</div>'
         + '<h2 style="color: #d9670b;">Acces a l espace cabinet</h2>'
         + '<p>Bonjour,</p>'
-        + '<p>Un acces dedie au cabinet <strong>' + clinic.name + '</strong> vient d etre cree sur Animeaux.</p>'
+        + '<p>Un acces dedie au cabinet <strong>' + safeClinicName + '</strong> vient d etre cree sur Animeaux.</p>'
         + '<ul style="line-height: 1.8;">'
         + '<li><strong>Identifiant de connexion :</strong> ' + loginIdentifier + '</li>'
         + '<li><strong>Mot de passe :</strong> ' + password + '</li>'

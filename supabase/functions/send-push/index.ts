@@ -26,7 +26,8 @@ Deno.serve(async (req) => {
   // Authorization: Bearer <service_role_key>. Sans cette vérification,
   // n'importe qui muni de la clé anon publique pouvait déclencher l'envoi
   // de push à volonté pour un notification_id qu'il peut lire.
-  if (req.headers.get('Authorization') !== `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`) {
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  if (!serviceRoleKey || req.headers.get('Authorization') !== `Bearer ${serviceRoleKey}`) {
     return new Response('Unauthorized', { status: 401 })
   }
 

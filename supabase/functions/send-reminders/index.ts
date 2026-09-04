@@ -25,6 +25,18 @@ function toE164(rawPhone: string | null | undefined): string | null {
   return null
 }
 
+// appt.reason est un texte libre saisi par le patient à la réservation,
+// interpolé tel quel dans l'email de rappel — sans échappement, un motif
+// contenant du HTML/JS s'exécutait dans l'email officiel du patient.
+function escapeHtml(input: string) {
+  return input
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 async function sha1Hex(input: string): Promise<string> {
   const bytes = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(input))
   return Array.from(new Uint8Array(bytes)).map(b => b.toString(16).padStart(2, '0')).join('')
@@ -87,9 +99,15 @@ async function sendReminderEmail(resendKey: string, to: string, subject: string,
 }
 
 Deno.serve(async (req) => {
-  // Sécurité : vérifie la clé secrète (à ajouter dans les env Supabase)
+  // Sécurité : vérifie la clé secrète. Le test d'égalité seul dégénère en
+  // comparaison contre la chaîne fixe "Bearer undefined" si CRON_SECRET
+  // n'est jamais configuré côté Supabase (Deno.env.get renvoie undefined) —
+  // un appelant qui devine ce cas précis pourrait déclencher la fonction à
+  // volonté. On échoue donc explicitement si le secret n'est pas défini,
+  // plutôt que de comparer contre une valeur prévisible.
+  const cronSecret = Deno.env.get('CRON_SECRET')
   const authHeader = req.headers.get('Authorization')
-  if (authHeader !== `Bearer ${Deno.env.get('CRON_SECRET')}`) {
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return new Response('Unauthorized', { status: 401 })
   }
 
@@ -109,6 +127,12 @@ Deno.serve(async (req) => {
     .gte('start_at', from.toISOString())
     .lt('start_at', to.toISOString())
     .eq('status', 'confirmed')
+    // Contrairement aux boucles vaccin/avis plus bas, cette boucle n'avait
+    // aucun marqueur "déjà envoyé" : un second passage sur la même heure
+    // (retry après timeout, cron qui se chevauche) renvoyait le rappel en
+    // double à tout le monde. reminder_24h_sent_at (migration 082) comble
+    // ce trou, même mécanisme que les deux autres.
+    .is('reminder_24h_sent_at', null)
   // Erreur PostgREST (ex: embed ambigu) auparavant silencieusement avalée
   // (seul `data` était déstructuré) : `appointments ?? []` masquait tout
   // échec de requête en "0 rappel à envoyer", indiscernable d'une absence
@@ -155,7 +179,7 @@ Deno.serve(async (req) => {
           <ul style="line-height: 1.8;">
             <li><strong>Avec :</strong> ${doctorName}${doctorSpecialty ? ` (${doctorSpecialty})` : ''}</li>
             <li><strong>Le :</strong> ${dateStr}</li>
-            ${appt.reason ? `<li><strong>Motif :</strong> ${appt.reason}</li>` : ''}
+            ${appt.reason ? `<li><strong>Motif :</strong> ${escapeHtml(appt.reason)}</li>` : ''}
           </ul>
           <p style="margin-top: 20px;">
             <a href="https://monanimeaux.fr/confirmer-presence/${appt.id}" style="background: #d9670b; color: #fff; padding: 10px 20px; border-radius: 10px; text-decoration: none; font-weight: 500;">
@@ -179,6 +203,7 @@ Deno.serve(async (req) => {
       )
     }
 
+    await supabase.from('appointments').update({ reminder_24h_sent_at: new Date().toISOString() }).eq('id', appt.id)
     sent++
   }
 
@@ -207,7 +232,13 @@ Deno.serve(async (req) => {
     .not('next_due_date', 'is', null)
     .is('reminder_sent_at', null)
     .lte('next_due_date', parisDateStr(weekAhead))
-    .gte('next_due_date', parisDateStr(new Date()))
+    // Pas de borne basse (gte sur aujourd'hui) volontairement : un vaccin
+    // en retard (date passée, jamais rappelé — ex. RDV manqué, panne du
+    // cron) sortait de la fenêtre et n'était plus JAMAIS rappelé, alors
+    // qu'il continuait de s'afficher "En retard" sur /rappels comme si
+    // c'était toujours suivi. reminder_sent_at reste le seul garde-fou
+    // anti-doublon, suffisant : un vaccin en retard n'a besoin que d'un
+    // rappel, pas d'une fenêtre de validité.
   if (vaccError) console.error('vaccines query error', vaccError)
 
   let vaccineReminders = 0

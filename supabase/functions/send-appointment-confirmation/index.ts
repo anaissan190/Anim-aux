@@ -17,6 +17,20 @@ const supabaseAdmin = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 )
 
+// appt.reason est un texte libre saisi par le patient à la réservation,
+// interpolé tel quel dans l'email de confirmation — sans échappement, un
+// motif contenant du HTML/JS s'exécutait dans l'email officiel du patient
+// (auto-ciblé puisqu'envoyé à sa propre adresse, mais un vecteur réel si le
+// motif est copié/transféré ou affiché ailleurs).
+function escapeHtml(input: string) {
+  return input
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 // Appelée depuis le navigateur (useCreateAppointment) : le preflight CORS
 // (OPTIONS) doit recevoir une réponse explicite avec ces headers, sinon le
 // fetch échoue avant même d'atteindre la logique ci-dessous — même
@@ -150,7 +164,7 @@ Deno.serve(async (req) => {
           <ul style="line-height: 1.8;">
             <li><strong>Avec :</strong> ${doctorName}${doctorSpecialty ? ` (${doctorSpecialty})` : ''}</li>
             <li><strong>Le :</strong> ${dateStr}</li>
-            ${appt.reason ? `<li><strong>Motif :</strong> ${appt.reason}</li>` : ''}
+            ${appt.reason ? `<li><strong>Motif :</strong> ${escapeHtml(appt.reason)}</li>` : ''}
             ${price ? `<li><strong>Tarif :</strong> ${price} €</li>` : ''}
           </ul>
           <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Animéaux — Votre animal, notre priorité.</p>

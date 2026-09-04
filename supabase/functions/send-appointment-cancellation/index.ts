@@ -69,7 +69,8 @@ Deno.serve(async (req) => {
   // Sans cette vérification, n'importe qui muni de la clé anon publique
   // (embarquée dans le JS client) pouvait appeler cette fonction pour un
   // notification_id qu'il peut lire, et déclencher email/SMS à volonté.
-  if (req.headers.get('Authorization') !== `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`) {
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  if (!serviceRoleKey || req.headers.get('Authorization') !== `Bearer ${serviceRoleKey}`) {
     return new Response('Unauthorized', { status: 401 })
   }
 
