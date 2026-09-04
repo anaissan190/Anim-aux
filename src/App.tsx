@@ -131,6 +131,30 @@ export default function App() {
     return () => subscription.unsubscribe()
   }, [])
 
+  // Relais du renouvellement d'abonnement push (voir sw.ts,
+  // 'pushsubscriptionchange') : le service worker n'a pas accès à la
+  // session Supabase, donc c'est cet onglet (contexte authentifié) qui
+  // écrit le nouvel endpoint en base à sa place. Sans ça, un abonnement
+  // renouvelé par le navigateur laissait l'ancien endpoint (mort) en base
+  // indéfiniment, et tout futur push échouait silencieusement.
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return
+    async function handleMessage(event: MessageEvent) {
+      if (event.data?.type !== 'push-subscription-changed') return
+      const user = useAuthStore.getState().user
+      if (!user) return
+      const sub = event.data.subscription
+      await supabase.from('push_subscriptions').upsert({
+        user_id: user.id,
+        endpoint: sub.endpoint,
+        p256dh: sub.keys?.p256dh,
+        auth: sub.keys?.auth,
+      }, { onConflict: 'user_id,endpoint' })
+    }
+    navigator.serviceWorker.addEventListener('message', handleMessage)
+    return () => navigator.serviceWorker.removeEventListener('message', handleMessage)
+  }, [])
+
   if (loading || !splashElapsed) return <SplashScreen />
 
   return (
