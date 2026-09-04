@@ -53,6 +53,17 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
     ['pending', 'confirmed'].includes(appointment.status) &&
     new Date(appointment.start_at) > new Date()
 
+  // Report par le patient lui-même (RLS : "appointments: patient peut
+  // reporter le sien", migration 083) — seulement sur un RDV déjà
+  // confirmé et à venir, comme côté praticien. Pas de délai minimum avant
+  // le RDV imposé pour l'instant (même logique que l'annulation
+  // ci-dessus, qui n'en a pas non plus) : à revoir si ça pose problème en
+  // pratique.
+  const canReschedule =
+    user?.role !== 'doctor' &&
+    appointment.status === 'confirmed' &&
+    new Date(appointment.start_at) > new Date()
+
   function handleAddToCalendar() {
     const doctorProfile = (appointment.doctors as any)?.profiles
     const doctorName = doctorProfile
@@ -172,13 +183,24 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
       </div>
 
       {/* Actions */}
-      {canCancel && (
-        <button
-          onClick={() => update.mutate({ id: appointment.id, status: 'cancelled' })}
-          disabled={update.isPending}
-          className="flex-shrink-0 text-xs text-red-500 hover:text-red-700 transition-colors font-medium">
-          Annuler
-        </button>
+      {(canCancel || canReschedule) && (
+        <div className="flex flex-col gap-1 items-end">
+          {canReschedule && (
+            <button
+              onClick={() => { setShowReschedule(v => !v); setNewSlot(null); setRescheduleError('') }}
+              className="text-xs text-sage-600 hover:text-sage-700 transition-colors font-medium">
+              {showReschedule ? 'Annuler le report' : 'Reporter'}
+            </button>
+          )}
+          {canCancel && (
+            <button
+              onClick={() => update.mutate({ id: appointment.id, status: 'cancelled' })}
+              disabled={update.isPending}
+              className="flex-shrink-0 text-xs text-red-500 hover:text-red-700 transition-colors font-medium">
+              Annuler
+            </button>
+          )}
+        </div>
       )}
       {user?.role === 'doctor' && appointment.status === 'pending' && (
         <div className="flex flex-col gap-1">

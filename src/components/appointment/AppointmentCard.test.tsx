@@ -152,6 +152,36 @@ describe('AppointmentCard — annulation patient', () => {
   })
 })
 
+describe('AppointmentCard — report patient', () => {
+  it('propose un bouton "Reporter" pour un RDV confirmé', () => {
+    renderCard({ appointment: baseAppointment({ status: 'confirmed' }) })
+    expect(screen.getByText('Reporter')).toBeInTheDocument()
+  })
+
+  it('ne propose pas "Reporter" sur un RDV en attente (pas encore confirmé)', () => {
+    renderCard({ appointment: baseAppointment({ status: 'pending' }) })
+    expect(screen.queryByText('Reporter')).not.toBeInTheDocument()
+  })
+
+  it('ne propose pas "Reporter" pour un RDV déjà passé', () => {
+    const past = baseAppointment({ status: 'confirmed', start_at: new Date('2020-01-01').toISOString() })
+    renderCard({ appointment: past })
+    expect(screen.queryByText('Reporter')).not.toBeInTheDocument()
+  })
+
+  it('ne propose pas "Reporter" pour un RDV déjà terminé', () => {
+    renderCard({ appointment: baseAppointment({ status: 'completed' }) })
+    expect(screen.queryByText('Reporter')).not.toBeInTheDocument()
+  })
+
+  it('affiche le calendrier de créneaux au clic sur "Reporter"', () => {
+    renderCard({ appointment: baseAppointment({ status: 'confirmed' }) })
+    fireEvent.click(screen.getByText('Reporter'))
+    expect(screen.getByText('Choisir un nouveau créneau')).toBeInTheDocument()
+    expect(screen.getByText('Annuler le report')).toBeInTheDocument()
+  })
+})
+
 describe('AppointmentCard — actions praticien', () => {
   const FAKE_DOCTOR = { id: 'doc-user-1', email: 'a@a.fr', role: 'doctor' as const, is_admin: false, created_at: '' }
 
