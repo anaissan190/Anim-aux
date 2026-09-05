@@ -2189,6 +2189,37 @@ export function useDisablePushNotifications() {
   })
 }
 
+// ── FLUX CALENDRIER ABONNABLE (praticien) ──────────────────────────────────
+// Le jeton n'est jamais stocké sur `doctors` (table publiquement lisible,
+// voir migration 086) : ces deux RPC résolvent le doctor_id depuis
+// auth.uid() côté serveur, le client ne passe jamais de doctor_id en
+// paramètre.
+
+export function useCalendarFeedToken() {
+  const { user } = useAuthStore()
+  return useQuery({
+    queryKey: ['calendar-feed-token', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_my_calendar_feed_token')
+      if (error) throw error
+      return data as string
+    },
+    enabled: !!user && user.role === 'doctor',
+  })
+}
+
+export function useRegenerateCalendarFeedToken() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc('regenerate_my_calendar_feed_token')
+      if (error) throw error
+      return data as string
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['calendar-feed-token'] }),
+  })
+}
+
 // ── VÉRIFICATION PRATICIEN (documents justificatifs) ──────────────────────────
 
 export function useDoctorVerificationDocuments(doctorId?: string) {

@@ -13,7 +13,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
 import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useReplyToReview, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useDoctorServices, useAddDoctorService, useDeleteDoctorService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments, useInviteClinicSecretary, useClinicStaffList, useExportMyData,
   useDoctorVerificationDocuments, useUploadVerificationDocument, useDeleteVerificationDocument,
-  usePushSubscriptionStatus, useEnablePushNotifications, useDisablePushNotifications, useMessagingRealtime } from '@/hooks/useData'
+  usePushSubscriptionStatus, useEnablePushNotifications, useDisablePushNotifications, useMessagingRealtime,
+  useCalendarFeedToken, useRegenerateCalendarFeedToken } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { PRACTITIONER_TYPES } from '@/lib/practitionerTypes'
 import { SPECIES_EMOJI, PRACTICE_SPECIES_OPTIONS } from '@/lib/animalSpecies'
@@ -143,6 +144,20 @@ export default function DoctorDashboard() {
   const enablePush = useEnablePushNotifications()
   const disablePush = useDisablePushNotifications()
   const [pushError, setPushError] = useState('')
+
+  const { data: calendarFeedToken } = useCalendarFeedToken()
+  const regenerateFeedToken = useRegenerateCalendarFeedToken()
+  const [confirmRegenerateFeed, setConfirmRegenerateFeed] = useState(false)
+  const [feedCopied, setFeedCopied] = useState(false)
+  const calendarFeedUrl = calendarFeedToken
+    ? `https://agjuakrtqfddkfoocbof.supabase.co/functions/v1/doctor-calendar-feed?token=${calendarFeedToken}`
+    : ''
+
+  function handleCopyFeedUrl() {
+    navigator.clipboard.writeText(calendarFeedUrl)
+    setFeedCopied(true)
+    setTimeout(() => setFeedCopied(false), 2000)
+  }
 
   async function handleTogglePush() {
     setPushError('')
@@ -1825,6 +1840,48 @@ export default function DoctorDashboard() {
                 </button>
               </div>
             )}
+
+            {/* FLUX CALENDRIER ABONNABLE — synchronise tout l'agenda confirmé
+                dans Google/Apple Calendar au lieu d'exporter chaque RDV un
+                par un. */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+              <h2 className="font-semibold text-gray-900 mb-1">📅 Synchroniser mon agenda</h2>
+              <p className="text-xs text-gray-500 mb-4">
+                Colle ce lien dans Google Calendar ("Autres agendas" → "À partir de l'URL") ou
+                Apple Calendar ("Fichier" → "Nouvel abonnement") pour voir tous tes RDV confirmés
+                se mettre à jour automatiquement, sans export manuel.
+              </p>
+              {calendarFeedUrl && (
+                <div className="flex items-center gap-2 mb-3">
+                  <input readOnly value={calendarFeedUrl} onFocus={e => e.target.select()}
+                    className="input text-xs flex-1 font-mono" />
+                  <button onClick={handleCopyFeedUrl} className="btn-secondary text-xs px-3 py-2 whitespace-nowrap">
+                    {feedCopied ? '✓ Copié' : 'Copier'}
+                  </button>
+                </div>
+              )}
+              {!confirmRegenerateFeed ? (
+                <button onClick={() => setConfirmRegenerateFeed(true)}
+                  className="text-xs text-gray-400 hover:text-red-500 hover:underline transition-colors">
+                  Régénérer le lien
+                </button>
+              ) : (
+                <div className="text-xs">
+                  <p className="text-gray-600 mb-1">L'ancien lien cessera de fonctionner (à refaire dans ton calendrier). Continuer ?</p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => { regenerateFeedToken.mutate(); setConfirmRegenerateFeed(false) }}
+                      disabled={regenerateFeedToken.isPending}
+                      className="text-red-500 hover:underline font-semibold">
+                      Régénérer
+                    </button>
+                    <button onClick={() => setConfirmRegenerateFeed(false)} className="text-gray-400 hover:underline">
+                      Annuler
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* EXPORT DES DONNÉES — droit à la portabilité (RGPD art. 20) */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
