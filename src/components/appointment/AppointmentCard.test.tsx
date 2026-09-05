@@ -139,6 +139,12 @@ describe('AppointmentCard — annulation patient', () => {
     expect(screen.queryByText('Annuler')).not.toBeInTheDocument()
   })
 
+  it('ne permet pas d\'annuler à moins d\'1h du RDV', () => {
+    const soon = new Date(Date.now() + 30 * 60 * 1000) // dans 30 min
+    renderCard({ appointment: baseAppointment({ status: 'confirmed', start_at: soon.toISOString() }) })
+    expect(screen.queryByText('Annuler')).not.toBeInTheDocument()
+  })
+
   it('ne permet pas d\'annuler un RDV déjà terminé', () => {
     renderCard({ appointment: baseAppointment({ status: 'completed' }) })
     expect(screen.queryByText('Annuler')).not.toBeInTheDocument()

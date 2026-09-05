@@ -48,10 +48,14 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
   // sur un RDV confirmé, plus bas) : sans ce filtre par rôle, les deux
   // jeux de boutons s'affichaient en même temps pour lui, redondants et
   // ambigus (deux façons différentes d'annuler le même RDV en attente).
+  // Délai minimum d'1h avant le RDV (policy "appointments: patient peut
+  // annuler le sien", migration 084) — plus souple que les 24h du report
+  // ci-dessous, l'annulation reste possible en cas d'imprévu de dernière
+  // minute.
   const canCancel =
     user?.role !== 'doctor' &&
     ['pending', 'confirmed'].includes(appointment.status) &&
-    new Date(appointment.start_at) > new Date()
+    new Date(appointment.start_at).getTime() > Date.now() + 60 * 60 * 1000
 
   // Report par le patient lui-même (RLS : "appointments: patient peut
   // reporter le sien", migration 083) — seulement sur un RDV déjà
