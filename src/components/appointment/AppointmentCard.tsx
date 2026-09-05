@@ -55,14 +55,13 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
 
   // Report par le patient lui-même (RLS : "appointments: patient peut
   // reporter le sien", migration 083) — seulement sur un RDV déjà
-  // confirmé et à venir, comme côté praticien. Pas de délai minimum avant
-  // le RDV imposé pour l'instant (même logique que l'annulation
-  // ci-dessus, qui n'en a pas non plus) : à revoir si ça pose problème en
-  // pratique.
+  // confirmé, et à au moins 24h de l'heure du RDV (même délai que côté
+  // base : sans ce garde-fou côté UI, le bouton resterait cliquable mais
+  // l'update échouerait silencieusement contre la policy RLS).
   const canReschedule =
     user?.role !== 'doctor' &&
     appointment.status === 'confirmed' &&
-    new Date(appointment.start_at) > new Date()
+    new Date(appointment.start_at).getTime() > Date.now() + 24 * 60 * 60 * 1000
 
   function handleAddToCalendar() {
     const doctorProfile = (appointment.doctors as any)?.profiles

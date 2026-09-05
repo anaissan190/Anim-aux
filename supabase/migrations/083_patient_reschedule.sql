@@ -10,11 +10,13 @@
 -- AppointmentCard.tsx).
 --
 -- 1) RLS : nouvelle policy UPDATE pour le patient, restreinte à ses
---    propres RDV encore "confirmed" et dont l'heure n'est pas déjà passée.
---    WITH CHECK explicite sur patient_id ET status (doit rester
---    "confirmed") : sans lui, la policy réutiliserait USING comme WITH
---    CHECK et n'empêcherait pas un patient de glisser un autre changement
---    de statut dans le même appel. Le verrou déjà en place sur
+--    propres RDV encore "confirmed" et à au moins 24h de l'heure du RDV
+--    (délai symétrique au rappel automatique envoyé 24h avant, pour ne
+--    pas laisser un patient déplacer un RDV que le praticien s'apprête
+--    déjà à honorer). WITH CHECK explicite sur patient_id ET status (doit
+--    rester "confirmed") : sans lui, la policy réutiliserait USING comme
+--    WITH CHECK et n'empêcherait pas un patient de glisser un autre
+--    changement de statut dans le même appel. Le verrou déjà en place sur
 --    patient_id/doctor_id (migration 079, trigger, pas cette policy) et
 --    sur notes (migration 080) continue de s'appliquer par-dessus.
 -- 2) Notification : le praticien n'était prévenu d'un changement de
@@ -26,7 +28,7 @@
 drop policy if exists "appointments: patient peut reporter le sien" on public.appointments;
 create policy "appointments: patient peut reporter le sien" on public.appointments
   for update
-  using (auth.uid() = patient_id and status = 'confirmed' and start_at > now())
+  using (auth.uid() = patient_id and status = 'confirmed' and start_at > now() + interval '24 hours')
   with check (auth.uid() = patient_id and status = 'confirmed');
 
 create or replace function public.notify_appointment_rescheduled_by_patient()

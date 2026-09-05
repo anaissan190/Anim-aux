@@ -169,6 +169,14 @@ describe('AppointmentCard — report patient', () => {
     expect(screen.queryByText('Reporter')).not.toBeInTheDocument()
   })
 
+  it('ne propose pas "Reporter" à moins de 24h du RDV (même délai que la policy RLS)', () => {
+    const soon = new Date(Date.now() + 6 * 60 * 60 * 1000) // dans 6h
+    renderCard({ appointment: baseAppointment({ status: 'confirmed', start_at: soon.toISOString() }) })
+    expect(screen.queryByText('Reporter')).not.toBeInTheDocument()
+    // L'annulation, elle, reste possible sans ce délai.
+    expect(screen.getByText('Annuler')).toBeInTheDocument()
+  })
+
   it('ne propose pas "Reporter" pour un RDV déjà terminé', () => {
     renderCard({ appointment: baseAppointment({ status: 'completed' }) })
     expect(screen.queryByText('Reporter')).not.toBeInTheDocument()
