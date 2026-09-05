@@ -80,8 +80,9 @@ export default function BookPage() {
     'Bilan annuel', 'Suivi de traitement', 'Urgence', 'Autre',
   ]
 
-  const name = doctor?.profiles
-    ? `${doctor.profiles.first_name} ${doctor.profiles.last_name}`
+  const doctorProfile = doctor?.profiles as any
+  const name = doctorProfile
+    ? `${doctorProfile.first_name} ${doctorProfile.last_name}`
     : 'Praticien'
 
   async function confirm() {

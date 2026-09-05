@@ -76,8 +76,9 @@ export default function DoctorPage() {
     </div>
   )
 
-  const name = doctor.profiles
-    ? `${doctor.profiles.first_name} ${doctor.profiles.last_name}`
+  const doctorProfile = doctor.profiles as any
+  const name = doctorProfile
+    ? `${doctorProfile.first_name} ${doctorProfile.last_name}`
     : 'Praticien'
 
   return (
@@ -101,8 +102,8 @@ export default function DoctorPage() {
                 </button>
               )}
               <div className="w-20 h-20 rounded-2xl bg-sage-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
-                {doctor.profiles?.avatar_url ? (
-                  <img src={doctor.profiles.avatar_url} alt={name} className="w-full h-full object-cover" />
+                {doctorProfile?.avatar_url ? (
+                  <img src={doctorProfile.avatar_url} alt={name} className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-3xl font-bold text-sage-600">{name[0]}</span>
                 )}
@@ -271,10 +272,10 @@ export default function DoctorPage() {
                   <Link to="/register" className="btn-secondary block text-center text-sm">Créer un compte</Link>
                 </div>
               )}
-              {doctor.profiles?.phone && (
-                <a href={`tel:${doctor.profiles.phone}`}
+              {doctorProfile?.phone && (
+                <a href={`tel:${doctorProfile.phone}`}
                   className="btn-secondary block text-center text-sm mt-2">
-                  📞 {doctor.profiles.phone}
+                  📞 {doctorProfile.phone}
                 </a>
               )}
               {clinic?.phone && (

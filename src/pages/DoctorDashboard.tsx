@@ -12,7 +12,7 @@ import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
 import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useReplyToReview, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useDoctorServices, useAddDoctorService, useDeleteDoctorService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments, useInviteClinicSecretary, useClinicStaffList, useExportMyData,
-  useDoctorVerificationDocuments, useUploadVerificationDocument, useDeleteVerificationDocument,
+  useDoctorVerificationDocuments, useUploadVerificationDocument, useDeleteVerificationDocument, useMyVerificationRejectedReason,
   usePushSubscriptionStatus, useEnablePushNotifications, useDisablePushNotifications, useMessagingRealtime,
   useCalendarFeedToken, useRegenerateCalendarFeedToken } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
@@ -33,6 +33,7 @@ const DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dima
 export default function DoctorDashboard() {
   const { profile } = useAuthStore()
   const { data: doctor } = useCurrentDoctor()
+  const { data: verificationRejectedReason } = useMyVerificationRejectedReason(doctor?.verification_status === 'rejected')
   const { data: appointments = [], isLoading } = useDoctorAppointments(doctor?.id)
   const { data: availabilities = [] } = useAvailabilities(doctor?.id ?? '')
   const { data: reviews = [] } = useDoctorReviews(doctor?.id ?? '')
@@ -561,7 +562,7 @@ export default function DoctorDashboard() {
                 <>
                   <p className="font-medium">Documents non validés</p>
                   <p className="mt-0.5">
-                    {doctor.verification_rejected_reason || "Vos documents n'ont pas pu être validés."} Merci de les redéposer.
+                    {verificationRejectedReason || "Vos documents n'ont pas pu être validés."} Merci de les redéposer.
                   </p>
                 </>
               ) : (

@@ -23,7 +23,13 @@ export function useDoctors(filters: SearchFilters = {}, enabled: boolean = true)
 
       let q = supabase
         .from('doctors')
-        .select('*, profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url)')
+        // Colonnes explicites plutôt que "*" : verification_rejected_reason
+        // (motif de rejet admin, potentiellement diffamatoire) n'est plus
+        // lisible que par le praticien concerné (get_my_verification_rejected_reason,
+        // migration 088) — un select('*') sur cette liste de recherche
+        // publique échouerait entièrement (permission refusée) si la colonne
+        // n'est pas explicitement exclue.
+        .select('id, user_id, specialty, rpps_number, bio, consultation_price, address, city, lat, lng, is_verified, average_rating, review_count, created_at, updated_at, accepted_species, home_visit, verification_status, profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url)')
         // Un praticien dont le dossier de vérification n'est pas validé
         // (documents en attente ou rejetés) reste invisible du public,
         // même s'il peut déjà utiliser son tableau de bord — voir
@@ -251,7 +257,8 @@ export function useDoctor(id: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('doctors')
-        .select('*, profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url, phone)')
+        // Voir useDoctors : même exclusion de verification_rejected_reason.
+        .select('id, user_id, specialty, rpps_number, bio, consultation_price, address, city, lat, lng, is_verified, average_rating, review_count, created_at, updated_at, accepted_species, home_visit, verification_status, profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url, phone)')
         .eq('id', id)
         .single()
       if (error) throw error
@@ -268,13 +275,33 @@ export function useCurrentDoctor() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('doctors')
-        .select('*')
+        // Même exclusion de verification_rejected_reason que useDoctor/
+        // useDoctors — le praticien lit son propre motif de rejet via
+        // useMyVerificationRejectedReason (RPC dédiée) sur DoctorDashboard.
+        .select('id, user_id, specialty, rpps_number, bio, consultation_price, address, city, lat, lng, is_verified, average_rating, review_count, created_at, updated_at, accepted_species, home_visit, verification_status')
         .eq('user_id', user!.id)
         .single()
       if (error) throw error
       return data
     },
     enabled: !!user && user.role === 'doctor',
+  })
+}
+
+// Motif de rejet du dossier de vérification (verification_rejected_reason) :
+// plus lisible via useCurrentDoctor (colonne exclue, migration 088, revoke
+// select depuis authenticated) — seule cette RPC y donne accès, réservée au
+// praticien concerné (résout doctor_id depuis auth.uid() côté serveur).
+export function useMyVerificationRejectedReason(enabled: boolean) {
+  const { user } = useAuthStore()
+  return useQuery({
+    queryKey: ['my-verification-rejected-reason', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_my_verification_rejected_reason')
+      if (error) throw error
+      return data as string | null
+    },
+    enabled: enabled && !!user && user.role === 'doctor',
   })
 }
 

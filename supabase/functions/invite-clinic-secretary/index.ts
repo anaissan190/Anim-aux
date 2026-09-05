@@ -183,13 +183,13 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Si l'email échoue (domaine pas vérifié, clé absente...), le mot de
-    // passe généré n'existait jusqu'ici nulle part ailleurs que dans cet
-    // email jamais envoyé : le compte était créé mais personne ne pouvait
-    // s'y connecter, sans procédure de récupération. On le renvoie donc à
-    // l'admin dans ce cas précis (jamais quand l'email est parti, pour ne
+    // Si l'email echoue (domaine pas verifie, cle absente...), le mot de
+    // passe genere n'existait jusqu'ici nulle part ailleurs que dans cet
+    // email jamais envoye : le compte etait cree mais personne ne pouvait
+    // s'y connecter, sans procedure de recuperation. On le renvoie donc a
+    // l'admin dans ce cas precis (jamais quand l'email est parti, pour ne
     // pas exposer le secret inutilement) afin qu'il puisse le transmettre
-    // lui-même à la secrétaire.
+    // lui-meme a la secretaire.
     return new Response(JSON.stringify({
       ok: true,
       emailSent: emailSent,
