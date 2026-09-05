@@ -58,14 +58,15 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
     new Date(appointment.start_at).getTime() > Date.now() + 60 * 60 * 1000
 
   // Report par le patient lui-même (RLS : "appointments: patient peut
-  // reporter le sien", migration 083) — seulement sur un RDV déjà
-  // confirmé, et à au moins 24h de l'heure du RDV (même délai que côté
-  // base : sans ce garde-fou côté UI, le bouton resterait cliquable mais
-  // l'update échouerait silencieusement contre la policy RLS).
+  // reporter le sien", migrations 083/085) — seulement sur un RDV déjà
+  // confirmé, et à au moins 1h de l'heure du RDV, aligné sur le délai
+  // d'annulation (même délai que côté base : sans ce garde-fou côté UI,
+  // le bouton resterait cliquable mais l'update échouerait silencieusement
+  // contre la policy RLS).
   const canReschedule =
     user?.role !== 'doctor' &&
     appointment.status === 'confirmed' &&
-    new Date(appointment.start_at).getTime() > Date.now() + 24 * 60 * 60 * 1000
+    new Date(appointment.start_at).getTime() > Date.now() + 60 * 60 * 1000
 
   function handleAddToCalendar() {
     const doctorProfile = (appointment.doctors as any)?.profiles
