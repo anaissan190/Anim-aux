@@ -10,8 +10,14 @@
 // quelqu'un vers une route bloquée par son rôle (ProtectedRoute). Seule
 // /messages est sûre pour tout le monde (aucune restriction de rôle) ; le
 // reste retombe sur l'accueil, d'où l'utilisateur navigue normalement.
-export function urlForNotificationType(type?: string): string {
-  return type === 'new_message' ? '/messages' : '/'
+// Pour un nouveau message, `related_id` porte l'id de l'expéditeur (voir
+// notify_new_message, migration 016) — passé en query param pour que
+// MessagesPage ouvre directement la bonne conversation plutôt que de
+// retomber sur la plus récente, qui n'est pas toujours celle notifiée
+// (plusieurs conversations avec des messages non lus en même temps).
+export function urlForNotificationType(type?: string, relatedId?: string): string {
+  if (type !== 'new_message') return '/'
+  return relatedId ? `/messages?with=${relatedId}` : '/messages'
 }
 
 // Conversion standard d'une clé VAPID publique (base64url) vers le format

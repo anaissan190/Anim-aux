@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
 
   const { data: appt, error } = await supabase
     .from('appointments')
-    .select('id, start_at, status, confirmed_by_patient_at, doctors!inner(profiles!inner(first_name, last_name))')
+    .select('id, start_at, status, confirmed_by_patient_at, doctors!inner(profiles!doctors_user_id_profiles_fkey(first_name, last_name))')
     .eq('id', appointmentId)
     .single()
 
@@ -69,10 +69,16 @@ Deno.serve(async (req) => {
   // Idempotent : un second clic (double-clic, lien rouvert) ne doit pas
   // écraser l'horodatage de la première confirmation ni renvoyer une erreur.
   if (!appt.confirmed_by_patient_at) {
-    await supabase
+    const { error: updateError } = await supabase
       .from('appointments')
       .update({ confirmed_by_patient_at: new Date().toISOString() })
       .eq('id', appointmentId)
+    if (updateError) {
+      console.error('confirmed_by_patient_at update error', updateError)
+      return new Response(JSON.stringify({ ok: false, reason: 'update_failed' }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
   }
 
   return new Response(JSON.stringify({ ok: true, doctorName, dateStr }), {

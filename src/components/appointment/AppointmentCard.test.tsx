@@ -150,11 +150,21 @@ describe('AppointmentCard — annulation patient', () => {
     expect(screen.queryByText('Annuler')).not.toBeInTheDocument()
   })
 
-  it('déclenche la mise à jour du statut à "cancelled" au clic', async () => {
+  it('déclenche la mise à jour du statut à "cancelled" après confirmation (deux clics)', async () => {
     const builder = createQueryBuilderMock({ data: null, error: null })
     renderCard({ appointment: baseAppointment({ status: 'confirmed' }) }, builder)
     fireEvent.click(screen.getByText('Annuler'))
+    fireEvent.click(screen.getByText('Confirmer ?'))
     await waitFor(() => expect(builder.update).toHaveBeenCalledWith(expect.objectContaining({ status: 'cancelled' })))
+  })
+
+  it('ne déclenche rien si on annule la confirmation ("Non")', () => {
+    const builder = createQueryBuilderMock({ data: null, error: null })
+    renderCard({ appointment: baseAppointment({ status: 'confirmed' }) }, builder)
+    fireEvent.click(screen.getByText('Annuler'))
+    fireEvent.click(screen.getByText('Non'))
+    expect(builder.update).not.toHaveBeenCalled()
+    expect(screen.getByText('Annuler')).toBeInTheDocument()
   })
 })
 

@@ -38,6 +38,21 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
   const [showReschedule, setShowReschedule] = useState(false)
   const [newSlot, setNewSlot] = useState<Date | null>(null)
   const [rescheduleError, setRescheduleError] = useState('')
+  const [actionError, setActionError] = useState('')
+  const [confirmingCancel, setConfirmingCancel] = useState(false)
+  const [confirmingRefuse, setConfirmingRefuse] = useState(false)
+  const [confirmingDoctorCancel, setConfirmingDoctorCancel] = useState(false)
+
+  // Handler partagé pour Confirmer/Refuser/Terminé/Absent(e)/Annuler — sans
+  // onError, un échec (ex. policy RLS qui bloque l'action) laissait le
+  // bouton inerte sans le moindre message, l'utilisateur ne sachant jamais
+  // si son clic avait eu un effet ou non.
+  function handleStatusChange(status: AppointmentStatus) {
+    setActionError('')
+    update.mutate({ id: appointment.id, status }, {
+      onError: (e: any) => setActionError(e instanceof Error ? e.message : "Erreur lors de l'action, réessaie."),
+    })
+  }
 
   const name = showPatient
     ? `${appointment.profiles?.first_name ?? ''} ${appointment.profiles?.last_name ?? ''}`
@@ -109,9 +124,9 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
         // unique partiel, migration 070) — sans ce message, le bouton
         // redevenait juste cliquable sans aucune explication.
         onError: (e: any) => {
-          setRescheduleError(e?.code === '23505'
-            ? 'Ce créneau vient d\'être pris. Choisis-en un autre.'
-            : 'Erreur lors du report, réessaie.')
+          if (e?.code === '23505') setRescheduleError('Ce créneau vient d\'être pris. Choisis-en un autre.')
+          else if (e instanceof Error) setRescheduleError(e.message)
+          else setRescheduleError('Erreur lors du report, réessaie.')
         },
       }
     )
@@ -197,41 +212,67 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
             </button>
           )}
           {canCancel && (
-            <button
-              onClick={() => update.mutate({ id: appointment.id, status: 'cancelled' })}
-              disabled={update.isPending}
-              className="flex-shrink-0 text-xs text-red-500 hover:text-red-700 transition-colors font-medium">
-              Annuler
-            </button>
+            confirmingCancel ? (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => { handleStatusChange('cancelled'); setConfirmingCancel(false) }}
+                  disabled={update.isPending}
+                  className="text-xs text-red-600 font-semibold hover:underline">
+                  Confirmer ?
+                </button>
+                <button onClick={() => setConfirmingCancel(false)} className="text-xs text-gray-400 hover:underline">
+                  Non
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmingCancel(true)}
+                className="flex-shrink-0 text-xs text-red-500 hover:text-red-700 transition-colors font-medium">
+                Annuler
+              </button>
+            )
           )}
         </div>
       )}
       {user?.role === 'doctor' && appointment.status === 'pending' && (
         <div className="flex flex-col gap-1">
           <button
-            onClick={() => update.mutate({ id: appointment.id, status: 'confirmed' })}
+            onClick={() => handleStatusChange('confirmed')}
             disabled={update.isPending}
             className="text-xs btn-primary py-1 px-3">
             Confirmer
           </button>
-          <button
-            onClick={() => update.mutate({ id: appointment.id, status: 'cancelled' })}
-            disabled={update.isPending}
-            className="text-xs btn-secondary py-1 px-3">
-            Refuser
-          </button>
+          {confirmingRefuse ? (
+            <div className="flex items-center gap-2 px-3">
+              <button
+                onClick={() => { handleStatusChange('cancelled'); setConfirmingRefuse(false) }}
+                disabled={update.isPending}
+                className="text-xs text-red-600 font-semibold hover:underline">
+                Confirmer ?
+              </button>
+              <button onClick={() => setConfirmingRefuse(false)} className="text-xs text-gray-400 hover:underline">
+                Non
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmingRefuse(true)}
+              className="text-xs btn-secondary py-1 px-3">
+              Refuser
+            </button>
+          )}
         </div>
       )}
       {user?.role === 'doctor' && appointment.status === 'confirmed' && (
         <div className="flex flex-col gap-1">
           <button
-            onClick={() => update.mutate({ id: appointment.id, status: 'completed' })}
+            onClick={() => handleStatusChange('completed')}
             disabled={update.isPending}
             className="text-xs btn-primary py-1 px-3">
             ✓ Terminé
           </button>
           <button
-            onClick={() => update.mutate({ id: appointment.id, status: 'no_show' })}
+            onClick={() => handleStatusChange('no_show')}
             disabled={update.isPending}
             className="text-xs btn-secondary py-1 px-3">
             Absent(e)
@@ -241,18 +282,28 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
             className="text-xs text-sage-600 hover:text-sage-700 transition-colors py-1 px-3">
             {showReschedule ? 'Annuler le report' : 'Reporter'}
           </button>
-          <button
-            onClick={() => {
-              if (window.confirm('Annuler ce rendez-vous confirmé ? Le patient sera prévenu.')) {
-                update.mutate({ id: appointment.id, status: 'cancelled' })
-              }
-            }}
-            disabled={update.isPending}
-            className="text-xs text-red-500 hover:text-red-700 transition-colors py-1 px-3">
-            Annuler
-          </button>
+          {confirmingDoctorCancel ? (
+            <div className="flex items-center gap-2 px-3">
+              <button
+                onClick={() => { handleStatusChange('cancelled'); setConfirmingDoctorCancel(false) }}
+                disabled={update.isPending}
+                className="text-xs text-red-600 font-semibold hover:underline">
+                Confirmer ? (le patient sera prévenu)
+              </button>
+              <button onClick={() => setConfirmingDoctorCancel(false)} className="text-xs text-gray-400 hover:underline">
+                Non
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmingDoctorCancel(true)}
+              className="text-xs text-red-500 hover:text-red-700 transition-colors py-1 px-3">
+              Annuler
+            </button>
+          )}
         </div>
       )}
+      {actionError && <p className="text-red-500 text-xs mt-2">{actionError}</p>}
     </div>
 
     {/* Report de RDV : le praticien choisit directement un nouveau

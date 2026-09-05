@@ -183,7 +183,19 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ ok: true, emailSent: emailSent, loginIdentifier: loginIdentifier }), {
+    // Si l'email échoue (domaine pas vérifié, clé absente...), le mot de
+    // passe généré n'existait jusqu'ici nulle part ailleurs que dans cet
+    // email jamais envoyé : le compte était créé mais personne ne pouvait
+    // s'y connecter, sans procédure de récupération. On le renvoie donc à
+    // l'admin dans ce cas précis (jamais quand l'email est parti, pour ne
+    // pas exposer le secret inutilement) afin qu'il puisse le transmettre
+    // lui-même à la secrétaire.
+    return new Response(JSON.stringify({
+      ok: true,
+      emailSent: emailSent,
+      loginIdentifier: loginIdentifier,
+      password: emailSent ? undefined : password,
+    }), {
       headers: Object.assign({}, corsHeaders, { 'Content-Type': 'application/json' }),
     })
   } catch (e) {

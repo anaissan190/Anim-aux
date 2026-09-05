@@ -2,8 +2,12 @@ import { describe, it, expect } from 'vitest'
 import { urlForNotificationType, urlBase64ToUint8Array } from './pushNotifications'
 
 describe('urlForNotificationType', () => {
-  it('renvoie /messages pour un nouveau message', () => {
+  it('renvoie /messages pour un nouveau message sans expéditeur connu', () => {
     expect(urlForNotificationType('new_message')).toBe('/messages')
+  })
+
+  it("renvoie /messages?with=<id> pour un nouveau message avec l'id de l'expéditeur", () => {
+    expect(urlForNotificationType('new_message', 'user-42')).toBe('/messages?with=user-42')
   })
 
   it('renvoie / pour tous les autres types connus', () => {

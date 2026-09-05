@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
       .select(`
         id, start_at, reason, patient_id,
         patient:users!patient_id(email, profiles(first_name, last_name, phone)),
-        doctors!inner(consultation_price, specialty, profiles!inner(first_name, last_name))
+        doctors!inner(consultation_price, specialty, profiles!doctors_user_id_profiles_fkey(first_name, last_name))
       `)
       .eq('id', appointmentId)
       .single()
@@ -132,6 +132,13 @@ Deno.serve(async (req) => {
     const doctorProfile = (appt.doctors as any)?.profiles
     const doctorSpecialty = (appt.doctors as any)?.specialty
     const doctorName = doctorProfile ? `Dr ${doctorProfile.first_name} ${doctorProfile.last_name}` : 'votre praticien'
+    // Prénom/nom sont des champs libres saisis à l'inscription (patient ET
+    // praticien) — jamais validés contre l'injection de balises. Version
+    // échappée dédiée à l'email HTML (même raison que pour `reason` plus
+    // bas) : `doctorName` lui-même reste en clair pour la notification
+    // in-app (échappée par React au rendu, pas besoin d'entités HTML) et le
+    // SMS (qui afficherait les entités littéralement, "O&#39;Brien").
+    const doctorNameHtml = doctorProfile ? `Dr ${escapeHtml(doctorProfile.first_name)} ${escapeHtml(doctorProfile.last_name)}` : 'votre praticien'
     const price = (appt.doctors as any)?.consultation_price
 
     const dateStr = new Date(appt.start_at).toLocaleString('fr-FR', {
@@ -141,13 +148,14 @@ Deno.serve(async (req) => {
     })
 
     // Notification in-app — même logique que send-reminders.
-    await supabaseAdmin.from('notifications').insert({
+    const { error: notifInsertError } = await supabaseAdmin.from('notifications').insert({
       user_id: appt.patient_id,
       type: 'appointment_confirmed',
       title: 'Rendez-vous confirmé',
       body: `Votre RDV avec ${doctorName} est confirmé pour le ${dateStr}.`,
       related_id: appt.id,
     })
+    if (notifInsertError) console.error('notifications insert error', notifInsertError)
 
     const resendKey = Deno.env.get('RESEND_API_KEY')
     let emailSent = false
@@ -159,10 +167,10 @@ Deno.serve(async (req) => {
             <img src="https://monanimeaux.fr/pwa-192.png" width="56" height="56" alt="Animéaux" style="border-radius: 14px; display: inline-block;" />
           </div>
           <h2 style="color: #d9670b;">Rendez-vous confirmé 🐾</h2>
-          <p>Bonjour ${patientProfile?.first_name ?? ''},</p>
+          <p>Bonjour ${escapeHtml(patientProfile?.first_name ?? '')},</p>
           <p>Votre rendez-vous vient d'être confirmé :</p>
           <ul style="line-height: 1.8;">
-            <li><strong>Avec :</strong> ${doctorName}${doctorSpecialty ? ` (${doctorSpecialty})` : ''}</li>
+            <li><strong>Avec :</strong> ${doctorNameHtml}${doctorSpecialty ? ` (${escapeHtml(doctorSpecialty)})` : ''}</li>
             <li><strong>Le :</strong> ${dateStr}</li>
             ${appt.reason ? `<li><strong>Motif :</strong> ${escapeHtml(appt.reason)}</li>` : ''}
             ${price ? `<li><strong>Tarif :</strong> ${price} €</li>` : ''}

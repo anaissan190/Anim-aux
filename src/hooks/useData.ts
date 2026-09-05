@@ -17,7 +17,8 @@ export function useDoctors(filters: SearchFilters = {}, enabled: boolean = true)
       // Un praticien membre d'un cabinet ne doit pas apparaître comme
       // résultat individuel — on ne doit le trouver qu'en passant par la
       // fiche du cabinet (voir get_clinic_member_doctor_ids, migration 044).
-      const { data: clinicMembers } = await supabase.rpc('get_clinic_member_doctor_ids')
+      const { data: clinicMembers, error: clinicMembersError } = await supabase.rpc('get_clinic_member_doctor_ids')
+      if (clinicMembersError) console.error('get_clinic_member_doctor_ids error', clinicMembersError)
       const excludedIds = new Set((clinicMembers ?? []).map((m: any) => m.doctor_id))
 
       let q = supabase
@@ -618,6 +619,12 @@ export function useCreateAppointment() {
       qc.invalidateQueries({ queryKey: ['appointments'] })
       qc.invalidateQueries({ queryKey: ['slots'] })
       qc.invalidateQueries({ queryKey: ['clinic_appointments'] })
+      // Un nouveau RDV change la prochaine disponibilité du praticien
+      // (badge de recherche) et peut le faire sortir des résultats filtrés
+      // "disponible aujourd'hui/cette semaine" — ces deux caches restaient
+      // périmés tant qu'un composant les affichant restait monté.
+      qc.invalidateQueries({ queryKey: ['next-available-slots'] })
+      qc.invalidateQueries({ queryKey: ['doctors'] })
     },
   })
 }
@@ -854,7 +861,7 @@ export function useUpdateAppointmentStatus() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, status, notes }: { id: string; status: AppointmentStatus; notes?: string }) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('appointments')
         .update({
           status, notes, updated_at: new Date().toISOString(),
@@ -864,7 +871,20 @@ export function useUpdateAppointmentStatus() {
           ...(status === 'completed' ? { completed_at: new Date().toISOString() } : {}),
         })
         .eq('id', id)
-      if (error) throw error
+        .select('id')
+        .single()
+      if (error) {
+        // .single() sans ligne retournée (PGRST116) : la policy RLS a
+        // silencieusement bloqué l'update (ex. délai d'1h dépassé entre
+        // l'affichage du bouton et le clic) plutôt qu'une vraie erreur
+        // serveur — sans .select(), ce cas passait pour un succès alors que
+        // rien n'avait changé côté base.
+        if (error.code === 'PGRST116') {
+          throw new Error("Action impossible : ce rendez-vous n'est plus modifiable (délai dépassé ou déjà traité).")
+        }
+        throw error
+      }
+      return data
     },
     // ['slots']/['clinic_appointments'] manquaient : un patient annulé/
     // no-show ne libérait pas le créneau immédiatement dans le cache — il
@@ -873,6 +893,8 @@ export function useUpdateAppointmentStatus() {
       qc.invalidateQueries({ queryKey: ['appointments'] })
       qc.invalidateQueries({ queryKey: ['slots'] })
       qc.invalidateQueries({ queryKey: ['clinic_appointments'] })
+      qc.invalidateQueries({ queryKey: ['next-available-slots'] })
+      qc.invalidateQueries({ queryKey: ['doctors'] })
     },
   })
 }
@@ -885,19 +907,31 @@ export function useRescheduleAppointment() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, start_at, end_at }: { id: string; start_at: string; end_at: string }) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('appointments')
         // Le patient n'a confirmé sa présence que pour l'ancien créneau —
         // sans cette remise à zéro, le badge "Présence confirmée" resterait
         // affiché à tort après un report vers une toute autre date.
         .update({ start_at, end_at, confirmed_by_patient_at: null, updated_at: new Date().toISOString() })
         .eq('id', id)
-      if (error) throw error
+        .select('id')
+        .single()
+      if (error) {
+        // Même cas que useUpdateAppointmentStatus : 0 ligne retournée = RLS
+        // a bloqué (délai d'1h dépassé), pas une vraie erreur serveur.
+        if (error.code === 'PGRST116') {
+          throw new Error('Ce rendez-vous ne peut plus être reporté (délai dépassé ou déjà modifié).')
+        }
+        throw error
+      }
+      return data
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['appointments'] })
       qc.invalidateQueries({ queryKey: ['slots'] })
       qc.invalidateQueries({ queryKey: ['clinic_appointments'] })
+      qc.invalidateQueries({ queryKey: ['next-available-slots'] })
+      qc.invalidateQueries({ queryKey: ['doctors'] })
     },
   })
 }
@@ -1782,10 +1816,14 @@ export function useClinicAppointments(clinicId?: string) {
     queryKey: ['clinic_appointments', clinicId],
     queryFn: async () => {
       // Récupère tous les doctor_ids du cabinet
-      const { data: members } = await supabase
+      const { data: members, error: membersError } = await supabase
         .from('clinic_members')
         .select('doctor_id')
         .eq('clinic_id', clinicId!)
+      // Une erreur ici (réseau, RLS) rendait auparavant l'agenda du cabinet
+      // silencieusement vide au lieu de signaler l'échec — risque de
+      // double-booking si un praticien/secrétariat croit l'agenda vide.
+      if (membersError) throw membersError
       if (!members || members.length === 0) return []
       const doctorIds = members.map(m => m.doctor_id)
       // `profiles!patient_id(...)` n'est pas un embed valide : patient_id
@@ -2545,6 +2583,11 @@ export function useAdminSuspendUser() {
       qc.invalidateQueries({ queryKey: ['admin_patient_detail'] })
       qc.invalidateQueries({ queryKey: ['admin_doctor_detail'] })
       qc.invalidateQueries({ queryKey: ['admin_actions_log'] })
+      // Les listes (pas seulement la fiche détail ouverte) affichent aussi
+      // le statut de suspension — restaient périmées si une liste restait
+      // montée en parallèle du modal de détail.
+      qc.invalidateQueries({ queryKey: ['admin_patients'] })
+      qc.invalidateQueries({ queryKey: ['admin_doctors_by_status'] })
     },
   })
 }
@@ -2560,6 +2603,8 @@ export function useAdminUnsuspendUser() {
       qc.invalidateQueries({ queryKey: ['admin_patient_detail'] })
       qc.invalidateQueries({ queryKey: ['admin_doctor_detail'] })
       qc.invalidateQueries({ queryKey: ['admin_actions_log'] })
+      qc.invalidateQueries({ queryKey: ['admin_patients'] })
+      qc.invalidateQueries({ queryKey: ['admin_doctors_by_status'] })
     },
   })
 }

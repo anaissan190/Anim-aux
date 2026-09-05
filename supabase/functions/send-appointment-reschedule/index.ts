@@ -27,6 +27,19 @@ function toE164(rawPhone: string | null | undefined): string | null {
   return null
 }
 
+// Prénom/nom sont des champs libres saisis à l'inscription (patient ET
+// praticien), jamais validés contre l'injection de balises — échappés
+// avant interpolation dans l'email HTML, même raison que dans
+// send-appointment-confirmation/index.ts.
+function escapeHtml(input: string) {
+  return input
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 async function sha1Hex(input: string): Promise<string> {
   const bytes = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(input))
   return Array.from(new Uint8Array(bytes)).map(b => b.toString(16).padStart(2, '0')).join('')
@@ -83,9 +96,19 @@ Deno.serve(async (req) => {
   }
   if (!notificationId) return new Response('notification_id manquant', { status: 400 })
 
+  // La notification a un destinataire (user_id) qui n'est pas toujours le
+  // patient : quand c'est le PRATICIEN qui reporte (migration 077), la
+  // notification est pour le patient ; quand c'est le PATIENT qui reporte
+  // lui-même (migration 083/085), elle est pour le praticien. Les deux
+  // triggers réutilisent le même type 'appointment_rescheduled' et donc le
+  // même appel à cette fonction — sans distinguer le destinataire réel, le
+  // code envoyait auparavant systématiquement l'email/SMS au patient en
+  // affirmant "le praticien a reporté", même quand c'était faux (et le
+  // praticien, pourtant le vrai destinataire dans ce cas, ne recevait
+  // jamais rien).
   const { data: notification, error: notifError } = await supabase
     .from('notifications')
-    .select('related_id')
+    .select('related_id, user_id')
     .eq('id', notificationId)
     .single()
   if (notifError || !notification?.related_id) {
@@ -95,9 +118,9 @@ Deno.serve(async (req) => {
   const { data: appt, error: apptError } = await supabase
     .from('appointments')
     .select(`
-      id, start_at,
+      id, start_at, patient_id,
       patient:users!patient_id(email, profiles(first_name, phone)),
-      doctors!inner(profiles!inner(first_name, last_name))
+      doctors!inner(user_id, profiles!doctors_user_id_profiles_fkey(first_name, last_name, phone))
     `)
     .eq('id', notification.related_id)
     .single()
@@ -107,65 +130,125 @@ Deno.serve(async (req) => {
 
   const patientProfile = (appt.patient as any)?.profiles
   const patientEmail = (appt.patient as any)?.email
-  const doctorProfile = (appt.doctors as any)?.profiles
+  const doctorRow = (appt.doctors as any)
+  const doctorProfile = doctorRow?.profiles
   const doctorName = doctorProfile ? `Dr ${doctorProfile.first_name} ${doctorProfile.last_name}` : 'Votre praticien'
+  const doctorNameHtml = doctorProfile ? `Dr ${escapeHtml(doctorProfile.first_name)} ${escapeHtml(doctorProfile.last_name)}` : 'Votre praticien'
 
   const dateStr = new Date(appt.start_at).toLocaleString('fr-FR', {
     dateStyle: 'full',
     timeStyle: 'short',
     timeZone: 'Europe/Paris',
   })
+  const shortDate = new Date(appt.start_at).toLocaleString('fr-FR', {
+    dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Paris',
+  })
 
   const resendKey = Deno.env.get('RESEND_API_KEY')
+  const recipientIsDoctor = notification.user_id !== appt.patient_id
   let emailSent = false
-
-  if (resendKey && patientEmail) {
-    const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #1f2937;">
-        <div style="text-align: center; margin-bottom: 16px;">
-          <img src="https://monanimeaux.fr/pwa-192.png" width="56" height="56" alt="Animéaux" style="border-radius: 14px; display: inline-block;" />
-        </div>
-        <h2 style="color: #d9670b;">Rendez-vous reporté</h2>
-        <p>Bonjour ${patientProfile?.first_name ?? ''},</p>
-        <p>${doctorName} a reporté votre rendez-vous. Nouvelle date :</p>
-        <p style="font-size: 16px; font-weight: 600; margin: 16px 0;">${dateStr}</p>
-        <p style="margin-top: 20px;">
-          <a href="https://monanimeaux.fr/rendez-vous" style="background: #d9670b; color: #fff; padding: 10px 20px; border-radius: 10px; text-decoration: none; font-weight: 500;">
-            Voir mes rendez-vous
-          </a>
-        </p>
-        <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Animéaux — Votre animal, notre priorité.</p>
-      </div>
-    `
-    const resendRes = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${resendKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: Deno.env.get('EMAIL_FROM') ?? 'Animéaux <onboarding@resend.dev>',
-        to: patientEmail,
-        subject: 'Votre rendez-vous a été reporté',
-        html,
-      }),
-    })
-    emailSent = resendRes.ok
-    if (!resendRes.ok) {
-      console.error('Resend error', await resendRes.text())
-    }
-  }
-
   let smsSent = false
-  const patientPhone = toE164(patientProfile?.phone)
-  if (patientPhone) {
-    const shortDate = new Date(appt.start_at).toLocaleString('fr-FR', {
-      dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Paris',
-    })
-    smsSent = await sendOvhSms(
-      `Animeaux : votre RDV avec ${doctorName} a ete reporte au ${shortDate}.`,
-      patientPhone
-    )
+
+  if (recipientIsDoctor) {
+    // Le patient a reporté lui-même : le praticien est le vrai destinataire.
+    const { data: doctorUser } = await supabase
+      .from('users')
+      .select('email')
+      .eq('id', doctorRow.user_id)
+      .single()
+    const doctorEmail = doctorUser?.email
+    const patientName = patientProfile?.first_name ? patientProfile.first_name : 'Un patient'
+
+    if (resendKey && doctorEmail) {
+      const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #1f2937;">
+          <div style="text-align: center; margin-bottom: 16px;">
+            <img src="https://monanimeaux.fr/pwa-192.png" width="56" height="56" alt="Animéaux" style="border-radius: 14px; display: inline-block;" />
+          </div>
+          <h2 style="color: #d9670b;">Rendez-vous reprogrammé par le patient</h2>
+          <p>Bonjour ${doctorProfile ? escapeHtml(doctorProfile.first_name) : ''},</p>
+          <p>${escapeHtml(patientName)} a déplacé son rendez-vous. Nouvelle date :</p>
+          <p style="font-size: 16px; font-weight: 600; margin: 16px 0;">${dateStr}</p>
+          <p style="margin-top: 20px;">
+            <a href="https://monanimeaux.fr/dashboard/doctor" style="background: #d9670b; color: #fff; padding: 10px 20px; border-radius: 10px; text-decoration: none; font-weight: 500;">
+              Voir mon agenda
+            </a>
+          </p>
+          <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Animéaux — Votre animal, notre priorité.</p>
+        </div>
+      `
+      const resendRes = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${resendKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: Deno.env.get('EMAIL_FROM') ?? 'Animéaux <onboarding@resend.dev>',
+          to: doctorEmail,
+          subject: 'Un patient a reprogrammé son rendez-vous',
+          html,
+        }),
+      })
+      emailSent = resendRes.ok
+      if (!resendRes.ok) {
+        console.error('Resend error', await resendRes.text())
+      }
+    }
+
+    const doctorPhone = toE164(doctorProfile?.phone)
+    if (doctorPhone) {
+      smsSent = await sendOvhSms(
+        `Animeaux : ${patientName} a deplace son RDV au ${shortDate}.`,
+        doctorPhone
+      )
+    }
+  } else {
+    // Le praticien a reporté : le patient est le destinataire (comportement d'origine).
+    if (resendKey && patientEmail) {
+      const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #1f2937;">
+          <div style="text-align: center; margin-bottom: 16px;">
+            <img src="https://monanimeaux.fr/pwa-192.png" width="56" height="56" alt="Animéaux" style="border-radius: 14px; display: inline-block;" />
+          </div>
+          <h2 style="color: #d9670b;">Rendez-vous reporté</h2>
+          <p>Bonjour ${escapeHtml(patientProfile?.first_name ?? '')},</p>
+          <p>${doctorNameHtml} a reporté votre rendez-vous. Nouvelle date :</p>
+          <p style="font-size: 16px; font-weight: 600; margin: 16px 0;">${dateStr}</p>
+          <p style="margin-top: 20px;">
+            <a href="https://monanimeaux.fr/rendez-vous" style="background: #d9670b; color: #fff; padding: 10px 20px; border-radius: 10px; text-decoration: none; font-weight: 500;">
+              Voir mes rendez-vous
+            </a>
+          </p>
+          <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Animéaux — Votre animal, notre priorité.</p>
+        </div>
+      `
+      const resendRes = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${resendKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: Deno.env.get('EMAIL_FROM') ?? 'Animéaux <onboarding@resend.dev>',
+          to: patientEmail,
+          subject: 'Votre rendez-vous a été reporté',
+          html,
+        }),
+      })
+      emailSent = resendRes.ok
+      if (!resendRes.ok) {
+        console.error('Resend error', await resendRes.text())
+      }
+    }
+
+    const patientPhone = toE164(patientProfile?.phone)
+    if (patientPhone) {
+      smsSent = await sendOvhSms(
+        `Animeaux : votre RDV avec ${doctorName} a ete reporte au ${shortDate}.`,
+        patientPhone
+      )
+    }
   }
 
   return new Response(JSON.stringify({ ok: true, emailSent, smsSent }), {

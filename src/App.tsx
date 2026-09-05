@@ -65,7 +65,7 @@ function HomeRoute() {
 }
 
 export default function App() {
-  const { loading, setUser, setProfile, setLoading } = useAuthStore()
+  const { loading, user, setUser, setProfile, setLoading } = useAuthStore()
   // Durée plancher pour l'écran de démarrage : sans ça, sur une session déjà
   // connue (réhydratée depuis le stockage local), l'écran de chargement
   // n'apparaîtrait qu'une fraction de seconde — un flash plus qu'un vrai
@@ -154,6 +154,46 @@ export default function App() {
     navigator.serviceWorker.addEventListener('message', handleMessage)
     return () => navigator.serviceWorker.removeEventListener('message', handleMessage)
   }, [])
+
+  // Auto-réconciliation de l'abonnement push (complément du relais
+  // ci-dessus) : le renouvellement piloté par le navigateur
+  // ('pushsubscriptionchange', voir sw.ts) ne postMessage un nouvel
+  // endpoint que si un onglet est déjà ouvert au moment exact de la
+  // rotation — sans onglet ouvert, le message n'a aucun destinataire et
+  // l'ancien endpoint (mort) reste en base indéfiniment, sans que rien ne
+  // le signale jamais à l'utilisateur (usePushSubscriptionStatus ne
+  // vérifie que le navigateur, jamais la base). Revérifie donc à chaque
+  // connexion que l'endpoint actif côté navigateur est bien celui
+  // enregistré en base, et le resynchronise sinon.
+  useEffect(() => {
+    if (!user) return
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const reg = await navigator.serviceWorker.ready
+        const sub = await reg.pushManager.getSubscription()
+        if (cancelled || !sub) return
+        const json = sub.toJSON()
+        const { data: existing } = await supabase
+          .from('push_subscriptions')
+          .select('endpoint')
+          .eq('user_id', user.id)
+          .eq('endpoint', sub.endpoint)
+          .maybeSingle()
+        if (cancelled || existing) return
+        await supabase.from('push_subscriptions').upsert({
+          user_id: user.id,
+          endpoint: sub.endpoint,
+          p256dh: json.keys?.p256dh,
+          auth: json.keys?.auth,
+        }, { onConflict: 'user_id,endpoint' })
+      } catch {
+        // best-effort : ne bloque jamais le chargement de l'app
+      }
+    })()
+    return () => { cancelled = true }
+  }, [user?.id])
 
   if (loading || !splashElapsed) return <SplashScreen />
 

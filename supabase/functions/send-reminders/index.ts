@@ -57,44 +57,61 @@ async function sendOvhSms(message: string, receiver: string) {
   const url = `https://eu.api.ovh.com/1.0/sms/${serviceName}/jobs`
   const body = JSON.stringify({ message, receivers: [receiver] })
 
-  // Horloge officielle OVH plutôt que celle du runtime Edge Function : la
-  // signature est rejetée si le timestamp dévie de plus de quelques
-  // secondes de leur serveur.
-  const timeRes = await fetch('https://eu.api.ovh.com/1.0/auth/time')
-  const timestamp = await timeRes.text()
+  // Délai de 10s par appel externe + try/catch : ces deux fonctions sont
+  // invoquées dans des boucles (jusqu'à des dizaines de destinataires par
+  // exécution). Sans timeout, un seul endpoint OVH lent bloquait
+  // indéfiniment tous les envois suivants dans la même boucle ; sans ce
+  // try/catch, le timeout lui-même (AbortError, non intercepté) aurait fait
+  // planter toute la requête HTTP en cours de boucle, empêchant même les
+  // rappels restants d'être marqués "envoyés" (reminder_*_sent_at).
+  try {
+    // Horloge officielle OVH plutôt que celle du runtime Edge Function : la
+    // signature est rejetée si le timestamp dévie de plus de quelques
+    // secondes de leur serveur.
+    const timeRes = await fetch('https://eu.api.ovh.com/1.0/auth/time', { signal: AbortSignal.timeout(10_000) })
+    const timestamp = await timeRes.text()
 
-  const signature = '$1$' + await sha1Hex(`${appSecret}+${consumerKey}+POST+${url}+${body}+${timestamp}`)
+    const signature = '$1$' + await sha1Hex(`${appSecret}+${consumerKey}+POST+${url}+${body}+${timestamp}`)
 
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Ovh-Application': appKey,
-      'X-Ovh-Consumer': consumerKey,
-      'X-Ovh-Timestamp': timestamp,
-      'X-Ovh-Signature': signature,
-    },
-    body,
-  })
-  if (!res.ok) {
-    console.error('OVH SMS error', await res.text())
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Ovh-Application': appKey,
+        'X-Ovh-Consumer': consumerKey,
+        'X-Ovh-Timestamp': timestamp,
+        'X-Ovh-Signature': signature,
+      },
+      body,
+      signal: AbortSignal.timeout(10_000),
+    })
+    if (!res.ok) {
+      console.error('OVH SMS error', await res.text())
+    }
+  } catch (e) {
+    console.error('OVH SMS request failed/timed out', e)
   }
 }
 
 async function sendReminderEmail(resendKey: string, to: string, subject: string, html: string) {
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${resendKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: Deno.env.get('EMAIL_FROM') ?? 'Animéaux <onboarding@resend.dev>',
-      to, subject, html,
-    }),
-  })
-  if (!res.ok) {
-    console.error('Resend error', await res.text())
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${resendKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: Deno.env.get('EMAIL_FROM') ?? 'Animéaux <onboarding@resend.dev>',
+        to, subject, html,
+      }),
+      signal: AbortSignal.timeout(10_000),
+    })
+    if (!res.ok) {
+      console.error('Resend error', await res.text())
+    }
+  } catch (e) {
+    console.error('Resend request failed/timed out', e)
   }
 }
 
@@ -150,6 +167,9 @@ Deno.serve(async (req) => {
     const doctorProfile = (appt.doctors as any)?.profiles
     const doctorSpecialty = (appt.doctors as any)?.specialty
     const doctorName = doctorProfile ? `Dr ${doctorProfile.first_name} ${doctorProfile.last_name}` : 'votre praticien'
+    // Version échappée dédiée aux emails HTML — `doctorName` reste en clair
+    // pour la notification in-app (échappée par React au rendu) et le SMS.
+    const doctorNameHtml = doctorProfile ? `Dr ${escapeHtml(doctorProfile.first_name)} ${escapeHtml(doctorProfile.last_name)}` : 'votre praticien'
 
     const dateStr = new Date(appt.start_at).toLocaleString('fr-FR', {
       dateStyle: 'full',
@@ -159,13 +179,14 @@ Deno.serve(async (req) => {
 
     // Crée la notification in-app — user_id = patient_id (appointments.patient_id
     // référence directement users.id, pas besoin de passer par profiles).
-    await supabase.from('notifications').insert({
+    const { error: apptNotifError } = await supabase.from('notifications').insert({
       user_id: appt.patient_id,
       type: 'appointment_reminder',
       title: 'Rappel de rendez-vous',
       body: `Votre RDV avec ${doctorName} est demain.`,
       related_id: appt.id,
     })
+    if (apptNotifError) console.error('appointment reminder notification insert error', apptNotifError)
 
     if (resendKey && patientEmail) {
       const html = `
@@ -174,10 +195,10 @@ Deno.serve(async (req) => {
             <img src="https://monanimeaux.fr/pwa-192.png" width="56" height="56" alt="Animéaux" style="border-radius: 14px; display: inline-block;" />
           </div>
           <h2 style="color: #d9670b;">Rappel de rendez-vous 🐾</h2>
-          <p>Bonjour ${patientProfile?.first_name ?? ''},</p>
+          <p>Bonjour ${escapeHtml(patientProfile?.first_name ?? '')},</p>
           <p>Petit rappel : vous avez un rendez-vous demain.</p>
           <ul style="line-height: 1.8;">
-            <li><strong>Avec :</strong> ${doctorName}${doctorSpecialty ? ` (${doctorSpecialty})` : ''}</li>
+            <li><strong>Avec :</strong> ${doctorNameHtml}${doctorSpecialty ? ` (${escapeHtml(doctorSpecialty)})` : ''}</li>
             <li><strong>Le :</strong> ${dateStr}</li>
             ${appt.reason ? `<li><strong>Motif :</strong> ${escapeHtml(appt.reason)}</li>` : ''}
           </ul>
@@ -203,7 +224,8 @@ Deno.serve(async (req) => {
       )
     }
 
-    await supabase.from('appointments').update({ reminder_24h_sent_at: new Date().toISOString() }).eq('id', appt.id)
+    const { error: apptUpdateError } = await supabase.from('appointments').update({ reminder_24h_sent_at: new Date().toISOString() }).eq('id', appt.id)
+    if (apptUpdateError) console.error('reminder_24h_sent_at update error', apptUpdateError)
     sent++
   }
 
@@ -251,25 +273,30 @@ Deno.serve(async (req) => {
       dateStyle: 'long', timeZone: 'Europe/Paris',
     })
 
-    await supabase.from('notifications').insert({
+    const { error: vaccNotifError } = await supabase.from('notifications').insert({
       user_id: animal?.owner_id ?? null,
       type: 'vaccine_reminder',
       title: 'Rappel de vaccin',
       body: `${animal?.name ?? 'Votre animal'} doit recevoir un rappel de vaccin (${vaccine.name}) avant le ${dueDateStr}.`,
       related_id: vaccine.animal_id,
     })
+    if (vaccNotifError) console.error('vaccine reminder notification insert error', vaccNotifError)
 
     if (resendKey && ownerEmail) {
+      // name (animal) et vaccine.name sont des champs libres saisis par le
+      // propriétaire/le praticien, jamais validés contre l'injection de
+      // balises — échappés avant interpolation dans l'email HTML, même
+      // raison que pour `reason` en haut de fichier.
       const html = `
         <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #1f2937;">
           <div style="text-align: center; margin-bottom: 16px;">
             <img src="https://monanimeaux.fr/pwa-192.png" width="56" height="56" alt="Animéaux" style="border-radius: 14px; display: inline-block;" />
           </div>
           <h2 style="color: #d9670b;">Rappel de vaccin 🐾</h2>
-          <p>Bonjour ${ownerProfile?.first_name ?? ''},</p>
-          <p>Le vétérinaire de <strong>${animal?.name ?? 'votre animal'}</strong> a indiqué un rappel de vaccin à prévoir prochainement :</p>
+          <p>Bonjour ${escapeHtml(ownerProfile?.first_name ?? '')},</p>
+          <p>Le vétérinaire de <strong>${escapeHtml(animal?.name ?? 'votre animal')}</strong> a indiqué un rappel de vaccin à prévoir prochainement :</p>
           <ul style="line-height: 1.8;">
-            <li><strong>Vaccin :</strong> ${vaccine.name}</li>
+            <li><strong>Vaccin :</strong> ${escapeHtml(vaccine.name)}</li>
             <li><strong>À faire avant le :</strong> ${dueDateStr}</li>
           </ul>
           <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Animéaux — Votre animal, notre priorité.</p>
@@ -286,7 +313,8 @@ Deno.serve(async (req) => {
       )
     }
 
-    await supabase.from('vaccines').update({ reminder_sent_at: new Date().toISOString() }).eq('id', vaccine.id)
+    const { error: vaccUpdateError } = await supabase.from('vaccines').update({ reminder_sent_at: new Date().toISOString() }).eq('id', vaccine.id)
+    if (vaccUpdateError) console.error('reminder_sent_at update error', vaccUpdateError)
     vaccineReminders++
   }
 
@@ -321,14 +349,16 @@ Deno.serve(async (req) => {
     const patientEmail = (appt.patient as any)?.email
     const doctorProfile = (appt.doctors as any)?.profiles
     const doctorName = doctorProfile ? `Dr ${doctorProfile.first_name} ${doctorProfile.last_name}` : 'votre praticien'
+    const doctorNameHtml = doctorProfile ? `Dr ${escapeHtml(doctorProfile.first_name)} ${escapeHtml(doctorProfile.last_name)}` : 'votre praticien'
 
-    await supabase.from('notifications').insert({
+    const { error: reviewNotifError } = await supabase.from('notifications').insert({
       user_id: appt.patient_id,
       type: 'review_reminder',
       title: "Comment s'est passé votre rendez-vous ?",
       body: `Partagez votre avis sur ${doctorName}, ça aide les autres propriétaires d'animaux.`,
       related_id: appt.doctor_id,
     })
+    if (reviewNotifError) console.error('review reminder notification insert error', reviewNotifError)
 
     if (resendKey && patientEmail) {
       const html = `
@@ -337,8 +367,8 @@ Deno.serve(async (req) => {
             <img src="https://monanimeaux.fr/pwa-192.png" width="56" height="56" alt="Animéaux" style="border-radius: 14px; display: inline-block;" />
           </div>
           <h2 style="color: #d9670b;">Un avis sur votre rendez-vous ? 🐾</h2>
-          <p>Bonjour ${patientProfile?.first_name ?? ''},</p>
-          <p>Votre rendez-vous avec <strong>${doctorName}</strong> est terminé. Si vous avez un instant, votre avis aide les autres propriétaires d'animaux à choisir un praticien.</p>
+          <p>Bonjour ${escapeHtml(patientProfile?.first_name ?? '')},</p>
+          <p>Votre rendez-vous avec <strong>${doctorNameHtml}</strong> est terminé. Si vous avez un instant, votre avis aide les autres propriétaires d'animaux à choisir un praticien.</p>
           <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Animéaux — Votre animal, notre priorité.</p>
         </div>
       `
@@ -353,7 +383,8 @@ Deno.serve(async (req) => {
       )
     }
 
-    await supabase.from('appointments').update({ review_reminder_sent_at: new Date().toISOString() }).eq('id', appt.id)
+    const { error: reviewUpdateError } = await supabase.from('appointments').update({ review_reminder_sent_at: new Date().toISOString() }).eq('id', appt.id)
+    if (reviewUpdateError) console.error('review_reminder_sent_at update error', reviewUpdateError)
     reviewReminders++
   }
 

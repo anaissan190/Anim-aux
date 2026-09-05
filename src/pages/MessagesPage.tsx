@@ -1,6 +1,6 @@
 // src/pages/MessagesPage.tsx
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import Navbar from '@/components/ui/Navbar'
@@ -32,7 +32,12 @@ function saveHidden(userId: string, map: HiddenMap) {
 export default function MessagesPage() {
   const { user, profile } = useAuthStore()
   const navigate = useNavigate()
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  // Ouverture directe d'une conversation depuis une notification push
+  // ('new_message', voir urlForNotificationType) : sans ça, le clic
+  // retombait sur la conversation la plus récente, pas forcément celle
+  // notifiée si plusieurs ont des messages non lus en même temps.
+  const [searchParams] = useSearchParams()
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(searchParams.get('with'))
   const [text, setText] = useState('')
   const [contacts, setContacts] = useState<any[]>([])
   const bottomRef = useRef<HTMLDivElement>(null)

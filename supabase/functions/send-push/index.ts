@@ -82,6 +82,12 @@ Deno.serve(async (req) => {
       // continuer à essayer indéfiniment sur un endpoint mort.
       if (err?.statusCode === 404 || err?.statusCode === 410) {
         await supabase.from('push_subscriptions').delete().eq('id', sub.id)
+      } else {
+        // Toute autre erreur (clé VAPID invalide, payload trop gros, quota,
+        // réseau...) restait invisible jusqu'ici — ni loguée, ni comptée,
+        // rendant impossible de diagnostiquer pourquoi un push n'arrive pas
+        // alors que l'abonnement reste valide en base.
+        console.error('webpush.sendNotification error', sub.endpoint, err?.statusCode, err?.body ?? err?.message ?? err)
       }
     }
   }

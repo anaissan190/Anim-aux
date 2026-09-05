@@ -57,7 +57,7 @@ self.addEventListener('push', (event: PushEvent) => {
 
 self.addEventListener('notificationclick', (event: NotificationEvent) => {
   event.notification.close()
-  const url = urlForNotificationType(event.notification.data?.type)
+  const url = urlForNotificationType(event.notification.data?.type, event.notification.data?.related_id)
   event.waitUntil(
     (async () => {
       // Réutilise un onglet déjà ouvert de l'appli plutôt que d'en ouvrir un

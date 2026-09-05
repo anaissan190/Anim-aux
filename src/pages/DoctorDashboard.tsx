@@ -121,15 +121,18 @@ export default function DoctorDashboard() {
   const addDoctorService  = useAddDoctorService()
   const deleteDoctorService = useDeleteDoctorService()
   const updateClinic      = useUpdateClinic()
+  const [clinicInfoError, setClinicInfoError] = useState('')
   const removeClinicMember = useRemoveClinicMember()
   const [removeMemberError, setRemoveMemberError] = useState('')
   const [confirmRemoveMemberId, setConfirmRemoveMemberId] = useState<string | null>(null)
   const [confirmDeleteServiceId, setConfirmDeleteServiceId] = useState<string | null>(null)
+  const [confirmDeleteBlockedSlotId, setConfirmDeleteBlockedSlotId] = useState<string | null>(null)
   const inviteSecretary = useInviteClinicSecretary()
   const [secretaryEmail, setSecretaryEmail] = useState('')
   const [secretaryInviteError, setSecretaryInviteError] = useState('')
   const [secretaryInviteSuccess, setSecretaryInviteSuccess] = useState(false)
   const [secretaryLoginIdentifier, setSecretaryLoginIdentifier] = useState('')
+  const [secretaryPassword, setSecretaryPassword] = useState('')
   const { user, signOut } = useAuthStore()
   const navigate = useNavigate()
   const isClinicAdmin = clinic?.owner_id === user?.id
@@ -145,9 +148,10 @@ export default function DoctorDashboard() {
   const disablePush = useDisablePushNotifications()
   const [pushError, setPushError] = useState('')
 
-  const { data: calendarFeedToken } = useCalendarFeedToken()
+  const { data: calendarFeedToken, error: calendarFeedError } = useCalendarFeedToken()
   const regenerateFeedToken = useRegenerateCalendarFeedToken()
   const [confirmRegenerateFeed, setConfirmRegenerateFeed] = useState(false)
+  const [regenerateFeedError, setRegenerateFeedError] = useState('')
   const [feedCopied, setFeedCopied] = useState(false)
   const calendarFeedUrl = calendarFeedToken
     ? `https://agjuakrtqfddkfoocbof.supabase.co/functions/v1/doctor-calendar-feed?token=${calendarFeedToken}`
@@ -1185,9 +1189,18 @@ export default function DoctorDashboard() {
                             </p>
                             {b.reason && <p className="text-xs text-gray-400 mt-0.5">{b.reason}</p>}
                           </div>
-                          <button
-                            onClick={() => deleteBlockedSlot.mutate({ id: b.id, doctorId: doctor!.id })}
-                            className="text-xs text-red-400 hover:text-red-500 flex-shrink-0 ml-3">Supprimer</button>
+                          {confirmDeleteBlockedSlotId === b.id ? (
+                            <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                              <button
+                                onClick={() => { deleteBlockedSlot.mutate({ id: b.id, doctorId: doctor!.id }); setConfirmDeleteBlockedSlotId(null) }}
+                                className="text-xs text-red-600 font-semibold hover:underline">Confirmer ?</button>
+                              <button onClick={() => setConfirmDeleteBlockedSlotId(null)} className="text-xs text-gray-400 hover:underline">Non</button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setConfirmDeleteBlockedSlotId(b.id)}
+                              className="text-xs text-red-400 hover:text-red-500 flex-shrink-0 ml-3">Supprimer</button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1365,7 +1378,7 @@ export default function DoctorDashboard() {
                           <input type="email" className="input text-sm flex-1"
                             placeholder="email@secretaire.fr"
                             value={secretaryEmail}
-                            onChange={e => { setSecretaryEmail(e.target.value); setSecretaryInviteSuccess(false) }} />
+                            onChange={e => { setSecretaryEmail(e.target.value); setSecretaryInviteSuccess(false); setSecretaryPassword('') }} />
                           <button
                             onClick={async () => {
                               if (!secretaryEmail || !clinic?.id) return
@@ -1375,6 +1388,7 @@ export default function DoctorDashboard() {
                                 const result = await inviteSecretary.mutateAsync({ clinicId: clinic.id, email: secretaryEmail })
                                 setSecretaryEmail('')
                                 setSecretaryLoginIdentifier(result?.loginIdentifier ?? '')
+                                setSecretaryPassword(result?.password ?? '')
                                 setSecretaryInviteSuccess(true)
                               } catch (e: any) {
                                 setSecretaryInviteError(e.message ?? "Erreur lors de l'envoi des identifiants.")
@@ -1387,10 +1401,17 @@ export default function DoctorDashboard() {
                         </div>
                         {secretaryInviteError && <p className="text-red-500 text-sm mb-3">{secretaryInviteError}</p>}
                         {secretaryInviteSuccess && (
-                          <p className="text-sage-600 text-sm mb-3">
-                            ✓ Identifiants envoyés par email.
-                            {secretaryLoginIdentifier && <> Identifiant de connexion : <strong>{secretaryLoginIdentifier}</strong></>}
-                          </p>
+                          <div className="text-sage-600 text-sm mb-3">
+                            <p>
+                              {secretaryPassword ? "⚠️ Compte créé, mais l'email n'a pas pu être envoyé." : '✓ Identifiants envoyés par email.'}
+                              {secretaryLoginIdentifier && <> Identifiant de connexion : <strong>{secretaryLoginIdentifier}</strong></>}
+                            </p>
+                            {secretaryPassword && (
+                              <p className="mt-1">
+                                Mot de passe à transmettre toi-même : <strong>{secretaryPassword}</strong>
+                              </p>
+                            )}
+                          </div>
                         )}
 
                         {clinicStaff.length > 0 && (
@@ -1636,13 +1657,19 @@ export default function DoctorDashboard() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone du cabinet</label>
                     <input className="input" defaultValue={clinic.phone ?? ''} id="clinic-phone" />
                   </div>
+                  {clinicInfoError && <p className="text-red-500 text-sm">{clinicInfoError}</p>}
                   <button onClick={async () => {
+                    setClinicInfoError('')
                     const name    = (document.getElementById('clinic-name') as HTMLInputElement).value
                     const city    = (document.getElementById('clinic-city') as HTMLInputElement).value
                     const address = (document.getElementById('clinic-address') as HTMLInputElement).value
                     const phone   = (document.getElementById('clinic-phone') as HTMLInputElement).value
-                    await updateClinic.mutateAsync({ id: clinic.id, name, city, address, phone })
-                  }} className="btn-primary w-full">
+                    try {
+                      await updateClinic.mutateAsync({ id: clinic.id, name, city, address, phone })
+                    } catch (e: any) {
+                      setClinicInfoError(e?.message ?? "Erreur lors de l'enregistrement, réessaie.")
+                    }
+                  }} disabled={updateClinic.isPending} className="btn-primary w-full">
                     {updateClinic.isPending ? 'Enregistrement...' : 'Enregistrer les modifications du cabinet'}
                   </button>
                 </div>
@@ -1851,6 +1878,9 @@ export default function DoctorDashboard() {
                 Apple Calendar ("Fichier" → "Nouvel abonnement") pour voir tous tes RDV confirmés
                 se mettre à jour automatiquement, sans export manuel.
               </p>
+              {calendarFeedError && (
+                <p className="text-red-500 text-xs mb-3">Impossible de charger ton lien de calendrier. Réessaie plus tard.</p>
+              )}
               {calendarFeedUrl && (
                 <div className="flex items-center gap-2 mb-3">
                   <input readOnly value={calendarFeedUrl} onFocus={e => e.target.select()}
@@ -1860,6 +1890,7 @@ export default function DoctorDashboard() {
                   </button>
                 </div>
               )}
+              {regenerateFeedError && <p className="text-red-500 text-xs mb-2">{regenerateFeedError}</p>}
               {!confirmRegenerateFeed ? (
                 <button onClick={() => setConfirmRegenerateFeed(true)}
                   className="text-xs text-gray-400 hover:text-red-500 hover:underline transition-colors">
@@ -1870,7 +1901,13 @@ export default function DoctorDashboard() {
                   <p className="text-gray-600 mb-1">L'ancien lien cessera de fonctionner (à refaire dans ton calendrier). Continuer ?</p>
                   <div className="flex gap-3">
                     <button
-                      onClick={() => { regenerateFeedToken.mutate(); setConfirmRegenerateFeed(false) }}
+                      onClick={() => {
+                        setRegenerateFeedError('')
+                        regenerateFeedToken.mutate(undefined, {
+                          onError: (e: any) => setRegenerateFeedError(e?.message ?? 'Erreur lors de la régénération, réessaie.'),
+                        })
+                        setConfirmRegenerateFeed(false)
+                      }}
                       disabled={regenerateFeedToken.isPending}
                       className="text-red-500 hover:underline font-semibold">
                       Régénérer

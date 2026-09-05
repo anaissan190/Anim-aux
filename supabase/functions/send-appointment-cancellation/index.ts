@@ -26,6 +26,19 @@ function toE164(rawPhone: string | null | undefined): string | null {
   return null
 }
 
+// Prénom/nom (patient ET praticien) sont des champs libres saisis à
+// l'inscription, jamais validés contre l'injection de balises — échappés
+// avant interpolation dans l'email HTML, même raison que dans
+// send-appointment-confirmation/index.ts.
+function escapeHtml(input: string) {
+  return input
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 async function sha1Hex(input: string): Promise<string> {
   const bytes = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(input))
   return Array.from(new Uint8Array(bytes)).map(b => b.toString(16).padStart(2, '0')).join('')
@@ -96,7 +109,7 @@ Deno.serve(async (req) => {
     .select(`
       id, start_at,
       patient:users!patient_id(email, profiles(first_name, phone)),
-      doctors!inner(profiles!inner(first_name, last_name))
+      doctors!inner(profiles!doctors_user_id_profiles_fkey(first_name, last_name))
     `)
     .eq('id', notification.related_id)
     .single()
@@ -108,6 +121,9 @@ Deno.serve(async (req) => {
   const patientEmail = (appt.patient as any)?.email
   const doctorProfile = (appt.doctors as any)?.profiles
   const doctorName = doctorProfile ? `Dr ${doctorProfile.first_name} ${doctorProfile.last_name}` : 'Votre praticien'
+  // Version échappée dédiée à l'email HTML — `doctorName` reste en clair
+  // pour le SMS (les entités HTML s'afficheraient littéralement dedans).
+  const doctorNameHtml = doctorProfile ? `Dr ${escapeHtml(doctorProfile.first_name)} ${escapeHtml(doctorProfile.last_name)}` : 'Votre praticien'
 
   const dateStr = new Date(appt.start_at).toLocaleString('fr-FR', {
     dateStyle: 'full',
@@ -125,8 +141,8 @@ Deno.serve(async (req) => {
           <img src="https://monanimeaux.fr/pwa-192.png" width="56" height="56" alt="Animéaux" style="border-radius: 14px; display: inline-block;" />
         </div>
         <h2 style="color: #d9670b;">Rendez-vous annulé</h2>
-        <p>Bonjour ${patientProfile?.first_name ?? ''},</p>
-        <p>${doctorName} a annulé votre rendez-vous prévu le <strong>${dateStr}</strong>.</p>
+        <p>Bonjour ${escapeHtml(patientProfile?.first_name ?? '')},</p>
+        <p>${doctorNameHtml} a annulé votre rendez-vous prévu le <strong>${dateStr}</strong>.</p>
         <p>Vous pouvez réserver un nouveau créneau directement depuis l'application.</p>
         <p style="margin-top: 20px;">
           <a href="https://monanimeaux.fr/rendez-vous" style="background: #d9670b; color: #fff; padding: 10px 20px; border-radius: 10px; text-decoration: none; font-weight: 500;">
