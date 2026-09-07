@@ -58,25 +58,14 @@ export default function PatientDashboard() {
       <Navbar />
       <div className="max-w-5xl mx-auto px-4 py-8">
 
-        {/* Bienvenue */}
-        <div className="mb-9 flex items-end justify-between gap-4">
-          <div>
-            <h1 className="text-[30px] font-bold text-gray-900">
-              Bonjour, {profile?.first_name ?? 'Patient'} 👋
-            </h1>
-            <p className="text-gray-500 text-[15px] mt-1.5">Gérez vos animaux et vos rendez-vous.</p>
-          </div>
-          {/* Orange (accent), pas vert — retour d'Anaïs du 07/09/2026 : le
-              vert de la maquette DashboardMix ne correspond pas à la couleur
-              d'action de l'appli, réservée à l'orange partout ailleurs
-              (Réserver, Confirmer...). Un cran plus clair que le bouton
-              btn-primary standard (sage-500 au lieu de sage-600) — celui-ci
-              est gros et bien en vue en haut de l'accueil, le ton plein
-              rendait trop foncé à cet endroit. */}
-          <Link to="/search"
-            className="bg-sage-500 hover:bg-sage-600 text-white font-medium text-sm px-6 py-3 rounded-full transition-colors whitespace-nowrap flex-shrink-0">
-            + Prendre rendez-vous
-          </Link>
+        {/* Bienvenue. Bouton "+ Prendre rendez-vous" retiré du 07/09/2026
+            (retour d'Anaïs) — redondant avec "Nouveau RDV" dans Actions
+            rapides et le CTA de l'état vide des RDV à venir. */}
+        <div className="mb-9">
+          <h1 className="text-[30px] font-bold text-gray-900">
+            Bonjour, {profile?.first_name ?? 'Patient'} 👋
+          </h1>
+          <p className="text-gray-500 text-[15px] mt-1.5">Gérez vos animaux et vos rendez-vous.</p>
         </div>
 
         <PushNotificationBanner />
