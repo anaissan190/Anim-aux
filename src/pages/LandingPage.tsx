@@ -120,41 +120,43 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* Mobile : écran d'entrée "Wow / Aurora" pour visiteur non connecté —
-          validé sur aperçu avant ce chantier. Volontairement épuré : rien
-          sous le bloc recherche/CTA (pas de "Comment ça marche", spécialités
-          ni CTA praticien — retirés à la demande de la cliente). */}
-      <div className="md:hidden min-h-screen bg-[#FA7913]/35">
+      {/* Mobile : alignée sur l'identité desktop (Lora/Public Sans, fond
+          crème, pilules orange) depuis le 07/09/2026 — reprend la même
+          structure que la coquille "Wow / Aurora" précédente (mascotte,
+          recherche en une carte, double CTA) mais avec les couleurs/polices
+          du reste de la refonte plutôt que Fredoka/Nunito et le fond orange.
+          Toujours volontairement épuré : rien sous le bloc recherche/CTA. */}
+      <div className="md:hidden min-h-screen bg-[#FFFAF0]">
         <div className="flex items-center justify-between px-4 pt-4 pb-1">
           <img src={logoNavbar} alt="Animéaux" className="h-10 w-auto" />
-          <Link to="/login" className="font-fredoka text-sm font-semibold text-gray-900 bg-white/70 backdrop-blur-sm rounded-full px-4 py-1.5 shadow-sm">
+          <Link to="/login" className="text-sm font-medium text-gray-900 bg-white border border-sand-200 rounded-full px-4 py-1.5">
             Connexion
           </Link>
         </div>
 
         <div className="px-4 pt-3 pb-6 text-center">
           <CatMascot size={104} animate className="mx-auto drop-shadow-lg" />
-          <span className="inline-block font-nunito bg-white/80 text-sage-700 text-xs font-bold px-3 py-1 rounded-full mt-3 mb-3">
+          <span className="inline-block bg-sage-100 text-sage-700 text-xs font-bold px-3 py-1 rounded-full mt-3 mb-3">
             Votre animal, notre priorité
           </span>
-          <h1 className="font-fredoka text-[28px] font-semibold text-gray-900 leading-tight">
-            Trouvez un praticien,<br />prenez RDV en ligne
+          <h1 className="text-[28px] font-bold leading-tight">
+            Trouvez un praticien,<br /><span className="text-sage-600">prenez RDV en ligne</span>
           </h1>
-          <p className="font-nunito text-sm text-gray-700/90 mt-3 mb-5 max-w-[280px] mx-auto">
+          <p className="text-sm text-gray-500 mt-3 mb-5 max-w-[280px] mx-auto">
             Plus de 5 000 professionnels disponibles. Avis, créneaux, confirmation en 1 clic.
           </p>
 
-          <div className="bg-white/90 backdrop-blur-md rounded-2xl p-3 shadow-sm border border-white/70 mb-3 text-left">
+          <div className="card p-3 mb-3 text-left">
             <SearchBar />
           </div>
 
           <div className="flex gap-2">
             <Link to="/register"
-              className="flex-1 font-fredoka font-semibold text-sm bg-white text-sage-700 rounded-2xl py-3 shadow-sm border border-white/70">
+              className="flex-1 font-medium text-sm bg-white text-gray-900 border border-sand-200 rounded-full py-3">
               Créer un compte
             </Link>
             <Link to="/login"
-              className="flex-1 font-fredoka font-semibold text-sm bg-sage-800 text-white rounded-2xl py-3 shadow-sm">
+              className="flex-1 font-medium text-sm bg-sage-500 hover:bg-sage-600 text-white rounded-full py-3 transition-colors">
               Se connecter
             </Link>
           </div>
