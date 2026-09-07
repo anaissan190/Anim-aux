@@ -127,11 +127,20 @@ export default function LandingPage() {
           du reste de la refonte plutôt que Fredoka/Nunito et le fond orange.
           Toujours volontairement épuré : rien sous le bloc recherche/CTA. */}
       <div className="md:hidden min-h-screen bg-[#FFFAF0]">
-        <div className="flex items-center justify-between px-4 pt-4 pb-1">
-          <img src={logoNavbar} alt="Animéaux" className="h-10 w-auto" />
-          <Link to="/login" className="text-sm font-medium text-gray-900 bg-white border border-sand-200 rounded-full px-4 py-1.5">
-            Connexion
-          </Link>
+        {/* "Se connecter" / "Créer un compte" ici, en haut — retiré du bas
+            de l'écran (retour d'Anaïs du 07/09/2026). Texte/paddings
+            resserrés pour tenir sur une ligne à côté du logo sur un écran
+            étroit (375px). */}
+        <div className="flex items-center justify-between gap-2 px-4 pt-4 pb-1">
+          <img src={logoNavbar} alt="Animéaux" className="h-9 w-auto flex-shrink-0" />
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <Link to="/register" className="whitespace-nowrap text-xs font-medium text-gray-900 bg-white border border-sand-200 rounded-full px-2.5 py-1.5">
+              Créer un compte
+            </Link>
+            <Link to="/login" className="whitespace-nowrap text-xs font-medium text-white bg-sage-500 hover:bg-sage-600 rounded-full px-2.5 py-1.5 transition-colors">
+              Se connecter
+            </Link>
+          </div>
         </div>
 
         <div className="px-4 pt-3 pb-6 text-center">
@@ -146,21 +155,8 @@ export default function LandingPage() {
             Plus de 5 000 professionnels disponibles. Avis, créneaux, confirmation en 1 clic.
           </p>
 
-          <div className="card p-3 mb-3 text-left">
+          <div className="card p-3 text-left">
             <SearchBar lightButton greenCityField />
-          </div>
-
-          <div className="flex gap-2">
-            <Link to="/register"
-              className="flex-1 font-medium text-sm bg-white text-gray-900 border border-sand-200 rounded-full py-3">
-              Créer un compte
-            </Link>
-            {/* Orange plus clair (sage-500), assorti à "Rechercher" —
-                retour d'Anaïs du 07/09/2026. */}
-            <Link to="/login"
-              className="flex-1 font-medium text-sm bg-sage-500 hover:bg-sage-600 text-white rounded-full py-3 transition-colors">
-              Se connecter
-            </Link>
           </div>
         </div>
       </div>
