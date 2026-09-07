@@ -28,6 +28,18 @@
   font-display: swap;
   src: url('./assets/fonts/lora.woff2') format('woff2');
 }
+/* Italique — utilisé pour l'instant seulement sur "Bonjour, {prénom}" de
+   l'accueil patient (choisi par Anaïs le 07/09/2026 parmi plusieurs
+   propositions de police). Même famille 'Lora' : le navigateur choisit
+   automatiquement cette face dès qu'un élément applique font-style:italic,
+   sans classe dédiée à poser à la main. */
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('./assets/fonts/lora-italic.woff2') format('woff2');
+}
 @font-face {
   font-family: 'Public Sans';
   font-weight: 400 800;

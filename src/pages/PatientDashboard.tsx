@@ -62,7 +62,11 @@ export default function PatientDashboard() {
             (retour d'Anaïs) — redondant avec "Nouveau RDV" dans Actions
             rapides et le CTA de l'état vide des RDV à venir. */}
         <div className="mb-9">
-          <h1 className="text-[30px] font-bold text-gray-900">
+          {/* Italique + poids 500 (pas font-bold) — choisi par Anaïs le
+              07/09/2026 parmi plusieurs propositions de police pour ce
+              titre précis, plus doux que le Lora gras droit utilisé sur
+              les autres titres de l'appli. */}
+          <h1 className="text-[31px] font-medium italic text-gray-900">
             Bonjour, {profile?.first_name ?? 'Patient'} 👋
           </h1>
           <p className="text-gray-500 text-[15px] mt-1.5">Gérez vos animaux et vos rendez-vous.</p>
