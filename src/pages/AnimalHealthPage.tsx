@@ -335,15 +335,18 @@ export default function AnimalHealthPage() {
           </Link>
         </div>
 
-        <div className="card p-6 mb-6 flex items-center gap-5">
-          <div className="relative w-20 h-20 flex-shrink-0 group">
-            <div className="w-20 h-20 rounded-2xl bg-sage-50 flex items-center justify-center text-4xl overflow-hidden">
+        {/* Photo pleine hauteur sur le côté gauche — option choisie par
+            Anaïs le 07/09/2026 parmi plusieurs propositions, en cohérence
+            avec la galerie photo de "Mes animaux". */}
+        <div className="card mb-6 flex overflow-hidden">
+          <div className="relative w-28 sm:w-36 flex-shrink-0 bg-sage-50 group">
+            <div className="absolute inset-0 flex items-center justify-center text-5xl">
               {animal.avatar_url
                 ? <img src={animal.avatar_url} className="w-full h-full object-cover" alt={animal.name} />
                 : emoji}
             </div>
             {!isDoctor && (
-              <label className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
+              <label className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
                 <span className="text-white text-xs font-medium">
                   {photoUploading ? '...' : '📷'}
                 </span>
@@ -352,24 +355,40 @@ export default function AnimalHealthPage() {
               </label>
             )}
           </div>
-          <div className="flex-1">
+          <div className="flex-1 p-5 sm:p-6">
             <div className="flex items-center gap-3 mb-1">
               <h1 className="text-2xl font-bold text-gray-900">{animal.name}</h1>
               <span className="text-xs bg-sage-100 text-sage-700 px-2 py-1 rounded-full">{animal.species}</span>
               {animal.gender && <span className="text-gray-400 text-sm">{animal.gender}</span>}
             </div>
             <p className="text-gray-500 text-sm">{animal.breed ?? 'Race non renseignée'}</p>
-            <div className="flex gap-4 mt-2 text-sm text-gray-500">
-              {animal.date_of_birth && <span>🎂 {format(new Date(animal.date_of_birth), 'd MMM yyyy', { locale: fr })}</span>}
-              {lastWeight && <span>⚖️ {lastWeight.weight_kg} kg</span>}
-              {animal.microchip_number && <span>📡 {animal.microchip_number}</span>}
-              {animal.tattoo_number && <span>🔖 {animal.tattoo_number}</span>}
+            <div className="flex gap-1.5 flex-wrap mt-2.5">
+              {animal.date_of_birth && (
+                <span className="text-xs font-bold bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">
+                  🎂 {format(new Date(animal.date_of_birth), 'd MMM yyyy', { locale: fr })}
+                </span>
+              )}
+              {lastWeight && (
+                <span className="text-xs font-bold bg-moss-100 text-moss-800 px-2.5 py-1 rounded-full">
+                  ⚖️ {lastWeight.weight_kg} kg
+                </span>
+              )}
+              {animal.microchip_number && (
+                <span className="text-xs font-bold bg-sage-100 text-sage-700 px-2.5 py-1 rounded-full">
+                  📡 {animal.microchip_number}
+                </span>
+              )}
+              {animal.tattoo_number && (
+                <span className="text-xs font-bold bg-sage-100 text-sage-700 px-2.5 py-1 rounded-full">
+                  🔖 {animal.tattoo_number}
+                </span>
+              )}
             </div>
             {isDoctor && owner && (
-              <p className="text-xs text-sage-600 mt-2">👤 Propriétaire : {owner.first_name} {owner.last_name}</p>
+              <p className="text-xs text-sage-600 mt-2.5">👤 Propriétaire : {owner.first_name} {owner.last_name}</p>
             )}
             {!isDoctor && (
-              <div className="flex gap-3 mt-2">
+              <div className="flex gap-3 mt-2.5">
                 <button onClick={openEditForm} className="text-xs text-sage-600 hover:underline">✏️ Modifier</button>
                 {!confirmDelete ? (
                   <button onClick={() => setConfirmDelete(true)} className="text-xs text-red-400 hover:underline">🗑️ Supprimer</button>
