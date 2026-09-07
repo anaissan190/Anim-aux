@@ -696,8 +696,11 @@ export default function DoctorDashboard() {
                 <p className="text-gray-500 text-sm">Aucun résultat pour cette recherche.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {filteredPatientAnimals.map((a: any) => {
+              // Galerie photo — mêmes codes que "Mes animaux" côté patient
+              // (option choisie par Anaïs le 07/09/2026, après plusieurs
+              // propositions), au lieu des petites tuiles carrées grises.
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {filteredPatientAnimals.map((a: any, i: number) => {
                   const isColleaguePatient = clinic && a.referentDoctorId && a.referentDoctorId !== doctor?.id
                   const referentName = isColleaguePatient
                     ? (() => {
@@ -706,31 +709,33 @@ export default function DoctorDashboard() {
                         return p ? `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim() : ''
                       })()
                     : ''
+                  const photoBg = i % 2 === 0 ? 'bg-sage-100' : 'bg-moss-100'
                   return (
                     <Link key={a.id} to={`/animal/${a.id}`}
-                      className="bg-white rounded-2xl p-4 text-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative">
-                      {isColleaguePatient && (
-                        <span className="absolute top-2 right-2 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full" title={`Suivi par ${referentName}`}>
-                          🤝
-                        </span>
-                      )}
-                      <div className="w-14 h-14 rounded-xl mx-auto mb-2 overflow-hidden bg-gray-100 flex items-center justify-center">
+                      className="relative block rounded-2xl overflow-hidden border border-sand-200 hover:shadow-md transition-shadow group"
+                      style={{ aspectRatio: '3 / 4' }}>
+                      <div className={`absolute inset-0 flex items-center justify-center ${photoBg}`}>
                         {a.avatar_url
                           ? <img src={a.avatar_url} alt={a.name} className="w-full h-full object-cover" />
-                          : <span className="text-3xl">{SPECIES_EMOJI[a.species] ?? '🐾'}</span>
+                          : <span className="text-5xl">{SPECIES_EMOJI[a.species] ?? '🐾'}</span>
                         }
                       </div>
-                      <p className="font-semibold text-sm text-gray-900">{a.name}</p>
-                      <p className="text-xs text-gray-400">{a.breed ?? a.species}</p>
-                      <p className="text-xs text-sage-600 mt-1">{a.ownerName}</p>
-                      {a.ownerAppointmentCount > 0 && (
-                        <p className="text-xs text-gray-400 mt-0.5">
-                          {a.ownerAppointmentCount} RDV · dernier le {format(new Date(a.ownerLastAppointmentAt), 'd MMM yyyy', { locale: fr })}
-                        </p>
+                      {isColleaguePatient && (
+                        <span className="absolute top-2.5 right-2.5 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm bg-amber-100 text-amber-700"
+                          title={referentName ? `Suivi par ${referentName}` : 'Suivi par un confrère'}>
+                          🤝{referentName ? ` ${referentName}` : ''}
+                        </span>
                       )}
-                      {isColleaguePatient && referentName && (
-                        <p className="text-xs text-amber-600 mt-0.5">Suivi par {referentName}</p>
-                      )}
+                      <div className="absolute inset-x-0 bottom-0 px-3.5 pt-8 pb-3"
+                        style={{ background: 'linear-gradient(transparent, rgba(58,46,34,.6))' }}>
+                        <p className="font-serif font-semibold text-[15px] text-white truncate">{a.name}</p>
+                        <p className="text-[12px] text-white/85 truncate">{a.ownerName}</p>
+                        {a.ownerAppointmentCount > 0 && (
+                          <p className="text-[10.5px] text-white/65 truncate mt-0.5">
+                            {a.ownerAppointmentCount} RDV · {format(new Date(a.ownerLastAppointmentAt), 'd MMM yyyy', { locale: fr })}
+                          </p>
+                        )}
+                      </div>
                     </Link>
                   )
                 })}
