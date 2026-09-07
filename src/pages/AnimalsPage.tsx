@@ -78,6 +78,61 @@ function PetRow({ animal, index }: { animal: any; index: number }) {
   )
 }
 
+// Carte desktop "galerie photo" — portrait, nom/race incrustés sur la photo
+// via un dégradé sombre en bas (option "B2" choisie par Anaïs le 07/09/2026
+// parmi plusieurs propositions, après le premier essai en lignes qui restait
+// "encore vide"). Une pastille en haut à droite reprend l'info la plus
+// importante (rappel de vaccin en retard/à venir, sinon le poids) — une
+// seule à la fois pour ne pas surcharger la photo.
+function AnimalDesktopCard({ animal, colorIndex }: { animal: any; colorIndex: number }) {
+  const { data: weights = [] } = useWeightTracking(animal.id)
+  const { data: vaccines = [] } = useVaccines(animal.id)
+  const latestWeight = weights[weights.length - 1]
+  const upcomingVaccine = vaccines.find((v: any) => v.next_due_date && new Date(v.next_due_date) > new Date())
+  const overdueVaccine = vaccines.find((v: any) => v.next_due_date && new Date(v.next_due_date) <= new Date())
+
+  const age = animal.date_of_birth ? differenceInYears(new Date(), new Date(animal.date_of_birth)) : null
+  const genderSymbol = GENDER_SYMBOL[animal.gender as string]
+  const photoBg = colorIndex % 2 === 0 ? 'bg-sage-100' : 'bg-moss-100'
+
+  const badge = overdueVaccine
+    ? { label: '⚠️ Rappel en retard', cls: 'bg-red-100 text-red-700' }
+    : upcomingVaccine
+    ? { label: `💉 ${format(new Date(upcomingVaccine.next_due_date), 'd MMM', { locale: fr })}`, cls: 'bg-amber-100 text-amber-700' }
+    : latestWeight
+    ? { label: `⚖️ ${latestWeight.weight_kg} kg`, cls: 'bg-white/90 text-gray-700' }
+    : null
+
+  return (
+    <Link to={`/animal/${animal.id}`}
+      className="relative block rounded-2xl overflow-hidden border border-sand-200 hover:shadow-md transition-shadow group"
+      style={{ aspectRatio: '3 / 4' }}>
+      <div className={`absolute inset-0 flex items-center justify-center ${photoBg}`}>
+        {animal.avatar_url
+          ? <img src={animal.avatar_url} alt={animal.name} className="w-full h-full object-cover" />
+          : <span className="text-5xl">{SPECIES_EMOJI[animal.species] ?? '🐾'}</span>
+        }
+      </div>
+
+      {badge && (
+        <span className={`absolute top-2.5 right-2.5 text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm ${badge.cls}`}>
+          {badge.label}
+        </span>
+      )}
+
+      <div className="absolute inset-x-0 bottom-0 px-3.5 pt-8 pb-3"
+        style={{ background: 'linear-gradient(transparent, rgba(58,46,34,.6))' }}>
+        <p className="font-serif font-semibold text-[15px] text-white truncate">
+          {animal.name}{genderSymbol ? ` ${genderSymbol}` : ''}
+        </p>
+        <p className="text-[12px] text-white/85 truncate">
+          {animal.breed ?? animal.species}{age !== null && ` · ${age} an${age > 1 ? 's' : ''}`}
+        </p>
+      </div>
+    </Link>
+  )
+}
+
 export default function AnimalsPage() {
   const { data: animals = [] } = useAnimals()
   const createAnimal = useCreateAnimal()
@@ -254,29 +309,10 @@ export default function AnimalsPage() {
       <button onClick={() => setShowAnimalForm(true)} className="btn-primary text-sm">+ Ajouter un animal</button>
     </div>
   ) : (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-      {animals.map((a, i) => {
-        const age = a.date_of_birth ? differenceInYears(new Date(), new Date(a.date_of_birth)) : null
-        // Alterne orange/vert comme les autres avatars-initiales de l'appli
-        // (DoctorCard, DoctorMiniRow) — la grille de petites cartes carrées
-        // grises d'avant la refonte manquait de présence ("très vide", retour
-        // d'Anaïs du 07/09/2026).
-        const avatarBg = i % 2 === 0 ? 'bg-sage-100' : 'bg-moss-100'
-        return (
-          <Link key={a.id} to={`/animal/${a.id}`} className="card p-5 text-center hover:shadow-md transition-shadow group">
-            <div className={`w-16 h-16 rounded-full mx-auto mb-3 overflow-hidden flex items-center justify-center ${avatarBg}`}>
-              {a.avatar_url
-                ? <img src={a.avatar_url} alt={a.name} className="w-full h-full object-cover" />
-                : <span className="text-3xl">{speciesEmoji[a.species] ?? '🐾'}</span>
-              }
-            </div>
-            <p className="font-serif font-semibold text-[15px] text-gray-900 group-hover:text-sage-600 transition-colors truncate">{a.name}</p>
-            <p className="text-xs text-gray-500 mt-0.5 truncate">
-              {a.breed ?? a.species}{age !== null && ` · ${age} an${age > 1 ? 's' : ''}`}
-            </p>
-          </Link>
-        )
-      })}
+    // Galerie de cartes portrait (photo + nom incrusté) — option "B2" choisie
+    // par Anaïs le 07/09/2026 parmi plusieurs propositions.
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+      {animals.map((a, i) => <AnimalDesktopCard key={a.id} animal={a} colorIndex={i} />)}
     </div>
   )
 
@@ -298,13 +334,16 @@ export default function AnimalsPage() {
     <div className="relative min-h-screen bg-sage-50">
       <div className="relative z-10">
 
-        {/* Desktop : élargi à max-w-5xl (comme l'accueil patient) et cartes
-            plus grandes/rondes — la grille étroite de petites cartes carrées
-            grises manquait de présence ("très vide", retour d'Anaïs du
-            07/09/2026). */}
+        {/* Desktop : max-w-3xl (pas 5xl) — des cartes riches mais pleine
+            largeur sur un conteneur trop large créaient un grand vide entre
+            le texte et le chevron ; à l'inverse élargir seul (première
+            tentative) sans plus de contenu par carte n'avait fait qu'étaler
+            le vide. La bonne combinaison : cartes plus riches (avatar rond,
+            pastilles poids/vaccin) + conteneur resserré (retour d'Anaïs du
+            07/09/2026 : "c'est encore vide"). */}
         <div className="hidden md:block">
           <Navbar />
-          <div className="max-w-5xl mx-auto px-4 py-8">
+          <div className="max-w-3xl mx-auto px-4 py-8">
             <div className="flex items-end justify-between mb-9 gap-4">
               <div>
                 <h1 className="text-[30px] font-bold text-gray-900">🐾 Mes animaux</h1>
