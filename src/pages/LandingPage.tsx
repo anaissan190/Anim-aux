@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import Navbar from '@/components/ui/Navbar'
 import Footer from '@/components/ui/Footer'
 import SearchBar from '@/components/search/SearchBar'
-import AnimalBackground from '@/components/ui/AnimalBackground'
 import CatMascot from '@/components/mobile/CatMascot'
 import { useAuthStore } from '@/lib/authStore'
 import { PRACTITIONER_TYPES } from '@/lib/practitionerTypes'
@@ -37,7 +36,6 @@ export default function LandingPage() {
     <div className="relative min-h-screen bg-sage-50">
       {/* Desktop : inchangé */}
       <div className="hidden md:block">
-        <AnimalBackground />
         <div className="relative z-10">
           <Navbar />
 

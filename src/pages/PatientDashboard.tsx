@@ -2,7 +2,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Navbar from '@/components/ui/Navbar'
-import AnimalBackground from '@/components/ui/AnimalBackground'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
 import { usePatientAppointments, useAnimals, useCreateAnimal, useFavorites } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
@@ -132,7 +131,6 @@ export default function PatientDashboard() {
     <div className="relative min-h-screen bg-sage-50">
       <div className="relative z-10">
       <div className="hidden md:block">
-      <AnimalBackground />
       <Navbar />
       <div className="max-w-5xl mx-auto px-4 py-8">
 

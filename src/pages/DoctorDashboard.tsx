@@ -4,7 +4,6 @@ import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import { format, startOfWeek, addDays, isSameDay } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import Navbar from '@/components/ui/Navbar'
-import AnimalBackground from '@/components/ui/AnimalBackground'
 import PushNotificationBanner from '@/components/ui/PushNotificationBanner'
 import DoctorMobileTabBar from '@/components/mobile/DoctorMobileTabBar'
 import RichTextEditor from '@/components/ui/RichTextEditor'
@@ -534,11 +533,6 @@ export default function DoctorDashboard() {
 
   return (
     <div className={`relative min-h-screen ${tab === 'home' ? 'bg-sage-50' : 'bg-[#FFFAF0]'}`}>
-      {/* Le fond animaux n'est affiché que sur l'onglet Accueil — c'est le
-          seul qui correspond à "Mon espace" ; les autres onglets (Mes
-          patients, Tarifs, Disponibilités, Avis, Profil, Messages) gardent
-          le fond beige uni d'avant. */}
-      {tab === 'home' && <AnimalBackground />}
       <div className="relative z-10">
       {/* La barre d'onglets (Accueil, Mes patients, Tarifs, Disponibilités,
           Avis) est affichée dans la Navbar elle-même, à la suite du logo —

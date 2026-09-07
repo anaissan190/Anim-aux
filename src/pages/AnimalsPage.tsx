@@ -8,7 +8,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import Navbar from '@/components/ui/Navbar'
-import AnimalBackground from '@/components/ui/AnimalBackground'
 import MobileHeader from '@/components/mobile/MobileHeader'
 import MobileTabBar from '@/components/mobile/MobileTabBar'
 import { useAnimals, useCreateAnimal, useWeightTracking, useVaccines } from '@/hooks/useData'
@@ -287,7 +286,6 @@ export default function AnimalsPage() {
 
         {/* Desktop : inchangé */}
         <div className="hidden md:block">
-          <AnimalBackground />
           <Navbar />
           <div className="max-w-3xl mx-auto px-4 py-8">
             <div className="flex items-center justify-between mb-6">

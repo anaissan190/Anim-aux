@@ -7,7 +7,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import Navbar from '@/components/ui/Navbar'
-import AnimalBackground from '@/components/ui/AnimalBackground'
 import MobileHeader from '@/components/mobile/MobileHeader'
 import MobileTabBar from '@/components/mobile/MobileTabBar'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
@@ -68,7 +67,6 @@ export default function RendezVousPage() {
 
         {/* Desktop : inchangé */}
         <div className="hidden md:block">
-          <AnimalBackground />
           <Navbar />
           <div className="max-w-3xl mx-auto px-4 py-8">
             <h1 className="text-2xl font-bold text-gray-900 mb-6">📅 Mes rendez-vous</h1>
