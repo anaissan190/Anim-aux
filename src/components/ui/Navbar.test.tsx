@@ -40,14 +40,16 @@ describe('Navbar — déconnecté', () => {
 })
 
 describe('Navbar — patient', () => {
-  it('affiche les mêmes onglets directs que le praticien (Accueil, Mes animaux, Mes rendez-vous, Rappels, Documents)', () => {
+  it('affiche les mêmes onglets directs que le praticien (Accueil, Mes animaux, Mes rendez-vous, Documents)', () => {
     useAuthStore.setState({ user: fakeUser({ role: 'patient' }) })
     renderNavbar()
     expect(screen.getByText('Accueil').closest('a')).toHaveAttribute('href', '/dashboard/patient')
     expect(screen.getByText('Mes animaux').closest('a')).toHaveAttribute('href', '/animaux')
     expect(screen.getByText('Mes rendez-vous').closest('a')).toHaveAttribute('href', '/rendez-vous')
-    expect(screen.getByText('Rappels').closest('a')).toHaveAttribute('href', '/rappels')
     expect(screen.getByText('Documents').closest('a')).toHaveAttribute('href', '/documents')
+    // Pas d'onglet "Rappels" : ces infos sont déjà dans l'onglet Vaccins de
+    // la fiche animal et dans "Mes rendez-vous" (retour d'Anaïs, 07/09/2026).
+    expect(screen.queryByText('Rappels')).not.toBeInTheDocument()
     expect(screen.queryByText('Mes patients')).not.toBeInTheDocument()
   })
 
