@@ -800,44 +800,56 @@ export default function DoctorDashboard() {
                     <p className="text-gray-500 text-sm">Aucune prestation renseignée pour ce cabinet.</p>
                   </div>
                 ) : (
+                  // Tableau structuré, lignes alternées — option choisie par
+                  // Anaïs le 07/09/2026 parmi plusieurs propositions.
                   <div className="space-y-5">
                     {servicesByDoctor.map(group => (
-                      <div key={group.doctorId} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-                        <div className="mb-3">
+                      <div key={group.doctorId} className="card overflow-hidden">
+                        <div className="px-5 pt-4 pb-1">
                           <p className="font-semibold text-gray-900">{group.name}</p>
                           {group.specialty && <p className="text-xs text-gray-400">{group.specialty}</p>}
                         </div>
-                        <div className="space-y-2">
-                          {group.services.map((service: any) => (
-                            <div key={service.id} className="flex items-center justify-between border-t border-gray-50 pt-2 first:border-0 first:pt-0">
-                              <div>
-                                <p className="text-sm text-gray-800">{service.name}</p>
-                                <p className="text-xs text-gray-400">{service.duration}</p>
-                              </div>
-                              <div className="flex items-center gap-4">
-                                <span className="text-base font-bold text-sage-600">
+                        <div className="pb-2">
+                        <table className="w-full text-sm mt-2">
+                          <thead>
+                            <tr className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
+                              <td className="px-5 py-1.5">Prestation</td>
+                              <td className="px-3 py-1.5">Durée</td>
+                              <td className="px-3 py-1.5 text-right">Prix</td>
+                              <td className="w-10"></td>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {group.services.map((service: any, i: number) => (
+                              <tr key={service.id} className={i % 2 === 1 ? 'bg-sage-50/60' : ''}>
+                                <td className="px-5 py-2.5 text-gray-800">{service.name}</td>
+                                <td className="px-3 py-2.5 text-gray-400 text-xs whitespace-nowrap">{service.duration}</td>
+                                <td className="px-3 py-2.5 text-right font-bold text-sage-600 whitespace-nowrap">
                                   {service.price !== null ? `${service.price} €` : 'Sur devis'}
-                                </span>
-                                {(group.doctorId === doctor?.id || isClinicAdmin) && (
-                                  confirmDeleteServiceId === service.id ? (
-                                    <span className="flex items-center gap-2 text-xs">
-                                      <button
-                                        onClick={() => { deleteClinicService.mutate({ id: service.id, clinicId: clinic.id }); setConfirmDeleteServiceId(null) }}
-                                        className="text-red-500 hover:underline font-semibold">
-                                        Supprimer
-                                      </button>
-                                      <button onClick={() => setConfirmDeleteServiceId(null)} className="text-gray-400 hover:underline">
-                                        Annuler
-                                      </button>
-                                    </span>
-                                  ) : (
-                                    <button onClick={() => setConfirmDeleteServiceId(service.id)}
-                                      className="text-gray-300 hover:text-red-400 transition-colors text-lg">✕</button>
-                                  )
-                                )}
-                              </div>
-                            </div>
-                          ))}
+                                </td>
+                                <td className="px-2 py-2.5 text-right">
+                                  {(group.doctorId === doctor?.id || isClinicAdmin) && (
+                                    confirmDeleteServiceId === service.id ? (
+                                      <span className="flex items-center gap-2 text-xs whitespace-nowrap">
+                                        <button
+                                          onClick={() => { deleteClinicService.mutate({ id: service.id, clinicId: clinic.id }); setConfirmDeleteServiceId(null) }}
+                                          className="text-red-500 hover:underline font-semibold">
+                                          Supprimer
+                                        </button>
+                                        <button onClick={() => setConfirmDeleteServiceId(null)} className="text-gray-400 hover:underline">
+                                          Annuler
+                                        </button>
+                                      </span>
+                                    ) : (
+                                      <button onClick={() => setConfirmDeleteServiceId(service.id)}
+                                        className="text-gray-300 hover:text-red-400 transition-colors text-lg">✕</button>
+                                    )
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                         </div>
                       </div>
                     ))}
@@ -891,22 +903,36 @@ export default function DoctorDashboard() {
                     <p className="text-gray-500 text-sm">Aucune prestation renseignée.</p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {doctorServices.map((service: any) => (
-                      <div key={service.id} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-gray-900">{service.name}</p>
-                          <p className="text-xs text-gray-400 mt-0.5">{service.duration}</p>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <span className="text-lg font-bold text-sage-600">
-                            {service.price !== null ? `${service.price} €` : 'Sur devis'}
-                          </span>
-                          <button onClick={() => doctor && deleteDoctorService.mutate({ id: service.id, doctorId: doctor.id })}
-                            className="text-gray-300 hover:text-red-400 transition-colors text-lg">✕</button>
-                        </div>
-                      </div>
-                    ))}
+                  // Tableau structuré, lignes alternées — option choisie par
+                  // Anaïs le 07/09/2026 parmi plusieurs propositions.
+                  <div className="card overflow-hidden">
+                    <div className="pb-2">
+                    <table className="w-full text-sm mt-3">
+                      <thead>
+                        <tr className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
+                          <td className="px-5 py-1.5">Prestation</td>
+                          <td className="px-3 py-1.5">Durée</td>
+                          <td className="px-3 py-1.5 text-right">Prix</td>
+                          <td className="w-10"></td>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {doctorServices.map((service: any, i: number) => (
+                          <tr key={service.id} className={i % 2 === 1 ? 'bg-sage-50/60' : ''}>
+                            <td className="px-5 py-2.5 text-gray-800">{service.name}</td>
+                            <td className="px-3 py-2.5 text-gray-400 text-xs whitespace-nowrap">{service.duration}</td>
+                            <td className="px-3 py-2.5 text-right font-bold text-sage-600 whitespace-nowrap">
+                              {service.price !== null ? `${service.price} €` : 'Sur devis'}
+                            </td>
+                            <td className="px-2 py-2.5 text-right">
+                              <button onClick={() => doctor && deleteDoctorService.mutate({ id: service.id, doctorId: doctor.id })}
+                                className="text-gray-300 hover:text-red-400 transition-colors text-lg">✕</button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    </div>
                   </div>
                 )}
               </>
