@@ -66,8 +66,11 @@ export default function PatientDashboard() {
             </h1>
             <p className="text-gray-500 text-[15px] mt-1.5">Gérez vos animaux et vos rendez-vous.</p>
           </div>
-          <Link to="/search"
-            className="bg-moss-600 hover:bg-moss-700 text-white font-bold text-sm px-6 py-3 rounded-full transition-colors whitespace-nowrap flex-shrink-0">
+          {/* Orange (accent), pas vert — retour d'Anaïs du 07/09/2026 : le
+              vert de la maquette DashboardMix ne correspond pas à la couleur
+              d'action de l'appli, réservée à l'orange partout ailleurs
+              (Réserver, Confirmer...). */}
+          <Link to="/search" className="btn-primary text-sm px-6 py-3 whitespace-nowrap flex-shrink-0">
             + Prendre rendez-vous
           </Link>
         </div>
