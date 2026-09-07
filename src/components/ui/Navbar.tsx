@@ -1,5 +1,4 @@
 // src/components/ui/Navbar.tsx
-import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '@/lib/authStore'
 import NotificationBell from './NotificationBell'
@@ -13,21 +12,6 @@ export default function Navbar() {
   const navigate = useNavigate()
   const location = useLocation()
   const [searchParams] = useSearchParams()
-  const isHome = location.pathname === '/'
-
-  // Sur l'accueil uniquement : barre épaisse tout en haut (logo bien visible
-  // au premier coup d'œil), qui rétrécit progressivement dès qu'on scroll.
-  // Sur les autres pages, la barre garde sa taille compacte habituelle.
-  const [scrolled, setScrolled] = useState(!isHome)
-  useEffect(() => {
-    if (!isHome) { setScrolled(true); return }
-    const onScroll = () => setScrolled(window.scrollY > 60)
-    onScroll()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [isHome])
-
-  const big = isHome && !scrolled
 
   // Pastille rouge sur l'enveloppe : les nouveaux messages ont leur propre
   // indicateur, séparé de la cloche de notifications (qui sert désormais
@@ -47,13 +31,17 @@ export default function Navbar() {
   const activeDoctorTab = searchParams.get('tab') || 'home'
 
   return (
-    <nav className="bg-white border-b border-gray-100 sticky top-0 z-50">
-      <div className={`max-w-6xl mx-auto px-4 flex items-center gap-2 transition-all duration-300 ${big ? 'h-20 sm:h-28' : 'h-16'}`}>
+    <nav className="bg-white border-b border-sand-200 sticky top-0 z-50">
+      {/* Barre toujours compacte, même sur l'accueil au premier chargement —
+          la variante "grande puis rétrécit au scroll" (avant la refonte du
+          07/09/2026) laissait un bandeau blanc disproportionné au-dessus du
+          bandeau orange, ne correspondant à aucune des maquettes. */}
+      <div className="max-w-6xl mx-auto px-4 flex items-center gap-2 h-16">
         {/* Le logo ramène toujours vers la page d'accueil publique (recherche
             de praticien, etc.) — même connecté. Pour revenir à son dashboard,
             le praticien a l'onglet "Mon espace" juste à côté. */}
         <Link to="/" className="flex items-center flex-shrink-0">
-          <img src={logoNavbar} alt="Animéaux" className={`w-auto transition-all duration-300 ${big ? 'h-14 sm:h-20' : 'h-12'}`} />
+          <img src={logoNavbar} alt="Animéaux" className="w-auto h-12" />
         </Link>
 
         {/* Praticien : les catégories du dashboard (Accueil, Mes patients,
