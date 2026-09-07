@@ -80,7 +80,10 @@
   .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
   }
-  .badge-green  { @apply badge bg-green-100 text-green-800; }
+  /* Vert de la palette (moss), pas le vert Tailwind par défaut — trop
+     saturé/fluo à côté du reste de l'identité orange/sauge (retour d'Anaïs
+     du 07/09/2026 sur le badge "Confirmé" des RDV). */
+  .badge-green  { @apply badge bg-moss-100 text-moss-800; }
   .badge-blue   { @apply badge bg-moss-100 text-moss-800; }
   .badge-yellow { @apply badge bg-yellow-100 text-yellow-800; }
   .badge-red    { @apply badge bg-red-100 text-red-800; }
