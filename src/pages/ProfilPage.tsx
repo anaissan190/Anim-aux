@@ -190,7 +190,7 @@ export default function ProfilPage() {
       {isPatient && (
         <div className="md:hidden">
           <MobileHeader className="bg-sage-100/60">
-            <h1 className="font-fredoka text-2xl font-semibold text-gray-900">Mon profil</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Mon profil</h1>
           </MobileHeader>
         </div>
       )}
@@ -347,20 +347,12 @@ export default function ProfilPage() {
             </div>
           )}
 
-          {isPatient ? (
-            <>
-              <button type="submit" disabled={loading} className="hidden md:block btn-primary w-full">
-                {loading ? 'Enregistrement...' : 'Enregistrer les modifications'}
-              </button>
-              <button type="submit" disabled={loading} className="md:hidden btn-outline-moss w-full">
-                {loading ? 'Enregistrement...' : 'Enregistrer les modifications'}
-              </button>
-            </>
-          ) : (
-            <button type="submit" disabled={loading} className="btn-primary w-full">
-              {loading ? 'Enregistrement...' : 'Enregistrer les modifications'}
-            </button>
-          )}
+          {/* Même bouton mobile et desktop depuis le 07/09/2026 — la variante
+              contour vert (btn-outline-moss) datait de la coquille "Wow /
+              Aurora" et détonnait avec le reste de la refonte. */}
+          <button type="submit" disabled={loading} className="btn-primary w-full">
+            {loading ? 'Enregistrement...' : 'Enregistrer les modifications'}
+          </button>
 
         </form>
 
@@ -373,29 +365,12 @@ export default function ProfilPage() {
               (nouveau message, RDV confirmé, avis...).
             </p>
             {pushError && <p className="text-red-500 text-xs mb-3">{pushError}</p>}
-            {isPatient ? (
-              <>
-                <button onClick={handleTogglePush} disabled={enablePush.isPending || disablePush.isPending}
-                  className={`hidden md:block ${pushStatus.subscribed ? 'btn-secondary text-sm' : 'btn-primary text-sm'}`}>
-                  {enablePush.isPending || disablePush.isPending
-                    ? '...'
-                    : pushStatus.subscribed ? 'Désactiver les notifications' : 'Activer les notifications'}
-                </button>
-                <button onClick={handleTogglePush} disabled={enablePush.isPending || disablePush.isPending}
-                  className={`md:hidden ${pushStatus.subscribed ? 'btn-secondary text-sm' : 'btn-outline-moss text-sm'}`}>
-                  {enablePush.isPending || disablePush.isPending
-                    ? '...'
-                    : pushStatus.subscribed ? 'Désactiver les notifications' : 'Activer les notifications'}
-                </button>
-              </>
-            ) : (
-              <button onClick={handleTogglePush} disabled={enablePush.isPending || disablePush.isPending}
-                className={pushStatus.subscribed ? 'btn-secondary text-sm' : 'btn-primary text-sm'}>
-                {enablePush.isPending || disablePush.isPending
-                  ? '...'
-                  : pushStatus.subscribed ? 'Désactiver les notifications' : 'Activer les notifications'}
-              </button>
-            )}
+            <button onClick={handleTogglePush} disabled={enablePush.isPending || disablePush.isPending}
+              className={pushStatus.subscribed ? 'btn-secondary text-sm' : 'btn-primary text-sm'}>
+              {enablePush.isPending || disablePush.isPending
+                ? '...'
+                : pushStatus.subscribed ? 'Désactiver les notifications' : 'Activer les notifications'}
+            </button>
           </div>
         )}
 
@@ -417,7 +392,7 @@ export default function ProfilPage() {
             existait) est masquée pour le rôle patient, remplacée par la
             coquille "Wow / Aurora" ; sans ça, aucun moyen de se déconnecter. */}
         <button onClick={() => signOut().then(() => navigate('/'))}
-          className="md:hidden w-full flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-2xl shadow-sm text-sm text-red-500 font-fredoka font-semibold py-3.5 mt-8">
+          className="md:hidden w-full flex items-center justify-center gap-2 bg-white border border-sand-200 rounded-2xl shadow-sm text-sm text-red-500 font-semibold py-3.5 mt-8">
           🚪 Déconnexion
         </button>
 
