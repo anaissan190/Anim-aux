@@ -19,22 +19,42 @@
   src: url('./assets/fonts/nunito.woff2') format('woff2');
 }
 
+/* Lora/Public Sans : refonte visuelle du 07/09/2026 (voir tailwind.config.js
+   fontFamily). Auto-hébergées comme Fredoka/Nunito ci-dessus, même raison
+   (pas d'appel à Google Fonts, donc pas d'IP visiteur envoyée à un tiers). */
+@font-face {
+  font-family: 'Lora';
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('./assets/fonts/lora.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Public Sans';
+  font-weight: 400 800;
+  font-display: swap;
+  src: url('./assets/fonts/publicsans.woff2') format('woff2');
+}
+
 @layer base {
-  html { font-family: 'Inter', system-ui, sans-serif; }
+  html { font-family: 'Public Sans', system-ui, sans-serif; }
   body { @apply bg-gray-50 text-gray-900 antialiased; }
+  /* Les titres passent en Lora (sérif chaud) partout où aucune classe
+     font-fredoka/font-nunito n'est appliquée par-dessus (mobile patient,
+     non touché par cette refonte pour l'instant — voir CLAUDE.md). */
+  h1, h2, h3, h4, h5, h6 { font-family: 'Lora', serif; }
 }
 
 @layer components {
   .btn-primary {
-    @apply bg-sage-500 hover:bg-sage-600 text-white font-medium px-4 py-2.5 rounded-xl
+    @apply bg-sage-600 hover:bg-sage-700 text-white font-medium px-4 py-2.5 rounded-full
            transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-secondary {
-    @apply bg-white hover:bg-gray-50 text-gray-700 font-medium px-4 py-2.5 rounded-xl
-           border border-gray-200 transition-colors duration-200;
+    @apply bg-white hover:bg-gray-50 text-gray-700 font-medium px-4 py-2.5 rounded-full
+           border border-sand-200 transition-colors duration-200;
   }
   .btn-danger {
-    @apply bg-red-500 hover:bg-red-600 text-white font-medium px-4 py-2.5 rounded-xl
+    @apply bg-red-500 hover:bg-red-600 text-white font-medium px-4 py-2.5 rounded-full
            transition-colors duration-200;
   }
   /* Utilisé uniquement sur le profil mobile patient (encadré vert sauge,
@@ -46,12 +66,12 @@
            transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .input {
-    @apply w-full border border-gray-200 rounded-xl px-4 py-3 text-sm
+    @apply w-full border border-sand-200 rounded-xl px-4 py-3 text-sm
            focus:outline-none focus:ring-2 focus:ring-sage-400 focus:border-transparent
            transition-shadow placeholder:text-gray-400;
   }
   .card {
-    @apply bg-white rounded-2xl border border-gray-100 shadow-sm;
+    @apply bg-white rounded-2xl border border-sand-200 shadow-sm;
   }
   .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;

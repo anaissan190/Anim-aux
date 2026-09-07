@@ -47,13 +47,25 @@ export default {
           600: '#6f8557',
           700: '#566844',
           800: '#3f4d32',
-        }
+        },
+        // Neutre chaud (beige) pour les bordures/séparateurs — remplace le
+        // gray-* par défaut de Tailwind, trop froid pour la palette orange/
+        // sauge de l'appli (refonte visuelle du 07/09/2026).
+        sand: {
+          100: '#f3ead9',
+          200: '#e8ddc7',
+        },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        // Refonte visuelle du 07/09/2026 : Public Sans remplace Inter pour
+        // le corps de texte, Lora (nouveau) habille les titres — voir la
+        // règle h1-h6 dans index.css. Toujours auto-hébergées comme
+        // Fredoka/Nunito ci-dessous, même raison (pas de CDN tiers).
+        sans: ['Public Sans', 'system-ui', 'sans-serif'],
+        serif: ['Lora', 'serif'],
         // Utilisées uniquement par la refonte mobile (src/components/mobile/*
-        // et les blocs `md:hidden` des pages patient) — le reste de l'appli
-        // (desktop) continue en Inter (font-sans, ci-dessus).
+        // et les blocs `md:hidden` des pages patient) — pas encore migrées
+        // vers Lora/Public Sans, voir CLAUDE.md.
         fredoka: ['Fredoka', 'system-ui', 'sans-serif'],
         nunito: ['Nunito', 'system-ui', 'sans-serif'],
       },
