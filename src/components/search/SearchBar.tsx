@@ -3,9 +3,9 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useSpecialties } from '@/hooks/useData'
 
-interface Props { large?: boolean; initialSpecialty?: string; initialCity?: string }
+interface Props { large?: boolean; initialSpecialty?: string; initialCity?: string; lightButton?: boolean; greenCityField?: boolean }
 
-export default function SearchBar({ large, initialSpecialty = '', initialCity = '' }: Props) {
+export default function SearchBar({ large, initialSpecialty = '', initialCity = '', lightButton, greenCityField }: Props) {
   const navigate = useNavigate()
   // Sert uniquement à préserver les autres filtres déjà actifs (prix, note)
   // quand on relance une recherche par spécialité/ville depuis cette barre —
@@ -111,8 +111,12 @@ export default function SearchBar({ large, initialSpecialty = '', initialCity = 
         )}
       </div>
 
+      {/* greenCityField : légère teinte verte (moss) sur le champ ville —
+          utilisé seulement par l'accueil mobile, associe le vert à la
+          localisation sans toucher aux autres usages de SearchBar (retour
+          d'Anaïs du 07/09/2026). */}
       <div className="relative flex-1">
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+        <div className={`absolute left-3 top-1/2 -translate-y-1/2 ${greenCityField ? 'text-moss-600' : 'text-gray-400'}`}>
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
           </svg>
@@ -123,7 +127,7 @@ export default function SearchBar({ large, initialSpecialty = '', initialCity = 
           onFocus={() => setShowCityOptions(true)}
           onBlur={() => setTimeout(() => setShowCityOptions(false), 150)}
           placeholder="Ville"
-          className={`input pl-9 ${large ? 'py-4 text-base' : ''}`}
+          className={`input pl-9 ${large ? 'py-4 text-base' : ''} ${greenCityField ? 'bg-moss-50 border-moss-200 text-moss-800 placeholder:text-moss-500' : ''}`}
         />
         {showCityOptions && (
           <div className="absolute top-full left-0 right-0 mt-1 card shadow-lg z-50 overflow-hidden">
@@ -144,7 +148,14 @@ export default function SearchBar({ large, initialSpecialty = '', initialCity = 
         )}
       </div>
 
-      <button type="submit" className={`btn-primary whitespace-nowrap ${large ? 'py-4 px-8 text-base' : ''}`}>
+      {/* lightButton : orange un cran plus clair (sage-500 au lieu de
+          sage-600/btn-primary) — utilisé seulement par l'accueil mobile,
+          pour ne pas changer le bouton "Rechercher" ailleurs dans l'appli
+          (retour d'Anaïs du 07/09/2026). */}
+      <button type="submit"
+        className={lightButton
+          ? `bg-sage-500 hover:bg-sage-600 text-white font-medium px-4 py-2.5 rounded-full transition-colors whitespace-nowrap ${large ? 'py-4 px-8 text-base' : ''}`
+          : `btn-primary whitespace-nowrap ${large ? 'py-4 px-8 text-base' : ''}`}>
         Rechercher
       </button>
     </form>

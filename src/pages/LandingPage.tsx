@@ -147,7 +147,7 @@ export default function LandingPage() {
           </p>
 
           <div className="card p-3 mb-3 text-left">
-            <SearchBar />
+            <SearchBar lightButton greenCityField />
           </div>
 
           <div className="flex gap-2">
@@ -155,9 +155,10 @@ export default function LandingPage() {
               className="flex-1 font-medium text-sm bg-white text-gray-900 border border-sand-200 rounded-full py-3">
               Créer un compte
             </Link>
-            {/* Même couleur que "Rechercher" (btn-primary) — retour d'Anaïs
-                du 07/09/2026, sage-500 rendait un ton différent. */}
-            <Link to="/login" className="btn-primary flex-1 text-sm py-3">
+            {/* Orange plus clair (sage-500), assorti à "Rechercher" —
+                retour d'Anaïs du 07/09/2026. */}
+            <Link to="/login"
+              className="flex-1 font-medium text-sm bg-sage-500 hover:bg-sage-600 text-white rounded-full py-3 transition-colors">
               Se connecter
             </Link>
           </div>
