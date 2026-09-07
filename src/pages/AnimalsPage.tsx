@@ -37,7 +37,7 @@ function PetRow({ animal, index }: { animal: any; index: number }) {
 
   return (
     <Link to={`/animal/${animal.id}`}
-      className="block bg-white/90 backdrop-blur-md rounded-2xl overflow-hidden shadow-sm border border-white/70 animate-rise-in"
+      className="block card overflow-hidden animate-rise-in"
       style={{ animationDelay: `${index * 0.08}s` }}>
       <div className="h-24 bg-sage-100 flex items-center justify-center">
         {animal.avatar_url
@@ -47,7 +47,7 @@ function PetRow({ animal, index }: { animal: any; index: number }) {
       </div>
       <div className="p-3">
         <div className="flex items-baseline justify-between gap-2">
-          <p className="font-fredoka font-semibold text-[15px] text-gray-900 truncate">
+          <p className="font-playfair font-bold text-[15px] text-gray-900 truncate">
             {animal.name}{genderSymbol ? ` ${genderSymbol}` : ''}
           </p>
           {age !== null && <p className="text-[10.5px] font-bold text-gray-500 flex-shrink-0">{age} an{age > 1 ? 's' : ''}</p>}
@@ -320,7 +320,7 @@ export default function AnimalsPage() {
   // reprenant exactement la structure de l'écran "Animaux" de l'aperçu
   // validé — pas une grille 2 colonnes de cartes centrées.
   const mobileAnimalsGrid_ = animals.length === 0 ? (
-    <div className="bg-white/90 backdrop-blur-md rounded-2xl p-8 text-center shadow-sm border border-white/70">
+    <div className="card p-8 text-center">
       <div className="text-4xl mb-3">🐾</div>
       <p className="text-gray-500 text-sm">Aucun animal enregistré. Ajoutez votre premier compagnon !</p>
     </div>
@@ -359,15 +359,16 @@ export default function AnimalsPage() {
           </div>
         </div>
 
-        {/* Mobile : coquille "Wow / Aurora" */}
-        <div className="md:hidden pb-24 min-h-screen bg-[#FFE9C8]">
+        {/* Mobile : alignée sur l'identité desktop depuis le 07/09/2026 —
+            fond crème (au lieu du pêche de la coquille "Wow / Aurora"). */}
+        <div className="md:hidden pb-24 min-h-screen bg-[#FFFAF0]">
           <MobileHeader className="bg-sage-100/60">
-            <h1 className="font-fredoka text-2xl font-semibold text-gray-900">Mes animaux</h1>
-            <p className="font-nunito text-sm text-gray-500 mt-0.5">Carnet de santé & rappels</p>
+            <h1 className="font-playfair text-2xl font-bold text-gray-900">Mes animaux</h1>
+            <p className="text-sm text-gray-500 mt-0.5">Carnet de santé & rappels</p>
           </MobileHeader>
           <div className="px-4 -mt-1">
             <button onClick={() => setShowAnimalForm(true)}
-              className="w-full font-fredoka font-semibold text-sm bg-sage-500 text-white rounded-2xl py-3 mb-4 shadow-sm">
+              className="w-full font-semibold text-sm bg-sage-500 hover:bg-sage-600 text-white rounded-full py-3 mb-4 transition-colors">
               + Ajouter un animal
             </button>
             {addAnimalForm_}

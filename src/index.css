@@ -2,26 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Fredoka/Nunito : utilisées uniquement par la refonte mobile (composants
-   src/components/mobile/*) pour donner à l'appli une identité typographique
-   distincte du site desktop, qui reste en Inter. Auto-hébergées (pas de CDN
-   Google Fonts) pour ne pas envoyer l'IP des visiteurs à un tiers. */
-@font-face {
-  font-family: 'Fredoka';
-  font-weight: 400 700;
-  font-display: swap;
-  src: url('./assets/fonts/fredoka.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'Nunito';
-  font-weight: 200 1000;
-  font-display: swap;
-  src: url('./assets/fonts/nunito.woff2') format('woff2');
-}
-
 /* Lora/Public Sans : refonte visuelle du 07/09/2026 (voir tailwind.config.js
-   fontFamily). Auto-hébergées comme Fredoka/Nunito ci-dessus, même raison
-   (pas d'appel à Google Fonts, donc pas d'IP visiteur envoyée à un tiers). */
+   fontFamily). Auto-hébergées (pas de CDN Google Fonts) pour ne pas envoyer
+   l'IP des visiteurs à un tiers. */
 @font-face {
   font-family: 'Lora';
   font-weight: 400 700;
@@ -46,6 +29,16 @@
   font-display: swap;
   src: url('./assets/fonts/publicsans.woff2') format('woff2');
 }
+/* Playfair Display : entêtes des écrans mobile (Bonjour {prénom}, Mes
+   animaux, Mes rendez-vous, Réserver, Messages) — choisie par Anaïs le
+   07/09/2026 parmi plusieurs propositions pour reprendre le mobile,
+   distincte de Lora (desktop) mais dans le même esprit éditorial. */
+@font-face {
+  font-family: 'Playfair Display';
+  font-weight: 600 700;
+  font-display: swap;
+  src: url('./assets/fonts/playfairdisplay.woff2') format('woff2');
+}
 
 @layer base {
   html { font-family: 'Public Sans', system-ui, sans-serif; }
@@ -54,9 +47,10 @@
      servent presque partout dans l'appli de petits libellés de section
      (11-14px, souvent en majuscules, ex. "Actions rapides", "Coordonnées"
      dans l'admin) : un sérif y rend mal, retour de config du 07/09/2026
-     suite au retour d'Anaïs sur "Derniers praticiens consultés". Ignoré
-     partout où une classe font-fredoka/font-nunito est appliquée par-dessus
-     (mobile patient, non touché par cette refonte — voir CLAUDE.md). */
+     suite au retour d'Anaïs sur "Derniers praticiens consultés". Une classe
+     font-playfair/font-serif posée sur l'élément l'emporte (spécificité CSS
+     classe > type) — c'est ainsi que les entêtes mobile (Playfair Display)
+     et l'italique de l'accueil patient (Lora italique) s'appliquent. */
   h1, h2 { font-family: 'Lora', serif; }
 }
 

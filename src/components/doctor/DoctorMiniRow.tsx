@@ -16,11 +16,9 @@ export default function DoctorMiniRow({ doctor, colorIndex, isLast, mobile }: Pr
     ? `${profile.first_name?.[0] ?? ''}${profile.last_name?.[0] ?? ''}`.toUpperCase()
     : '?'
   const bg = AVATAR_COLORS[colorIndex % AVATAR_COLORS.length]
-  // Fredoka réservée à la coquille mobile (identité typographique à part,
-  // voir CLAUDE.md) ; le desktop suit le système Lora/Public Sans — sans ce
-  // choix explicite, le nom héritait de Fredoka partout, y compris ici sur
-  // desktop (retour d'Anaïs du 07/09/2026 sur "Derniers praticiens consultés").
-  const nameFont = mobile ? 'font-fredoka' : 'font-serif'
+  // Playfair Display (mobile) / Lora (desktop) — les deux entêtes de la
+  // refonte du 07/09/2026, remplace la Fredoka de la coquille "Wow / Aurora".
+  const nameFont = mobile ? 'font-playfair' : 'font-serif'
 
   return (
     <Link to={`/doctor/${doctor.id}`}

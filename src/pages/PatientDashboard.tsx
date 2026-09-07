@@ -174,25 +174,29 @@ export default function PatientDashboard() {
       </div>
       </div>
 
-      {/* Mobile : coquille "Wow / Aurora" — validée sur aperçu avant ce chantier */}
-      <div className="md:hidden pb-24 min-h-screen bg-sage-200">
-        <MobileHeader>
+      {/* Mobile : alignée sur l'identité desktop depuis le 07/09/2026 — fond
+          crème (au lieu de la teinte pleine sage-200 de la coquille "Wow /
+          Aurora"), Playfair Display pour le titre. Mascotte/étincelles
+          gardées (élément distinctif validé), juste recolorées pour rester
+          lisibles sur le fond clair. */}
+      <div className="md:hidden pb-24 min-h-screen bg-[#FFFAF0]">
+        <MobileHeader className="bg-sage-100/60">
           {/* Mascotte : petite, casée dans le coin haut-droit près des
               icônes — position exacte de l'aperçu validé (pas centrée/agrandie).
               Sera remplacée par le dessin des deux chats de la cliente. */}
           <CatMascot size={72} animate className="absolute top-[42px] right-2 drop-shadow-lg" />
-          <span className="absolute top-11 right-20 text-[12px] text-sage-100 animate-twinkle">✦</span>
-          <span className="absolute top-20 right-9 text-[18px] text-white animate-twinkle [animation-delay:.8s]">✦</span>
-          <span className="absolute top-3 right-28 text-[10px] text-sage-100 animate-twinkle [animation-delay:1.6s]">✦</span>
+          <span className="absolute top-11 right-20 text-[12px] text-sage-400 animate-twinkle">✦</span>
+          <span className="absolute top-20 right-9 text-[18px] text-moss-500 animate-twinkle [animation-delay:.8s]">✦</span>
+          <span className="absolute top-3 right-28 text-[10px] text-sage-400 animate-twinkle [animation-delay:1.6s]">✦</span>
 
-          <h1 className="font-fredoka text-[28px] font-semibold text-gray-900 leading-tight mt-6">
+          <h1 className="font-playfair text-[28px] font-bold text-gray-900 leading-tight mt-6">
             Bonjour {profile?.first_name ?? 'Patient'}
           </h1>
-          <p className="font-nunito text-sm text-gray-700/80 mt-0.5">Prête pour la prochaine visite ?</p>
+          <p className="text-sm text-gray-500 mt-0.5">Prête pour la prochaine visite ?</p>
 
           <form onSubmit={handleMobileSearch}
-            className="bg-white/95 rounded-2xl shadow-sm mt-4 overflow-hidden">
-            <div className="flex items-center gap-2 px-3 py-2.5 border-b border-gray-100">
+            className="bg-white rounded-2xl border border-sand-200 shadow-sm mt-4 overflow-hidden">
+            <div className="flex items-center gap-2 px-3 py-2.5 border-b border-sand-200">
               <span className="text-sm">🩺</span>
               <div className="flex-1 min-w-0">
                 <label className="block text-[8px] font-bold text-gray-400 tracking-wide">SPÉCIALITÉ OU NOM</label>
@@ -210,14 +214,14 @@ export default function PatientDashboard() {
                   className="w-full text-[13px] text-gray-900 placeholder:text-gray-400 outline-none bg-transparent" />
               </div>
             </div>
-            <button type="submit" className="w-full bg-sage-500 py-2.5 font-fredoka text-sm font-semibold text-white">
+            <button type="submit" className="w-full bg-sage-500 hover:bg-sage-600 py-2.5 text-sm font-semibold text-white transition-colors">
               🔍 Rechercher
             </button>
           </form>
           <div className="flex gap-2 mt-3 overflow-x-auto">
             {['🩺 Vétérinaire', '✂️ Toiletteur', '🦴 Ostéo', '🧠 Comportementaliste', '🐕 Éducateur canin'].map(c => (
               <Link key={c} to="/search"
-                className="flex-shrink-0 bg-white/60 backdrop-blur-sm rounded-full px-3 py-1.5 text-xs font-bold text-sage-700">
+                className="flex-shrink-0 bg-white border border-sand-200 rounded-full px-3 py-1.5 text-xs font-bold text-sage-700">
                 {c}
               </Link>
             ))}
@@ -229,8 +233,8 @@ export default function PatientDashboard() {
 
           {favorites.length > 0 && (
             <div className="animate-rise-in mb-5">
-              <p className="font-fredoka text-sm font-semibold text-gray-900 mb-2">⭐ Mes favoris</p>
-              <div className="bg-white rounded-2xl shadow-sm border border-white/70 overflow-hidden">
+              <p className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-2">⭐ Mes favoris</p>
+              <div className="card overflow-hidden">
                 {favorites.map((fav: any, i) => (
                   <DoctorMiniRow key={fav.id} doctor={fav.doctors} colorIndex={i} isLast={i === favorites.length - 1} mobile />
                 ))}
@@ -240,8 +244,8 @@ export default function PatientDashboard() {
 
           {recentDoctors.length > 0 && (
             <div className="animate-rise-in">
-              <p className="font-fredoka text-sm font-semibold text-gray-900 mb-2">Derniers praticiens consultés</p>
-              <div className="bg-white rounded-2xl shadow-sm border border-white/70 overflow-hidden">
+              <p className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-2">Derniers praticiens consultés</p>
+              <div className="card overflow-hidden">
                 {recentDoctors.map((doc, i) => (
                   <DoctorMiniRow key={doc.id} doctor={doc} colorIndex={i} isLast={i === recentDoctors.length - 1} mobile />
                 ))}

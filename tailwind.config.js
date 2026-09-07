@@ -58,16 +58,14 @@ export default {
       },
       fontFamily: {
         // Refonte visuelle du 07/09/2026 : Public Sans remplace Inter pour
-        // le corps de texte, Lora (nouveau) habille les titres — voir la
-        // règle h1-h6 dans index.css. Toujours auto-hébergées comme
-        // Fredoka/Nunito ci-dessous, même raison (pas de CDN tiers).
+        // le corps de texte, Lora habille les titres desktop (voir la règle
+        // h1-h2 dans index.css), Playfair Display les entêtes mobile —
+        // toutes auto-hébergées, pas de CDN tiers. Remplace l'ancienne
+        // identité mobile Fredoka/Nunito de la coquille "Wow / Aurora"
+        // (retirée le 07/09/2026, plus aucun usage dans le code).
         sans: ['Public Sans', 'system-ui', 'sans-serif'],
         serif: ['Lora', 'serif'],
-        // Utilisées uniquement par la refonte mobile (src/components/mobile/*
-        // et les blocs `md:hidden` des pages patient) — pas encore migrées
-        // vers Lora/Public Sans, voir CLAUDE.md.
-        fredoka: ['Fredoka', 'system-ui', 'sans-serif'],
-        nunito: ['Nunito', 'system-ui', 'sans-serif'],
+        playfair: ['Playfair Display', 'serif'],
       },
       borderRadius: {
         '2xl': '1rem',

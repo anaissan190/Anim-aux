@@ -132,18 +132,18 @@ export default function SearchPage() {
       {isPatient && (
         <div className="md:hidden">
           <MobileHeader className="bg-sage-100/60">
-            <h1 className="font-fredoka text-2xl font-semibold text-gray-900">Réserver</h1>
-            <p className="font-nunito text-sm text-gray-500 mt-0.5">Trouvez un praticien</p>
+            <h1 className="font-playfair text-2xl font-bold text-gray-900">Réserver</h1>
+            <p className="text-sm text-gray-500 mt-0.5">Trouvez un praticien</p>
           </MobileHeader>
         </div>
       )}
 
-      <div className={isPatient ? 'bg-[#FDF0DD] md:bg-white border-b py-4 px-4' : 'bg-white border-b py-4 px-4'}>
+      <div className="bg-white border-b py-4 px-4">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center gap-3 [&>button]:mb-0">
           <div className={isPatient ? 'hidden md:block' : undefined}>
             <BackButton fallback="/" />
           </div>
-          <div className={isPatient ? 'flex-1 md:bg-transparent bg-white/90 backdrop-blur-md rounded-2xl p-3 shadow-sm border border-white/70' : 'flex-1'}>
+          <div className={isPatient ? 'flex-1 md:bg-transparent card p-3' : 'flex-1'}>
             <SearchBar initialSpecialty={filters.specialty} initialCity={filters.city} />
           </div>
         </div>
@@ -263,11 +263,9 @@ export default function SearchPage() {
                 </div>
 
                 {!hasCriteria ? (
-                  <div className={isPatient
-                    ? 'bg-white/90 backdrop-blur-md rounded-2xl p-12 text-center shadow-sm border border-white/70'
-                    : 'card p-12 text-center'}>
+                  <div className="card p-12 text-center">
                     <div className="text-4xl mb-4">🔍</div>
-                    <h3 className={isPatient ? 'font-fredoka font-semibold text-gray-900 mb-2' : 'font-semibold text-gray-900 mb-2'}>Lancez une recherche</h3>
+                    <h3 className="font-semibold text-gray-900 mb-2">Lancez une recherche</h3>
                     <p className="text-sm text-gray-500">Saisissez une spécialité, une ville, ou utilisez la géolocalisation.</p>
                   </div>
                 ) : loading ? (

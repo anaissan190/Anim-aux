@@ -78,8 +78,8 @@ export default function RendezVousPage() {
         {/* Mobile : coquille "Wow / Aurora" */}
         <div className="md:hidden pb-24">
           <MobileHeader className="bg-sage-100/60">
-            <h1 className="font-fredoka text-2xl font-semibold text-gray-900">Mes rendez-vous</h1>
-            <p className="font-nunito text-sm text-gray-500 mt-0.5">Passés et à venir</p>
+            <h1 className="font-playfair text-2xl font-bold text-gray-900">Mes rendez-vous</h1>
+            <p className="text-sm text-gray-500 mt-0.5">Passés et à venir</p>
           </MobileHeader>
           <div className="px-4 -mt-1">
             {tabs}
