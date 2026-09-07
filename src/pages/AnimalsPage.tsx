@@ -245,24 +245,38 @@ export default function AnimalsPage() {
   )
 
   const desktopAnimalsGrid_ = animals.length === 0 ? (
-    <div className="card p-8 text-center">
-      <div className="text-4xl mb-3">🐾</div>
-      <p className="text-gray-500 text-sm">Aucun animal enregistré. Ajoutez votre premier compagnon !</p>
+    <div className="card p-14 text-center">
+      <div className="w-16 h-16 rounded-full bg-sage-100 flex items-center justify-center mx-auto mb-4 text-3xl">🐾</div>
+      <p className="font-serif font-semibold text-lg text-gray-900 mb-2">Aucun animal enregistré</p>
+      <p className="text-gray-500 text-sm mb-5 max-w-sm mx-auto">
+        Ajoutez votre premier compagnon pour retrouver ici son carnet de santé, ses vaccins et ses rendez-vous.
+      </p>
+      <button onClick={() => setShowAnimalForm(true)} className="btn-primary text-sm">+ Ajouter un animal</button>
     </div>
   ) : (
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-      {animals.map(a => (
-        <Link key={a.id} to={`/animal/${a.id}`} className="card p-4 text-center hover:shadow-md transition-shadow">
-          <div className="w-14 h-14 rounded-xl mx-auto mb-2 overflow-hidden bg-gray-100 flex items-center justify-center">
-            {a.avatar_url
-              ? <img src={a.avatar_url} alt={a.name} className="w-full h-full object-cover" />
-              : <span className="text-3xl">{speciesEmoji[a.species] ?? '🐾'}</span>
-            }
-          </div>
-          <p className="font-semibold text-sm text-gray-900">{a.name}</p>
-          <p className="text-xs text-gray-400">{a.breed ?? a.species}</p>
-        </Link>
-      ))}
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+      {animals.map((a, i) => {
+        const age = a.date_of_birth ? differenceInYears(new Date(), new Date(a.date_of_birth)) : null
+        // Alterne orange/vert comme les autres avatars-initiales de l'appli
+        // (DoctorCard, DoctorMiniRow) — la grille de petites cartes carrées
+        // grises d'avant la refonte manquait de présence ("très vide", retour
+        // d'Anaïs du 07/09/2026).
+        const avatarBg = i % 2 === 0 ? 'bg-sage-100' : 'bg-moss-100'
+        return (
+          <Link key={a.id} to={`/animal/${a.id}`} className="card p-5 text-center hover:shadow-md transition-shadow group">
+            <div className={`w-16 h-16 rounded-full mx-auto mb-3 overflow-hidden flex items-center justify-center ${avatarBg}`}>
+              {a.avatar_url
+                ? <img src={a.avatar_url} alt={a.name} className="w-full h-full object-cover" />
+                : <span className="text-3xl">{speciesEmoji[a.species] ?? '🐾'}</span>
+              }
+            </div>
+            <p className="font-serif font-semibold text-[15px] text-gray-900 group-hover:text-sage-600 transition-colors truncate">{a.name}</p>
+            <p className="text-xs text-gray-500 mt-0.5 truncate">
+              {a.breed ?? a.species}{age !== null && ` · ${age} an${age > 1 ? 's' : ''}`}
+            </p>
+          </Link>
+        )
+      })}
     </div>
   )
 
@@ -284,13 +298,22 @@ export default function AnimalsPage() {
     <div className="relative min-h-screen bg-sage-50">
       <div className="relative z-10">
 
-        {/* Desktop : inchangé */}
+        {/* Desktop : élargi à max-w-5xl (comme l'accueil patient) et cartes
+            plus grandes/rondes — la grille étroite de petites cartes carrées
+            grises manquait de présence ("très vide", retour d'Anaïs du
+            07/09/2026). */}
         <div className="hidden md:block">
           <Navbar />
-          <div className="max-w-3xl mx-auto px-4 py-8">
-            <div className="flex items-center justify-between mb-6">
-              <h1 className="text-2xl font-bold text-gray-900">🐾 Mes animaux</h1>
-              <button onClick={() => setShowAnimalForm(true)} className="btn-primary text-sm">+ Ajouter</button>
+          <div className="max-w-5xl mx-auto px-4 py-8">
+            <div className="flex items-end justify-between mb-9 gap-4">
+              <div>
+                <h1 className="text-[30px] font-bold text-gray-900">🐾 Mes animaux</h1>
+                <p className="text-gray-500 text-[15px] mt-1.5">Le carnet de santé de vos compagnons.</p>
+              </div>
+              <button onClick={() => setShowAnimalForm(true)}
+                className="bg-sage-500 hover:bg-sage-600 text-white font-medium text-sm px-6 py-3 rounded-full transition-colors whitespace-nowrap flex-shrink-0">
+                + Ajouter
+              </button>
             </div>
             {addAnimalForm_}
             {desktopAnimalsGrid_}
