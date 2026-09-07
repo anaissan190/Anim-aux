@@ -135,11 +135,14 @@ export default function PatientDashboard() {
       <div className="max-w-5xl mx-auto px-4 py-8">
 
         {/* Bienvenue */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">
-            Bonjour, {profile?.first_name ?? 'Patient'} 👋
-          </h1>
-          <p className="text-gray-500 text-sm mt-1">Gérez vos animaux et vos rendez-vous.</p>
+        <div className="mb-8 flex items-end justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Bonjour, {profile?.first_name ?? 'Patient'} 👋
+            </h1>
+            <p className="text-gray-500 text-sm mt-1">Gérez vos animaux et vos rendez-vous.</p>
+          </div>
+          <Link to="/search" className="btn-primary text-sm whitespace-nowrap flex-shrink-0">+ Prendre rendez-vous</Link>
         </div>
 
         <PushNotificationBanner />
@@ -337,9 +340,6 @@ export default function PatientDashboard() {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-2 space-y-1">
               <Link to="/search" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors">
                 <span>🔍</span> Nouveau RDV
-              </Link>
-              <Link to="/rappels" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors">
-                <span>🔔</span> Rappels
               </Link>
               <Link to="/documents" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors">
                 <span>📄</span> Documents

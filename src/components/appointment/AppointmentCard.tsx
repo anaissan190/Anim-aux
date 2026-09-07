@@ -23,6 +23,23 @@ const STATUS_CLASSES: Record<AppointmentStatus, string> = {
   completed: 'badge-gray',
   no_show:   'badge-red',
 }
+// Liseré + pastille de date colorés selon le statut — même logique de
+// couleur que les badges ci-dessus, appliquée au bloc date plutôt qu'au
+// badge de statut seul, pour que le statut se lise même sans le lire.
+const STATUS_ACCENT: Record<AppointmentStatus, string> = {
+  pending:   'border-l-amber-400',
+  confirmed: 'border-l-moss-500',
+  cancelled: 'border-l-red-300',
+  completed: 'border-l-gray-300',
+  no_show:   'border-l-red-300',
+}
+const DATE_BLOCK_CLASSES: Record<AppointmentStatus, string> = {
+  pending:   'bg-amber-50 text-amber-700',
+  confirmed: 'bg-moss-50 text-moss-700',
+  cancelled: 'bg-red-50 text-red-600',
+  completed: 'bg-gray-50 text-gray-600',
+  no_show:   'bg-red-50 text-red-600',
+}
 
 interface Props {
   appointment: Appointment
@@ -133,18 +150,18 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
   }
 
   return (
-    <div className="card p-4">
+    <div className={`card p-4 border-l-4 ${STATUS_ACCENT[appointment.status]}`}>
     <div className="flex items-start gap-4">
-      {/* Date bloc */}
-      <div className="flex-shrink-0 w-14 text-center bg-sage-50 rounded-xl py-2">
-        <p className="text-xs text-sage-600 font-medium uppercase">{format(start, 'MMM', { locale: fr })}</p>
-        <p className="text-2xl font-bold text-sage-700 leading-none">{format(start, 'd')}</p>
-        <p className="text-xs text-gray-500 mt-0.5">{format(start, 'HH:mm')}</p>
+      {/* Date bloc — pastille arrondie, teintée selon le statut */}
+      <div className={`flex-shrink-0 w-16 text-center rounded-full py-2.5 ${DATE_BLOCK_CLASSES[appointment.status]}`}>
+        <p className="text-[10px] font-bold uppercase tracking-wide">{format(start, 'MMM', { locale: fr })}</p>
+        <p className="text-xl font-bold leading-none mt-0.5">{format(start, 'd')}</p>
+        <p className="text-[11px] mt-0.5 opacity-80">{format(start, 'HH:mm')}</p>
         {/* Année affichée seulement si différente de l'année en cours —
             un RDV passé peut dater de plusieurs années, mois+jour seuls
             seraient ambigus (ex. "12 juil." 2025 vs 2026). */}
         {start.getFullYear() !== new Date().getFullYear() && (
-          <p className="text-[9px] text-gray-400 leading-none mt-0.5">{format(start, 'yyyy')}</p>
+          <p className="text-[9px] opacity-70 leading-none mt-0.5">{format(start, 'yyyy')}</p>
         )}
       </div>
 
