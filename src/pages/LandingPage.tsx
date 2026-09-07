@@ -128,16 +128,16 @@ export default function LandingPage() {
           Toujours volontairement épuré : rien sous le bloc recherche/CTA. */}
       <div className="md:hidden min-h-screen bg-[#FFFAF0]">
         {/* "Se connecter" / "Créer un compte" ici, en haut — retiré du bas
-            de l'écran (retour d'Anaïs du 07/09/2026). Logo/texte agrandis
-            (retour "trop petit") ; sur leur propre ligne sous le logo, pas
-            à côté, pour ne pas déborder à 375px une fois agrandis. */}
-        <div className="px-4 pt-4 pb-1">
-          <img src={logoNavbar} alt="Animéaux" className="h-12 w-auto" />
-          <div className="flex items-center gap-2 mt-3">
-            <Link to="/register" className="flex-1 text-center whitespace-nowrap text-sm font-medium text-gray-900 bg-white border border-sand-200 rounded-full px-3 py-2.5">
+            de l'écran (retour d'Anaïs du 07/09/2026). Même ligne que le
+            logo (h-12, taille validée), alignés à droite — boutons
+            resserrés pour tenir à côté du logo à 375px. */}
+        <div className="flex items-center justify-between gap-1.5 px-4 pt-4 pb-1">
+          <img src={logoNavbar} alt="Animéaux" className="h-12 w-auto flex-shrink-0" />
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <Link to="/register" className="whitespace-nowrap text-[11px] font-medium text-gray-900 bg-white border border-sand-200 rounded-full px-2 py-1.5">
               Créer un compte
             </Link>
-            <Link to="/login" className="flex-1 text-center whitespace-nowrap text-sm font-medium text-white bg-sage-500 hover:bg-sage-600 rounded-full px-3 py-2.5 transition-colors">
+            <Link to="/login" className="whitespace-nowrap text-[11px] font-medium text-white bg-sage-500 hover:bg-sage-600 rounded-full px-2 py-1.5 transition-colors">
               Se connecter
             </Link>
           </div>
