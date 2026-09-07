@@ -69,8 +69,12 @@ export default function PatientDashboard() {
           {/* Orange (accent), pas vert — retour d'Anaïs du 07/09/2026 : le
               vert de la maquette DashboardMix ne correspond pas à la couleur
               d'action de l'appli, réservée à l'orange partout ailleurs
-              (Réserver, Confirmer...). */}
-          <Link to="/search" className="btn-primary text-sm px-6 py-3 whitespace-nowrap flex-shrink-0">
+              (Réserver, Confirmer...). Un cran plus clair que le bouton
+              btn-primary standard (sage-500 au lieu de sage-600) — celui-ci
+              est gros et bien en vue en haut de l'accueil, le ton plein
+              rendait trop foncé à cet endroit. */}
+          <Link to="/search"
+            className="bg-sage-500 hover:bg-sage-600 text-white font-medium text-sm px-6 py-3 rounded-full transition-colors whitespace-nowrap flex-shrink-0">
             + Prendre rendez-vous
           </Link>
         </div>
