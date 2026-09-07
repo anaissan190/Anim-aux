@@ -1315,150 +1315,17 @@ export default function DoctorDashboard() {
                   </div>
                 )}
 
-                {/* Cabinet existant */}
+                {/* Cabinet existant — infos/membres/secrétariat déplacés dans
+                    l'onglet dédié "Mon cabinet" (retour d'Anaïs du
+                    07/09/2026) ; seul le calendrier partagé reste ici, à sa
+                    place naturelle avec le reste des RDV. */}
                 {clinic && (
                   <div className="space-y-5">
-                    {/* Infos cabinet */}
-                    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="font-bold text-gray-900 text-lg">{clinic.name}</h3>
-                          {clinic.city && <p className="text-sm text-gray-500 mt-0.5">📍 {clinic.city}</p>}
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs text-gray-400 mb-1">Code d'invitation</p>
-                          <span className="font-mono font-bold text-sage-600 bg-sage-50 px-3 py-1 rounded-lg text-sm tracking-widest">
-                            {clinic.invite_code}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Membres */}
-                    <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-                      <h3 className="font-semibold text-gray-900 mb-4">
-                        Membres du cabinet ({clinicMembers.length})
-                      </h3>
-                      {removeMemberError && <p className="text-red-500 text-sm mb-3">{removeMemberError}</p>}
-                      <div className="space-y-3">
-                        {clinicMembers.map((m: any) => (
-                          <div key={m.id} className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-sage-100 flex items-center justify-center text-sage-700 font-bold text-sm">
-                              {m.doctors?.profiles?.first_name?.[0]?.toUpperCase() ?? '?'}
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-gray-800">
-                                {m.doctors?.profiles?.first_name} {m.doctors?.profiles?.last_name}
-                              </p>
-                              <p className="text-xs text-gray-400">{m.doctors?.specialty}</p>
-                            </div>
-                            {clinic.owner_id === m.doctors?.user_id ? (
-                              <span className="ml-auto text-xs bg-sage-100 text-sage-700 px-2 py-0.5 rounded-full">Admin</span>
-                            ) : (
-                              isClinicAdmin && (
-                                confirmRemoveMemberId === m.id ? (
-                                  <span className="ml-auto flex flex-col items-end gap-0.5 text-xs">
-                                    <button
-                                      onClick={async () => {
-                                        setRemoveMemberError('')
-                                        try {
-                                          await removeClinicMember.mutateAsync({ clinicMemberId: m.id, clinicId: clinic.id })
-                                          setConfirmRemoveMemberId(null)
-                                        } catch (e: any) {
-                                          setRemoveMemberError(e.message ?? 'Erreur lors du retrait du membre.')
-                                        }
-                                      }}
-                                      disabled={removeClinicMember.isPending}
-                                      className="text-red-500 hover:underline font-semibold">
-                                      Confirmer le retrait
-                                    </button>
-                                    <button onClick={() => setConfirmRemoveMemberId(null)} className="text-gray-400 hover:underline">
-                                      Annuler
-                                    </button>
-                                  </span>
-                                ) : (
-                                  <button
-                                    onClick={() => { setRemoveMemberError(''); setConfirmRemoveMemberId(m.id) }}
-                                    className="ml-auto text-xs text-red-500 hover:underline">
-                                    Retirer
-                                  </button>
-                                )
-                              )
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Secrétariat */}
-                    {isClinicAdmin && (
-                      <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-                        <h3 className="font-semibold text-gray-900 mb-1">Secrétariat</h3>
-                        <p className="text-xs text-gray-400 mb-4">
-                          Donnez un accès dédié à votre équipe administrative, sans partager vos identifiants.
-                          L'email ci-dessous ne sert qu'à l'envoi : la connexion se fait avec un identifiant généré,
-                          pas avec cette adresse.
-                        </p>
-
-                        <div className="flex gap-2 mb-4">
-                          <input type="email" className="input text-sm flex-1"
-                            placeholder="email@secretaire.fr"
-                            value={secretaryEmail}
-                            onChange={e => { setSecretaryEmail(e.target.value); setSecretaryInviteSuccess(false); setSecretaryPassword('') }} />
-                          <button
-                            onClick={async () => {
-                              if (!secretaryEmail || !clinic?.id) return
-                              setSecretaryInviteError('')
-                              setSecretaryInviteSuccess(false)
-                              try {
-                                const result = await inviteSecretary.mutateAsync({ clinicId: clinic.id, email: secretaryEmail })
-                                setSecretaryEmail('')
-                                setSecretaryLoginIdentifier(result?.loginIdentifier ?? '')
-                                setSecretaryPassword(result?.password ?? '')
-                                setSecretaryInviteSuccess(true)
-                              } catch (e: any) {
-                                setSecretaryInviteError(e.message ?? "Erreur lors de l'envoi des identifiants.")
-                              }
-                            }}
-                            disabled={inviteSecretary.isPending}
-                            className="btn-primary text-sm px-4 py-2 whitespace-nowrap">
-                            {inviteSecretary.isPending ? 'Envoi...' : 'Envoyer les identifiants'}
-                          </button>
-                        </div>
-                        {secretaryInviteError && <p className="text-red-500 text-sm mb-3">{secretaryInviteError}</p>}
-                        {secretaryInviteSuccess && (
-                          <div className="text-sage-600 text-sm mb-3">
-                            <p>
-                              {secretaryPassword ? "⚠️ Compte créé, mais l'email n'a pas pu être envoyé." : '✓ Identifiants envoyés par email.'}
-                              {secretaryLoginIdentifier && <> Identifiant de connexion : <strong>{secretaryLoginIdentifier}</strong></>}
-                            </p>
-                            {secretaryPassword && (
-                              <p className="mt-1">
-                                Mot de passe à transmettre toi-même : <strong>{secretaryPassword}</strong>
-                              </p>
-                            )}
-                          </div>
-                        )}
-
-                        {clinicStaff.length > 0 && (
-                          <div className="space-y-3 pt-3 border-t border-gray-100">
-                            {clinicStaff.map((s: any) => (
-                              <div key={s.user_id} className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-full bg-sage-100 flex items-center justify-center text-sage-700 font-bold text-sm">
-                                  {s.first_name?.[0]?.toUpperCase() ?? '?'}
-                                </div>
-                                <div>
-                                  <p className="text-sm font-medium text-gray-800">
-                                    {s.first_name && s.last_name ? `${s.first_name} ${s.last_name}` : s.email}
-                                  </p>
-                                  <p className="text-xs text-gray-400">{s.email}</p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    <Link to="/dashboard/doctor?tab=cabinet"
+                      className="flex items-center justify-between bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:bg-gray-50 transition-colors">
+                      <span className="text-sm font-medium text-gray-800">🏥 {clinic.name}</span>
+                      <span className="text-sm text-sage-600">Gérer mon cabinet →</span>
+                    </Link>
 
                     {/* Sélecteur de jour */}
                     <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
@@ -1615,35 +1482,37 @@ export default function DoctorDashboard() {
           </div>
         )}
 
-        {/* ── MON PROFIL ── */}
-        {tab === 'profil' && (
-          <div className="max-w-2xl space-y-6">
+        {/* ── MON CABINET ── */}
+        {/* N'apparaît dans la barre que pour un praticien qui a un cabinet
+            (voir Navbar/DoctorMobileTabBar) ; regroupe ici ce qui était
+            avant dispersé entre RDV (infos/membres/secrétariat) et Profil
+            (profil du cabinet) — retour d'Anaïs du 07/09/2026. */}
+        {tab === 'cabinet' && clinic && (
+          <div className="max-w-2xl space-y-5">
             <Link to="/dashboard/doctor?tab=home"
               className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors">
               ← Mon espace
             </Link>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Mon cabinet</h2>
+              <p className="text-sm text-gray-500 mt-1">{clinic.name}{clinic.city ? ` · ${clinic.city}` : ''}</p>
+            </div>
 
-            {/* Espace secrétariat : compte à part entière avec ses propres
-                identifiants — ce lien renvoie vers la page de connexion,
-                pas vers un dashboard partagé avec cette session (voir
-                invite-clinic-secretary). */}
-            <Link to="/login"
-              className="flex items-center gap-3 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
-              <span className="text-xl">🏥</span>
-              <span>
-                <span className="block font-medium text-gray-800">Espace secrétariat</span>
-                <span className="block text-xs text-gray-400">Se connecter avec les identifiants dédiés du cabinet</span>
-              </span>
-            </Link>
-
-            {/* Profil du cabinet — réservé à l'admin (créateur) du cabinet.
-                Un simple membre n'a pas à voir cette section : il ne peut
-                de toute façon rien y modifier. */}
-            {clinic && isClinicAdmin && (
+            {isClinicAdmin ? (
+              /* Profil éditable — réservé à l'admin (créateur) du cabinet.
+                 Un simple membre ne peut rien y modifier. */
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <div className="mb-5">
-                  <h2 className="text-lg font-bold text-gray-900">Profil du cabinet</h2>
-                  <p className="text-sm text-gray-500 mt-0.5">Visible par les patients sur la fiche du cabinet</p>
+                <div className="flex items-center justify-between mb-5">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">Profil du cabinet</h3>
+                    <p className="text-sm text-gray-500 mt-0.5">Visible par les patients sur la fiche du cabinet</p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-xs text-gray-400 mb-1">Code d'invitation</p>
+                    <span className="font-mono font-bold text-sage-600 bg-sage-50 px-3 py-1 rounded-lg text-sm tracking-widest">
+                      {clinic.invite_code}
+                    </span>
+                  </div>
                 </div>
                 <div className="flex items-center gap-4 mb-5">
                   <div className="relative w-16 h-16 flex-shrink-0 group">
@@ -1700,7 +1569,172 @@ export default function DoctorDashboard() {
                   </button>
                 </div>
               </div>
+            ) : (
+              /* Simple membre : infos en lecture seule, rien à modifier. */
+              <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="font-bold text-gray-900 text-lg">{clinic.name}</h3>
+                    {clinic.city && <p className="text-sm text-gray-500 mt-0.5">📍 {clinic.city}</p>}
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-400 mb-1">Code d'invitation</p>
+                    <span className="font-mono font-bold text-sage-600 bg-sage-50 px-3 py-1 rounded-lg text-sm tracking-widest">
+                      {clinic.invite_code}
+                    </span>
+                  </div>
+                </div>
+              </div>
             )}
+
+            {/* Membres */}
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <h3 className="font-semibold text-gray-900 mb-4">
+                Membres du cabinet ({clinicMembers.length})
+              </h3>
+              {removeMemberError && <p className="text-red-500 text-sm mb-3">{removeMemberError}</p>}
+              <div className="space-y-3">
+                {clinicMembers.map((m: any) => (
+                  <div key={m.id} className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-sage-100 flex items-center justify-center text-sage-700 font-bold text-sm">
+                      {m.doctors?.profiles?.first_name?.[0]?.toUpperCase() ?? '?'}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-800">
+                        {m.doctors?.profiles?.first_name} {m.doctors?.profiles?.last_name}
+                      </p>
+                      <p className="text-xs text-gray-400">{m.doctors?.specialty}</p>
+                    </div>
+                    {clinic.owner_id === m.doctors?.user_id ? (
+                      <span className="ml-auto text-xs bg-sage-100 text-sage-700 px-2 py-0.5 rounded-full">Admin</span>
+                    ) : (
+                      isClinicAdmin && (
+                        confirmRemoveMemberId === m.id ? (
+                          <span className="ml-auto flex flex-col items-end gap-0.5 text-xs">
+                            <button
+                              onClick={async () => {
+                                setRemoveMemberError('')
+                                try {
+                                  await removeClinicMember.mutateAsync({ clinicMemberId: m.id, clinicId: clinic.id })
+                                  setConfirmRemoveMemberId(null)
+                                } catch (e: any) {
+                                  setRemoveMemberError(e.message ?? 'Erreur lors du retrait du membre.')
+                                }
+                              }}
+                              disabled={removeClinicMember.isPending}
+                              className="text-red-500 hover:underline font-semibold">
+                              Confirmer le retrait
+                            </button>
+                            <button onClick={() => setConfirmRemoveMemberId(null)} className="text-gray-400 hover:underline">
+                              Annuler
+                            </button>
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => { setRemoveMemberError(''); setConfirmRemoveMemberId(m.id) }}
+                            className="ml-auto text-xs text-red-500 hover:underline">
+                            Retirer
+                          </button>
+                        )
+                      )
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Secrétariat */}
+            {isClinicAdmin && (
+              <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                <h3 className="font-semibold text-gray-900 mb-1">Secrétariat</h3>
+                <p className="text-xs text-gray-400 mb-4">
+                  Donnez un accès dédié à votre équipe administrative, sans partager vos identifiants.
+                  L'email ci-dessous ne sert qu'à l'envoi : la connexion se fait avec un identifiant généré,
+                  pas avec cette adresse.
+                </p>
+
+                <div className="flex gap-2 mb-4">
+                  <input type="email" className="input text-sm flex-1"
+                    placeholder="email@secretaire.fr"
+                    value={secretaryEmail}
+                    onChange={e => { setSecretaryEmail(e.target.value); setSecretaryInviteSuccess(false); setSecretaryPassword('') }} />
+                  <button
+                    onClick={async () => {
+                      if (!secretaryEmail || !clinic?.id) return
+                      setSecretaryInviteError('')
+                      setSecretaryInviteSuccess(false)
+                      try {
+                        const result = await inviteSecretary.mutateAsync({ clinicId: clinic.id, email: secretaryEmail })
+                        setSecretaryEmail('')
+                        setSecretaryLoginIdentifier(result?.loginIdentifier ?? '')
+                        setSecretaryPassword(result?.password ?? '')
+                        setSecretaryInviteSuccess(true)
+                      } catch (e: any) {
+                        setSecretaryInviteError(e.message ?? "Erreur lors de l'envoi des identifiants.")
+                      }
+                    }}
+                    disabled={inviteSecretary.isPending}
+                    className="btn-primary text-sm px-4 py-2 whitespace-nowrap">
+                    {inviteSecretary.isPending ? 'Envoi...' : 'Envoyer les identifiants'}
+                  </button>
+                </div>
+                {secretaryInviteError && <p className="text-red-500 text-sm mb-3">{secretaryInviteError}</p>}
+                {secretaryInviteSuccess && (
+                  <div className="text-sage-600 text-sm mb-3">
+                    <p>
+                      {secretaryPassword ? "⚠️ Compte créé, mais l'email n'a pas pu être envoyé." : '✓ Identifiants envoyés par email.'}
+                      {secretaryLoginIdentifier && <> Identifiant de connexion : <strong>{secretaryLoginIdentifier}</strong></>}
+                    </p>
+                    {secretaryPassword && (
+                      <p className="mt-1">
+                        Mot de passe à transmettre toi-même : <strong>{secretaryPassword}</strong>
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {clinicStaff.length > 0 && (
+                  <div className="space-y-3 pt-3 border-t border-gray-100">
+                    {clinicStaff.map((s: any) => (
+                      <div key={s.user_id} className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-sage-100 flex items-center justify-center text-sage-700 font-bold text-sm">
+                          {s.first_name?.[0]?.toUpperCase() ?? '?'}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-800">
+                            {s.first_name && s.last_name ? `${s.first_name} ${s.last_name}` : s.email}
+                          </p>
+                          <p className="text-xs text-gray-400">{s.email}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── MON PROFIL ── */}
+        {tab === 'profil' && (
+          <div className="max-w-2xl space-y-6">
+            <Link to="/dashboard/doctor?tab=home"
+              className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors">
+              ← Mon espace
+            </Link>
+
+            {/* Espace secrétariat : compte à part entière avec ses propres
+                identifiants — ce lien renvoie vers la page de connexion,
+                pas vers un dashboard partagé avec cette session (voir
+                invite-clinic-secretary). */}
+            <Link to="/login"
+              className="flex items-center gap-3 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+              <span className="text-xl">🏥</span>
+              <span>
+                <span className="block font-medium text-gray-800">Espace secrétariat</span>
+                <span className="block text-xs text-gray-400">Se connecter avec les identifiants dédiés du cabinet</span>
+              </span>
+            </Link>
 
             {/* Profil personnel */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">

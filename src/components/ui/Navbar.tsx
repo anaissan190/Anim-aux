@@ -2,9 +2,9 @@
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '@/lib/authStore'
 import NotificationBell from './NotificationBell'
-import { DOCTOR_TABS } from '@/lib/doctorDashboardTabs'
+import { DOCTOR_TABS, CABINET_TAB } from '@/lib/doctorDashboardTabs'
 import { PATIENT_TABS } from '@/lib/patientNavTabs'
-import { useConversationPartners, useMyClinicStaffInfo } from '@/hooks/useData'
+import { useConversationPartners, useMyClinicStaffInfo, useCurrentDoctor, useMyClinic } from '@/hooks/useData'
 import logoNavbar from '@/assets/logo-navbar.webp'
 
 export default function Navbar() {
@@ -19,6 +19,12 @@ export default function Navbar() {
   const { data: conversationPartners = [] } = useConversationPartners()
   const unreadMessages = conversationPartners.reduce((sum, p) => sum + (p.unread_count || 0), 0)
   const { data: staffInfo } = useMyClinicStaffInfo()
+  // Onglet "Mon cabinet" : uniquement pour un praticien qui a créé/rejoint
+  // un cabinet — retour d'Anaïs du 07/09/2026. useCurrentDoctor n'est activé
+  // que pour un compte docteur (enabled interne au hook), donc pas de requête
+  // superflue pour les autres rôles.
+  const { data: currentDoctor } = useCurrentDoctor()
+  const { data: clinic } = useMyClinic(currentDoctor?.id)
 
   const dashboardPath =
     user?.role === 'doctor'    ? '/dashboard/doctor' :
@@ -63,6 +69,16 @@ export default function Navbar() {
                 <span className="hidden lg:inline">{t.label}</span>
               </Link>
             ))}
+            {clinic && (
+              <Link to={`/dashboard/doctor?tab=${CABINET_TAB.id}`}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors
+                  ${onDoctorDashboard && activeDoctorTab === CABINET_TAB.id
+                    ? 'bg-sage-500 text-white'
+                    : 'bg-sage-50 text-sage-600 hover:bg-sage-100'}`}>
+                <span>{CABINET_TAB.icon}</span>
+                <span className="hidden lg:inline">{CABINET_TAB.label}</span>
+              </Link>
+            )}
           </div>
         )}
 

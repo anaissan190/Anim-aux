@@ -7,6 +7,7 @@
 // lg:inline" de la Navbar desktop, trop longs pour 6 colonnes étroites).
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import type { DoctorTab } from '@/lib/doctorDashboardTabs'
+import { useCurrentDoctor, useMyClinic } from '@/hooks/useData'
 
 const TABS: { id: DoctorTab; label: string; icon: string }[] = [
   { id: 'home',           label: 'Espace',   icon: '🏠' },
@@ -22,11 +23,17 @@ export default function DoctorMobileTabBar() {
   const [searchParams] = useSearchParams()
   const onDashboard = location.pathname === '/dashboard/doctor'
   const activeTab = searchParams.get('tab') || 'home'
+  // "Cabinet" ajouté uniquement pour un praticien qui a créé/rejoint un
+  // cabinet (retour d'Anaïs du 07/09/2026) — même logique que la Navbar
+  // desktop, pas listé dans TABS ci-dessus car conditionnel.
+  const { data: currentDoctor } = useCurrentDoctor()
+  const { data: clinic } = useMyClinic(currentDoctor?.id)
+  const tabs = clinic ? [...TABS, { id: 'cabinet' as const, label: 'Cabinet', icon: '🏥' }] : TABS
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden">
       <div className="flex items-center bg-sage-50 border-t-[1.5px] border-sage-100 pt-2.5 pb-[calc(env(safe-area-inset-bottom,0px)+10px)] px-1">
-        {TABS.map(tab => {
+        {tabs.map(tab => {
           const active = onDashboard && activeTab === tab.id
           return (
             <Link key={tab.id} to={`/dashboard/doctor?tab=${tab.id}`}
