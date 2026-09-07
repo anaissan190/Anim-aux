@@ -143,7 +143,7 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <div className="px-4 pt-3 pb-6 text-center">
+        <div className="px-4 pt-8 pb-6 text-center">
           <CatMascot size={104} animate className="mx-auto drop-shadow-lg" />
           <span className="inline-block bg-sage-100 text-sage-700 text-xs font-bold px-3 py-1 rounded-full mt-3 mb-3">
             Votre animal, notre priorité
