@@ -28,7 +28,11 @@ export default function DoctorMobileTabBar() {
   // desktop, pas listé dans TABS ci-dessus car conditionnel.
   const { data: currentDoctor } = useCurrentDoctor()
   const { data: clinic } = useMyClinic(currentDoctor?.id)
-  const tabs = clinic ? [...TABS, { id: 'cabinet' as const, label: 'Cabinet', icon: '🏥' }] : TABS
+  // "Stats" masqué avec un cabinet : ses statistiques déménagent dans
+  // l'onglet Cabinet (retour d'Anaïs du 07/09/2026).
+  const tabs = clinic
+    ? [...TABS.filter(t => t.id !== 'stats'), { id: 'cabinet' as const, label: 'Cabinet', icon: '🏥' }]
+    : TABS
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden">

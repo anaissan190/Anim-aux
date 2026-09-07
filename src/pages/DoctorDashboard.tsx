@@ -1712,6 +1712,104 @@ export default function DoctorDashboard() {
                 )}
               </div>
             )}
+
+            {/* Statistiques — déplacées ici depuis l'onglet Statistiques
+                (masqué de la barre quand il y a un cabinet, retour d'Anaïs
+                du 07/09/2026). Le créateur voit le détail de chaque
+                praticien du cabinet ; un simple membre ne voit que les
+                siennes, comme avant. */}
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-1">
+                {isClinicAdmin ? 'Statistiques du cabinet' : 'Mes statistiques'}
+              </h3>
+              <p className="text-xs text-gray-400 mb-4">
+                {isClinicAdmin
+                  ? "Visible uniquement par vous, en tant que créateur du cabinet — les autres membres ne voient que leurs propres statistiques."
+                  : 'Un aperçu de votre propre activité sur la plateforme.'}
+              </p>
+
+              {isClinicAdmin ? (
+                <div className="space-y-3">
+                  {clinicMembers.map((m: any) => {
+                    const memberAppts = clinicAppts.filter((a: any) => a.doctor_id === m.doctor_id)
+                    const memberAvail = clinicAvailabilities.filter((a: any) => a.doctor_id === m.doctor_id)
+                    const s = computeDoctorStats(memberAppts, memberAvail, m.doctors?.consultation_price ?? 0, today)
+                    const memberName = `${m.doctors?.profiles?.first_name ?? ''} ${m.doctors?.profiles?.last_name ?? ''}`.trim() || 'Praticien'
+                    return (
+                      <div key={m.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                        <p className="text-sm font-semibold text-gray-900 mb-3">{memberName}</p>
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
+                          <div>
+                            <p className="text-lg font-bold text-sage-600">{s.totalRevenue.toLocaleString('fr-FR')} €</p>
+                            <p className="text-[11px] text-gray-500 mt-0.5">Revenu total</p>
+                          </div>
+                          <div>
+                            <p className="text-lg font-bold text-sage-600">{s.revenueLast30Days.toLocaleString('fr-FR')} €</p>
+                            <p className="text-[11px] text-gray-500 mt-0.5">30 derniers jours</p>
+                          </div>
+                          <div>
+                            <p className={`text-lg font-bold ${s.noShowRate !== null && s.noShowRate > 15 ? 'text-red-500' : 'text-sage-600'}`}>
+                              {s.noShowRate !== null ? `${s.noShowRate}%` : '—'}
+                            </p>
+                            <p className="text-[11px] text-gray-500 mt-0.5">No-show</p>
+                          </div>
+                          <div>
+                            <p className="text-lg font-bold text-sage-600">{s.cancellationRate !== null ? `${s.cancellationRate}%` : '—'}</p>
+                            <p className="text-[11px] text-gray-500 mt-0.5">Annulation</p>
+                          </div>
+                          <div>
+                            <p className="text-lg font-bold text-sage-600">{s.fillRate !== null ? `${s.fillRate}%` : '—'}</p>
+                            <p className="text-[11px] text-gray-500 mt-0.5">Remplissage</p>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <>
+                  {hasUnclosedPastAppts && (
+                    <div className="bg-amber-50 border border-amber-200 text-amber-800 text-sm px-4 py-3 rounded-xl mb-4">
+                      💡 Vos statistiques resteront vides tant que vos rendez-vous passés ne sont pas clôturés
+                      (bouton Terminé/Absent(e) sur chaque RDV).
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+                    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center">
+                      <p className="text-2xl font-bold text-sage-600">{totalRevenue.toLocaleString('fr-FR')} €</p>
+                      <p className="text-xs text-gray-500 mt-1">Revenu total</p>
+                    </div>
+                    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center">
+                      <p className="text-2xl font-bold text-sage-600">{revenueLast30Days.toLocaleString('fr-FR')} €</p>
+                      <p className="text-xs text-gray-500 mt-1">Revenu (30j)</p>
+                    </div>
+                    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center">
+                      <p className={`text-2xl font-bold ${noShowRate !== null && noShowRate > 15 ? 'text-red-500' : 'text-sage-600'}`}>
+                        {noShowRate !== null ? `${noShowRate}%` : '—'}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">No-show</p>
+                    </div>
+                    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center">
+                      <p className="text-2xl font-bold text-sage-600">{cancellationRate !== null ? `${cancellationRate}%` : '—'}</p>
+                      <p className="text-xs text-gray-500 mt-1">Annulation</p>
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-semibold text-sm text-gray-900">Taux de remplissage (30 derniers jours)</h4>
+                      <span className="text-lg font-bold text-sage-600">{fillRate !== null ? `${fillRate}%` : '—'}</span>
+                    </div>
+                    {fillRate !== null ? (
+                      <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-sage-500 rounded-full transition-all" style={{ width: `${fillRate}%` }} />
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-400">Renseignez vos disponibilités pour voir cette statistique.</p>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         )}
 

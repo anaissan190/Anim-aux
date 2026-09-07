@@ -59,7 +59,10 @@ export default function Navbar() {
             que dupliqué. */}
         {user?.role === 'doctor' && (
           <div className="hidden md:flex flex-1 min-w-0 items-center justify-center gap-1.5 overflow-x-auto scrollbar-hide">
-            {DOCTOR_TABS.map(t => (
+            {/* "Statistiques" masqué avec un cabinet : ses stats déménagent
+                dans l'onglet Mon cabinet (visibilité restreinte au créateur
+                pour celles des confrères) — retour d'Anaïs du 07/09/2026. */}
+            {DOCTOR_TABS.filter(t => !(clinic && t.id === 'stats')).map(t => (
               <Link key={t.id} to={`/dashboard/doctor?tab=${t.id}`}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors
                   ${onDoctorDashboard && activeDoctorTab === t.id

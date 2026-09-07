@@ -1728,7 +1728,7 @@ export function useClinicMembers(clinicId?: string) {
         .from('clinic_members')
         .select(`
           id, doctor_id, joined_at,
-          doctors(id, specialty, user_id,
+          doctors(id, specialty, user_id, consultation_price,
             profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url)
           )
         `)
