@@ -40,12 +40,24 @@ describe('Navbar — déconnecté', () => {
 })
 
 describe('Navbar — patient', () => {
-  it('affiche "Mon espace" vers le dashboard patient, pas les onglets praticien', () => {
+  it('affiche les mêmes onglets directs que le praticien (Accueil, Mes animaux, Mes rendez-vous, Rappels, Documents)', () => {
     useAuthStore.setState({ user: fakeUser({ role: 'patient' }) })
     renderNavbar()
-    const link = screen.getByText('Mon espace').closest('a')
-    expect(link).toHaveAttribute('href', '/dashboard/patient')
+    expect(screen.getByText('Accueil').closest('a')).toHaveAttribute('href', '/dashboard/patient')
+    expect(screen.getByText('Mes animaux').closest('a')).toHaveAttribute('href', '/animaux')
+    expect(screen.getByText('Mes rendez-vous').closest('a')).toHaveAttribute('href', '/rendez-vous')
+    expect(screen.getByText('Rappels').closest('a')).toHaveAttribute('href', '/rappels')
+    expect(screen.getByText('Documents').closest('a')).toHaveAttribute('href', '/documents')
     expect(screen.queryByText('Mes patients')).not.toBeInTheDocument()
+  })
+
+  it('surligne l\'onglet actif d\'après le chemin de l\'URL', () => {
+    useAuthStore.setState({ user: fakeUser({ role: 'patient' }) })
+    renderNavbar('/animaux')
+    const animauxLink = screen.getByText('Mes animaux').closest('a')
+    expect(animauxLink?.className).toContain('bg-sage-500')
+    const homeLink = screen.getByText('Accueil').closest('a')
+    expect(homeLink?.className).not.toContain('bg-sage-500')
   })
 
   it('le lien Messages pointe vers /messages (pas l\'onglet praticien)', () => {
@@ -102,10 +114,11 @@ describe('Navbar — admin', () => {
     expect(screen.getByText('Admin').closest('a')).toHaveAttribute('href', '/dashboard/admin')
   })
 
-  it('masque "Mon espace" propriétaire pour un compte is_admin', () => {
+  it('masque les onglets propriétaire pour un compte is_admin', () => {
     useAuthStore.setState({ user: fakeUser({ role: 'patient', is_admin: true }) })
     renderNavbar()
-    expect(screen.queryByText('Mon espace')).not.toBeInTheDocument()
+    expect(screen.queryByText('Accueil')).not.toBeInTheDocument()
+    expect(screen.queryByText('Mes animaux')).not.toBeInTheDocument()
   })
 })
 

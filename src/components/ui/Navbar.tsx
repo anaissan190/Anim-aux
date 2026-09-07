@@ -4,6 +4,7 @@ import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-do
 import { useAuthStore } from '@/lib/authStore'
 import NotificationBell from './NotificationBell'
 import { DOCTOR_TABS } from '@/lib/doctorDashboardTabs'
+import { PATIENT_TABS } from '@/lib/patientNavTabs'
 import { useConversationPartners, useMyClinicStaffInfo } from '@/hooks/useData'
 import logoNavbar from '@/assets/logo-navbar.webp'
 
@@ -77,23 +78,27 @@ export default function Navbar() {
           </div>
         )}
 
-        {/* Propriétaire d'animal : à l'image de Doctolib, la recherche ne se
-            fait plus que depuis la barre de l'écran d'accueil (accessible
-            via le logo) — plus de raccourci direct "Trouver un praticien"
-            ici. Messages et Profil sont gérés plus loin, en icônes à côté
-            de la cloche. Masqué pour un compte is_admin : son tableau de
+        {/* Propriétaire d'animal : mêmes onglets directs que le praticien
+            (Accueil, Mes animaux, Mes rendez-vous, Rappels, Documents) —
+            chacun est une route à part entière ici, contrairement aux
+            onglets praticien qui se distinguent par ?tab=... sur une seule
+            page. Recherche accessible depuis la page d'accueil (logo) ;
+            Messages et Profil restent en icônes à côté de la cloche, comme
+            côté praticien. Masqué pour un compte is_admin : son tableau de
             bord est exclusivement l'espace admin (onglet ci-dessous), pas
             un dashboard propriétaire d'animal. */}
         {user && user.role !== 'doctor' && user.role !== 'secretary' && !user.is_admin && (
-          <div className="flex-1 min-w-0 flex items-center justify-center gap-1.5 overflow-x-auto scrollbar-hide">
-            <Link to={dashboardPath}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors
-                ${location.pathname === dashboardPath
-                  ? 'bg-sage-500 text-white'
-                  : 'bg-sage-50 text-sage-600 hover:bg-sage-100'}`}>
-              <span>🏠</span>
-              <span className="hidden lg:inline">Mon espace</span>
-            </Link>
+          <div className="hidden md:flex flex-1 min-w-0 items-center justify-center gap-1.5 overflow-x-auto scrollbar-hide">
+            {PATIENT_TABS.map(t => (
+              <Link key={t.path} to={t.path}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors
+                  ${location.pathname === t.path
+                    ? 'bg-sage-500 text-white'
+                    : 'bg-sage-50 text-sage-600 hover:bg-sage-100'}`}>
+                <span>{t.icon}</span>
+                <span className="hidden lg:inline">{t.label}</span>
+              </Link>
+            ))}
           </div>
         )}
 
