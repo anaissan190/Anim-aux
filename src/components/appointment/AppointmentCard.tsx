@@ -26,12 +26,14 @@ const STATUS_CLASSES: Record<AppointmentStatus, string> = {
 // Liseré + pastille de date colorés selon le statut — même logique de
 // couleur que les badges ci-dessus, appliquée au bloc date plutôt qu'au
 // badge de statut seul, pour que le statut se lise même sans le lire.
+// Liseré en haut de carte (pas à gauche) — repris de la maquette
+// DashboardMix (07/09/2026).
 const STATUS_ACCENT: Record<AppointmentStatus, string> = {
-  pending:   'border-l-amber-400',
-  confirmed: 'border-l-moss-500',
-  cancelled: 'border-l-red-300',
-  completed: 'border-l-gray-300',
-  no_show:   'border-l-red-300',
+  pending:   'border-t-amber-400',
+  confirmed: 'border-t-moss-500',
+  cancelled: 'border-t-red-300',
+  completed: 'border-t-gray-300',
+  no_show:   'border-t-red-300',
 }
 const DATE_BLOCK_CLASSES: Record<AppointmentStatus, string> = {
   pending:   'bg-amber-50 text-amber-700',
@@ -150,177 +152,181 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
   }
 
   return (
-    <div className={`card p-4 border-l-4 ${STATUS_ACCENT[appointment.status]}`}>
-    <div className="flex items-start gap-4">
-      {/* Date bloc — pastille arrondie, teintée selon le statut */}
-      <div className={`flex-shrink-0 w-16 text-center rounded-full py-2.5 ${DATE_BLOCK_CLASSES[appointment.status]}`}>
-        <p className="text-[10px] font-bold uppercase tracking-wide">{format(start, 'MMM', { locale: fr })}</p>
-        <p className="text-xl font-bold leading-none mt-0.5">{format(start, 'd')}</p>
-        <p className="text-[11px] mt-0.5 opacity-80">{format(start, 'HH:mm')}</p>
+    <div className={`card p-5 border-t-4 ${STATUS_ACCENT[appointment.status]}`}>
+    <div className="flex items-start gap-5">
+      {/* Date bloc — pastille arrondie, teintée selon le statut. Jour de la
+          semaine (pas le mois) au-dessus du quantième, en serif — repris de
+          la maquette DashboardMix (07/09/2026) ; l'heure est affichée dans
+          la colonne de droite, pas ici. */}
+      <div className={`flex-shrink-0 w-14 text-center rounded-full py-2.5 ${DATE_BLOCK_CLASSES[appointment.status]}`}>
+        <p className="text-[10px] font-bold uppercase tracking-wide">{format(start, 'EEE', { locale: fr })}</p>
+        <p className="font-serif text-xl font-semibold leading-none mt-1">{format(start, 'd')}</p>
         {/* Année affichée seulement si différente de l'année en cours —
             un RDV passé peut dater de plusieurs années, mois+jour seuls
             seraient ambigus (ex. "12 juil." 2025 vs 2026). */}
         {start.getFullYear() !== new Date().getFullYear() && (
-          <p className="text-[9px] opacity-70 leading-none mt-0.5">{format(start, 'yyyy')}</p>
+          <p className="text-[9px] opacity-70 leading-none mt-1">{format(start, 'yyyy')}</p>
         )}
       </div>
 
       {/* Infos */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <p className="font-semibold text-gray-900 truncate">{name || 'Praticien'}</p>
-            <p className="text-sm text-sage-600">{(appointment.doctors as any)?.specialty ?? ''}</p>
-            {appointment.reason && (
-              <p className="text-xs text-gray-500 mt-1 truncate">Motif : {appointment.reason}</p>
-            )}
-            {showPatient && appointment.status === 'confirmed' && appointment.confirmed_by_patient_at && (
-              <p className="text-xs text-green-600 font-medium mt-1">✓ Présence confirmée par le patient</p>
-            )}
-            {appointment.status === 'confirmed' && (
-              <button onClick={handleAddToCalendar}
-                className="inline-flex items-center gap-1 text-xs text-sage-600 hover:underline mt-1">
-                📅 Ajouter à mon calendrier
-              </button>
-            )}
-            {attachments.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-1">
-                {attachments.map((doc: any) => (
-                  <a key={doc.id} href={doc.file_url} target="_blank" rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-sage-600 hover:underline">
-                    📎 {doc.file_name}
-                  </a>
-                ))}
-              </div>
-            )}
-            {showPatient && appointment.animals && appointment.animals.length > 0 && ['confirmed', 'completed'].includes(appointment.status) && (
-              <div className="flex flex-wrap gap-2 mt-1">
-                {appointment.animals.map(a => (
-                  <Link key={a.id} to={`/animal/${a.id}`}
-                    className="inline-flex items-center gap-1 text-xs text-sage-600 hover:underline">
-                    🐾 Dossier de {a.name}
-                  </Link>
-                ))}
-              </div>
-            )}
-
-            {/* Avis : indépendant du RDV, se laisse depuis la fiche du praticien */}
-            {!showPatient && (
-              <Link to={`/doctor/${appointment.doctor_id}`}
-                className="inline-block text-xs text-sage-600 hover:underline mt-1">
-                ⭐ Laisser un avis sur ce praticien
-              </Link>
-            )}
+        <p className="font-serif text-[17px] font-semibold text-gray-900 truncate">{name || 'Praticien'}</p>
+        <p className="text-sm text-sage-600 mt-0.5">{(appointment.doctors as any)?.specialty ?? ''}</p>
+        {appointment.reason && (
+          <p className="text-xs text-gray-500 mt-1 truncate">Motif : {appointment.reason}</p>
+        )}
+        {showPatient && appointment.status === 'confirmed' && appointment.confirmed_by_patient_at && (
+          <p className="text-xs text-green-600 font-medium mt-1">✓ Présence confirmée par le patient</p>
+        )}
+        {appointment.status === 'confirmed' && (
+          <button onClick={handleAddToCalendar}
+            className="inline-flex items-center gap-1 text-xs text-sage-600 hover:underline mt-1">
+            📅 Ajouter à mon calendrier
+          </button>
+        )}
+        {attachments.length > 0 && (
+          <div className="flex flex-wrap gap-2 mt-1">
+            {attachments.map((doc: any) => (
+              <a key={doc.id} href={doc.file_url} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-sage-600 hover:underline">
+                📎 {doc.file_name}
+              </a>
+            ))}
           </div>
-          <span className={STATUS_CLASSES[appointment.status]}>
-            {STATUS_LABELS[appointment.status]}
-          </span>
-        </div>
+        )}
+        {showPatient && appointment.animals && appointment.animals.length > 0 && ['confirmed', 'completed'].includes(appointment.status) && (
+          <div className="flex flex-wrap gap-2 mt-1">
+            {appointment.animals.map(a => (
+              <Link key={a.id} to={`/animal/${a.id}`}
+                className="inline-flex items-center gap-1 text-xs text-sage-600 hover:underline">
+                🐾 Dossier de {a.name}
+              </Link>
+            ))}
+          </div>
+        )}
+
+        {/* Avis : indépendant du RDV, se laisse depuis la fiche du praticien */}
+        {!showPatient && (
+          <Link to={`/doctor/${appointment.doctor_id}`}
+            className="inline-block text-xs text-sage-600 hover:underline mt-1">
+            ⭐ Laisser un avis sur ce praticien
+          </Link>
+        )}
       </div>
 
-      {/* Actions */}
-      {(canCancel || canReschedule) && (
-        <div className="flex flex-col gap-1 items-end">
-          {canReschedule && (
-            <button
-              onClick={() => { setShowReschedule(v => !v); setNewSlot(null); setRescheduleError('') }}
-              className="text-xs text-sage-600 hover:text-sage-700 transition-colors font-medium">
-              {showReschedule ? 'Annuler le report' : 'Reporter'}
-            </button>
-          )}
-          {canCancel && (
-            confirmingCancel ? (
-              <div className="flex items-center gap-2">
+      {/* Colonne de droite : heure en serif (repris de la maquette
+          DashboardMix), statut, puis actions — tout aligné à droite en une
+          seule colonne plutôt que dispersé sur plusieurs blocs. */}
+      <div className="flex-shrink-0 flex flex-col items-end gap-1.5 text-right">
+        <p className="font-serif text-lg font-semibold text-gray-900">{format(start, 'HH:mm')}</p>
+        <span className={STATUS_CLASSES[appointment.status]}>
+          {STATUS_LABELS[appointment.status]}
+        </span>
+
+        {(canCancel || canReschedule) && (
+          <div className="flex flex-col gap-1 items-end mt-1">
+            {canReschedule && (
+              <button
+                onClick={() => { setShowReschedule(v => !v); setNewSlot(null); setRescheduleError('') }}
+                className="text-xs font-semibold text-sage-700 bg-sage-50 hover:bg-sage-100 rounded-full px-3 py-1 transition-colors">
+                {showReschedule ? 'Annuler le report' : 'Reporter'}
+              </button>
+            )}
+            {canCancel && (
+              confirmingCancel ? (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => { handleStatusChange('cancelled'); setConfirmingCancel(false) }}
+                    disabled={update.isPending}
+                    className="text-xs text-red-600 font-semibold hover:underline">
+                    Confirmer ?
+                  </button>
+                  <button onClick={() => setConfirmingCancel(false)} className="text-xs text-gray-400 hover:underline">
+                    Non
+                  </button>
+                </div>
+              ) : (
                 <button
-                  onClick={() => { handleStatusChange('cancelled'); setConfirmingCancel(false) }}
+                  onClick={() => setConfirmingCancel(true)}
+                  className="flex-shrink-0 text-xs text-red-500 hover:text-red-700 transition-colors font-medium">
+                  Annuler
+                </button>
+              )
+            )}
+          </div>
+        )}
+        {user?.role === 'doctor' && appointment.status === 'pending' && (
+          <div className="flex flex-col gap-1 items-end mt-1">
+            <button
+              onClick={() => handleStatusChange('confirmed')}
+              disabled={update.isPending}
+              className="text-xs btn-primary py-1 px-3">
+              Confirmer
+            </button>
+            {confirmingRefuse ? (
+              <div className="flex items-center gap-2 px-3">
+                <button
+                  onClick={() => { handleStatusChange('cancelled'); setConfirmingRefuse(false) }}
                   disabled={update.isPending}
                   className="text-xs text-red-600 font-semibold hover:underline">
                   Confirmer ?
                 </button>
-                <button onClick={() => setConfirmingCancel(false)} className="text-xs text-gray-400 hover:underline">
+                <button onClick={() => setConfirmingRefuse(false)} className="text-xs text-gray-400 hover:underline">
                   Non
                 </button>
               </div>
             ) : (
               <button
-                onClick={() => setConfirmingCancel(true)}
-                className="flex-shrink-0 text-xs text-red-500 hover:text-red-700 transition-colors font-medium">
+                onClick={() => setConfirmingRefuse(true)}
+                className="text-xs btn-secondary py-1 px-3">
+                Refuser
+              </button>
+            )}
+          </div>
+        )}
+        {user?.role === 'doctor' && appointment.status === 'confirmed' && (
+          <div className="flex flex-col gap-1 items-end mt-1">
+            <button
+              onClick={() => handleStatusChange('completed')}
+              disabled={update.isPending}
+              className="text-xs btn-primary py-1 px-3">
+              ✓ Terminé
+            </button>
+            <button
+              onClick={() => handleStatusChange('no_show')}
+              disabled={update.isPending}
+              className="text-xs btn-secondary py-1 px-3">
+              Absent(e)
+            </button>
+            <button
+              onClick={() => { setShowReschedule(v => !v); setNewSlot(null); setRescheduleError('') }}
+              className="text-xs font-semibold text-sage-700 bg-sage-50 hover:bg-sage-100 rounded-full px-3 py-1 transition-colors">
+              {showReschedule ? 'Annuler le report' : 'Reporter'}
+            </button>
+            {confirmingDoctorCancel ? (
+              <div className="flex items-center gap-2 px-3">
+                <button
+                  onClick={() => { handleStatusChange('cancelled'); setConfirmingDoctorCancel(false) }}
+                  disabled={update.isPending}
+                  className="text-xs text-red-600 font-semibold hover:underline">
+                  Confirmer ? (le patient sera prévenu)
+                </button>
+                <button onClick={() => setConfirmingDoctorCancel(false)} className="text-xs text-gray-400 hover:underline">
+                  Non
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmingDoctorCancel(true)}
+                className="text-xs text-red-500 hover:text-red-700 transition-colors py-1 px-3">
                 Annuler
               </button>
-            )
-          )}
-        </div>
-      )}
-      {user?.role === 'doctor' && appointment.status === 'pending' && (
-        <div className="flex flex-col gap-1">
-          <button
-            onClick={() => handleStatusChange('confirmed')}
-            disabled={update.isPending}
-            className="text-xs btn-primary py-1 px-3">
-            Confirmer
-          </button>
-          {confirmingRefuse ? (
-            <div className="flex items-center gap-2 px-3">
-              <button
-                onClick={() => { handleStatusChange('cancelled'); setConfirmingRefuse(false) }}
-                disabled={update.isPending}
-                className="text-xs text-red-600 font-semibold hover:underline">
-                Confirmer ?
-              </button>
-              <button onClick={() => setConfirmingRefuse(false)} className="text-xs text-gray-400 hover:underline">
-                Non
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setConfirmingRefuse(true)}
-              className="text-xs btn-secondary py-1 px-3">
-              Refuser
-            </button>
-          )}
-        </div>
-      )}
-      {user?.role === 'doctor' && appointment.status === 'confirmed' && (
-        <div className="flex flex-col gap-1">
-          <button
-            onClick={() => handleStatusChange('completed')}
-            disabled={update.isPending}
-            className="text-xs btn-primary py-1 px-3">
-            ✓ Terminé
-          </button>
-          <button
-            onClick={() => handleStatusChange('no_show')}
-            disabled={update.isPending}
-            className="text-xs btn-secondary py-1 px-3">
-            Absent(e)
-          </button>
-          <button
-            onClick={() => { setShowReschedule(v => !v); setNewSlot(null); setRescheduleError('') }}
-            className="text-xs text-sage-600 hover:text-sage-700 transition-colors py-1 px-3">
-            {showReschedule ? 'Annuler le report' : 'Reporter'}
-          </button>
-          {confirmingDoctorCancel ? (
-            <div className="flex items-center gap-2 px-3">
-              <button
-                onClick={() => { handleStatusChange('cancelled'); setConfirmingDoctorCancel(false) }}
-                disabled={update.isPending}
-                className="text-xs text-red-600 font-semibold hover:underline">
-                Confirmer ? (le patient sera prévenu)
-              </button>
-              <button onClick={() => setConfirmingDoctorCancel(false)} className="text-xs text-gray-400 hover:underline">
-                Non
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setConfirmingDoctorCancel(true)}
-              className="text-xs text-red-500 hover:text-red-700 transition-colors py-1 px-3">
-              Annuler
-            </button>
-          )}
-        </div>
-      )}
-      {actionError && <p className="text-red-500 text-xs mt-2">{actionError}</p>}
+            )}
+          </div>
+        )}
+        {actionError && <p className="text-red-500 text-xs mt-2">{actionError}</p>}
+      </div>
     </div>
 
     {/* Report de RDV : le praticien choisit directement un nouveau

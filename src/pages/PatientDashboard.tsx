@@ -59,14 +59,17 @@ export default function PatientDashboard() {
       <div className="max-w-5xl mx-auto px-4 py-8">
 
         {/* Bienvenue */}
-        <div className="mb-8 flex items-end justify-between gap-4">
+        <div className="mb-9 flex items-end justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-[30px] font-bold text-gray-900">
               Bonjour, {profile?.first_name ?? 'Patient'} 👋
             </h1>
-            <p className="text-gray-500 text-sm mt-1">Gérez vos animaux et vos rendez-vous.</p>
+            <p className="text-gray-500 text-[15px] mt-1.5">Gérez vos animaux et vos rendez-vous.</p>
           </div>
-          <Link to="/search" className="btn-primary text-sm whitespace-nowrap flex-shrink-0">+ Prendre rendez-vous</Link>
+          <Link to="/search"
+            className="bg-moss-600 hover:bg-moss-700 text-white font-bold text-sm px-6 py-3 rounded-full transition-colors whitespace-nowrap flex-shrink-0">
+            + Prendre rendez-vous
+          </Link>
         </div>
 
         <PushNotificationBanner />
@@ -83,15 +86,19 @@ export default function PatientDashboard() {
 
         {/* Mes rendez-vous */}
         <div>
-          <h2 className="font-semibold text-gray-900 mb-4">Mes rendez-vous</h2>
-          <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-5 w-fit">
-            {(['upcoming', 'past'] as const).map(t => (
-              <button key={t} onClick={() => setTab(t)}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors
-                  ${tab === t ? 'bg-white text-sage-600 shadow-sm' : 'text-gray-500'}`}>
-                {t === 'upcoming' ? `À venir (${upcoming.length})` : `Passés (${past.length})`}
-              </button>
-            ))}
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-xs font-bold uppercase tracking-wide text-gray-500">
+              {tab === 'upcoming' ? 'Prochains rendez-vous' : 'Rendez-vous passés'}
+            </p>
+            <div className="flex gap-1 p-1 bg-gray-100 rounded-full w-fit">
+              {(['upcoming', 'past'] as const).map(t => (
+                <button key={t} onClick={() => setTab(t)}
+                  className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors
+                    ${tab === t ? 'bg-white text-sage-600 shadow-sm' : 'text-gray-500'}`}>
+                  {t === 'upcoming' ? `À venir (${upcoming.length})` : `Passés (${past.length})`}
+                </button>
+              ))}
+            </div>
           </div>
 
           {isLoading ? (
@@ -128,10 +135,10 @@ export default function PatientDashboard() {
 
         {/* Barre latérale : actions rapides + favoris + derniers
             praticiens consultés (repris de la coquille mobile). */}
-        <div className="space-y-6">
+        <div className="space-y-7">
           <div>
-            <h3 className="font-semibold text-sm text-gray-900 mb-3">Actions rapides</h3>
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-2 space-y-1">
+            <p className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-3">Actions rapides</p>
+            <div className="card p-2 space-y-1">
               <Link to="/search" className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors">
                 <span>🔍</span> Nouveau RDV
               </Link>
@@ -143,8 +150,8 @@ export default function PatientDashboard() {
 
           {favorites.length > 0 && (
             <div>
-              <h3 className="font-semibold text-sm text-gray-900 mb-3">⭐ Mes favoris</h3>
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <p className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-3">⭐ Mes favoris</p>
+              <div className="card overflow-hidden">
                 {favorites.map((fav: any, i) => (
                   <DoctorMiniRow key={fav.id} doctor={fav.doctors} colorIndex={i} isLast={i === favorites.length - 1} />
                 ))}
@@ -154,8 +161,8 @@ export default function PatientDashboard() {
 
           {recentDoctors.length > 0 && (
             <div>
-              <h3 className="font-semibold text-sm text-gray-900 mb-3">Derniers praticiens consultés</h3>
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+              <p className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-3">Derniers praticiens consultés</p>
+              <div className="card overflow-hidden">
                 {recentDoctors.map((doc, i) => (
                   <DoctorMiniRow key={doc.id} doctor={doc} colorIndex={i} isLast={i === recentDoctors.length - 1} />
                 ))}
@@ -225,7 +232,7 @@ export default function PatientDashboard() {
               <p className="font-fredoka text-sm font-semibold text-gray-900 mb-2">⭐ Mes favoris</p>
               <div className="bg-white rounded-2xl shadow-sm border border-white/70 overflow-hidden">
                 {favorites.map((fav: any, i) => (
-                  <DoctorMiniRow key={fav.id} doctor={fav.doctors} colorIndex={i} isLast={i === favorites.length - 1} />
+                  <DoctorMiniRow key={fav.id} doctor={fav.doctors} colorIndex={i} isLast={i === favorites.length - 1} mobile />
                 ))}
               </div>
             </div>
@@ -236,7 +243,7 @@ export default function PatientDashboard() {
               <p className="font-fredoka text-sm font-semibold text-gray-900 mb-2">Derniers praticiens consultés</p>
               <div className="bg-white rounded-2xl shadow-sm border border-white/70 overflow-hidden">
                 {recentDoctors.map((doc, i) => (
-                  <DoctorMiniRow key={doc.id} doctor={doc} colorIndex={i} isLast={i === recentDoctors.length - 1} />
+                  <DoctorMiniRow key={doc.id} doctor={doc} colorIndex={i} isLast={i === recentDoctors.length - 1} mobile />
                 ))}
               </div>
             </div>
