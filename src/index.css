@@ -38,10 +38,14 @@
 @layer base {
   html { font-family: 'Public Sans', system-ui, sans-serif; }
   body { @apply bg-gray-50 text-gray-900 antialiased; }
-  /* Les titres passent en Lora (sérif chaud) partout où aucune classe
-     font-fredoka/font-nunito n'est appliquée par-dessus (mobile patient,
-     non touché par cette refonte pour l'instant — voir CLAUDE.md). */
-  h1, h2, h3, h4, h5, h6 { font-family: 'Lora', serif; }
+  /* Seuls les vrais titres (h1/h2) passent en Lora (sérif chaud) — h3-h6
+     servent presque partout dans l'appli de petits libellés de section
+     (11-14px, souvent en majuscules, ex. "Actions rapides", "Coordonnées"
+     dans l'admin) : un sérif y rend mal, retour de config du 07/09/2026
+     suite au retour d'Anaïs sur "Derniers praticiens consultés". Ignoré
+     partout où une classe font-fredoka/font-nunito est appliquée par-dessus
+     (mobile patient, non touché par cette refonte — voir CLAUDE.md). */
+  h1, h2 { font-family: 'Lora', serif; }
 }
 
 @layer components {
