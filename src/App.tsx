@@ -243,6 +243,7 @@ export default function App() {
         <Route path="/confirmer-presence/:id" element={<ConfirmPresencePage />} />
         <Route path="/cgu" element={<LegalPage />} />
         <Route path="/confidentialite" element={<LegalPage />} />
+        <Route path="/engagement" element={<LegalPage />} />
         <Route path="/book/:doctorId" element={
           <ProtectedRoute role="patient"><BookPage /></ProtectedRoute>
         } />

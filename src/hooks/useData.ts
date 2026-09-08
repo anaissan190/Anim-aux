@@ -259,7 +259,7 @@ export function useDoctor(id: string) {
       const { data, error } = await supabase
         .from('doctors')
         // Voir useDoctors : même exclusion de verification_rejected_reason.
-        .select('id, user_id, specialty, rpps_number, bio, consultation_price, address, city, lat, lng, is_verified, average_rating, review_count, created_at, updated_at, accepted_species, home_visit, verification_status, profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url, phone)')
+        .select('id, user_id, specialty, rpps_number, bio, consultation_price, address, city, lat, lng, is_verified, average_rating, review_count, created_at, updated_at, accepted_species, home_visit, verification_status, ethics_charter_accepted_at, profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url, phone)')
         .eq('id', id)
         .single()
       if (error) throw error
@@ -279,13 +279,33 @@ export function useCurrentDoctor() {
         // Même exclusion de verification_rejected_reason que useDoctor/
         // useDoctors — le praticien lit son propre motif de rejet via
         // useMyVerificationRejectedReason (RPC dédiée) sur DoctorDashboard.
-        .select('id, user_id, specialty, rpps_number, bio, consultation_price, address, city, lat, lng, is_verified, average_rating, review_count, created_at, updated_at, accepted_species, home_visit, verification_status')
+        .select('id, user_id, specialty, rpps_number, bio, consultation_price, address, city, lat, lng, is_verified, average_rating, review_count, created_at, updated_at, accepted_species, home_visit, verification_status, ethics_charter_accepted_at')
         .eq('user_id', user!.id)
         .single()
       if (error) throw error
       return data
     },
     enabled: !!user && user.role === 'doctor',
+  })
+}
+
+// Acceptation rétroactive de l'engagement bien-être animal (migration 092) —
+// pour tout praticien inscrit avant l'ajout de cette case à cocher
+// obligatoire, jamais tacitement considéré comme ayant accepté.
+export function useAcceptEthicsCharter() {
+  const qc = useQueryClient()
+  const { user } = useAuthStore()
+  return useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('doctors')
+        .update({ ethics_charter_accepted_at: new Date().toISOString() })
+        .eq('user_id', user!.id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['currentDoctor', user?.id] })
+    },
   })
 }
 

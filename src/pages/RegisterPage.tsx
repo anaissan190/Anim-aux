@@ -4,6 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { z } from 'zod'
 import { supabase } from '@/lib/supabase'
 import { PRACTITIONER_TYPES } from '@/lib/practitionerTypes'
+import { ETHICS_CHARTER_CLAUSES } from '@/lib/ethicsCharter'
 import logoNavbar from '@/assets/logo-navbar.webp'
 import PasswordInput from '@/components/ui/PasswordInput'
 import Turnstile from '@/components/ui/Turnstile'
@@ -28,6 +29,7 @@ export default function RegisterPage() {
     practitioner_type: '',
   })
   const [acceptedTerms, setAcceptedTerms] = useState(false)
+  const [acceptedEthicsCharter, setAcceptedEthicsCharter] = useState(false)
   const [captchaToken, setCaptchaToken] = useState('')
   const [turnstileKey, setTurnstileKey] = useState(0)
   const [errors, setErrors]       = useState<Record<string, string>>({})
@@ -46,6 +48,11 @@ export default function RegisterPage() {
 
     if (!acceptedTerms) {
       setErrors({ terms: 'Vous devez accepter les CGU et la politique de confidentialité' })
+      return
+    }
+
+    if (form.role === 'doctor' && !acceptedEthicsCharter) {
+      setErrors({ ethics: "Vous devez accepter l'engagement bien-être animal" })
       return
     }
 
@@ -78,6 +85,7 @@ export default function RegisterPage() {
             specialty:         selectedType?.label ?? '',
             practitioner_type: form.practitioner_type,
             terms_accepted:    acceptedTerms,
+            ethics_charter_accepted: form.role === 'doctor' ? acceptedEthicsCharter : undefined,
           }
         }
       }))
@@ -216,6 +224,30 @@ export default function RegisterPage() {
               </label>
               {errors.terms && <p className="text-red-500 text-xs mt-1">{errors.terms}</p>}
             </div>
+
+            {form.role === 'doctor' && (
+              <div>
+                <label className="flex items-start gap-2 text-sm text-gray-600 cursor-pointer">
+                  <input type="checkbox" checked={acceptedEthicsCharter}
+                    onChange={e => { setAcceptedEthicsCharter(e.target.checked); setErrors(errs => ({ ...errs, ethics: '' })) }}
+                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-sage-600 focus:ring-sage-500" />
+                  <span>
+                    Je m'engage à respecter la{' '}
+                    <Link to="/engagement" target="_blank" className="text-sage-600 font-medium hover:underline">
+                      Charte bien-être animal
+                    </Link>{' '}
+                    d'Animéaux
+                  </span>
+                </label>
+                {/* Résumé visible sans avoir à ouvrir la charte complète —
+                    l'engagement ne doit pas rester une case cochée à
+                    l'aveugle. */}
+                <ul className="text-xs text-gray-400 list-disc list-inside mt-2 space-y-0.5 ml-1">
+                  {ETHICS_CHARTER_CLAUSES.slice(0, 2).map(clause => <li key={clause}>{clause}</li>)}
+                </ul>
+                {errors.ethics && <p className="text-red-500 text-xs mt-1">{errors.ethics}</p>}
+              </div>
+            )}
 
             <div>
               <Turnstile key={turnstileKey} onVerify={setCaptchaToken} onExpire={() => setCaptchaToken('')} />

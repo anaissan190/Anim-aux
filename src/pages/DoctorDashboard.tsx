@@ -11,7 +11,7 @@ import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
 import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useReplyToReview, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useDoctorServices, useAddDoctorService, useDeleteDoctorService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments, useInviteClinicSecretary, useClinicStaffList, useExportMyData,
-  useDoctorVerificationDocuments, useUploadVerificationDocument, useDeleteVerificationDocument, useMyVerificationRejectedReason,
+  useDoctorVerificationDocuments, useUploadVerificationDocument, useDeleteVerificationDocument, useMyVerificationRejectedReason, useAcceptEthicsCharter,
   usePushSubscriptionStatus, useEnablePushNotifications, useDisablePushNotifications, useMessagingRealtime,
   useCalendarFeedToken, useRegenerateCalendarFeedToken } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
@@ -22,6 +22,7 @@ import { computeDoctorStats } from '@/lib/doctorStats'
 import AnimatedBar from '@/components/ui/AnimatedBar'
 import AnimatedCounter from '@/components/ui/AnimatedCounter'
 import { showToast } from '@/lib/toast'
+import { ETHICS_CHARTER_CLAUSES } from '@/lib/ethicsCharter'
 import { compressImage } from '@/lib/compressImage'
 
 // La barre d'onglets (Accueil, Mes patients, Tarifs, Disponibilités, Avis)
@@ -42,6 +43,7 @@ export default function DoctorDashboard() {
   // préparant une démo à une comportementaliste).
   const servicePlaceholderExample = getPractitionerTypeBySpecialty(doctor?.specialty)?.services[0]?.name ?? 'Vaccination'
   const { data: verificationRejectedReason } = useMyVerificationRejectedReason(doctor?.verification_status === 'rejected')
+  const acceptEthicsCharter = useAcceptEthicsCharter()
   const { data: appointments = [], isLoading } = useDoctorAppointments(doctor?.id)
   const { data: availabilities = [] } = useAvailabilities(doctor?.id ?? '')
   const { data: reviews = [] } = useDoctorReviews(doctor?.id ?? '')
@@ -584,6 +586,28 @@ export default function DoctorDashboard() {
               <Link to="/dashboard/doctor?tab=profil" className="underline font-medium mt-1 inline-block">
                 Déposer mes documents
               </Link>
+            </div>
+          </div>
+        )}
+
+        {/* Engagement bien-être animal (migration 092) : case à cocher
+            obligatoire pour toute NOUVELLE inscription depuis son ajout,
+            mais les comptes déjà existants ne l'ont jamais accepté — rappel
+            ici tant que ce n'est pas fait, plutôt que de le considérer
+            tacitement accepté. */}
+        {doctor && !doctor.ethics_charter_accepted_at && (
+          <div className="rounded-2xl p-4 mb-6 text-sm bg-moss-50 border border-moss-100 text-moss-800">
+            <p className="font-medium mb-2">🐾 Engagement bien-être animal</p>
+            <p className="mb-2">En continuant à utiliser Animéaux, je m'engage à :</p>
+            <ul className="list-disc list-inside space-y-1 mb-3">
+              {ETHICS_CHARTER_CLAUSES.map(clause => <li key={clause}>{clause}</li>)}
+            </ul>
+            <div className="flex items-center gap-3">
+              <button onClick={() => acceptEthicsCharter.mutate()} disabled={acceptEthicsCharter.isPending}
+                className="btn-primary text-sm">
+                {acceptEthicsCharter.isPending ? 'Enregistrement...' : "J'accepte l'engagement"}
+              </button>
+              <Link to="/engagement" target="_blank" className="underline font-medium">Lire le texte complet</Link>
             </div>
           </div>
         )}

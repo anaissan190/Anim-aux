@@ -141,6 +141,12 @@ export default function DoctorPage() {
                     {doctor.average_rating.toFixed(1)} ({doctor.review_count} avis)
                   </span>
                   {doctor.is_verified && <span className="badge-green">✓ Vérifié</span>}
+                  {doctor.ethics_charter_accepted_at && (
+                    <Link to="/engagement" target="_blank"
+                      className="text-xs font-medium px-2.5 py-1 rounded-full bg-moss-100 text-moss-700 hover:bg-moss-200 transition-colors">
+                      🐾 Engagement bien-être animal
+                    </Link>
+                  )}
                 </div>
                 {!!myHistory?.count && (
                   <p className="text-xs text-sage-600 mt-1.5">

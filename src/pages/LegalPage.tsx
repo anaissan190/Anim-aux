@@ -7,12 +7,15 @@ import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
+import { ETHICS_CHARTER_CLAUSES, ETHICS_CHARTER_DISCLAIMER } from '@/lib/ethicsCharter'
 
 export default function LegalPage() {
   const location = useLocation()
 
   useEffect(() => {
-    const id = location.pathname === '/confidentialite' ? 'confidentialite' : 'cgu'
+    const id = location.pathname === '/confidentialite' ? 'confidentialite'
+      : location.pathname === '/engagement' ? 'engagement'
+      : 'cgu'
     document.getElementById(id)?.scrollIntoView({ block: 'start' })
   }, [location.pathname])
 
@@ -240,6 +243,23 @@ export default function LegalPage() {
               La Plateforme n'est pas destinée aux personnes mineures. La création de compte est réservée aux personnes majeures.
             </p>
           </section>
+        </div>
+
+        <h1 id="engagement" className="text-2xl font-bold text-gray-900 mb-1 scroll-mt-24">
+          Engagement bien-être animal
+        </h1>
+        <p className="text-sm text-gray-400 mb-8">Accepté par tout praticien à l'inscription sur Animéaux.</p>
+
+        <div className="card p-6 space-y-4">
+          <p className="text-sm text-gray-600 leading-relaxed">
+            En rejoignant Animéaux, chaque praticien s'engage à :
+          </p>
+          <ol className="text-sm text-gray-600 leading-relaxed list-decimal list-inside space-y-2">
+            {ETHICS_CHARTER_CLAUSES.map(clause => <li key={clause}>{clause}</li>)}
+          </ol>
+          <p className="text-xs text-gray-400 leading-relaxed italic pt-2 border-t border-gray-100">
+            {ETHICS_CHARTER_DISCLAIMER}
+          </p>
         </div>
       </div>
     </div>
