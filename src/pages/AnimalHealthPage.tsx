@@ -32,6 +32,7 @@ import { useAuthStore } from '@/lib/authStore'
 import { supabase } from '@/lib/supabase'
 import { SPECIES_EMOJI, SPECIES_MAX_WEIGHT, BREED_PLACEHOLDER } from '@/lib/animalSpecies'
 import SpeciesSelect from '@/components/ui/SpeciesSelect'
+import { showToast } from '@/lib/toast'
 
 export const DOC_TYPE_LABELS: Record<DocumentType, string> = {
   ordonnance: '💊 Ordonnance',
@@ -107,6 +108,7 @@ export default function AnimalHealthPage() {
         tattoo_number: editForm.tattoo_number || undefined,
       })
       setShowEditForm(false)
+      showToast('✓ Fiche mise à jour avec succès !')
     } catch (e: any) {
       setEditError(e.message ?? "Erreur lors de l'enregistrement.")
     }
@@ -473,7 +475,7 @@ export default function AnimalHealthPage() {
         </div>
 
         {tab === 'overview' && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 animate-rise-in">
             <div className="card p-5">
               <h3 className="font-semibold text-sm text-gray-700 mb-3">💉 Vaccins</h3>
               <p className="text-3xl font-bold text-sage-600 mb-1">{vaccines.length}</p>
@@ -494,7 +496,7 @@ export default function AnimalHealthPage() {
         )}
 
         {tab === 'vaccines' && (
-          <div>
+          <div className="animate-rise-in">
             <div className="flex justify-between items-center mb-4">
               <h2 className="font-semibold text-gray-900">Vaccins de {animal.name}</h2>
               <button onClick={() => setShowVaccineForm(true)} className="btn-primary text-sm">+ Ajouter</button>
@@ -553,7 +555,7 @@ export default function AnimalHealthPage() {
         )}
 
         {tab === 'weight' && (
-          <div>
+          <div className="animate-rise-in">
             <div className="flex justify-between items-center mb-4">
               <h2 className="font-semibold text-gray-900">Suivi du poids</h2>
               <button onClick={() => setShowWeightForm(true)} className="btn-primary text-sm">+ Ajouter</button>
@@ -645,7 +647,7 @@ export default function AnimalHealthPage() {
         )}
 
         {tab === 'records' && (
-          <div>
+          <div className="animate-rise-in">
             <div className="flex justify-between items-center mb-4">
               <h2 className="font-semibold text-gray-900">Dossier de santé</h2>
               <button onClick={() => setShowRecordForm(true)} className="btn-primary text-sm">+ Ajouter</button>
@@ -721,7 +723,7 @@ export default function AnimalHealthPage() {
         )}
 
         {tab === 'documents' && (
-          <div>
+          <div className="animate-rise-in">
             <div className="flex justify-between items-center mb-4">
               <h2 className="font-semibold text-gray-900">Documents & photos</h2>
             </div>

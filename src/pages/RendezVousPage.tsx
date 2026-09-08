@@ -33,31 +33,42 @@ export default function RendezVousPage() {
     </div>
   )
 
-  const list = isLoading ? (
-    <div className="space-y-3">
-      {[...Array(3)].map((_, i) => (
-        <div key={i} className="card p-4 flex gap-4 animate-pulse">
-          <div className="w-14 h-16 bg-gray-100 rounded-xl flex-shrink-0" />
-          <div className="flex-1 space-y-2 py-1">
-            <div className="h-4 bg-gray-100 rounded w-1/3" />
-            <div className="h-3 bg-gray-100 rounded w-1/4" />
+  // key={tab} : force un remount (donc une nouvelle animation d'entrée) au
+  // changement d'onglet À venir/Passés, plutôt qu'un simple patch React
+  // invisible — retour d'Anaïs du 08/09/2026 sur l'aperçu de micro-interactions.
+  const list = (
+    <div key={tab} className="animate-rise-in">
+    {isLoading ? (
+      <div className="space-y-3">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="card p-4 flex gap-4 animate-pulse">
+            <div className="w-14 h-16 bg-gray-100 rounded-xl flex-shrink-0" />
+            <div className="flex-1 space-y-2 py-1">
+              <div className="h-4 bg-gray-100 rounded w-1/3" />
+              <div className="h-3 bg-gray-100 rounded w-1/4" />
+            </div>
           </div>
-        </div>
-      ))}
-    </div>
-  ) : display.length === 0 ? (
-    <div className="card p-12 text-center">
-      <div className="text-4xl mb-4">{tab === 'upcoming' ? '📅' : '📂'}</div>
-      <p className="font-medium text-gray-700 mb-2">
-        {tab === 'upcoming' ? 'Aucun rendez-vous à venir' : 'Aucun rendez-vous passé'}
-      </p>
-      {tab === 'upcoming' && (
-        <Link to="/search" className="btn-primary inline-block mt-2 text-sm">Prendre un rendez-vous</Link>
-      )}
-    </div>
-  ) : (
-    <div className="space-y-3">
-      {display.map(a => <AppointmentCard key={a.id} appointment={a as any} />)}
+        ))}
+      </div>
+    ) : display.length === 0 ? (
+      <div className="card p-12 text-center">
+        <div className="text-4xl mb-4">{tab === 'upcoming' ? '📅' : '📂'}</div>
+        <p className="font-medium text-gray-700 mb-2">
+          {tab === 'upcoming' ? 'Aucun rendez-vous à venir' : 'Aucun rendez-vous passé'}
+        </p>
+        {tab === 'upcoming' && (
+          <Link to="/search" className="btn-primary inline-block mt-2 text-sm">Prendre un rendez-vous</Link>
+        )}
+      </div>
+    ) : (
+      <div className="space-y-3">
+        {display.map((a, i) => (
+          <div key={a.id} className="animate-rise-in" style={{ animationDelay: `${i * 60}ms` }}>
+            <AppointmentCard appointment={a as any} />
+          </div>
+        ))}
+      </div>
+    )}
     </div>
   )
 

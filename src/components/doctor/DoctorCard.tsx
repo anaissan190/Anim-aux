@@ -27,7 +27,7 @@ export default function DoctorCard({ doctor, distanceKm, nextSlotAt }: Props) {
 
   return (
     <Link to={`/doctor/${doctor.id}`}
-      className="card p-5 hover:shadow-md transition-shadow flex items-center gap-4 group">
+      className="card p-5 hover:shadow-md hover:-translate-y-0.5 transition-all flex items-center gap-4 group">
       {/* Avatar */}
       <div className={`w-14 h-14 rounded-full ${colors.bg} flex-shrink-0 overflow-hidden flex items-center justify-center`}>
         {doctor.profiles?.avatar_url ? (

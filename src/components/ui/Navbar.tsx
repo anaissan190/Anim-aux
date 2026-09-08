@@ -149,7 +149,7 @@ export default function Navbar() {
                 className="relative p-2 rounded-xl hover:bg-gray-50 transition-colors text-lg leading-none">
                 ✉️
                 {unreadMessages > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium">
+                  <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium animate-badge-pulse">
                     {unreadMessages > 9 ? '9+' : unreadMessages}
                   </span>
                 )}

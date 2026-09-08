@@ -55,17 +55,20 @@
 }
 
 @layer components {
+  /* active:scale sur les 3 boutons partagés : léger retour au clic (retour
+     d'Anaïs du 08/09/2026 sur l'aperçu de micro-interactions) — appliqué une
+     fois ici plutôt que sur chaque bouton de l'appli. */
   .btn-primary {
-    @apply bg-sage-600 hover:bg-sage-700 text-white font-medium px-4 py-2.5 rounded-full
-           transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply bg-sage-600 hover:bg-sage-700 active:scale-[0.97] text-white font-medium px-4 py-2.5 rounded-full
+           transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-secondary {
-    @apply bg-white hover:bg-gray-50 text-gray-700 font-medium px-4 py-2.5 rounded-full
-           border border-sand-200 transition-colors duration-200;
+    @apply bg-white hover:bg-gray-50 active:scale-[0.97] text-gray-700 font-medium px-4 py-2.5 rounded-full
+           border border-sand-200 transition duration-200;
   }
   .btn-danger {
-    @apply bg-red-500 hover:bg-red-600 text-white font-medium px-4 py-2.5 rounded-full
-           transition-colors duration-200;
+    @apply bg-red-500 hover:bg-red-600 active:scale-[0.97] text-white font-medium px-4 py-2.5 rounded-full
+           transition duration-200;
   }
   .input {
     @apply w-full border border-sand-200 rounded-xl px-4 py-3 text-sm

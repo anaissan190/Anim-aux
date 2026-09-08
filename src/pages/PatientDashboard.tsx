@@ -101,6 +101,10 @@ export default function PatientDashboard() {
             </div>
           </div>
 
+          {/* key={tab} : force une nouvelle animation d'entrée au changement
+              d'onglet (retour d'Anaïs du 08/09/2026 sur l'aperçu de
+              micro-interactions), plutôt qu'un simple patch React invisible. */}
+          <div key={tab} className="animate-rise-in">
           {isLoading ? (
             <div className="space-y-3">
               {[...Array(3)].map((_, i) => (
@@ -127,9 +131,14 @@ export default function PatientDashboard() {
             </div>
           ) : (
             <div className="space-y-3">
-              {display.map(a => <AppointmentCard key={a.id} appointment={a as any} />)}
+              {display.map((a, i) => (
+                <div key={a.id} className="animate-rise-in" style={{ animationDelay: `${i * 60}ms` }}>
+                  <AppointmentCard appointment={a as any} />
+                </div>
+              ))}
             </div>
           )}
+          </div>
         </div>
         </div>
 

@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { supabase, getMyUserDataWithRetry } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/authStore'
 import SplashScreen from '@/components/ui/SplashScreen'
+import ToastContainer from '@/components/ui/ToastContainer'
 
 // Chaque page est chargée à la demande (React.lazy) plutôt qu'incluse dans le
 // bundle principal : sans ça, un visiteur qui arrive sur la page de connexion
@@ -261,6 +262,7 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       </Suspense>
+      <ToastContainer />
     </BrowserRouter>
   )
 }

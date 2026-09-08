@@ -30,7 +30,7 @@ export default function MobileHeader({ className = '', children }: Props) {
           className="relative w-[38px] h-[38px] rounded-full bg-white/90 backdrop-blur-sm border border-white/70 shadow-sm flex items-center justify-center text-lg flex-shrink-0">
           💬
           {unreadMessages > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 w-[15px] h-[15px] bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-medium">
+            <span className="absolute -top-0.5 -right-0.5 w-[15px] h-[15px] bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-medium animate-badge-pulse">
               {unreadMessages > 9 ? '9+' : unreadMessages}
             </span>
           )}

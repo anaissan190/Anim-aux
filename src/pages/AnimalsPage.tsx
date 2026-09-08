@@ -105,8 +105,8 @@ function AnimalDesktopCard({ animal, colorIndex }: { animal: any; colorIndex: nu
 
   return (
     <Link to={`/animal/${animal.id}`}
-      className="relative block rounded-2xl overflow-hidden border border-sand-200 hover:shadow-md transition-shadow group"
-      style={{ aspectRatio: '3 / 4' }}>
+      className="relative block rounded-2xl overflow-hidden border border-sand-200 hover:shadow-md hover:-translate-y-0.5 transition-all group animate-rise-in"
+      style={{ aspectRatio: '3 / 4', animationDelay: `${colorIndex * 60}ms` }}>
       <div className={`absolute inset-0 flex items-center justify-center ${photoBg}`}>
         {animal.avatar_url
           ? <img src={animal.avatar_url} alt={animal.name} className="w-full h-full object-cover" />

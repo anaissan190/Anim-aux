@@ -292,7 +292,11 @@ export default function SearchPage() {
                     {clinics.length > 0 && (
                       <div className="space-y-3 mb-6">
                         <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Cabinets</h2>
-                        {clinics.map((c: any) => <ClinicCard key={c.id} clinic={c} distanceKm={c.distanceKm} />)}
+                        {clinics.map((c: any, i: number) => (
+                          <div key={c.id} className="animate-rise-in" style={{ animationDelay: `${i * 60}ms` }}>
+                            <ClinicCard clinic={c} distanceKm={c.distanceKm} />
+                          </div>
+                        ))}
                       </div>
                     )}
                     {doctors.length > 0 && (
@@ -300,7 +304,11 @@ export default function SearchPage() {
                         {clinics.length > 0 && (
                           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Praticiens</h2>
                         )}
-                        {doctors.map(d => <DoctorCard key={d.id} doctor={d} distanceKm={d.distanceKm} nextSlotAt={nextSlots[d.id]} />)}
+                        {doctors.map((d, i) => (
+                          <div key={d.id} className="animate-rise-in" style={{ animationDelay: `${i * 60}ms` }}>
+                            <DoctorCard doctor={d} distanceKm={d.distanceKm} nextSlotAt={nextSlots[d.id]} />
+                          </div>
+                        ))}
                       </div>
                     )}
                   </>

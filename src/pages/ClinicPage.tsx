@@ -80,7 +80,7 @@ export default function ClinicPage() {
               const days = [...new Set(doctorAvail.map((a: any) => a.day_of_week))].sort()
               return (
                 <Link key={m.doctor_id} to={`/doctor/${m.doctor_id}`}
-                  className="card p-5 hover:shadow-md transition-shadow flex gap-4 group">
+                  className="card p-5 hover:shadow-md hover:-translate-y-0.5 transition-all flex gap-4 group">
                   <div className="w-16 h-16 rounded-2xl bg-sage-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
                     {m.avatar_url
                       ? <img src={m.avatar_url} alt={name} className="w-full h-full object-cover" />

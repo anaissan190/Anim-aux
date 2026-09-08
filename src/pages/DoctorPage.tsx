@@ -20,6 +20,10 @@ export default function DoctorPage() {
   const createReview = useCreateReview()
   const { data: isFavorite = false } = useIsFavorite(id ?? '')
   const toggleFavorite = useToggleFavorite()
+  // Anime l'étoile au clic (retour d'Anaïs du 08/09/2026) — state local
+  // plutôt que déclenché par isFavorite lui-même, qui reste vrai/faux après
+  // le clic et ne rejouerait pas l'animation à chaque re-render.
+  const [favoritePop, setFavoritePop] = useState(false)
   const { data: myHistory } = useMyHistoryWithDoctor(id)
 
   const [showReviewForm, setShowReviewForm] = useState(false)
@@ -94,10 +98,14 @@ export default function DoctorPage() {
             <div className="card p-6 flex gap-5 relative">
               {user?.role === 'patient' && id && (
                 <button
-                  onClick={() => toggleFavorite.mutate({ doctorId: id, isFavorite })}
+                  onClick={() => {
+                    toggleFavorite.mutate({ doctorId: id, isFavorite })
+                    setFavoritePop(true)
+                    setTimeout(() => setFavoritePop(false), 350)
+                  }}
                   disabled={toggleFavorite.isPending}
                   title={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-                  className={`absolute top-4 right-4 text-2xl leading-none transition-colors ${isFavorite ? 'text-amber-400' : 'text-gray-300 hover:text-amber-300'}`}>
+                  className={`absolute top-4 right-4 text-2xl leading-none transition-colors inline-block ${favoritePop ? 'animate-pop' : ''} ${isFavorite ? 'text-amber-400' : 'text-gray-300 hover:text-amber-300'}`}>
                   {isFavorite ? '★' : '☆'}
                 </button>
               )}

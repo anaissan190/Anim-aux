@@ -70,7 +70,7 @@ export default function NotificationBell({ large = false }: { large?: boolean })
           </svg>
         )}
         {unread > 0 && (
-          <span className={`absolute -top-0.5 -right-0.5 bg-red-500 text-white rounded-full flex items-center justify-center font-medium ${large ? 'w-[15px] h-[15px] text-[9px]' : 'w-4 h-4 text-xs'}`}>
+          <span className={`absolute -top-0.5 -right-0.5 bg-red-500 text-white rounded-full flex items-center justify-center font-medium animate-badge-pulse ${large ? 'w-[15px] h-[15px] text-[9px]' : 'w-4 h-4 text-xs'}`}>
             {unread > 9 ? '9+' : unread}
           </span>
         )}

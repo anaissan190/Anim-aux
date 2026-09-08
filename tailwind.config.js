@@ -93,6 +93,25 @@ export default {
           from: { opacity: '0', transform: 'translateY(16px)' },
           to:   { opacity: '1', transform: 'translateY(0)' },
         },
+        // Micro-interactions du 08/09/2026 (retour d'Anaïs sur l'aperçu
+        // d'animations) : favori qui "pop" au clic, pastille de
+        // notification qui pulse, glissement d'un message de confirmation.
+        pop: {
+          '0%':   { transform: 'scale(1)' },
+          '40%':  { transform: 'scale(1.35)' },
+          '100%': { transform: 'scale(1)' },
+        },
+        // Amplitude douce (pas comme la pastille sans chiffre de l'aperçu) :
+        // ce badge affiche toujours un nombre, une pulsation trop marquée
+        // le rendrait illisible en mouvement.
+        'badge-pulse': {
+          '0%, 100%': { transform: 'scale(1)', opacity: '1' },
+          '50%':      { transform: 'scale(1.12)', opacity: '.85' },
+        },
+        'toast-in': {
+          from: { opacity: '0', transform: 'translateY(-8px)' },
+          to:   { opacity: '1', transform: 'translateY(0)' },
+        },
       },
       animation: {
         'mesh-drift': 'mesh-drift 16s ease-in-out infinite alternate',
@@ -100,6 +119,9 @@ export default {
         twinkle: 'twinkle 2.6s ease-in-out infinite',
         'fab-pulse': 'fab-pulse 2.4s ease-in-out infinite',
         'rise-in': 'rise-in .55s ease-out both',
+        pop: 'pop .35s ease-out',
+        'badge-pulse': 'badge-pulse 1.6s ease-in-out infinite',
+        'toast-in': 'toast-in .25s ease-out both',
       },
     },
   },

@@ -10,6 +10,7 @@ import MobileTabBar from '@/components/mobile/MobileTabBar'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 import { PRACTITIONER_TYPES, getPractitionerType } from '@/lib/practitionerTypes'
 import { PRACTICE_SPECIES_OPTIONS } from '@/lib/animalSpecies'
+import { showToast } from '@/lib/toast'
 
 export default function ProfilPage() {
   const { user, profile, signOut } = useAuthStore()
@@ -109,7 +110,6 @@ export default function ProfilPage() {
   const [acceptedSpecies, setAcceptedSpecies] = useState<string[]>([])
   const [homeVisit, setHomeVisit]   = useState(false)
 
-  const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
 
   // Préremplir avec les données existantes
@@ -144,7 +144,6 @@ export default function ProfilPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    setSuccess(false)
     try {
       await updateProfile.mutateAsync({
         first_name: firstName,
@@ -165,8 +164,7 @@ export default function ProfilPage() {
           home_visit: homeVisit,
         })
       }
-      setSuccess(true)
-      setTimeout(() => setSuccess(false), 3000)
+      showToast('✓ Profil mis à jour avec succès !')
     } catch (e) {
       console.error(e)
     } finally {
@@ -340,12 +338,8 @@ export default function ProfilPage() {
             </div>
           )}
 
-          {/* BOUTON */}
-          {success && (
-            <div className="bg-green-50 border border-green-100 rounded-xl px-4 py-3 text-center text-sm font-medium text-green-600">
-              ✓ Profil mis à jour avec succès !
-            </div>
-          )}
+          {/* BOUTON — confirmation en message glissant (showToast), plus de
+              bandeau statique (retour d'Anaïs du 08/09/2026). */}
 
           {/* Même bouton mobile et desktop depuis le 07/09/2026 — la variante
               contour vert (btn-outline-moss) datait de la coquille "Wow /

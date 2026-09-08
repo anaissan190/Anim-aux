@@ -19,6 +19,9 @@ import { PRACTITIONER_TYPES } from '@/lib/practitionerTypes'
 import { SPECIES_EMOJI, PRACTICE_SPECIES_OPTIONS } from '@/lib/animalSpecies'
 import { type DoctorTab as Tab, ALL_DOCTOR_TAB_IDS as ALL_TAB_IDS } from '@/lib/doctorDashboardTabs'
 import { computeDoctorStats } from '@/lib/doctorStats'
+import AnimatedBar from '@/components/ui/AnimatedBar'
+import AnimatedCounter from '@/components/ui/AnimatedCounter'
+import { showToast } from '@/lib/toast'
 
 // La barre d'onglets (Accueil, Mes patients, Tarifs, Disponibilités, Avis)
 // est désormais affichée dans la Navbar, à la suite du logo, pour être
@@ -659,7 +662,7 @@ export default function DoctorDashboard() {
 
         {/* ── MES PATIENTS ── */}
         {tab === 'patients' && (
-          <div>
+          <div className="animate-rise-in">
             <Link to="/dashboard/doctor?tab=home"
               className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors mb-4">
               ← Mon espace
@@ -712,8 +715,8 @@ export default function DoctorDashboard() {
                   const photoBg = i % 2 === 0 ? 'bg-sage-100' : 'bg-moss-100'
                   return (
                     <Link key={a.id} to={`/animal/${a.id}`}
-                      className="relative block rounded-2xl overflow-hidden border border-sand-200 hover:shadow-md transition-shadow group"
-                      style={{ aspectRatio: '3 / 4' }}>
+                      className="relative block rounded-2xl overflow-hidden border border-sand-200 hover:shadow-md hover:-translate-y-0.5 transition-all group animate-rise-in"
+                      style={{ aspectRatio: '3 / 4', animationDelay: `${i * 40}ms` }}>
                       <div className={`absolute inset-0 flex items-center justify-center ${photoBg}`}>
                         {a.avatar_url
                           ? <img src={a.avatar_url} alt={a.name} className="w-full h-full object-cover" />
@@ -746,7 +749,7 @@ export default function DoctorDashboard() {
 
         {/* ── TARIFS ── */}
         {tab === 'tarifs' && (
-          <div className="max-w-2xl">
+          <div className="max-w-2xl animate-rise-in">
             <Link to="/dashboard/doctor?tab=home"
               className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors mb-4">
               ← Mon espace
@@ -942,7 +945,7 @@ export default function DoctorDashboard() {
 
         {/* ── RDV (+ disponibilités en bas de page) ── */}
         {tab === 'disponibilites' && (
-          <div className="max-w-3xl">
+          <div className="max-w-3xl animate-rise-in">
             <Link to="/dashboard/doctor?tab=home"
               className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors mb-4">
               ← Mon espace
@@ -1488,7 +1491,7 @@ export default function DoctorDashboard() {
             avant dispersé entre RDV (infos/membres/secrétariat) et Profil
             (profil du cabinet) — retour d'Anaïs du 07/09/2026. */}
         {tab === 'cabinet' && clinic && (
-          <div className="max-w-2xl space-y-5">
+          <div className="max-w-2xl space-y-5 animate-rise-in">
             <Link to="/dashboard/doctor?tab=home"
               className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors">
               ← Mon espace
@@ -1561,6 +1564,7 @@ export default function DoctorDashboard() {
                     const phone   = (document.getElementById('clinic-phone') as HTMLInputElement).value
                     try {
                       await updateClinic.mutateAsync({ id: clinic.id, name, city, address, phone })
+                      showToast('✓ Cabinet mis à jour avec succès !')
                     } catch (e: any) {
                       setClinicInfoError(e?.message ?? "Erreur lors de l'enregistrement, réessaie.")
                     }
@@ -1740,11 +1744,11 @@ export default function DoctorDashboard() {
                         <p className="text-sm font-semibold text-gray-900 mb-3">{memberName}</p>
                         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
                           <div>
-                            <p className="text-lg font-bold text-sage-600">{s.totalRevenue.toLocaleString('fr-FR')} €</p>
+                            <p className="text-lg font-bold text-sage-600"><AnimatedCounter target={s.totalRevenue} suffix=" €" /></p>
                             <p className="text-[11px] text-gray-500 mt-0.5">Revenu total</p>
                           </div>
                           <div>
-                            <p className="text-lg font-bold text-sage-600">{s.revenueLast30Days.toLocaleString('fr-FR')} €</p>
+                            <p className="text-lg font-bold text-sage-600"><AnimatedCounter target={s.revenueLast30Days} suffix=" €" /></p>
                             <p className="text-[11px] text-gray-500 mt-0.5">30 derniers jours</p>
                           </div>
                           <div>
@@ -1776,11 +1780,11 @@ export default function DoctorDashboard() {
                   )}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
                     <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center">
-                      <p className="text-2xl font-bold text-sage-600">{totalRevenue.toLocaleString('fr-FR')} €</p>
+                      <p className="text-2xl font-bold text-sage-600"><AnimatedCounter target={totalRevenue} suffix=" €" /></p>
                       <p className="text-xs text-gray-500 mt-1">Revenu total</p>
                     </div>
                     <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center">
-                      <p className="text-2xl font-bold text-sage-600">{revenueLast30Days.toLocaleString('fr-FR')} €</p>
+                      <p className="text-2xl font-bold text-sage-600"><AnimatedCounter target={revenueLast30Days} suffix=" €" /></p>
                       <p className="text-xs text-gray-500 mt-1">Revenu (30j)</p>
                     </div>
                     <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center">
@@ -1800,9 +1804,7 @@ export default function DoctorDashboard() {
                       <span className="text-lg font-bold text-sage-600">{fillRate !== null ? `${fillRate}%` : '—'}</span>
                     </div>
                     {fillRate !== null ? (
-                      <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-sage-500 rounded-full transition-all" style={{ width: `${fillRate}%` }} />
-                      </div>
+                      <AnimatedBar percent={fillRate} />
                     ) : (
                       <p className="text-xs text-gray-400">Renseignez vos disponibilités pour voir cette statistique.</p>
                     )}
@@ -1815,7 +1817,7 @@ export default function DoctorDashboard() {
 
         {/* ── MON PROFIL ── */}
         {tab === 'profil' && (
-          <div className="max-w-2xl space-y-6">
+          <div className="max-w-2xl space-y-6 animate-rise-in">
             <Link to="/dashboard/doctor?tab=home"
               className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors">
               ← Mon espace
@@ -2146,7 +2148,7 @@ export default function DoctorDashboard() {
 
         {/* ── MESSAGES ── */}
         {tab === 'messages' && (
-          <div>
+          <div className="animate-rise-in">
             <Link to="/dashboard/doctor?tab=home"
               className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors mb-4">
               ← Mon espace
@@ -2309,7 +2311,7 @@ export default function DoctorDashboard() {
 
         {/* ── AVIS ── */}
         {tab === 'avis' && (
-          <div className="max-w-2xl">
+          <div className="max-w-2xl animate-rise-in">
             <Link to="/dashboard/doctor?tab=home"
               className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors mb-4">
               ← Mon espace
@@ -2391,7 +2393,7 @@ export default function DoctorDashboard() {
         )}
 
         {tab === 'stats' && (
-          <div className="max-w-3xl">
+          <div className="max-w-3xl animate-rise-in">
             <Link to="/dashboard/doctor?tab=home"
               className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors mb-4">
               ← Mon espace
@@ -2409,11 +2411,11 @@ export default function DoctorDashboard() {
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
               <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center">
-                <p className="text-2xl font-bold text-sage-600">{totalRevenue.toLocaleString('fr-FR')} €</p>
+                <p className="text-2xl font-bold text-sage-600"><AnimatedCounter target={totalRevenue} suffix=" €" /></p>
                 <p className="text-xs text-gray-500 mt-1">Revenu total (RDV terminés)</p>
               </div>
               <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center">
-                <p className="text-2xl font-bold text-sage-600">{revenueLast30Days.toLocaleString('fr-FR')} €</p>
+                <p className="text-2xl font-bold text-sage-600"><AnimatedCounter target={revenueLast30Days} suffix=" €" /></p>
                 <p className="text-xs text-gray-500 mt-1">Revenu (30 derniers jours)</p>
               </div>
               <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center">
@@ -2434,9 +2436,7 @@ export default function DoctorDashboard() {
                 <span className="text-lg font-bold text-sage-600">{fillRate !== null ? `${fillRate}%` : '—'}</span>
               </div>
               {fillRate !== null ? (
-                <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-sage-500 rounded-full transition-all" style={{ width: `${fillRate}%` }} />
-                </div>
+                <AnimatedBar percent={fillRate} />
               ) : (
                 <p className="text-xs text-gray-400">Renseignez vos disponibilités pour voir cette statistique.</p>
               )}
