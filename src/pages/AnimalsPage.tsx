@@ -361,7 +361,7 @@ export default function AnimalsPage() {
 
         {/* Mobile : alignée sur l'identité desktop depuis le 07/09/2026 —
             fond crème (au lieu du pêche de la coquille "Wow / Aurora"). */}
-        <div className="md:hidden pb-24 min-h-screen bg-[#FFFAF0]">
+        <div className="md:hidden pb-24 min-h-screen bg-[#FFFAF0] animate-mobile-slide-in">
           <MobileHeader className="bg-sage-100/60">
             <h1 className="font-playfair text-2xl font-bold text-gray-900">Mes animaux</h1>
             <p className="text-sm text-gray-500 mt-0.5">Carnet de santé & rappels</p>

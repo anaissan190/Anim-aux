@@ -188,7 +188,7 @@ export default function PatientDashboard() {
           Aurora"), Playfair Display pour le titre. Mascotte/étincelles
           gardées (élément distinctif validé), juste recolorées pour rester
           lisibles sur le fond clair. */}
-      <div className="md:hidden pb-24 min-h-screen bg-[#FFFAF0]">
+      <div className="md:hidden pb-24 min-h-screen bg-[#FFFAF0] animate-mobile-slide-in">
         <MobileHeader className="bg-sage-100/60">
           {/* Mascotte : petite, casée dans le coin haut-droit près des
               icônes — position exacte de l'aperçu validé (pas centrée/agrandie).

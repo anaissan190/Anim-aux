@@ -112,6 +112,15 @@ export default {
           from: { opacity: '0', transform: 'translateY(-8px)' },
           to:   { opacity: '1', transform: 'translateY(0)' },
         },
+        // Écran mobile qui glisse à l'arrivée (changement d'onglet du bas) —
+        // CSS pur, rejoué à chaque montage du composant de route (React
+        // Router démonte/remonte déjà à la navigation, pas de logique de
+        // geste à ajouter). Amplitude faible : un vrai balayage de page
+        // demanderait de suivre le doigt, hors scope ici (voir 08/09/2026).
+        'mobile-slide-in': {
+          from: { opacity: '0', transform: 'translateX(14px)' },
+          to:   { opacity: '1', transform: 'translateX(0)' },
+        },
       },
       animation: {
         'mesh-drift': 'mesh-drift 16s ease-in-out infinite alternate',
@@ -122,6 +131,7 @@ export default {
         pop: 'pop .35s ease-out',
         'badge-pulse': 'badge-pulse 1.6s ease-in-out infinite',
         'toast-in': 'toast-in .25s ease-out both',
+        'mobile-slide-in': 'mobile-slide-in .3s ease-out both',
       },
     },
   },
