@@ -15,7 +15,7 @@ import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorRe
   usePushSubscriptionStatus, useEnablePushNotifications, useDisablePushNotifications, useMessagingRealtime,
   useCalendarFeedToken, useRegenerateCalendarFeedToken } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
-import { PRACTITIONER_TYPES } from '@/lib/practitionerTypes'
+import { PRACTITIONER_TYPES, getPractitionerTypeBySpecialty } from '@/lib/practitionerTypes'
 import { SPECIES_EMOJI, PRACTICE_SPECIES_OPTIONS } from '@/lib/animalSpecies'
 import { type DoctorTab as Tab, ALL_DOCTOR_TAB_IDS as ALL_TAB_IDS } from '@/lib/doctorDashboardTabs'
 import { computeDoctorStats } from '@/lib/doctorStats'
@@ -36,6 +36,11 @@ const DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dima
 export default function DoctorDashboard() {
   const { profile } = useAuthStore()
   const { data: doctor } = useCurrentDoctor()
+  // Exemple de placeholder pour "Nom de prestation" adapté au métier réel
+  // plutôt que systématiquement "Vaccination" — sans rapport pour un
+  // comportementaliste, toiletteur, éducateur canin... (repéré en
+  // préparant une démo à une comportementaliste).
+  const servicePlaceholderExample = getPractitionerTypeBySpecialty(doctor?.specialty)?.services[0]?.name ?? 'Vaccination'
   const { data: verificationRejectedReason } = useMyVerificationRejectedReason(doctor?.verification_status === 'rejected')
   const { data: appointments = [], isLoading } = useDoctorAppointments(doctor?.id)
   const { data: availabilities = [] } = useAvailabilities(doctor?.id ?? '')
@@ -780,7 +785,7 @@ export default function DoctorDashboard() {
                   <div className="bg-sage-50 border border-sage-200 rounded-2xl p-5 mb-4">
                     <h3 className="font-semibold text-sm text-gray-800 mb-3">Nouvelle prestation</h3>
                     <div className="grid grid-cols-3 gap-3 mb-3">
-                      <input className="input col-span-3" placeholder="Nom (ex: Vaccination)" value={newService.name}
+                      <input className="input col-span-3" placeholder={`Nom (ex: ${servicePlaceholderExample})`} value={newService.name}
                         onChange={e => setNewService(s => ({ ...s, name: e.target.value }))} />
                       <input className="input" placeholder="Prix (€)" type="number" value={newService.price}
                         onChange={e => setNewService(s => ({ ...s, price: e.target.value }))} />
@@ -883,7 +888,7 @@ export default function DoctorDashboard() {
                   <div className="bg-sage-50 border border-sage-200 rounded-2xl p-5 mb-4">
                     <h3 className="font-semibold text-sm text-gray-800 mb-3">Nouvelle prestation</h3>
                     <div className="grid grid-cols-3 gap-3 mb-3">
-                      <input className="input col-span-3" placeholder="Nom (ex: Vaccination)" value={newService.name}
+                      <input className="input col-span-3" placeholder={`Nom (ex: ${servicePlaceholderExample})`} value={newService.name}
                         onChange={e => setNewService(s => ({ ...s, name: e.target.value }))} />
                       <input className="input" placeholder="Prix (€)" type="number" value={newService.price}
                         onChange={e => setNewService(s => ({ ...s, price: e.target.value }))} />
