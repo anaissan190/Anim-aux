@@ -81,6 +81,26 @@ export default function App() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        // PASSWORD_RECOVERY : session temporaire établie automatiquement par
+        // le lien reçu par email (detectSessionInUrl), destinée uniquement à
+        // ResetPassword.tsx pour appeler updateUser({ password }) — jamais à
+        // assimiler à une connexion normale. Sans cette exclusion explicite,
+        // le code plus bas (déclenché par INITIAL_SESSION dès qu'une session
+        // existe, y compris celle-ci) hydratait le store comme si la
+        // personne s'était connectée, avant même d'avoir choisi un nouveau
+        // mot de passe (retour de la mère d'Anaïs du 08/09/2026 : le lien
+        // "connecte" directement au compte). setUser/setProfile à null au
+        // cas où un INITIAL_SESSION antérieur aurait déjà peuplé le store.
+        if (event === 'PASSWORD_RECOVERY') {
+          setUser(null)
+          setProfile(null)
+          setLoading(false)
+          if (window.location.pathname !== '/reset-password') {
+            window.location.href = '/reset-password'
+          }
+          return
+        }
+
         // Ne relance l'appel RPC (get_my_user_data, jusqu'à 3 tentatives x 8s)
         // qu'à la connexion/déconnexion réelle — pas à chaque TOKEN_REFRESHED,
         // que Supabase émet régulièrement (y compris au retour sur l'onglet).

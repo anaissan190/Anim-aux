@@ -1,17 +1,30 @@
 // src/pages/ResetPassword.tsx
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
+import { useAuthStore } from '@/lib/authStore'
 import logoNavbar from '@/assets/logo-navbar.webp'
 import PasswordInput from '@/components/ui/PasswordInput'
 
 export default function ResetPassword() {
   const navigate = useNavigate()
+  const { setUser, setProfile } = useAuthStore()
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+
+  // Filet de sécurité en plus du filtre dans App.tsx (PASSWORD_RECOVERY) :
+  // si cette page est rechargée avant l'envoi du formulaire, la session de
+  // récupération redevient un INITIAL_SESSION classique aux yeux de
+  // App.tsx, indiscernable d'une vraie connexion — cette page n'a de toute
+  // façon jamais à afficher quelqu'un comme connecté (retour de la mère
+  // d'Anaïs du 08/09/2026 : le lien "connecte" directement au compte).
+  useEffect(() => {
+    setUser(null)
+    setProfile(null)
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
