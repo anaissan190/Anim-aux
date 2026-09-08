@@ -9,6 +9,7 @@ import { geocodeAddress } from '@/lib/geo'
 import { generateAvailableSlots } from '@/lib/slots'
 import { findNextAvailableSlot } from '@/lib/nextSlot'
 import { urlBase64ToUint8Array } from '@/lib/pushNotifications'
+import { matchesSpecialtySearch } from '@/lib/doctorSearch'
 
 export function useDoctors(filters: SearchFilters = {}, enabled: boolean = true) {
   return useQuery({
@@ -52,7 +53,7 @@ export function useDoctors(filters: SearchFilters = {}, enabled: boolean = true)
         : (data ?? []).filter((d: any) => {
             const fullName = `${d.profiles?.first_name ?? ''} ${d.profiles?.last_name ?? ''}`.toLowerCase()
             if (fullName.includes(term)) return true
-            return (d.specialty ?? '').toLowerCase().includes(term) && !excludedIds.has(d.id)
+            return matchesSpecialtySearch(d.specialty, term) && !excludedIds.has(d.id)
           })
 
       if (!filters.availability) return filtered
