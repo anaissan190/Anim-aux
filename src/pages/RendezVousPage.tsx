@@ -10,6 +10,7 @@ import Navbar from '@/components/ui/Navbar'
 import MobileHeader from '@/components/mobile/MobileHeader'
 import MobileTabBar from '@/components/mobile/MobileTabBar'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
+import DoctorMiniRow from '@/components/doctor/DoctorMiniRow'
 import { usePatientAppointments } from '@/hooks/useData'
 import { isFuture, isPast } from 'date-fns'
 
@@ -20,6 +21,35 @@ export default function RendezVousPage() {
   const upcoming = appointments.filter(a => isFuture(new Date(a.start_at)) && a.status !== 'cancelled')
   const past = appointments.filter(a => isPast(new Date(a.start_at)) || a.status === 'cancelled')
   const display = tab === 'upcoming' ? upcoming : past
+
+  // Praticiens distincts déjà consultés, dans l'ordre du RDV le plus récent
+  // (appointments trié par start_at décroissant côté requête) — même
+  // dérivation que "Derniers praticiens consultés" sur l'accueil patient
+  // (PatientDashboard.tsx), pour permettre de reprendre RDV en un clic
+  // directement depuis "Mes rendez-vous" (demande d'Anaïs du 08/09/2026).
+  const recentDoctors = (() => {
+    const seen = new Set<string>()
+    const list: any[] = []
+    for (const a of appointments) {
+      const doc = (a as any).doctors
+      if (doc?.id && !seen.has(doc.id)) {
+        seen.add(doc.id)
+        list.push(doc)
+      }
+    }
+    return list.slice(0, 5)
+  })()
+
+  const recentDoctorsSection = recentDoctors.length > 0 && (
+    <div className="mb-6">
+      <p className="text-xs font-bold uppercase tracking-wide text-gray-500 mb-3">Praticiens déjà consultés</p>
+      <div className="card overflow-hidden">
+        {recentDoctors.map((doc, i) => (
+          <DoctorMiniRow key={doc.id} doctor={doc} colorIndex={i} isLast={i === recentDoctors.length - 1} />
+        ))}
+      </div>
+    </div>
+  )
 
   const tabs = (
     <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-5 w-fit">
@@ -56,9 +86,6 @@ export default function RendezVousPage() {
         <p className="font-medium text-gray-700 mb-2">
           {tab === 'upcoming' ? 'Aucun rendez-vous à venir' : 'Aucun rendez-vous passé'}
         </p>
-        {tab === 'upcoming' && (
-          <Link to="/search" className="btn-primary inline-block mt-2 text-sm">Prendre un rendez-vous</Link>
-        )}
       </div>
     ) : (
       <div className="space-y-3">
@@ -76,11 +103,18 @@ export default function RendezVousPage() {
     <div className="relative min-h-screen bg-sage-50">
       <div className="relative z-10">
 
-        {/* Desktop : inchangé */}
+        {/* Desktop : bouton "Nouveau rendez-vous" toujours accessible (avant,
+            réservé au CTA de l'état vide — demande d'Anaïs du 08/09/2026) +
+            suggestion des praticiens déjà consultés, pour reprendre RDV en
+            un clic sans repasser par une recherche. */}
         <div className="hidden md:block">
           <Navbar />
           <div className="max-w-3xl mx-auto px-4 py-8">
-            <h1 className="text-2xl font-bold text-gray-900 mb-6">📅 Mes rendez-vous</h1>
+            <div className="flex items-center justify-between mb-6">
+              <h1 className="text-2xl font-bold text-gray-900">📅 Mes rendez-vous</h1>
+              <Link to="/search" className="btn-primary text-sm">+ Nouveau rendez-vous</Link>
+            </div>
+            {recentDoctorsSection}
             {tabs}
             {list}
           </div>
@@ -91,8 +125,10 @@ export default function RendezVousPage() {
           <MobileHeader className="bg-sage-100/60">
             <h1 className="font-playfair text-2xl font-bold text-gray-900">Mes rendez-vous</h1>
             <p className="text-sm text-gray-500 mt-0.5">Passés et à venir</p>
+            <Link to="/search" className="btn-primary text-sm inline-block mt-3">+ Nouveau rendez-vous</Link>
           </MobileHeader>
           <div className="px-4 -mt-1">
+            {recentDoctorsSection}
             {tabs}
             {list}
           </div>
