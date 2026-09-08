@@ -11,6 +11,7 @@ import {
   useVaccines,
   useWeightTracking,
   useHealthRecords,
+  useCurrentDoctor,
   useCreateVaccine,
   useUpdateVaccine,
   useDeleteVaccine,
@@ -31,6 +32,7 @@ import {
 import { useAuthStore } from '@/lib/authStore'
 import { supabase } from '@/lib/supabase'
 import { SPECIES_EMOJI, SPECIES_MAX_WEIGHT, BREED_PLACEHOLDER } from '@/lib/animalSpecies'
+import { getPractitionerTypeBySpecialty } from '@/lib/practitionerTypes'
 import SpeciesSelect from '@/components/ui/SpeciesSelect'
 import { showToast } from '@/lib/toast'
 import { compressImage } from '@/lib/compressImage'
@@ -54,6 +56,16 @@ export default function AnimalHealthPage() {
   const { data: records = [] } = useHealthRecords(id!)
   const { data: documents = [] } = useAnimalDocuments(id!)
   const { data: owner } = useAnimalOwner(isDoctor ? animal?.owner_id : undefined)
+  // Onglets Vaccins/Poids réservés aux vétérinaires (voir tab === 'vaccines'/
+  // 'weight' plus bas) : masqués pour un praticien non-vétérinaire (retiré
+  // à sa demande du 08/09/2026, en préparant une démo à une
+  // comportementaliste — le bouton "+ Ajouter un vaccin" n'a pas de sens
+  // pour son métier). Reste visible pour un patient (isDoctor false) et,
+  // par défaut, tant que la spécialité du praticien n'est pas encore
+  // chargée, pour éviter un flash "masqué puis affiché" chez un vétérinaire.
+  const { data: currentDoctor } = useCurrentDoctor()
+  const isNonVetDoctor = isDoctor && !!currentDoctor && getPractitionerTypeBySpecialty(currentDoctor.specialty)?.id !== 'veterinaire'
+  const canSeeMedicalTabs = !isNonVetDoctor
 
   const doctorName = profile ? `${profile.first_name} ${profile.last_name}`.trim() : ''
 
@@ -146,6 +158,13 @@ export default function AnimalHealthPage() {
   }
 
   const [tab, setTab] = useState<'overview' | 'vaccines' | 'weight' | 'records' | 'documents'>('overview')
+  // Filet de sécurité : si isNonVetDoctor bascule à true après un premier
+  // rendu où canSeeMedicalTabs valait encore true par défaut (currentDoctor
+  // pas encore chargé), on ne doit pas rester coincé sur un onglet
+  // désormais masqué.
+  useEffect(() => {
+    if (!canSeeMedicalTabs && (tab === 'vaccines' || tab === 'weight')) setTab('overview')
+  }, [canSeeMedicalTabs, tab])
   const [showVaccineForm, setShowVaccineForm] = useState(false)
   const [showWeightForm, setShowWeightForm] = useState(false)
   const [showRecordForm, setShowRecordForm] = useState(false)
@@ -472,7 +491,9 @@ export default function AnimalHealthPage() {
         )}
 
         <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-6 w-fit">
-          {([['overview', '📋 Résumé'], ['vaccines', '💉 Vaccins'], ['weight', '⚖️ Poids'], ['records', '📁 Dossier'], ['documents', '📎 Documents']] as const).map(([t, label]) => (
+          {([['overview', '📋 Résumé'], ['vaccines', '💉 Vaccins'], ['weight', '⚖️ Poids'], ['records', '📁 Dossier'], ['documents', '📎 Documents']] as const)
+            .filter(([t]) => canSeeMedicalTabs || (t !== 'vaccines' && t !== 'weight'))
+            .map(([t, label]) => (
             <button key={t} onClick={() => setTab(t)}
               className={`px-4 py-2 text-xs font-medium rounded-lg transition-colors ${tab === t ? 'bg-white text-sage-600 shadow-sm' : 'text-gray-500'}`}>
               {label}
@@ -501,7 +522,7 @@ export default function AnimalHealthPage() {
           </div>
         )}
 
-        {tab === 'vaccines' && (
+        {tab === 'vaccines' && canSeeMedicalTabs && (
           <div className="animate-rise-in">
             <div className="flex justify-between items-center mb-4">
               <h2 className="font-semibold text-gray-900">Vaccins de {animal.name}</h2>
@@ -560,7 +581,7 @@ export default function AnimalHealthPage() {
           </div>
         )}
 
-        {tab === 'weight' && (
+        {tab === 'weight' && canSeeMedicalTabs && (
           <div className="animate-rise-in">
             <div className="flex justify-between items-center mb-4">
               <h2 className="font-semibold text-gray-900">Suivi du poids</h2>
