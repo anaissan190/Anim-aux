@@ -136,6 +136,25 @@ export const PRACTITIONER_TYPES: PractitionerType[] = [
       { name: 'Séance individuelle', duration: '1h' },
     ],
   },
+  {
+    id: 'communication_animale',
+    label: 'Communication animale',
+    icon: '🔮',
+    services: [
+      { name: 'Séance de communication animale', duration: '45 min' },
+      { name: 'Bilan initial',                   duration: '1h' },
+    ],
+  },
+  {
+    id: 'mediation_animale',
+    label: 'Médiation animale',
+    icon: '🤝',
+    services: [
+      { name: 'Séance de médiation animale', duration: '45 min' },
+      { name: 'Bilan initial',               duration: '1h' },
+      { name: 'Suivi',                       duration: '30 min' },
+    ],
+  },
 
   // ─── Bien-être et esthétique ────────────────────────────────────
   {
@@ -184,6 +203,18 @@ export const PRACTITIONER_TYPES: PractitionerType[] = [
     services: [
       { name: 'Garde à domicile',    duration: 'Variable' },
       { name: 'Promenade',           duration: '30 min' },
+    ],
+  },
+
+  // ─── Services complémentaires ────────────────────────────────────
+  {
+    id: 'photographe_animalier',
+    label: 'Photographe animalier',
+    icon: '📷',
+    services: [
+      { name: 'Séance photo en studio',        duration: '1h' },
+      { name: 'Séance photo en extérieur',     duration: '1h30' },
+      { name: 'Séance famille avec animal',    duration: '1h' },
     ],
   },
 
