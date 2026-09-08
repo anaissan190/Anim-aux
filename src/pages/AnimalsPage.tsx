@@ -15,6 +15,7 @@ import { SPECIES_EMOJI, BREED_PLACEHOLDER } from '@/lib/animalSpecies'
 import SpeciesSelect from '@/components/ui/SpeciesSelect'
 import { format, differenceInYears } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { compressImage } from '@/lib/compressImage'
 
 const GENDER_SYMBOL: Record<string, string> = { 'Mâle': '♂', 'Femelle': '♀' }
 
@@ -150,14 +151,18 @@ export default function AnimalsPage() {
   const breedPlaceholder = BREED_PLACEHOLDER
 
   async function uploadAnimalPhoto(file: File): Promise<string | null> {
-    const ext = file.name.split('.').pop()
+    // Compressée avant l'envoi — une photo prise directement avec l'appareil
+    // d'un téléphone pèse souvent plusieurs Mo en pleine résolution, d'où
+    // l'envoi très lent constaté sur mobile (retour d'Anaïs du 08/09/2026).
+    const compressed = await compressImage(file)
+    const ext = compressed.name.split('.').pop()
     const path = `animals/${Date.now()}.${ext}`
     const { supabase } = await import('@/lib/supabase')
     const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('timeout')), 15000)
+      setTimeout(() => reject(new Error('timeout')), 20000)
     )
     const { error } = await Promise.race([
-      supabase.storage.from('avatars').upload(path, file, { upsert: true }),
+      supabase.storage.from('avatars').upload(path, compressed, { upsert: true }),
       timeout,
     ])
     if (error) return null

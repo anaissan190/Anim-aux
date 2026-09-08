@@ -33,6 +33,7 @@ import { supabase } from '@/lib/supabase'
 import { SPECIES_EMOJI, SPECIES_MAX_WEIGHT, BREED_PLACEHOLDER } from '@/lib/animalSpecies'
 import SpeciesSelect from '@/components/ui/SpeciesSelect'
 import { showToast } from '@/lib/toast'
+import { compressImage } from '@/lib/compressImage'
 
 export const DOC_TYPE_LABELS: Record<DocumentType, string> = {
   ordonnance: '💊 Ordonnance',
@@ -122,9 +123,14 @@ export default function AnimalHealthPage() {
   async function handlePhotoUpload(file: File) {
     setPhotoUploading(true)
     try {
-      const ext  = file.name.split('.').pop()
+      // Compressée avant l'envoi — une photo prise directement avec
+      // l'appareil d'un téléphone pèse souvent plusieurs Mo en pleine
+      // résolution, d'où l'envoi très lent constaté sur mobile (retour
+      // d'Anaïs du 08/09/2026).
+      const compressed = await compressImage(file)
+      const ext  = compressed.name.split('.').pop()
       const path = `animals/${id}-${Date.now()}.${ext}`
-      const { error: uploadErr } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
+      const { error: uploadErr } = await supabase.storage.from('avatars').upload(path, compressed, { upsert: true })
       if (uploadErr) throw uploadErr
       const { data } = supabase.storage.from('avatars').getPublicUrl(path)
       await updateAnimal.mutateAsync({ id: id!, avatar_url: data.publicUrl })
