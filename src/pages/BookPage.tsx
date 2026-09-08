@@ -10,6 +10,7 @@ import AvailabilityCalendar from '@/components/appointment/AvailabilityCalendar'
 import { format, addMinutes } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { SPECIES_EMOJI } from '@/lib/animalSpecies'
+import { getPractitionerTypeBySpecialty } from '@/lib/practitionerTypes'
 
 type Step = 1 | 2 | 3
 
@@ -75,10 +76,22 @@ export default function BookPage() {
     a.name.toLowerCase().includes(animalSearch.trim().toLowerCase())
   )
 
-  const REASONS = [
+  // Motifs de RDV vétérinaires par défaut ("ordonnance", "urgence"...) —
+  // affichés tels quels pour un vétérinaire (comportement d'origine, non
+  // modifié) et en filet de sécurité si la spécialité n'est pas reconnue.
+  // Pour tout autre métier (comportementaliste, toiletteur, éducateur
+  // canin...), on propose ses propres prestations (practitionerTypes.ts)
+  // plutôt que des motifs médicaux qui n'ont pas de sens pour lui — repéré
+  // en préparant une démo à une comportementaliste, dont le premier écran
+  // de réservation affichait "Renouvellement ordonnance"/"Urgence".
+  const practitionerType = getPractitionerTypeBySpecialty(doctor?.specialty)
+  const VET_REASONS = [
     'Consultation générale', 'Renouvellement ordonnance',
     'Bilan annuel', 'Suivi de traitement', 'Urgence', 'Autre',
   ]
+  const REASONS = !practitionerType || practitionerType.id === 'veterinaire'
+    ? VET_REASONS
+    : [...practitionerType.services.map(s => s.name), 'Autre']
 
   const doctorProfile = doctor?.profiles as any
   const name = doctorProfile
@@ -290,7 +303,7 @@ export default function BookPage() {
                 </>
               )}
               <p className="text-xs text-gray-400 mt-2">
-                Ex : analyses, ordonnance, radios... Le praticien pourra les consulter avant le RDV.
+                Tout document utile pour votre rendez-vous. Le praticien pourra le consulter avant le RDV.
               </p>
             </div>
 

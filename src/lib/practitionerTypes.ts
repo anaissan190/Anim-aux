@@ -204,6 +204,21 @@ export function getPractitionerType(id: string): PractitionerType | undefined {
   return PRACTITIONER_TYPES.find(p => p.id === id)
 }
 
+// Retrouve le PractitionerType à partir du libellé stocké sur doctors.specialty
+// (jamais l'id). Comparaison dans les deux sens comme matchesSpecialtySearch
+// (src/lib/doctorSearch.ts) plutôt qu'une égalité stricte : un libellé
+// renommé depuis l'inscription du praticien (ex. "Comportementaliste" →
+// "Comportementaliste animalier") ne doit pas faire perdre la correspondance
+// tant que la fiche existante n'a pas été mise à jour.
+export function getPractitionerTypeBySpecialty(specialty: string | null | undefined): PractitionerType | undefined {
+  const normalized = (specialty ?? '').toLowerCase().trim()
+  if (!normalized) return undefined
+  return PRACTITIONER_TYPES.find(p => {
+    const label = p.label.toLowerCase()
+    return label.includes(normalized) || normalized.includes(label)
+  })
+}
+
 // "Dr" est un titre réservé aux vétérinaires (seul métier de cette liste
 // habilité à le porter) — un comportementaliste, un toiletteur ou un
 // éducateur canin n'est jamais un docteur. `doctors.specialty` stocke le
