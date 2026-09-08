@@ -11,6 +11,7 @@ import RichTextEditor from '@/components/ui/RichTextEditor'
 import { PRACTITIONER_TYPES, getPractitionerType } from '@/lib/practitionerTypes'
 import { PRACTICE_SPECIES_OPTIONS } from '@/lib/animalSpecies'
 import { showToast } from '@/lib/toast'
+import { compressImage } from '@/lib/compressImage'
 
 export default function ProfilPage() {
   const { user, profile, signOut } = useAuthStore()
@@ -35,9 +36,12 @@ export default function ProfilPage() {
     setPhotoUploading(true)
     setPhotoError('')
     try {
-      const ext = file.name.split('.').pop()
+      // Compressée avant l'envoi (retour d'Anaïs du 08/09/2026, même
+      // correctif que les photos d'animaux) — voir src/lib/compressImage.ts.
+      const compressed = await compressImage(file)
+      const ext = compressed.name.split('.').pop()
       const path = `profiles/${user!.id}-${Date.now()}.${ext}`
-      const { error: uploadError } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(path, compressed, { upsert: true })
       if (uploadError) throw uploadError
       const { data } = supabase.storage.from('avatars').getPublicUrl(path)
       await updateProfile.mutateAsync({ avatar_url: data.publicUrl })

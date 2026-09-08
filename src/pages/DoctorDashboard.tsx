@@ -22,6 +22,7 @@ import { computeDoctorStats } from '@/lib/doctorStats'
 import AnimatedBar from '@/components/ui/AnimatedBar'
 import AnimatedCounter from '@/components/ui/AnimatedCounter'
 import { showToast } from '@/lib/toast'
+import { compressImage } from '@/lib/compressImage'
 
 // La barre d'onglets (Accueil, Mes patients, Tarifs, Disponibilités, Avis)
 // est désormais affichée dans la Navbar, à la suite du logo, pour être
@@ -287,9 +288,12 @@ export default function DoctorDashboard() {
     setPhotoUploading(true)
     setPhotoError('')
     try {
-      const ext = file.name.split('.').pop()
+      // Compressée avant l'envoi (retour d'Anaïs du 08/09/2026) — voir
+      // src/lib/compressImage.ts.
+      const compressed = await compressImage(file)
+      const ext = compressed.name.split('.').pop()
       const path = `profiles/${user!.id}-${Date.now()}.${ext}`
-      const { error: uploadError } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(path, compressed, { upsert: true })
       if (uploadError) throw uploadError
       const { data } = supabase.storage.from('avatars').getPublicUrl(path)
       await updateProfile.mutateAsync({ avatar_url: data.publicUrl })
@@ -305,9 +309,12 @@ export default function DoctorDashboard() {
     setClinicLogoUploading(true)
     setClinicLogoError('')
     try {
-      const ext = file.name.split('.').pop()
+      // Compressé avant l'envoi (retour d'Anaïs du 08/09/2026) — voir
+      // src/lib/compressImage.ts.
+      const compressed = await compressImage(file)
+      const ext = compressed.name.split('.').pop()
       const path = `clinics/${clinic.id}-${Date.now()}.${ext}`
-      const { error: uploadError } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(path, compressed, { upsert: true })
       if (uploadError) throw uploadError
       const { data } = supabase.storage.from('avatars').getPublicUrl(path)
       await updateClinic.mutateAsync({
