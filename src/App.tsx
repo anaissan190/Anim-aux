@@ -84,20 +84,30 @@ export default function App() {
         // PASSWORD_RECOVERY : session temporaire établie automatiquement par
         // le lien reçu par email (detectSessionInUrl), destinée uniquement à
         // ResetPassword.tsx pour appeler updateUser({ password }) — jamais à
-        // assimiler à une connexion normale. Sans cette exclusion explicite,
-        // le code plus bas (déclenché par INITIAL_SESSION dès qu'une session
-        // existe, y compris celle-ci) hydratait le store comme si la
-        // personne s'était connectée, avant même d'avoir choisi un nouveau
-        // mot de passe (retour de la mère d'Anaïs du 08/09/2026 : le lien
-        // "connecte" directement au compte). setUser/setProfile à null au
-        // cas où un INITIAL_SESSION antérieur aurait déjà peuplé le store.
+        // assimiler à une connexion normale (retour de la mère d'Anaïs du
+        // 08/09/2026 : le lien "connecte" directement au compte). En
+        // pratique, sur un chargement à froid (clic depuis l'email), ce
+        // listener s'abonne trop tard : GoTrue a déjà émis PASSWORD_RECOVERY
+        // à personne, puis le redonne à ce listener sous la forme d'un
+        // INITIAL_SESSION classique — indiscernable d'une vraie session par
+        // le seul type d'événement. D'où le garde-fou sur le chemin plutôt
+        // que sur l'événement : toute la logique de connexion (RPC
+        // get_my_user_data, vérification is_suspended...) est sautée sur
+        // /reset-password, quel que soit l'événement reçu — sinon un compte
+        // suspendu qui tente de réinitialiser son mot de passe se faisait
+        // rediriger vers "/login?suspended=1" avant même d'avoir vu le
+        // formulaire.
+        if (window.location.pathname === '/reset-password') {
+          setUser(null)
+          setProfile(null)
+          setLoading(false)
+          return
+        }
         if (event === 'PASSWORD_RECOVERY') {
           setUser(null)
           setProfile(null)
           setLoading(false)
-          if (window.location.pathname !== '/reset-password') {
-            window.location.href = '/reset-password'
-          }
+          window.location.href = '/reset-password'
           return
         }
 

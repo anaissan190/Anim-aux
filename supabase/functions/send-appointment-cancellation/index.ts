@@ -54,26 +54,37 @@ async function sendOvhSms(message: string, receiver: string) {
   const url = `https://eu.api.ovh.com/1.0/sms/${serviceName}/jobs`
   const body = JSON.stringify({ message, receivers: [receiver] })
 
-  const timeRes = await fetch('https://eu.api.ovh.com/1.0/auth/time')
-  const timestamp = await timeRes.text()
+  // Délai de 10s + try/catch (même garde-fou que send-reminders/index.ts,
+  // appliqué ici après coup le 08/09/2026) : sans ça, un OVH lent ou en
+  // panne fait planter toute l'invocation (fetch qui ne répond jamais /
+  // AbortError non intercepté), alors que cette fonction doit rester
+  // best-effort — l'annulation elle-même ne doit jamais en dépendre.
+  try {
+    const timeRes = await fetch('https://eu.api.ovh.com/1.0/auth/time', { signal: AbortSignal.timeout(10_000) })
+    const timestamp = await timeRes.text()
 
-  const signature = '$1$' + await sha1Hex(`${appSecret}+${consumerKey}+POST+${url}+${body}+${timestamp}`)
+    const signature = '$1$' + await sha1Hex(`${appSecret}+${consumerKey}+POST+${url}+${body}+${timestamp}`)
 
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Ovh-Application': appKey,
-      'X-Ovh-Consumer': consumerKey,
-      'X-Ovh-Timestamp': timestamp,
-      'X-Ovh-Signature': signature,
-    },
-    body,
-  })
-  if (!res.ok) {
-    console.error('OVH SMS error', await res.text())
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Ovh-Application': appKey,
+        'X-Ovh-Consumer': consumerKey,
+        'X-Ovh-Timestamp': timestamp,
+        'X-Ovh-Signature': signature,
+      },
+      body,
+      signal: AbortSignal.timeout(10_000),
+    })
+    if (!res.ok) {
+      console.error('OVH SMS error', await res.text())
+    }
+    return res.ok
+  } catch (e) {
+    console.error('OVH SMS request failed/timed out', e)
+    return false
   }
-  return res.ok
 }
 
 Deno.serve(async (req) => {
@@ -152,22 +163,29 @@ Deno.serve(async (req) => {
         <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Animéaux — Votre animal, notre priorité.</p>
       </div>
     `
-    const resendRes = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${resendKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: Deno.env.get('EMAIL_FROM') ?? 'Animéaux <onboarding@resend.dev>',
-        to: patientEmail,
-        subject: 'Votre rendez-vous a été annulé',
-        html,
-      }),
-    })
-    emailSent = resendRes.ok
-    if (!resendRes.ok) {
-      console.error('Resend error', await resendRes.text())
+    // Même garde-fou timeout + try/catch que sendOvhSms ci-dessus, appliqué
+    // ici après coup le 08/09/2026 (voir commentaire sur sendOvhSms).
+    try {
+      const resendRes = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${resendKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: Deno.env.get('EMAIL_FROM') ?? 'Animéaux <onboarding@resend.dev>',
+          to: patientEmail,
+          subject: 'Votre rendez-vous a été annulé',
+          html,
+        }),
+        signal: AbortSignal.timeout(10_000),
+      })
+      emailSent = resendRes.ok
+      if (!resendRes.ok) {
+        console.error('Resend error', await resendRes.text())
+      }
+    } catch (e) {
+      console.error('Resend request failed/timed out', e)
     }
   }
 
