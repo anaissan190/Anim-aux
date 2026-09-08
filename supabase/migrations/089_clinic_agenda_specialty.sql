@@ -4,6 +4,11 @@
 -- vétérinaire (comportementaliste, toiletteur...). Ajout de doctor_specialty
 -- pour permettre au front de choisir le bon intitulé (voir formatDoctorName
 -- dans src/lib/practitionerTypes.ts).
+-- La nouvelle colonne doctor_specialty change le type de retour (row type
+-- des OUT parameters) : Postgres refuse un simple CREATE OR REPLACE dans ce
+-- cas (42P13) et exige de supprimer la fonction avant de la recréer.
+drop function if exists public.get_clinic_agenda(uuid, timestamptz, timestamptz);
+
 create or replace function public.get_clinic_agenda(p_clinic_id uuid, p_from timestamptz, p_to timestamptz)
 returns table (
   id uuid, start_at timestamptz, end_at timestamptz, status appointment_status, reason text,
