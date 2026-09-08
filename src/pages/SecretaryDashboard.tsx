@@ -9,6 +9,7 @@ import { useAuthStore } from '@/lib/authStore'
 import { useMyClinicStaffInfo, useClinicInfo, useClinicTeam, useClinicAgenda, useClinicPatients } from '@/hooks/useData'
 import { addDays, format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { formatDoctorName } from '@/lib/practitionerTypes'
 
 type Tab = 'agenda' | 'equipe' | 'patientele' | 'cabinet'
 
@@ -81,7 +82,7 @@ export default function SecretaryDashboard() {
                             {format(new Date(a.start_at), "EEEE d MMM 'à' HH:mm", { locale: fr })}
                           </p>
                           <p className="text-xs text-gray-400">
-                            Dr {a.doctor_first_name} {a.doctor_last_name}
+                            {formatDoctorName(a.doctor_specialty, a.doctor_first_name, a.doctor_last_name)}
                             {a.patient_first_name && ` · ${a.patient_first_name} ${a.patient_last_name}`}
                             {a.animal_name && ` · ${a.animal_name}`}
                           </p>

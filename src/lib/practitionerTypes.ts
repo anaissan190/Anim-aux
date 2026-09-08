@@ -203,3 +203,17 @@ export const PRACTITIONER_TYPES: PractitionerType[] = [
 export function getPractitionerType(id: string): PractitionerType | undefined {
   return PRACTITIONER_TYPES.find(p => p.id === id)
 }
+
+// "Dr" est un titre réservé aux vétérinaires (seul métier de cette liste
+// habilité à le porter) — un comportementaliste, un toiletteur ou un
+// éducateur canin n'est jamais un docteur. `doctors.specialty` stocke le
+// libellé (ex. "Vétérinaire"), pas l'id, donc la comparaison se fait sur
+// getPractitionerType('veterinaire')!.label plutôt que sur un id.
+export function formatDoctorName(
+  specialty: string | null | undefined,
+  firstName: string | null | undefined,
+  lastName: string | null | undefined
+): string {
+  const isVeterinarian = specialty === getPractitionerType('veterinaire')?.label
+  return isVeterinarian ? `Dr ${firstName ?? ''} ${lastName ?? ''}` : `${firstName ?? ''} ${lastName ?? ''}`
+}

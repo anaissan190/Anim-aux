@@ -131,14 +131,22 @@ Deno.serve(async (req) => {
     const patientEmail = (appt.patient as any)?.email
     const doctorProfile = (appt.doctors as any)?.profiles
     const doctorSpecialty = (appt.doctors as any)?.specialty
-    const doctorName = doctorProfile ? `Dr ${doctorProfile.first_name} ${doctorProfile.last_name}` : 'votre praticien'
+    // "Dr" est un titre réservé aux vétérinaires (seul métier de la liste
+    // practitionerTypes.ts habilité à le porter) — un comportementaliste,
+    // un toiletteur ou un éducateur canin n'est jamais un docteur. Dupliqué
+    // ici comme les autres petites fonctions de ce fichier (toE164,
+    // escapeHtml) : les Edge Functions Deno n'importent pas src/.
+    const isVeterinarian = doctorSpecialty === 'Vétérinaire'
+    const doctorName = doctorProfile ? (isVeterinarian ? `Dr ${doctorProfile.first_name} ${doctorProfile.last_name}` : `${doctorProfile.first_name} ${doctorProfile.last_name}`) : 'votre praticien'
     // Prénom/nom sont des champs libres saisis à l'inscription (patient ET
     // praticien) — jamais validés contre l'injection de balises. Version
     // échappée dédiée à l'email HTML (même raison que pour `reason` plus
     // bas) : `doctorName` lui-même reste en clair pour la notification
     // in-app (échappée par React au rendu, pas besoin d'entités HTML) et le
     // SMS (qui afficherait les entités littéralement, "O&#39;Brien").
-    const doctorNameHtml = doctorProfile ? `Dr ${escapeHtml(doctorProfile.first_name)} ${escapeHtml(doctorProfile.last_name)}` : 'votre praticien'
+    const doctorNameHtml = doctorProfile
+      ? (isVeterinarian ? `Dr ${escapeHtml(doctorProfile.first_name)} ${escapeHtml(doctorProfile.last_name)}` : `${escapeHtml(doctorProfile.first_name)} ${escapeHtml(doctorProfile.last_name)}`)
+      : 'votre praticien'
     const price = (appt.doctors as any)?.consultation_price
 
     const dateStr = new Date(appt.start_at).toLocaleString('fr-FR', {

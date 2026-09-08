@@ -60,7 +60,11 @@ Deno.serve(async (req) => {
     .eq('id', tokenRow.doctor_id)
     .single()
   const doctorProfile = (doctor as any)?.profiles
-  const doctorName = doctorProfile ? `Dr ${doctorProfile.first_name} ${doctorProfile.last_name}` : 'Praticien'
+  // "Dr" réservé aux vétérinaires (voir practitionerTypes.ts côté front,
+  // dupliqué ici comme le reste de ce fichier n'important pas src/).
+  const doctorName = doctorProfile
+    ? ((doctor as any)?.specialty === 'Vétérinaire' ? `Dr ${doctorProfile.first_name} ${doctorProfile.last_name}` : `${doctorProfile.first_name} ${doctorProfile.last_name}`)
+    : 'Praticien'
 
   // Agenda confirmé à partir d'hier (couvre un RDV du jour déjà commencé) :
   // pas de borne haute, tout le futur confirmé doit apparaître. Les RDV

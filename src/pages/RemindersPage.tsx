@@ -8,6 +8,7 @@ import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
 import { usePatientReminders } from '@/hooks/useData'
 import { SPECIES_EMOJI } from '@/lib/animalSpecies'
+import { formatDoctorName } from '@/lib/practitionerTypes'
 
 export default function RemindersPage() {
   const { data, isLoading, error } = usePatientReminders()
@@ -55,7 +56,7 @@ export default function RemindersPage() {
                       <div className="w-10 h-10 rounded-xl bg-sage-100 flex items-center justify-center text-lg flex-shrink-0">📅</div>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm text-gray-900">
-                          Dr {doctorProfile?.first_name} {doctorProfile?.last_name}
+                          {formatDoctorName(a.doctors?.specialty, doctorProfile?.first_name, doctorProfile?.last_name)}
                           {a.doctors?.specialty && <span className="text-gray-400 font-normal"> · {a.doctors.specialty}</span>}
                         </p>
                         <p className="text-xs text-gray-500">

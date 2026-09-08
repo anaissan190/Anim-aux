@@ -1632,7 +1632,7 @@ export function usePatientDoctorDocuments() {
       // résultat aux pièces jointes de ses propres RDV.
       const { data: apptDocs, error: apptErr } = await supabase
         .from('appointment_documents')
-        .select('*, appointments(start_at, doctors(profiles!doctors_user_id_profiles_fkey(first_name, last_name)))')
+        .select('*, appointments(start_at, doctors(specialty, profiles!doctors_user_id_profiles_fkey(first_name, last_name)))')
         .order('created_at', { ascending: false })
       if (apptErr) throw apptErr
       const bookingDocs = (apptDocs ?? []).map((d: any) => ({ ...d, source: 'appointment' as const }))

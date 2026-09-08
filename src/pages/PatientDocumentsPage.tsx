@@ -11,6 +11,7 @@ import BackButton from '@/components/ui/BackButton'
 import { usePatientDoctorDocuments } from '@/hooks/useData'
 import { SPECIES_EMOJI } from '@/lib/animalSpecies'
 import { DOC_TYPE_LABELS } from '@/pages/AnimalHealthPage'
+import { formatDoctorName } from '@/lib/practitionerTypes'
 
 export default function PatientDocumentsPage() {
   const { data: documents = [], isLoading, error } = usePatientDoctorDocuments()
@@ -56,6 +57,7 @@ export default function PatientDocumentsPage() {
           <div className="space-y-3">
             {documents.map((d: any) => {
               const doctorProfile = d.source === 'appointment' ? d.appointments?.doctors?.profiles : null
+              const doctorSpecialty = d.source === 'appointment' ? d.appointments?.doctors?.specialty : null
               return (
                 <a key={d.id} href={d.file_url} target="_blank" rel="noopener noreferrer"
                   className="card p-4 flex items-center gap-4 hover:shadow-md transition-shadow">
@@ -75,7 +77,7 @@ export default function PatientDocumentsPage() {
                     </div>
                     <p className="text-xs text-gray-500">
                       {d.source === 'animal' && d.animals?.name && `${SPECIES_EMOJI[d.animals.species] ?? '🐾'} ${d.animals.name}`}
-                      {d.source === 'appointment' && doctorProfile && `RDV avec Dr ${doctorProfile.first_name} ${doctorProfile.last_name}`}
+                      {d.source === 'appointment' && doctorProfile && `RDV avec ${formatDoctorName(doctorSpecialty, doctorProfile.first_name, doctorProfile.last_name)}`}
                     </p>
                     <p className="text-xs text-gray-400">
                       Déposé par {d.uploaderName} le {format(new Date(d.created_at), "d MMM yyyy 'à' HH:mm", { locale: fr })}

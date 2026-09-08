@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
 
   const { data: appt, error } = await supabase
     .from('appointments')
-    .select('id, start_at, status, confirmed_by_patient_at, doctors!inner(profiles!doctors_user_id_profiles_fkey(first_name, last_name))')
+    .select('id, start_at, status, confirmed_by_patient_at, doctors!inner(specialty, profiles!doctors_user_id_profiles_fkey(first_name, last_name))')
     .eq('id', appointmentId)
     .single()
 
@@ -52,7 +52,11 @@ Deno.serve(async (req) => {
   }
 
   const doctorProfile = (appt.doctors as any)?.profiles
-  const doctorName = doctorProfile ? `Dr ${doctorProfile.first_name} ${doctorProfile.last_name}` : 'votre praticien'
+  // "Dr" réservé aux vétérinaires (voir practitionerTypes.ts côté front,
+  // dupliqué ici comme le reste de ce fichier n'important pas src/).
+  const doctorName = doctorProfile
+    ? ((appt.doctors as any)?.specialty === 'Vétérinaire' ? `Dr ${doctorProfile.first_name} ${doctorProfile.last_name}` : `${doctorProfile.first_name} ${doctorProfile.last_name}`)
+    : 'votre praticien'
   const dateStr = new Date(appt.start_at).toLocaleString('fr-FR', {
     dateStyle: 'full', timeStyle: 'short', timeZone: 'Europe/Paris',
   })
