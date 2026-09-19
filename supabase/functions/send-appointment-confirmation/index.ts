@@ -64,10 +64,17 @@ async function sendOvhSms(message: string, receiver: string) {
   const appSecret = Deno.env.get('OVH_APP_SECRET')
   const consumerKey = Deno.env.get('OVH_CONSUMER_KEY')
   const serviceName = Deno.env.get('OVH_SMS_SERVICE_NAME')
-  if (!appKey || !appSecret || !consumerKey || !serviceName) return false
+  // Nom d'expéditeur alphanumérique validé par OVH ("MonAnimeaux", validé le
+  // 19/09/2026 après plusieurs tentatives — voir mémoire du projet). Sans ce
+  // champ, l'API OVH répondait "Sms sender does not exists. Please create
+  // it first" malgré l'expéditeur bel et bien validé : elle retombe sur un
+  // expéditeur par défaut jamais configuré si `sender` n'est pas fourni
+  // explicitement dans le corps de chaque requête.
+  const senderName = Deno.env.get('OVH_SMS_SENDER')
+  if (!appKey || !appSecret || !consumerKey || !serviceName || !senderName) return false
 
   const url = `https://eu.api.ovh.com/1.0/sms/${serviceName}/jobs`
-  const body = JSON.stringify({ message, receivers: [receiver] })
+  const body = JSON.stringify({ message, receivers: [receiver], sender: senderName })
 
   const timeRes = await fetch('https://eu.api.ovh.com/1.0/auth/time')
   const timestamp = await timeRes.text()
