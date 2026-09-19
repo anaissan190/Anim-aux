@@ -4,8 +4,9 @@
 // dans le dossier de ses animaux — pas ceux que le patient a lui-même
 // envoyés, déjà visibles dans l'onglet "Documents" de chaque animal.
 // Réutilise le même stockage/RLS que cet onglet — pas de nouvelle table.
-import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { formatInTimeZone } from 'date-fns-tz'
+import { PARIS_TZ } from '@/lib/parisTime'
 import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
 import { usePatientDoctorDocuments } from '@/hooks/useData'
@@ -80,7 +81,7 @@ export default function PatientDocumentsPage() {
                       {d.source === 'appointment' && doctorProfile && `RDV avec ${formatDoctorName(doctorSpecialty, doctorProfile.first_name, doctorProfile.last_name)}`}
                     </p>
                     <p className="text-xs text-gray-400">
-                      Déposé par {d.uploaderName} le {format(new Date(d.created_at), "d MMM yyyy 'à' HH:mm", { locale: fr })}
+                      Déposé par {d.uploaderName} le {formatInTimeZone(new Date(d.created_at), PARIS_TZ, "d MMM yyyy 'à' HH:mm", { locale: fr })}
                     </p>
                   </div>
                 </a>

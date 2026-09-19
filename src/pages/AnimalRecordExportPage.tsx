@@ -1,7 +1,8 @@
 // src/pages/AnimalRecordExportPage.tsx
 import { useParams, Link } from 'react-router-dom'
-import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { formatInTimeZone } from 'date-fns-tz'
+import { PARIS_TZ } from '@/lib/parisTime'
 import BackButton from '@/components/ui/BackButton'
 import { useAnimal, useVaccines, useWeightTracking, useHealthRecords, useAnimalOwner } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
@@ -47,13 +48,13 @@ export default function AnimalRecordExportPage() {
             </p>
           </div>
           <p className="text-xs text-gray-400 whitespace-nowrap">
-            Généré le {format(new Date(), 'd MMMM yyyy', { locale: fr })}
+            Généré le {formatInTimeZone(new Date(), PARIS_TZ, 'd MMMM yyyy', { locale: fr })}
           </p>
         </header>
 
         <section className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm mb-8">
           {animal.date_of_birth && (
-            <p><span className="text-gray-400">Date de naissance : </span>{format(new Date(animal.date_of_birth), 'd MMMM yyyy', { locale: fr })}</p>
+            <p><span className="text-gray-400">Date de naissance : </span>{formatInTimeZone(new Date(animal.date_of_birth), PARIS_TZ, 'd MMMM yyyy', { locale: fr })}</p>
           )}
           {/* animal.weight_kg n'existe pas (le poids ne vit que dans
               weight_tracking) — ce champ n'affichait donc jamais rien,
@@ -82,8 +83,8 @@ export default function AnimalRecordExportPage() {
                 {vaccines.map((v: any) => (
                   <tr key={v.id} className="border-b border-gray-100">
                     <td className="py-1.5">{v.name}</td>
-                    <td className="py-1.5">{format(new Date(v.date_administered), 'd MMM yyyy', { locale: fr })}</td>
-                    <td className="py-1.5">{v.next_due_date ? format(new Date(v.next_due_date), 'd MMM yyyy', { locale: fr }) : '—'}</td>
+                    <td className="py-1.5">{formatInTimeZone(new Date(v.date_administered), PARIS_TZ, 'd MMM yyyy', { locale: fr })}</td>
+                    <td className="py-1.5">{v.next_due_date ? formatInTimeZone(new Date(v.next_due_date), PARIS_TZ, 'd MMM yyyy', { locale: fr }) : '—'}</td>
                     <td className="py-1.5">{v.administered_by || '—'}</td>
                   </tr>
                 ))}
@@ -108,7 +109,7 @@ export default function AnimalRecordExportPage() {
               <tbody>
                 {weights.map((w: any) => (
                   <tr key={w.id} className="border-b border-gray-100">
-                    <td className="py-1.5">{format(new Date(w.measured_at), 'd MMM yyyy', { locale: fr })}</td>
+                    <td className="py-1.5">{formatInTimeZone(new Date(w.measured_at), PARIS_TZ, 'd MMM yyyy', { locale: fr })}</td>
                     <td className="py-1.5">{w.weight_kg} kg</td>
                     <td className="py-1.5">{w.notes || '—'}</td>
                   </tr>
@@ -128,7 +129,7 @@ export default function AnimalRecordExportPage() {
                 <div key={r.id} className="border-b border-gray-100 pb-3">
                   <div className="flex items-center justify-between">
                     <p className="font-medium text-gray-900 text-sm">{r.title}</p>
-                    <p className="text-xs text-gray-400">{format(new Date(r.date), 'd MMM yyyy', { locale: fr })}</p>
+                    <p className="text-xs text-gray-400">{formatInTimeZone(new Date(r.date), PARIS_TZ, 'd MMM yyyy', { locale: fr })}</p>
                   </div>
                   <p className="text-xs text-sage-600 mt-0.5">{r.type}{r.professional_name ? ` — ${r.professional_name}` : ''}</p>
                   {r.description && <p className="text-sm text-gray-600 mt-1">{r.description}</p>}

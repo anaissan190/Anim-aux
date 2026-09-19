@@ -8,8 +8,9 @@ import BackButton from '@/components/ui/BackButton'
 import StarRating from '@/components/ui/StarRating'
 import LocationMap from '@/components/doctor/LocationMap'
 import { sanitizeHtml } from '@/lib/sanitizeHtml'
-import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { formatInTimeZone } from 'date-fns-tz'
+import { PARIS_TZ } from '@/lib/parisTime'
 
 export default function DoctorPage() {
   const { id } = useParams<{ id: string }>()
@@ -151,7 +152,7 @@ export default function DoctorPage() {
                 {!!myHistory?.count && (
                   <p className="text-xs text-sage-600 mt-1.5">
                     🩺 Vous avez déjà consulté ce praticien {myHistory.count} fois
-                    {myHistory.lastAt && ` · dernier RDV le ${format(new Date(myHistory.lastAt), 'd MMMM yyyy', { locale: fr })}`}
+                    {myHistory.lastAt && ` · dernier RDV le ${formatInTimeZone(new Date(myHistory.lastAt), PARIS_TZ, 'd MMMM yyyy', { locale: fr })}`}
                   </p>
                 )}
               </div>
@@ -246,7 +247,7 @@ export default function DoctorPage() {
                         </span>
                         <StarRating rating={r.rating} size="sm" />
                         <span className="text-xs text-gray-400 ml-auto">
-                          {format(new Date(r.created_at), 'd MMM yyyy', { locale: fr })}
+                          {formatInTimeZone(new Date(r.created_at), PARIS_TZ, 'd MMM yyyy', { locale: fr })}
                         </span>
                       </div>
                       {r.comment && <p className="text-sm text-gray-600 ml-9">{r.comment}</p>}

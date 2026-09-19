@@ -9,8 +9,9 @@ import {
   useAdminReports, useAdminResolveReport, useAdminDeleteReview, useAdminSuspendUser,
   useAdminUnsuspendUser, useAdminActionsLog,
 } from '@/hooks/useData'
-import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { formatInTimeZone } from 'date-fns-tz'
+import { PARIS_TZ } from '@/lib/parisTime'
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   PieChart, Pie, Cell, BarChart, Bar, Legend,
@@ -168,7 +169,7 @@ function AdminOverview({ onSelectDoctor, onViewReviews, onViewPatients, onViewCl
   ] : []
 
   const signupsData = (stats?.signups_weekly ?? []).map(w => ({
-    semaine: format(new Date(w.week_start), 'd MMM', { locale: fr }),
+    semaine: formatInTimeZone(new Date(w.week_start), PARIS_TZ, 'd MMM', { locale: fr }),
     Praticiens: w.doctors,
     Propriétaires: w.patients,
   }))
@@ -315,7 +316,7 @@ function AdminOverview({ onSelectDoctor, onViewReviews, onViewPatients, onViewCl
                         {d.specialty} · {d.email}{d.city ? ` · ${d.city}` : ''}
                       </p>
                       <p className="text-xs text-gray-400 mt-0.5">
-                        Inscrit {format(new Date(d.created_at), "d MMMM yyyy 'à' HH:mm", { locale: fr })}
+                        Inscrit {formatInTimeZone(new Date(d.created_at), PARIS_TZ, "d MMMM yyyy 'à' HH:mm", { locale: fr })}
                         {typeof d.review_count === 'number' && d.review_count > 0 && (
                           <> · ⭐ {d.average_rating} ({d.review_count} avis)</>
                         )}
@@ -482,7 +483,7 @@ function AdminReviewsView({ onBack }: { onBack: () => void }) {
                     {'★'.repeat(r.rating)}<span className="text-gray-200">{'★'.repeat(5 - r.rating)}</span>
                   </div>
                   <span className="text-xs text-gray-400 flex-shrink-0">
-                    {format(new Date(r.created_at), "d MMM yyyy", { locale: fr })}
+                    {formatInTimeZone(new Date(r.created_at), PARIS_TZ, "d MMM yyyy", { locale: fr })}
                   </span>
                 </div>
                 {r.comment && <p className="text-sm text-gray-700 mb-2">{r.comment}</p>}
@@ -637,8 +638,8 @@ function AdminPatientDetail({ userId, onBack }: { userId: string; onBack: () => 
               <div><span className="text-gray-400 text-xs block">Email</span>{p.email}</div>
               <div><span className="text-gray-400 text-xs block">Téléphone</span>{p.phone || '—'}</div>
               <div className="col-span-2"><span className="text-gray-400 text-xs block">Adresse</span>{p.address || '—'}</div>
-              <div><span className="text-gray-400 text-xs block">Date de naissance</span>{p.date_of_birth ? format(new Date(p.date_of_birth), "d MMMM yyyy", { locale: fr }) : '—'}</div>
-              <div><span className="text-gray-400 text-xs block">Inscrit le</span>{format(new Date(p.created_at), "d MMMM yyyy", { locale: fr })}</div>
+              <div><span className="text-gray-400 text-xs block">Date de naissance</span>{p.date_of_birth ? formatInTimeZone(new Date(p.date_of_birth), PARIS_TZ, "d MMMM yyyy", { locale: fr }) : '—'}</div>
+              <div><span className="text-gray-400 text-xs block">Inscrit le</span>{formatInTimeZone(new Date(p.created_at), PARIS_TZ, "d MMMM yyyy", { locale: fr })}</div>
             </div>
 
             {/* Activité */}
@@ -991,8 +992,8 @@ function AdminAppointmentsView({ onBack, initialFilter }: { onBack: () => void; 
             {list.map((a: any) => (
               <div key={a.id} className="card p-4 flex items-center gap-3">
                 <div className="text-center flex-shrink-0 w-14">
-                  <p className="text-sm font-bold text-gray-900">{format(new Date(a.start_at), "d MMM", { locale: fr })}</p>
-                  <p className="text-xs text-gray-400">{format(new Date(a.start_at), "HH:mm")}</p>
+                  <p className="text-sm font-bold text-gray-900">{formatInTimeZone(new Date(a.start_at), PARIS_TZ, "d MMM", { locale: fr })}</p>
+                  <p className="text-xs text-gray-400">{formatInTimeZone(new Date(a.start_at), PARIS_TZ, "HH:mm")}</p>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-gray-800 truncate">
@@ -1114,7 +1115,7 @@ function AdminDoctorDetail({ doctorId, onBack }: { doctorId: string; onBack: () 
                 <div><span className="text-gray-400 text-xs block">Tarif consultation</span>{d.consultation_price} €</div>
                 <div><span className="text-gray-400 text-xs block">Déplacement à domicile</span>{d.home_visit ? 'Oui' : 'Non'}</div>
                 <div className="col-span-2"><span className="text-gray-400 text-xs block">Espèces acceptées</span>{d.accepted_species?.length ? d.accepted_species.join(', ') : '—'}</div>
-                <div><span className="text-gray-400 text-xs block">Inscrit le</span>{format(new Date(d.created_at), "d MMMM yyyy", { locale: fr })}</div>
+                <div><span className="text-gray-400 text-xs block">Inscrit le</span>{formatInTimeZone(new Date(d.created_at), PARIS_TZ, "d MMMM yyyy", { locale: fr })}</div>
               </div>
 
               {d.bio && (
@@ -1302,7 +1303,7 @@ function AdminReportsView({ onBack, onSelectDoctor }: { onBack: () => void; onSe
                     <span className={REPORT_STATUS_BADGE[r.status]}>{REPORT_STATUS_LABEL[r.status]}</span>
                   </div>
                   <span className="text-xs text-gray-400 flex-shrink-0">
-                    {format(new Date(r.created_at), "d MMM yyyy 'à' HH:mm", { locale: fr })}
+                    {formatInTimeZone(new Date(r.created_at), PARIS_TZ, "d MMM yyyy 'à' HH:mm", { locale: fr })}
                   </span>
                 </div>
 
@@ -1408,7 +1409,7 @@ function AdminActionsLogView({ onBack }: { onBack: () => void }) {
                   <p className="text-xs text-gray-400">Par {e.admin_name || 'admin'}</p>
                 </div>
                 <span className="text-xs text-gray-400 flex-shrink-0">
-                  {format(new Date(e.created_at), "d MMM yyyy 'à' HH:mm", { locale: fr })}
+                  {formatInTimeZone(new Date(e.created_at), PARIS_TZ, "d MMM yyyy 'à' HH:mm", { locale: fr })}
                 </span>
               </div>
             ))}

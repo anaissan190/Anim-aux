@@ -7,11 +7,12 @@ import { supabase } from '@/lib/supabase'
 import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
 import AvailabilityCalendar from '@/components/appointment/AvailabilityCalendar'
-import { format, addMinutes } from 'date-fns'
+import { addMinutes } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { formatInTimeZone } from 'date-fns-tz'
 import { SPECIES_EMOJI } from '@/lib/animalSpecies'
 import { getPractitionerTypeBySpecialty } from '@/lib/practitionerTypes'
-import { parisDateKey, parisDayOfWeek, parisTimeString } from '@/lib/parisTime'
+import { parisDateKey, parisDayOfWeek, parisTimeString, PARIS_TZ } from '@/lib/parisTime'
 
 type Step = 1 | 2 | 3
 
@@ -203,7 +204,7 @@ export default function BookPage() {
             {selectedSlot && (
               <div className="mt-5 pt-5 border-t border-gray-100 flex items-center justify-between">
                 <p className="text-sm text-sage-700 font-medium">
-                  ✓ {format(selectedSlot, "EEEE d MMMM 'à' HH:mm", { locale: fr })}
+                  ✓ {formatInTimeZone(selectedSlot, PARIS_TZ, "EEEE d MMMM 'à' HH:mm", { locale: fr })}
                 </p>
                 <button className="btn-primary" onClick={() => setStep(2)}>
                   Continuer →
@@ -219,7 +220,7 @@ export default function BookPage() {
             <h2 className="font-semibold text-gray-900 mb-1">Motif de la consultation</h2>
             <p className="text-sm text-gray-500 mb-5">
               RDV prévu le{' '}
-              <strong>{selectedSlot && format(selectedSlot, "EEEE d MMMM 'à' HH:mm", { locale: fr })}</strong>
+              <strong>{selectedSlot && formatInTimeZone(selectedSlot, PARIS_TZ, "EEEE d MMMM 'à' HH:mm", { locale: fr })}</strong>
             </p>
 
             {animals.length === 0 ? (
@@ -344,7 +345,7 @@ export default function BookPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">Date & heure</span>
                   <span className="font-medium">
-                    {format(selectedSlot, "EEEE d MMM 'à' HH:mm", { locale: fr })}
+                    {formatInTimeZone(selectedSlot, PARIS_TZ, "EEEE d MMM 'à' HH:mm", { locale: fr })}
                   </span>
                 </div>
               )}

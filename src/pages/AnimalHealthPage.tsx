@@ -2,8 +2,9 @@
 import { useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { formatInTimeZone } from 'date-fns-tz'
+import { PARIS_TZ } from '@/lib/parisTime'
 import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
 import {
@@ -392,7 +393,7 @@ export default function AnimalHealthPage() {
             <div className="flex gap-1.5 flex-wrap mt-2.5">
               {animal.date_of_birth && (
                 <span className="text-xs font-bold bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">
-                  🎂 {format(new Date(animal.date_of_birth), 'd MMM yyyy', { locale: fr })}
+                  🎂 {formatInTimeZone(new Date(animal.date_of_birth), PARIS_TZ, 'd MMM yyyy', { locale: fr })}
                 </span>
               )}
               {lastWeight && (
@@ -507,12 +508,12 @@ export default function AnimalHealthPage() {
               <h3 className="font-semibold text-sm text-gray-700 mb-3">💉 Vaccins</h3>
               <p className="text-3xl font-bold text-sage-600 mb-1">{vaccines.length}</p>
               <p className="text-xs text-gray-400">vaccins enregistrés</p>
-              {nextVaccine && <p className="text-xs text-amber-600 mt-2">⏰ Rappel : {format(new Date(nextVaccine.next_due_date!), 'd MMM yyyy', { locale: fr })}</p>}
+              {nextVaccine && <p className="text-xs text-amber-600 mt-2">⏰ Rappel : {formatInTimeZone(new Date(nextVaccine.next_due_date!), PARIS_TZ, 'd MMM yyyy', { locale: fr })}</p>}
             </div>
             <div className="card p-5">
               <h3 className="font-semibold text-sm text-gray-700 mb-3">⚖️ Poids actuel</h3>
               <p className="text-3xl font-bold text-moss-600 mb-1">{lastWeight ? `${lastWeight.weight_kg} kg` : '—'}</p>
-              <p className="text-xs text-gray-400">{lastWeight ? format(new Date(lastWeight.measured_at), 'd MMM yyyy', { locale: fr }) : 'Aucune mesure'}</p>
+              <p className="text-xs text-gray-400">{lastWeight ? formatInTimeZone(new Date(lastWeight.measured_at), PARIS_TZ, 'd MMM yyyy', { locale: fr }) : 'Aucune mesure'}</p>
             </div>
             <div className="card p-5">
               <h3 className="font-semibold text-sm text-gray-700 mb-3">📁 Événements</h3>
@@ -567,9 +568,9 @@ export default function AnimalHealthPage() {
                       <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-lg">💉</div>
                       <div className="flex-1">
                         <p className="font-semibold text-sm text-gray-900">{v.name}</p>
-                        <p className="text-xs text-gray-500">Le {format(new Date(v.date_administered), 'd MMM yyyy', { locale: fr })}{v.administered_by ? ` · ${v.administered_by}` : ''}</p>
+                        <p className="text-xs text-gray-500">Le {formatInTimeZone(new Date(v.date_administered), PARIS_TZ, 'd MMM yyyy', { locale: fr })}{v.administered_by ? ` · ${v.administered_by}` : ''}</p>
                       </div>
-                      {v.next_due_date && <div className="text-right"><p className="text-xs text-amber-600 font-medium">Rappel</p><p className="text-xs text-gray-500">{format(new Date(v.next_due_date), 'd MMM yyyy', { locale: fr })}</p></div>}
+                      {v.next_due_date && <div className="text-right"><p className="text-xs text-amber-600 font-medium">Rappel</p><p className="text-xs text-gray-500">{formatInTimeZone(new Date(v.next_due_date), PARIS_TZ, 'd MMM yyyy', { locale: fr })}</p></div>}
                       <div className="flex gap-2 flex-shrink-0">
                         <button onClick={() => startEditVaccine(v)} className="text-xs text-sage-600 hover:underline">✏️</button>
                         <button onClick={() => removeVaccine(v)} disabled={deleteVaccine.isPending} className="text-xs text-red-400 hover:underline">🗑️</button>
@@ -607,7 +608,7 @@ export default function AnimalHealthPage() {
                 <h3 className="text-sm font-semibold text-gray-700 mb-4">📈 Courbe de poids</h3>
                 <ResponsiveContainer width="100%" height={200}>
                   <LineChart data={weights.map(w => ({
-                    date: format(new Date(w.measured_at), 'd MMM', { locale: fr }),
+                    date: formatInTimeZone(new Date(w.measured_at), PARIS_TZ, 'd MMM', { locale: fr }),
                     poids: w.weight_kg,
                   }))}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -659,7 +660,7 @@ export default function AnimalHealthPage() {
                       <div className="w-10 h-10 rounded-xl bg-moss-50 flex items-center justify-center text-lg">⚖️</div>
                       <div className="flex-1">
                         <p className="font-semibold text-sm text-gray-900">{w.weight_kg} kg</p>
-                        <p className="text-xs text-gray-500">{format(new Date(w.measured_at), 'd MMM yyyy', { locale: fr })}{w.notes ? ` · ${w.notes}` : ''}</p>
+                        <p className="text-xs text-gray-500">{formatInTimeZone(new Date(w.measured_at), PARIS_TZ, 'd MMM yyyy', { locale: fr })}{w.notes ? ` · ${w.notes}` : ''}</p>
                       </div>
                       {i === 0 && <span className="text-xs bg-moss-100 text-moss-700 px-2 py-1 rounded-full">Dernier</span>}
                       <div className="flex gap-2 flex-shrink-0">
@@ -735,7 +736,7 @@ export default function AnimalHealthPage() {
                           <p className="font-semibold text-sm text-gray-900">{r.title}</p>
                           <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{r.type}</span>
                         </div>
-                        <p className="text-xs text-gray-500">{format(new Date(r.date), 'd MMM yyyy', { locale: fr })}{r.professional_name ? ` · ${r.professional_name}` : ''}</p>
+                        <p className="text-xs text-gray-500">{formatInTimeZone(new Date(r.date), PARIS_TZ, 'd MMM yyyy', { locale: fr })}{r.professional_name ? ` · ${r.professional_name}` : ''}</p>
                         {r.description && <p className="text-xs text-gray-400 mt-1">{r.description}</p>}
                       </div>
                       <div className="flex gap-2 flex-shrink-0">
@@ -808,7 +809,7 @@ export default function AnimalHealthPage() {
                         </span>
                       </div>
                       <p className="text-xs text-gray-500">
-                        Déposé par {d.uploaded_by === user?.id ? 'vous' : d.uploaderName} le {format(new Date(d.created_at), "d MMM yyyy 'à' HH:mm", { locale: fr })}
+                        Déposé par {d.uploaded_by === user?.id ? 'vous' : d.uploaderName} le {formatInTimeZone(new Date(d.created_at), PARIS_TZ, "d MMM yyyy 'à' HH:mm", { locale: fr })}
                       </p>
                     </div>
                     {d.uploaded_by === user?.id && (

@@ -7,9 +7,11 @@ import { useState } from 'react'
 import Navbar from '@/components/ui/Navbar'
 import { useAuthStore } from '@/lib/authStore'
 import { useMyClinicStaffInfo, useClinicInfo, useClinicTeam, useClinicAgenda, useClinicPatients } from '@/hooks/useData'
-import { addDays, format } from 'date-fns'
+import { addDays } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { formatInTimeZone } from 'date-fns-tz'
 import { formatDoctorName } from '@/lib/practitionerTypes'
+import { PARIS_TZ } from '@/lib/parisTime'
 
 type Tab = 'agenda' | 'equipe' | 'patientele' | 'cabinet'
 
@@ -79,7 +81,7 @@ export default function SecretaryDashboard() {
                       <div key={a.id} className="flex items-center justify-between border-b border-gray-50 pb-2 last:border-0">
                         <div>
                           <p className="text-sm font-medium text-gray-800">
-                            {format(new Date(a.start_at), "EEEE d MMM 'à' HH:mm", { locale: fr })}
+                            {formatInTimeZone(new Date(a.start_at), PARIS_TZ, "EEEE d MMM 'à' HH:mm", { locale: fr })}
                           </p>
                           <p className="text-xs text-gray-400">
                             {formatDoctorName(a.doctor_specialty, a.doctor_first_name, a.doctor_last_name)}

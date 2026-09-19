@@ -1,12 +1,14 @@
 // src/components/appointment/AppointmentCard.tsx
 import { useState } from 'react'
-import { format, differenceInMinutes, addMinutes } from 'date-fns'
+import { differenceInMinutes, addMinutes } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { formatInTimeZone } from 'date-fns-tz'
 import { Link } from 'react-router-dom'
 import { useUpdateAppointmentStatus, useRescheduleAppointment, useAppointmentDocuments } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { generateAppointmentIcs } from '@/lib/ics'
 import AvailabilityCalendar from '@/components/appointment/AvailabilityCalendar'
+import { PARIS_TZ } from '@/lib/parisTime'
 import type { Appointment, AppointmentStatus } from '@/types'
 
 const STATUS_LABELS: Record<AppointmentStatus, string> = {
@@ -159,13 +161,14 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
           la maquette DashboardMix (07/09/2026) ; l'heure est affichée dans
           la colonne de droite, pas ici. */}
       <div className={`flex-shrink-0 w-14 text-center rounded-full py-2.5 ${DATE_BLOCK_CLASSES[appointment.status]}`}>
-        <p className="text-[10px] font-bold uppercase tracking-wide">{format(start, 'EEE', { locale: fr })}</p>
-        <p className="font-serif text-xl font-semibold leading-none mt-1">{format(start, 'd')}</p>
-        {/* Année affichée seulement si différente de l'année en cours —
-            un RDV passé peut dater de plusieurs années, mois+jour seuls
-            seraient ambigus (ex. "12 juil." 2025 vs 2026). */}
-        {start.getFullYear() !== new Date().getFullYear() && (
-          <p className="text-[9px] opacity-70 leading-none mt-1">{format(start, 'yyyy')}</p>
+        <p className="text-[10px] font-bold uppercase tracking-wide">{formatInTimeZone(start, PARIS_TZ, 'EEE', { locale: fr })}</p>
+        <p className="font-serif text-xl font-semibold leading-none mt-1">{formatInTimeZone(start, PARIS_TZ, 'd')}</p>
+        {/* Année affichée seulement si différente de l'année en cours (à
+            Paris, voir src/lib/parisTime.ts) — un RDV passé peut dater de
+            plusieurs années, mois+jour seuls seraient ambigus (ex. "12
+            juil." 2025 vs 2026). */}
+        {formatInTimeZone(start, PARIS_TZ, 'yyyy') !== formatInTimeZone(new Date(), PARIS_TZ, 'yyyy') && (
+          <p className="text-[9px] opacity-70 leading-none mt-1">{formatInTimeZone(start, PARIS_TZ, 'yyyy')}</p>
         )}
       </div>
 
@@ -219,7 +222,7 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
           DashboardMix), statut, puis actions — tout aligné à droite en une
           seule colonne plutôt que dispersé sur plusieurs blocs. */}
       <div className="flex-shrink-0 flex flex-col items-end gap-1.5 text-right">
-        <p className="font-serif text-lg font-semibold text-gray-900">{format(start, 'HH:mm')}</p>
+        <p className="font-serif text-lg font-semibold text-gray-900">{formatInTimeZone(start, PARIS_TZ, 'HH:mm')}</p>
         <span className={STATUS_CLASSES[appointment.status]}>
           {STATUS_LABELS[appointment.status]}
         </span>
@@ -342,7 +345,7 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
           <div className="mt-4 flex items-center gap-3">
             <button onClick={handleConfirmReschedule} disabled={reschedule.isPending}
               className="btn-primary text-sm">
-              {reschedule.isPending ? 'Report en cours...' : `Confirmer le report au ${format(newSlot, "d MMM 'à' HH:mm", { locale: fr })}`}
+              {reschedule.isPending ? 'Report en cours...' : `Confirmer le report au ${formatInTimeZone(newSlot, PARIS_TZ, "d MMM 'à' HH:mm", { locale: fr })}`}
             </button>
           </div>
         )}

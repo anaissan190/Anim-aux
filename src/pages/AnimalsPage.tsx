@@ -13,8 +13,10 @@ import MobileTabBar from '@/components/mobile/MobileTabBar'
 import { useAnimals, useCreateAnimal, useWeightTracking, useVaccines } from '@/hooks/useData'
 import { SPECIES_EMOJI, BREED_PLACEHOLDER } from '@/lib/animalSpecies'
 import SpeciesSelect from '@/components/ui/SpeciesSelect'
-import { format, differenceInYears } from 'date-fns'
+import { differenceInYears } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { formatInTimeZone } from 'date-fns-tz'
+import { PARIS_TZ } from '@/lib/parisTime'
 import { compressImage } from '@/lib/compressImage'
 
 const GENDER_SYMBOL: Record<string, string> = { 'Mâle': '♂', 'Femelle': '♀' }
@@ -66,7 +68,7 @@ function PetRow({ animal, index }: { animal: any; index: number }) {
             </span>
           ) : upcomingVaccine ? (
             <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
-              💉 {format(new Date(upcomingVaccine.next_due_date), 'd MMM', { locale: fr })}
+              💉 {formatInTimeZone(new Date(upcomingVaccine.next_due_date), PARIS_TZ, 'd MMM', { locale: fr })}
             </span>
           ) : hasVaccineHistory ? (
             <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-moss-100 text-moss-800">
@@ -99,7 +101,7 @@ function AnimalDesktopCard({ animal, colorIndex }: { animal: any; colorIndex: nu
   const badge = overdueVaccine
     ? { label: '⚠️ Rappel en retard', cls: 'bg-red-100 text-red-700' }
     : upcomingVaccine
-    ? { label: `💉 ${format(new Date(upcomingVaccine.next_due_date), 'd MMM', { locale: fr })}`, cls: 'bg-amber-100 text-amber-700' }
+    ? { label: `💉 ${formatInTimeZone(new Date(upcomingVaccine.next_due_date), PARIS_TZ, 'd MMM', { locale: fr })}`, cls: 'bg-amber-100 text-amber-700' }
     : latestWeight
     ? { label: `⚖️ ${latestWeight.weight_kg} kg`, cls: 'bg-white/90 text-gray-700' }
     : null

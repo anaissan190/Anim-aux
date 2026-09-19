@@ -1,8 +1,9 @@
 // src/pages/MessagesPage.tsx
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { formatInTimeZone } from 'date-fns-tz'
+import { PARIS_TZ } from '@/lib/parisTime'
 import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
 import MobileHeader from '@/components/mobile/MobileHeader'
@@ -380,7 +381,7 @@ export default function MessagesPage() {
                           : 'bg-gray-100 text-gray-800 rounded-bl-sm'}`}>
                         <p>{m.content}</p>
                         <p className={`text-xs mt-1 ${mine ? 'text-sage-200' : 'text-gray-400'}`}>
-                          {format(new Date(m.created_at), 'HH:mm', { locale: fr })}
+                          {formatInTimeZone(new Date(m.created_at), PARIS_TZ, 'HH:mm', { locale: fr })}
                         </p>
                       </div>
                     </div>
