@@ -10,6 +10,7 @@ import { generateAvailableSlots } from '@/lib/slots'
 import { findNextAvailableSlot } from '@/lib/nextSlot'
 import { urlBase64ToUint8Array } from '@/lib/pushNotifications'
 import { matchesSpecialtySearch } from '@/lib/doctorSearch'
+import { parisDateKey, parisDayOfWeek, parisTimeToUtc } from '@/lib/parisTime'
 
 export function useDoctors(filters: SearchFilters = {}, enabled: boolean = true) {
   return useQuery({
@@ -113,14 +114,17 @@ async function hasAvailabilityInRange(doctorId: string, from: Date, to: Date): P
 
   const minStart = Date.now() + 15 * 60 * 1000
 
+  // Ancré sur le jour calendaire à Paris (voir src/lib/parisTime.ts), pas
+  // sur le fuseau local de l'appareil qui exécute cette recherche — sinon
+  // le filtre "disponible aujourd'hui/cette semaine" donne des résultats
+  // faux pour un visiteur connecté depuis un autre fuseau.
   for (let day = new Date(from); day < to; day.setDate(day.getDate() + 1)) {
-    const dayOfWeek = day.getDay()
+    const dateKey = parisDateKey(day)
+    const dayOfWeek = parisDayOfWeek(dateKey)
     for (const a of avail) {
       if (a.day_of_week !== dayOfWeek) continue
-      const [sh, sm] = a.start_time.split(':').map(Number)
-      const [eh, em] = a.end_time.split(':').map(Number)
-      let cur = new Date(day); cur.setHours(sh, sm, 0, 0)
-      const end = new Date(day); end.setHours(eh, em, 0, 0)
+      let cur = parisTimeToUtc(dateKey, a.start_time)
+      const end = parisTimeToUtc(dateKey, a.end_time)
       while (cur < end) {
         const t = cur.getTime()
         const isBlocked = blockedRanges.some(r => t >= r.start && t < r.end)
@@ -345,10 +349,14 @@ export function useAvailabilities(doctorId: string) {
 
 export function useAvailableSlots(doctorId: string, date: Date | null) {
   return useQuery({
-    queryKey: ['slots', doctorId, date?.toDateString()],
+    queryKey: ['slots', doctorId, date ? parisDateKey(date) : null],
     queryFn: async () => {
       if (!date || !doctorId) return []
-      const dayOfWeek = date.getDay()
+      // Ancré sur le jour calendaire à Paris, pas sur le fuseau local de
+      // l'appareil — voir src/lib/parisTime.ts et le commentaire de
+      // generateAvailableSlots (src/lib/slots.ts) pour le bug que ça corrige.
+      const dateKey = parisDateKey(date)
+      const dayOfWeek = parisDayOfWeek(dateKey)
       const { data: avail } = await supabase
         .from('availabilities')
         .select('*')
@@ -357,10 +365,9 @@ export function useAvailableSlots(doctorId: string, date: Date | null) {
         .eq('is_active', true)
       if (!avail || avail.length === 0) return []
 
-      // Bornes de la journée en heure LOCALE, converties en instants UTC
-      // corrects via toISOString() (évite les décalages de fuseau horaire).
-      const dayStart = new Date(date); dayStart.setHours(0, 0, 0, 0)
-      const dayEnd   = new Date(date); dayEnd.setHours(23, 59, 59, 999)
+      // Bornes de la journée à Paris, converties en instants UTC corrects.
+      const dayStart = parisTimeToUtc(dateKey, '00:00:00')
+      const dayEnd   = parisTimeToUtc(dateKey, '23:59:59.999')
 
       // Passe par une RPC plutôt qu'une requête directe sur `appointments` :
       // la policy RLS "patient voit les siens" limite un patient à SES

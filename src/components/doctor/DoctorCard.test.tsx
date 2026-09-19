@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import DoctorCard from './DoctorCard'
+import { parisDateKey, parisTimeToUtc } from '@/lib/parisTime'
 
 function baseDoctor(overrides: Record<string, any> = {}): any {
   return {
@@ -50,7 +51,8 @@ describe('DoctorCard', () => {
   })
 
   it('affiche le prochain créneau disponible si fourni', () => {
-    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1); tomorrow.setHours(9, 0, 0, 0)
+    const tomorrowDate = new Date(); tomorrowDate.setDate(tomorrowDate.getDate() + 1)
+    const tomorrow = parisTimeToUtc(parisDateKey(tomorrowDate), '09:00')
     renderCard({ doctor: baseDoctor(), nextSlotAt: tomorrow.toISOString() })
     expect(screen.getByText(/Demain à 09:00/)).toBeInTheDocument()
   })

@@ -1,9 +1,15 @@
 import { describe, it, expect } from 'vitest'
 import { generateAvailableSlots, type SlotAvailabilityRule } from './slots'
+import { parisTimeToUtc, parisTimeString } from './parisTime'
 
 // Date fixe et lointaine dans le futur pour ne jamais être affectée par le
 // délai de battement de 15 min (minStart) selon quand les tests tournent.
-const FAR_FUTURE_DAY = new Date('2030-06-10T00:00:00')
+// Construite via parisTimeToUtc (pas `new Date('2030-06-10T00:00:00')`,
+// interprétée dans le fuseau LOCAL du runner) pour représenter sans
+// ambiguïté minuit à Paris ce jour-là, quel que soit le fuseau système —
+// cet environnement tourne en Asia/Kuala_Lumpur (UTC+8), qui aurait
+// silencieusement décalé le jour calendaire à Paris d'un jour.
+const FAR_FUTURE_DAY = parisTimeToUtc('2030-06-10', '00:00:00')
 const PAST_MIN_START = 0 // aucun créneau exclu par le battement dans ces tests
 
 describe('generateAvailableSlots', () => {
@@ -13,29 +19,26 @@ describe('generateAvailableSlots', () => {
     ]
     const slots = generateAvailableSlots(FAR_FUTURE_DAY, rules, new Set(), [], PAST_MIN_START)
     expect(slots).toHaveLength(2)
-    expect(slots[0].getHours()).toBe(9)
-    expect(slots[0].getMinutes()).toBe(0)
-    expect(slots[1].getHours()).toBe(9)
-    expect(slots[1].getMinutes()).toBe(30)
+    expect(parisTimeString(slots[0])).toBe('09:00')
+    expect(parisTimeString(slots[1])).toBe('09:30')
   })
 
   it('exclut un créneau déjà réservé (bookedTimes)', () => {
     const rules: SlotAvailabilityRule[] = [
       { start_time: '09:00', end_time: '10:00', slot_duration_minutes: 30 },
     ]
-    const nineAM = new Date(FAR_FUTURE_DAY)
-    nineAM.setHours(9, 0, 0, 0)
+    const nineAM = parisTimeToUtc('2030-06-10', '09:00')
     const slots = generateAvailableSlots(FAR_FUTURE_DAY, rules, new Set([nineAM.getTime()]), [], PAST_MIN_START)
     expect(slots).toHaveLength(1)
-    expect(slots[0].getMinutes()).toBe(30)
+    expect(parisTimeString(slots[0])).toBe('09:30')
   })
 
   it('exclut un créneau qui tombe dans une période de congé (blockedRanges)', () => {
     const rules: SlotAvailabilityRule[] = [
       { start_time: '09:00', end_time: '10:00', slot_duration_minutes: 30 },
     ]
-    const rangeStart = new Date(FAR_FUTURE_DAY); rangeStart.setHours(8, 0, 0, 0)
-    const rangeEnd = new Date(FAR_FUTURE_DAY); rangeEnd.setHours(9, 15, 0, 0)
+    const rangeStart = parisTimeToUtc('2030-06-10', '08:00')
+    const rangeEnd = parisTimeToUtc('2030-06-10', '09:15')
     const slots = generateAvailableSlots(
       FAR_FUTURE_DAY, rules, new Set(),
       [{ start: rangeStart.getTime(), end: rangeEnd.getTime() }],
@@ -43,18 +46,17 @@ describe('generateAvailableSlots', () => {
     )
     // Le créneau de 9h est dans [8h, 9h15[, celui de 9h30 non.
     expect(slots).toHaveLength(1)
-    expect(slots[0].getMinutes()).toBe(30)
+    expect(parisTimeString(slots[0])).toBe('09:30')
   })
 
   it('exclut les créneaux avant le délai de battement minimum (minStart)', () => {
     const rules: SlotAvailabilityRule[] = [
       { start_time: '09:00', end_time: '10:00', slot_duration_minutes: 30 },
     ]
-    const nineThirtyAM = new Date(FAR_FUTURE_DAY)
-    nineThirtyAM.setHours(9, 30, 0, 0)
+    const nineThirtyAM = parisTimeToUtc('2030-06-10', '09:30')
     const slots = generateAvailableSlots(FAR_FUTURE_DAY, rules, new Set(), [], nineThirtyAM.getTime())
     expect(slots).toHaveLength(1)
-    expect(slots[0].getMinutes()).toBe(30)
+    expect(parisTimeString(slots[0])).toBe('09:30')
   })
 
   it('combine plusieurs plages de disponibilité le même jour', () => {
@@ -78,7 +80,19 @@ describe('generateAvailableSlots', () => {
     const slots = generateAvailableSlots(FAR_FUTURE_DAY, rules, new Set(), [], PAST_MIN_START)
     // 09:00, 09:45 — 10:30 est exclu (cur < end strict)
     expect(slots).toHaveLength(2)
-    expect(slots[1].getHours()).toBe(9)
-    expect(slots[1].getMinutes()).toBe(45)
+    expect(parisTimeString(slots[1])).toBe('09:45')
+  })
+
+  it('génère des créneaux corrects quel que soit le fuseau horaire du jour donné en entrée', () => {
+    // Le paramètre `date` ne sert qu'à identifier le jour calendaire à
+    // Paris (parisDateKey) — un instant qui tombe sur le même jour à Paris
+    // mais à une autre heure doit produire exactement les mêmes créneaux.
+    const rules: SlotAvailabilityRule[] = [
+      { start_time: '09:00', end_time: '10:00', slot_duration_minutes: 30 },
+    ]
+    const sameDayDifferentHour = parisTimeToUtc('2030-06-10', '18:45')
+    const slots = generateAvailableSlots(sameDayDifferentHour, rules, new Set(), [], PAST_MIN_START)
+    expect(slots).toHaveLength(2)
+    expect(parisTimeString(slots[0])).toBe('09:00')
   })
 })

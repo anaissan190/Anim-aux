@@ -6,6 +6,7 @@
 // aucun accès réseau.
 
 import { addMinutes } from 'date-fns'
+import { parisDateKey, parisTimeToUtc } from './parisTime'
 
 export interface SlotAvailabilityRule {
   start_time: string
@@ -26,13 +27,14 @@ export function generateAvailableSlots(
   minStart: number
 ): Date[] {
   const slots: Date[] = []
+  // Ancré sur le jour calendaire à Paris (voir parisTime.ts), pas sur le
+  // fuseau local de l'appareil qui exécute ce code — sinon un visiteur
+  // connecté depuis un autre fuseau voit des créneaux qui ne correspondent
+  // pas à l'heure réelle du praticien, rejetés ensuite par le serveur.
+  const dateKey = parisDateKey(date)
   for (const a of availabilities) {
-    const [sh, sm] = a.start_time.split(':').map(Number)
-    const [eh, em] = a.end_time.split(':').map(Number)
-    let cur = new Date(date)
-    cur.setHours(sh, sm, 0, 0)
-    const end = new Date(date)
-    end.setHours(eh, em, 0, 0)
+    let cur = parisTimeToUtc(dateKey, a.start_time)
+    const end = parisTimeToUtc(dateKey, a.end_time)
     while (cur < end) {
       const t = cur.getTime()
       const isBlocked = blockedRanges.some(r => t >= r.start && t < r.end)

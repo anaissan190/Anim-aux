@@ -8,6 +8,15 @@ vi.mock('@/lib/supabase', () => ({ supabase: createSupabaseMock() }))
 
 import { supabase } from '@/lib/supabase'
 import AvailabilityCalendar from './AvailabilityCalendar'
+import { parisDateKey, parisTimeToUtc, parisTimeString } from '@/lib/parisTime'
+
+// Clé de date (à Paris) du dernier jour affiché par la semaine par défaut
+// (aujourd'hui + 6 jours), utilisée pour construire des fixtures cohérentes
+// avec ce que le composant calcule désormais lui-même en heure de Paris.
+function lastDayOfWeekKey(): string {
+  const d = new Date(); d.setDate(d.getDate() + 6)
+  return parisDateKey(d)
+}
 
 function wrapper({ children }: { children: ReactNode }) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -72,17 +81,14 @@ describe('AvailabilityCalendar', () => {
 
     expect(onSelect).toHaveBeenCalledTimes(1)
     const calledWith = onSelect.mock.calls[0][0] as Date
-    expect(calledWith.getHours()).toBe(9)
-    expect(calledWith.getMinutes()).toBe(0)
+    expect(parisTimeString(calledWith)).toBe('09:00')
   })
 
   it('exclut un créneau déjà réservé', async () => {
-    // get_booked_slots renvoie le créneau de 9h comme déjà pris : seul 9h30
-    // doit rester proposé.
-    const dayButtons7Away = new Date()
-    dayButtons7Away.setDate(dayButtons7Away.getDate() + 6)
-    dayButtons7Away.setHours(9, 0, 0, 0)
-    mockSupabaseForSlots({ booked: [{ start_at: dayButtons7Away.toISOString() }] })
+    // get_booked_slots renvoie le créneau de 9h (heure de Paris) comme déjà
+    // pris : seul 9h30 doit rester proposé.
+    const alreadyBooked = parisTimeToUtc(lastDayOfWeekKey(), '09:00')
+    mockSupabaseForSlots({ booked: [{ start_at: alreadyBooked.toISOString() }] })
 
     const { container } = render(<AvailabilityCalendar doctorId="doc-1" selected={null} onSelect={vi.fn()} />, { wrapper })
     clickLastDayOfWeek(container)

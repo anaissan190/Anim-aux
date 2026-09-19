@@ -1,8 +1,10 @@
 // src/components/appointment/AvailabilityCalendar.tsx
 import { useState } from 'react'
-import { format, addDays, startOfToday, isSameDay } from 'date-fns'
+import { addDays } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { formatInTimeZone } from 'date-fns-tz'
 import { useAvailableSlots } from '@/hooks/useData'
+import { parisDateKey, parisTimeToUtc, parisTimeString, PARIS_TZ } from '@/lib/parisTime'
 
 interface Props {
   doctorId: string
@@ -10,8 +12,18 @@ interface Props {
   selected: Date | null
 }
 
+// Compare deux instants par leur jour calendaire à Paris, jamais par
+// isSameDay (date-fns, qui lit le fuseau LOCAL de l'appareil) — sinon un
+// visiteur connecté depuis un autre fuseau voit un calendrier/sélection
+// incohérents avec l'heure réelle des créneaux (voir src/lib/parisTime.ts).
+function isSameParisDay(a: Date, b: Date): boolean {
+  return parisDateKey(a) === parisDateKey(b)
+}
+
 export default function AvailabilityCalendar({ doctorId, onSelect, selected }: Props) {
-  const today = startOfToday()
+  // "Aujourd'hui" ancré sur le fuseau de Paris (marché exclusivement
+  // français), pas sur l'appareil du visiteur.
+  const today = parisTimeToUtc(parisDateKey(), '00:00:00')
   const [weekOffset, setWeekOffset] = useState(0)
   const [activeDay, setActiveDay] = useState<Date | null>(null)
 
@@ -31,7 +43,7 @@ export default function AvailabilityCalendar({ doctorId, onSelect, selected }: P
           </svg>
         </button>
         <span className="text-sm font-medium text-gray-700">
-          {format(days[0], 'd MMM', { locale: fr })} – {format(days[6], 'd MMM yyyy', { locale: fr })}
+          {formatInTimeZone(days[0], PARIS_TZ, 'd MMM', { locale: fr })} – {formatInTimeZone(days[6], PARIS_TZ, 'd MMM yyyy', { locale: fr })}
         </span>
         <button onClick={() => setWeekOffset(w => Math.min(8, w + 1))}
           className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
@@ -45,13 +57,13 @@ export default function AvailabilityCalendar({ doctorId, onSelect, selected }: P
       <div className="grid grid-cols-7 gap-1">
         {days.map(day => (
           <button key={day.toISOString()}
-            onClick={() => setActiveDay(isSameDay(day, activeDay ?? new Date(0)) ? null : day)}
+            onClick={() => setActiveDay(activeDay && isSameParisDay(day, activeDay) ? null : day)}
             className={`flex flex-col items-center py-2 rounded-xl text-xs font-medium transition-colors
-              ${isSameDay(day, activeDay ?? new Date(0))
+              ${activeDay && isSameParisDay(day, activeDay)
                 ? 'bg-sage-500 text-white'
                 : 'hover:bg-sage-50 text-gray-700'}`}>
-            <span className="text-gray-400 text-xs mb-1">{format(day, 'EEE', { locale: fr })}</span>
-            <span>{format(day, 'd')}</span>
+            <span className="text-gray-400 text-xs mb-1">{formatInTimeZone(day, PARIS_TZ, 'EEE', { locale: fr })}</span>
+            <span>{formatInTimeZone(day, PARIS_TZ, 'd')}</span>
           </button>
         ))}
       </div>
@@ -75,10 +87,10 @@ export default function AvailabilityCalendar({ doctorId, onSelect, selected }: P
                 <button key={slot.toISOString()}
                   onClick={() => onSelect(slot)}
                   className={`py-2 text-sm font-medium rounded-xl border transition-colors
-                    ${selected && isSameDay(slot, selected) && slot.getHours() === selected.getHours() && slot.getMinutes() === selected.getMinutes()
+                    ${selected && slot.getTime() === selected.getTime()
                       ? 'bg-sage-500 border-sage-500 text-white'
                       : 'border-gray-200 hover:border-sage-400 hover:text-sage-600'}`}>
-                  {format(slot, 'HH:mm')}
+                  {parisTimeString(slot)}
                 </button>
               ))}
             </div>

@@ -11,6 +11,7 @@ import { format, addMinutes } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { SPECIES_EMOJI } from '@/lib/animalSpecies'
 import { getPractitionerTypeBySpecialty } from '@/lib/practitionerTypes'
+import { parisDateKey, parisDayOfWeek, parisTimeString } from '@/lib/parisTime'
 
 type Step = 1 | 2 | 3
 
@@ -104,10 +105,15 @@ export default function BookPage() {
     // Durée réelle du créneau choisi plutôt qu'une constante de 30 min :
     // un praticien peut configurer des créneaux de 45/60 min
     // (slot_duration_minutes par règle de disponibilité), et cette durée
-    // se propage ensuite partout (agenda, export .ics, reports).
-    const startMinutes = start.getHours() * 60 + start.getMinutes()
+    // se propage ensuite partout (agenda, export .ics, reports). Comparé en
+    // heure de Paris, pas celle de l'appareil (voir src/lib/parisTime.ts) —
+    // sinon un patient connecté depuis un autre fuseau se voit proposer un
+    // créneau que le serveur rejette ensuite (validate_patient_appointment_slot,
+    // migration 088).
+    const [startHour, startMin] = parisTimeString(start).split(':').map(Number)
+    const startMinutes = startHour * 60 + startMin
     const matchingRule = availabilities.find((a: any) => {
-      if (a.day_of_week !== start.getDay()) return false
+      if (a.day_of_week !== parisDayOfWeek(parisDateKey(start))) return false
       const [sh, sm] = a.start_time.split(':').map(Number)
       const [eh, em] = a.end_time.split(':').map(Number)
       const ruleStart = sh * 60 + sm
@@ -372,11 +378,24 @@ export default function BookPage() {
               </button>
             </div>
             {createAppt.isError && (
-              <p className="text-red-500 text-sm mt-3 text-center">
-                {(createAppt.error as any)?.code === '23505'
-                  ? 'Ce créneau est déjà pris. Veuillez en choisir un autre.'
-                  : (createAppt.error as any)?.message || "Une erreur est survenue. Veuillez réessayer."}
-              </p>
+              <div className="mt-3 text-center">
+                <p className="text-red-500 text-sm">
+                  {(createAppt.error as any)?.code === '23505'
+                    ? 'Ce créneau est déjà pris.'
+                    // P0001 : exception levée par validate_patient_appointment_slot
+                    // (migration 088) — le créneau choisi ne correspond plus à
+                    // une disponibilité réelle du praticien. Jamais le texte
+                    // brut de l'erreur serveur, pas actionnable pour un patient.
+                    : (createAppt.error as any)?.code === 'P0001'
+                    ? "Ce créneau n'est plus disponible."
+                    : "Une erreur est survenue."}
+                  {' '}Veuillez en choisir un autre.
+                </p>
+                <button type="button" className="text-sage-600 text-sm font-medium underline mt-1"
+                  onClick={() => { setSelectedSlot(null); setStep(1) }}>
+                  ← Retour aux disponibilités
+                </button>
+              </div>
             )}
           </div>
         )}
