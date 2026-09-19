@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parisDateKey, parisDayOfWeek, parisTimeToUtc, parisTimeString, PARIS_TZ } from './parisTime'
+import { parisDateKey, parisDayOfWeek, parisTimeToUtc, parisTimeString, PARIS_TZ, addDaysToDateKey, parisStartOfWeekKey, parisMinutesOfDay, parisCalendarDaysDiff } from './parisTime'
 
 describe('parisDateKey', () => {
   it('donne la date à Paris, pas celle du fuseau local d\'exécution', () => {
@@ -60,5 +60,69 @@ describe('parisTimeString', () => {
 describe('PARIS_TZ', () => {
   it('est bien "Europe/Paris"', () => {
     expect(PARIS_TZ).toBe('Europe/Paris')
+  })
+})
+
+describe('parisMinutesOfDay', () => {
+  it('convertit un instant en minutes depuis minuit, heure de Paris', () => {
+    expect(parisMinutesOfDay(parisTimeToUtc('2026-09-21', '11:30:00'))).toBe(11 * 60 + 30)
+    expect(parisMinutesOfDay(parisTimeToUtc('2026-09-21', '00:00:00'))).toBe(0)
+    expect(parisMinutesOfDay(parisTimeToUtc('2026-09-21', '23:45:00'))).toBe(23 * 60 + 45)
+  })
+})
+
+describe('parisCalendarDaysDiff', () => {
+  it('vaut 0 pour le même jour calendaire à Paris, même à des heures différentes', () => {
+    const morning = parisTimeToUtc('2026-09-21', '08:00:00')
+    const evening = parisTimeToUtc('2026-09-21', '22:00:00')
+    expect(parisCalendarDaysDiff(evening, morning)).toBe(0)
+  })
+
+  it('compte les jours à venir positivement', () => {
+    const from = parisTimeToUtc('2026-09-21', '12:00:00')
+    const target = parisTimeToUtc('2026-09-24', '09:00:00')
+    expect(parisCalendarDaysDiff(target, from)).toBe(3)
+  })
+
+  it('compte les jours passés négativement', () => {
+    const from = parisTimeToUtc('2026-09-21', '12:00:00')
+    const target = parisTimeToUtc('2026-09-18', '09:00:00')
+    expect(parisCalendarDaysDiff(target, from)).toBe(-3)
+  })
+})
+
+describe('addDaysToDateKey', () => {
+  it('avance de N jours', () => {
+    expect(addDaysToDateKey('2026-09-21', 5)).toBe('2026-09-26')
+  })
+
+  it('recule de N jours (nombre négatif)', () => {
+    expect(addDaysToDateKey('2026-09-21', -3)).toBe('2026-09-18')
+  })
+
+  it('traverse correctement un changement de mois', () => {
+    expect(addDaysToDateKey('2026-09-28', 5)).toBe('2026-10-03')
+  })
+
+  it('à 0 jours, renvoie la même clé', () => {
+    expect(addDaysToDateKey('2026-09-21', 0)).toBe('2026-09-21')
+  })
+})
+
+describe('parisStartOfWeekKey', () => {
+  it('renvoie la même clé pour un lundi', () => {
+    expect(parisStartOfWeekKey('2026-09-21')).toBe('2026-09-21') // lundi
+  })
+
+  it('remonte au lundi précédent pour un jour en milieu de semaine', () => {
+    expect(parisStartOfWeekKey('2026-09-24')).toBe('2026-09-21') // jeudi -> lundi
+  })
+
+  it('remonte au lundi précédent (pas au lundi suivant) pour un dimanche', () => {
+    expect(parisStartOfWeekKey('2026-09-27')).toBe('2026-09-21') // dimanche -> lundi de la même semaine
+  })
+
+  it('traverse correctement un changement de mois', () => {
+    expect(parisStartOfWeekKey('2026-10-01')).toBe('2026-09-28') // jeudi 1er oct. -> lundi 28 sept.
   })
 })

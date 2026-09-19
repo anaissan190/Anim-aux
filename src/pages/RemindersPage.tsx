@@ -1,14 +1,15 @@
 // src/pages/RemindersPage.tsx
 // Tuile "Rappels" du dashboard patient : rendez-vous déjà planifiés à venir
 // + rappels de vaccin, tous animaux confondus (voir usePatientReminders).
-import { format, differenceInCalendarDays } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { formatInTimeZone } from 'date-fns-tz'
 import { Link } from 'react-router-dom'
 import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
 import { usePatientReminders } from '@/hooks/useData'
 import { SPECIES_EMOJI } from '@/lib/animalSpecies'
 import { formatDoctorName } from '@/lib/practitionerTypes'
+import { parisCalendarDaysDiff, PARIS_TZ } from '@/lib/parisTime'
 
 export default function RemindersPage() {
   const { data, isLoading, error } = usePatientReminders()
@@ -50,7 +51,7 @@ export default function RemindersPage() {
               <div className="space-y-3 mb-8">
                 {appointments.map((a: any) => {
                   const doctorProfile = a.doctors?.profiles
-                  const days = differenceInCalendarDays(new Date(a.start_at), new Date())
+                  const days = parisCalendarDaysDiff(new Date(a.start_at))
                   return (
                     <div key={a.id} className="card p-4 flex items-center gap-4">
                       <div className="w-10 h-10 rounded-xl bg-sage-100 flex items-center justify-center text-lg flex-shrink-0">📅</div>
@@ -60,7 +61,7 @@ export default function RemindersPage() {
                           {a.doctors?.specialty && <span className="text-gray-400 font-normal"> · {a.doctors.specialty}</span>}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {format(new Date(a.start_at), "d MMM yyyy 'à' HH:mm", { locale: fr })}
+                          {formatInTimeZone(new Date(a.start_at), PARIS_TZ, "d MMM yyyy 'à' HH:mm", { locale: fr })}
                           {a.reason && ` · ${a.reason}`}
                         </p>
                       </div>
@@ -81,7 +82,7 @@ export default function RemindersPage() {
             ) : (
               <div className="space-y-3">
                 {vaccineReminders.map((v: any) => {
-                  const days = differenceInCalendarDays(new Date(v.next_due_date), new Date())
+                  const days = parisCalendarDaysDiff(new Date(v.next_due_date))
                   const overdue = days < 0
                   const soon = days >= 0 && days <= 30
                   return (
@@ -94,7 +95,7 @@ export default function RemindersPage() {
                           {v.animal && <span className="text-gray-400 font-normal"> · {SPECIES_EMOJI[v.animal.species] ?? '🐾'} {v.animal.name}</span>}
                         </p>
                         <p className="text-xs text-gray-500">
-                          Rappel prévu le {format(new Date(v.next_due_date), 'd MMM yyyy', { locale: fr })}
+                          Rappel prévu le {formatInTimeZone(new Date(v.next_due_date), PARIS_TZ, 'd MMM yyyy', { locale: fr })}
                         </p>
                       </div>
                       <span className={`text-xs px-2 py-1 rounded-full flex-shrink-0 ${

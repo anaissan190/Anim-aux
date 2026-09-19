@@ -65,9 +65,12 @@ export function useDoctors(filters: SearchFilters = {}, enabled: boolean = true)
       // logique que useAvailableSlots, étendue sur une plage de jours
       // plutôt qu'une seule journée.
       const from = new Date()
-      const to = new Date(from)
-      if (filters.availability === 'today') to.setHours(23, 59, 59, 999)
-      else to.setDate(to.getDate() + 7)
+      // Fin de journée à Paris (voir src/lib/parisTime.ts), pas celle de
+      // l'appareil du visiteur — sinon le filtre "disponible aujourd'hui"
+      // inclut/exclut à tort des praticiens près de la frontière du jour.
+      const to = filters.availability === 'today'
+        ? parisTimeToUtc(parisDateKey(from), '23:59:59.999')
+        : new Date(from.getTime() + 7 * 24 * 60 * 60 * 1000)
       const results = await Promise.all(
         filtered.map(async (d: any) => ({ d, ok: await hasAvailabilityInRange(d.id, from, to) }))
       )

@@ -1,8 +1,9 @@
 // src/pages/DoctorDashboard.tsx
 import { useState, useEffect, useRef } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
-import { format, startOfWeek, addDays, isSameDay } from 'date-fns'
 import { fr } from 'date-fns/locale'
+import { formatInTimeZone } from 'date-fns-tz'
+import { parisDateKey, parisDayOfWeek, parisTimeToUtc, parisStartOfWeekKey, addDaysToDateKey, parisMinutesOfDay, PARIS_TZ } from '@/lib/parisTime'
 import Navbar from '@/components/ui/Navbar'
 import PushNotificationBanner from '@/components/ui/PushNotificationBanner'
 import DoctorMobileTabBar from '@/components/mobile/DoctorMobileTabBar'
@@ -119,10 +120,14 @@ export default function DoctorDashboard() {
   const { data: clinicAvailabilities = [] } = useClinicAvailabilities(clinic?.id)
   const { data: clinicBlockedAll = [] }     = useClinicBlockedSlotsAll(clinic?.id)
   const [calendarWeekOffset, setCalendarWeekOffset] = useState(0)
-  const calendarWeekDays = Array.from({ length: 7 }, (_, i) =>
-    addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), calendarWeekOffset * 7 + i)
-  )
-  const [selectedCalendarDay, setSelectedCalendarDay] = useState<Date>(new Date())
+  // Ancré sur le lundi de la semaine à Paris (voir src/lib/parisTime.ts),
+  // pas sur le fuseau local de l'appareil — même bug/même précaution que
+  // agendaWeekOffset plus bas.
+  const calendarWeekDays = (() => {
+    const mondayKey = addDaysToDateKey(parisStartOfWeekKey(parisDateKey()), calendarWeekOffset * 7)
+    return Array.from({ length: 7 }, (_, i) => parisTimeToUtc(addDaysToDateKey(mondayKey, i), '00:00:00'))
+  })()
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState<Date>(() => parisTimeToUtc(parisDateKey(), '00:00:00'))
   const [selectedApptDetail, setSelectedApptDetail] = useState<any | null>(null)
   const { data: selectedApptDocuments = [] } = useAppointmentDocuments(selectedApptDetail?.id)
   const createClinic      = useCreateClinic()
@@ -164,8 +169,13 @@ export default function DoctorDashboard() {
   const [confirmRegenerateFeed, setConfirmRegenerateFeed] = useState(false)
   const [regenerateFeedError, setRegenerateFeedError] = useState('')
   const [feedCopied, setFeedCopied] = useState(false)
+  // VITE_SUPABASE_URL plutôt que le domaine du projet codé en dur : sinon
+  // en cas de migration/recréation du projet Supabase, cette URL continue
+  // silencieusement de pointer vers l'ancien projet (mort) alors que tout
+  // le reste de l'appli suit la variable d'environnement — le praticien ne
+  // verrait alors plus jamais son agenda se synchroniser, sans erreur visible.
   const calendarFeedUrl = calendarFeedToken
-    ? `https://agjuakrtqfddkfoocbof.supabase.co/functions/v1/doctor-calendar-feed?token=${calendarFeedToken}`
+    ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/doctor-calendar-feed?token=${calendarFeedToken}`
     : ''
 
   function handleCopyFeedUrl() {
@@ -349,7 +359,13 @@ export default function DoctorDashboard() {
     if (ALL_TAB_IDS.includes(t as Tab)) setTab(t as Tab)
   }, [searchParams])
   const [apptTab, setApptTab] = useState<'today' | 'week' | 'all'>('today')
-  const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }))
+  // Décalage en semaines par rapport à la semaine courante (ancrée sur
+  // Paris) plutôt qu'un objet Date muté via addDays — même précaution que
+  // calendarWeekOffset plus bas : un Date "semaine" recalculé en avançant
+  // de 7 jours via date-fns relit le fuseau LOCAL de l'appareil à chaque
+  // navigation ‹ ›, ce qui peut dériver de la vraie semaine parisienne pour
+  // un praticien en voyage.
+  const [agendaWeekOffset, setAgendaWeekOffset] = useState(0)
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
   const [dispoTab, setDispoTab] = useState<'personal' | 'shared'>('personal')
   const [clinicForm, setClinicForm] = useState({ name: '', city: '' })
@@ -518,22 +534,29 @@ export default function DoctorDashboard() {
     return [...byId.values()]
   })()
 
-  const today     = new Date()
-  const todayAppts = appointments.filter(a => isSameDay(new Date(a.start_at), today))
-  const weekDays   = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
+  // "Aujourd'hui"/"cette semaine" ancrés sur le jour calendaire à Paris
+  // (voir src/lib/parisTime.ts), pas sur le fuseau local de l'appareil —
+  // sinon un praticien en voyage voit ses RDV du jour sur le mauvais
+  // "aujourd'hui", mal répartis dans le mini calendrier de la semaine.
+  const todayKey    = parisDateKey()
+  const now         = new Date()
+  const todayAppts  = appointments.filter(a => parisDateKey(new Date(a.start_at)) === todayKey)
+  const weekStartKey = addDaysToDateKey(parisStartOfWeekKey(todayKey), agendaWeekOffset * 7)
+  const weekStart   = parisTimeToUtc(weekStartKey, '00:00:00')
+  const weekDays    = Array.from({ length: 7 }, (_, i) => parisTimeToUtc(addDaysToDateKey(weekStartKey, i), '00:00:00'))
   // Basé sur la semaine actuellement affichée dans le mini calendrier
   // (navigable via ‹ ›), pas sur la semaine réelle en cours : sinon l'onglet
   // "Semaine" et le mini calendrier pouvaient se désynchroniser.
-  const weekEnd    = addDays(weekStart, 7)
-  const weekAppts  = appointments.filter(a => {
+  const weekEnd     = parisTimeToUtc(addDaysToDateKey(weekStartKey, 7), '00:00:00')
+  const weekAppts   = appointments.filter(a => {
     const d = new Date(a.start_at)
     return d >= weekStart && d < weekEnd
   })
   const pending    = appointments.filter(a => a.status === 'pending').length
-  const nextAppt   = todayAppts.find(a => new Date(a.start_at) >= today)
+  const nextAppt   = todayAppts.find(a => new Date(a.start_at) >= now)
 
   const displayAppts =
-    selectedDay ? appointments.filter(a => isSameDay(new Date(a.start_at), selectedDay)) :
+    selectedDay ? appointments.filter(a => parisDateKey(new Date(a.start_at)) === parisDateKey(selectedDay)) :
     apptTab === 'today' ? todayAppts :
     apptTab === 'week'  ? weekAppts  :
     appointments
@@ -546,7 +569,7 @@ export default function DoctorDashboard() {
   // dans src/lib/doctorStats.ts (testée indépendamment du composant).
   const {
     noShowRate, cancellationRate, totalRevenue, revenueLast30Days, fillRate, hasUnclosedPastAppts,
-  } = computeDoctorStats(appointments, availabilities, doctor?.consultation_price ?? 0, today)
+  } = computeDoctorStats(appointments, availabilities, doctor?.consultation_price ?? 0, now)
 
   return (
     <div className={`relative min-h-screen ${tab === 'home' ? 'bg-sage-50' : 'bg-[#FFFAF0]'}`}>
@@ -632,7 +655,7 @@ export default function DoctorDashboard() {
               <div className="bg-sage-500 text-white rounded-2xl p-5 mb-6 flex items-center justify-between">
                 <div>
                   <p className="text-xs font-medium opacity-80 mb-1">Prochain rendez-vous</p>
-                  <p className="text-lg font-bold">{format(new Date(nextAppt.start_at), 'HH:mm', { locale: fr })}</p>
+                  <p className="text-lg font-bold">{formatInTimeZone(new Date(nextAppt.start_at), PARIS_TZ, 'HH:mm', { locale: fr })}</p>
                   <p className="text-sm opacity-90 mt-0.5">{nextAppt.reason ?? 'Consultation'}</p>
                 </div>
                 <div className="text-4xl">🗓️</div>
@@ -771,7 +794,7 @@ export default function DoctorDashboard() {
                         <p className="text-[10px] text-white/85 truncate">{a.ownerName}</p>
                         {a.ownerAppointmentCount > 0 && (
                           <p className="text-[9px] text-white/65 truncate mt-0.5">
-                            {a.ownerAppointmentCount} RDV · {format(new Date(a.ownerLastAppointmentAt), 'd MMM', { locale: fr })}
+                            {a.ownerAppointmentCount} RDV · {formatInTimeZone(new Date(a.ownerLastAppointmentAt), PARIS_TZ, 'd MMM', { locale: fr })}
                           </p>
                         )}
                       </div>
@@ -994,27 +1017,28 @@ export default function DoctorDashboard() {
             <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-5">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm font-semibold text-gray-700">
-                  Semaine du {format(weekStart, 'd MMM', { locale: fr })}
+                  Semaine du {formatInTimeZone(weekStart, PARIS_TZ, 'd MMM', { locale: fr })}
                 </span>
                 <div className="flex gap-1">
-                  <button onClick={() => setWeekStart(d => addDays(d, -7))}
+                  <button onClick={() => setAgendaWeekOffset(o => o - 1)}
                     className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 text-lg leading-none">‹</button>
-                  <button onClick={() => setWeekStart(d => addDays(d, 7))}
+                  <button onClick={() => setAgendaWeekOffset(o => o + 1)}
                     className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 text-lg leading-none">›</button>
                 </div>
               </div>
               <div className="grid grid-cols-7 gap-1">
                 {weekDays.map(day => {
-                  const dayAppts = appointments.filter(a => isSameDay(new Date(a.start_at), day))
-                  const isToday    = isSameDay(day, today)
-                  const isSelected = !!selectedDay && isSameDay(day, selectedDay)
+                  const dayKey = parisDateKey(day)
+                  const dayAppts = appointments.filter(a => parisDateKey(new Date(a.start_at)) === dayKey)
+                  const isToday    = dayKey === todayKey
+                  const isSelected = !!selectedDay && dayKey === parisDateKey(selectedDay)
                   return (
                     <button key={day.toISOString()} type="button"
-                      onClick={() => setSelectedDay(d => d && isSameDay(d, day) ? null : day)}
+                      onClick={() => setSelectedDay(d => d && parisDateKey(d) === dayKey ? null : day)}
                       className={`p-2 rounded-xl text-center text-xs transition-colors cursor-pointer
                         ${isToday ? 'bg-sage-500 text-white' : isSelected ? 'bg-sage-100 text-sage-700 ring-2 ring-sage-400' : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}>
-                      <p className="font-medium mb-1">{format(day, 'EEE', { locale: fr })}</p>
-                      <p>{format(day, 'd')}</p>
+                      <p className="font-medium mb-1">{formatInTimeZone(day, PARIS_TZ, 'EEE', { locale: fr })}</p>
+                      <p>{formatInTimeZone(day, PARIS_TZ, 'd')}</p>
                       {dayAppts.length > 0 && (
                         <div className={`w-1.5 h-1.5 rounded-full mx-auto mt-1.5
                           ${isToday ? 'bg-white' : 'bg-sage-400'}`} />
@@ -1025,7 +1049,7 @@ export default function DoctorDashboard() {
               </div>
               {selectedDay && (
                 <p className="text-xs text-sage-600 mt-2">
-                  Rendez-vous du {format(selectedDay, "EEEE d MMMM", { locale: fr })}
+                  Rendez-vous du {formatInTimeZone(selectedDay, PARIS_TZ, "EEEE d MMMM", { locale: fr })}
                   <button onClick={() => setSelectedDay(null)} className="ml-2 text-gray-400 hover:underline">Réinitialiser</button>
                 </p>
               )}
@@ -1213,16 +1237,13 @@ export default function DoctorDashboard() {
                           }
                           setBlockedError('')
                           try {
-                            // new Date("YYYY-MM-DD") est interprété comme minuit UTC,
-                            // pas minuit local — pour un fuseau à l'ouest de
-                            // Greenwich, .setHours(0,0,0,0) (heure locale) atterrit
-                            // alors sur la veille. On construit la date à partir des
-                            // composants explicites (heure locale dès le départ),
-                            // même précaution que src/lib/slots.ts.
-                            const [sy, sm, sd] = blockedForm.start_date.split('-').map(Number)
-                            const [ey, em, ed] = blockedForm.end_date.split('-').map(Number)
-                            const start = new Date(sy, sm - 1, sd, 0, 0, 0, 0)
-                            const end = new Date(ey, em - 1, ed, 23, 59, 59, 999)
+                            // Ancré sur Europe/Paris (voir src/lib/parisTime.ts), pas
+                            // sur le fuseau local de l'appareil du praticien — sinon
+                            // un congé posé en voyage se décale par rapport aux
+                            // vraies dates parisiennes voulues (même bug que la
+                            // réservation patient, corrigé le 19/09/2026).
+                            const start = parisTimeToUtc(blockedForm.start_date, '00:00:00')
+                            const end = parisTimeToUtc(blockedForm.end_date, '23:59:59.999')
                             await createBlockedSlot.mutateAsync({
                               doctor_id: doctor.id,
                               start_at: start.toISOString(),
@@ -1250,7 +1271,7 @@ export default function DoctorDashboard() {
                         <div key={b.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between">
                           <div>
                             <p className="text-sm font-medium text-gray-700">
-                              {format(new Date(b.start_at), 'd MMM yyyy', { locale: fr })} → {format(new Date(b.end_at), 'd MMM yyyy', { locale: fr })}
+                              {formatInTimeZone(new Date(b.start_at), PARIS_TZ, 'd MMM yyyy', { locale: fr })} → {formatInTimeZone(new Date(b.end_at), PARIS_TZ, 'd MMM yyyy', { locale: fr })}
                             </p>
                             {b.reason && <p className="text-xs text-gray-400 mt-0.5">{b.reason}</p>}
                           </div>
@@ -1374,12 +1395,12 @@ export default function DoctorDashboard() {
                           <button onClick={() => setCalendarWeekOffset(w => w - 1)}
                             className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">‹</button>
                           <span className="text-xs text-gray-500 min-w-[130px] text-center">
-                            {format(calendarWeekDays[0], 'd MMM', { locale: fr })} – {format(calendarWeekDays[6], 'd MMM yyyy', { locale: fr })}
+                            {formatInTimeZone(calendarWeekDays[0], PARIS_TZ, 'd MMM', { locale: fr })} – {formatInTimeZone(calendarWeekDays[6], PARIS_TZ, 'd MMM yyyy', { locale: fr })}
                           </span>
                           <button onClick={() => setCalendarWeekOffset(w => w + 1)}
                             className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500">›</button>
                           {calendarWeekOffset !== 0 && (
-                            <button onClick={() => { setCalendarWeekOffset(0); setSelectedCalendarDay(new Date()) }}
+                            <button onClick={() => { setCalendarWeekOffset(0); setSelectedCalendarDay(parisTimeToUtc(parisDateKey(), '00:00:00')) }}
                               className="text-xs text-sage-600 hover:underline ml-1">Aujourd'hui</button>
                           )}
                         </div>
@@ -1391,18 +1412,19 @@ export default function DoctorDashboard() {
                       )}
                       <div className="grid grid-cols-7 gap-1.5">
                         {calendarWeekDays.map(d => {
-                          const dayStart = new Date(d); dayStart.setHours(0, 0, 0, 0)
-                          const dayEnd = new Date(d); dayEnd.setHours(23, 59, 59, 999)
+                          const dKey = parisDateKey(d)
+                          const dayStart = parisTimeToUtc(dKey, '00:00:00')
+                          const dayEnd = parisTimeToUtc(dKey, '23:59:59.999')
                           const anyoneOnLeave = clinicBlockedAll.some((b: any) =>
                             new Date(b.start_at) <= dayEnd && new Date(b.end_at) >= dayStart
                           )
-                          const isSelected = isSameDay(d, selectedCalendarDay)
+                          const isSelected = dKey === parisDateKey(selectedCalendarDay)
                           return (
                             <button key={d.toISOString()} onClick={() => setSelectedCalendarDay(d)}
                               className={`rounded-xl py-2 text-xs font-medium transition-colors relative
-                                ${isSelected ? 'bg-sage-500 text-white' : isSameDay(d, new Date()) ? 'bg-sage-50 text-sage-600 hover:bg-sage-100' : 'text-gray-500 hover:bg-gray-50'}`}>
-                              <div>{format(d, 'EEE', { locale: fr })}</div>
-                              <div className={`font-normal ${isSelected ? 'text-sage-100' : 'text-gray-400'}`}>{format(d, 'd')}</div>
+                                ${isSelected ? 'bg-sage-500 text-white' : dKey === parisDateKey() ? 'bg-sage-50 text-sage-600 hover:bg-sage-100' : 'text-gray-500 hover:bg-gray-50'}`}>
+                              <div>{formatInTimeZone(d, PARIS_TZ, 'EEE', { locale: fr })}</div>
+                              <div className={`font-normal ${isSelected ? 'text-sage-100' : 'text-gray-400'}`}>{formatInTimeZone(d, PARIS_TZ, 'd')}</div>
                               {anyoneOnLeave && <span className="absolute top-1 right-1.5 text-[10px]">🌴</span>}
                             </button>
                           )
@@ -1415,18 +1437,19 @@ export default function DoctorDashboard() {
                         à leur heure. */}
                     <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 overflow-x-auto">
                       <h3 className="font-semibold text-gray-900 mb-4">
-                        {format(selectedCalendarDay, 'EEEE d MMMM', { locale: fr })}
+                        {formatInTimeZone(selectedCalendarDay, PARIS_TZ, 'EEEE d MMMM', { locale: fr })}
                       </h3>
                       {(() => {
-                        const dayOfWeek = selectedCalendarDay.getDay()
-                        const dayStart = new Date(selectedCalendarDay); dayStart.setHours(0, 0, 0, 0)
-                        const dayEnd = new Date(selectedCalendarDay); dayEnd.setHours(23, 59, 59, 999)
+                        const selectedDayKey = parisDateKey(selectedCalendarDay)
+                        const dayOfWeek = parisDayOfWeek(selectedDayKey)
+                        const dayStart = parisTimeToUtc(selectedDayKey, '00:00:00')
+                        const dayEnd = parisTimeToUtc(selectedDayKey, '23:59:59.999')
                         const toMinutes = (t: string) => { const [h, mi] = t.split(':').map(Number); return h * 60 + mi }
-                        const minutesOfDay = (dt: Date) => dt.getHours() * 60 + dt.getMinutes()
+                        const minutesOfDay = parisMinutesOfDay
 
                         const daySlotsAll = clinicAvailabilities.filter((av: any) => av.day_of_week === dayOfWeek)
                         const dayApptsAll = clinicAppts.filter((a: any) =>
-                          isSameDay(new Date(a.start_at), selectedCalendarDay) && a.status !== 'cancelled'
+                          parisDateKey(new Date(a.start_at)) === selectedDayKey && a.status !== 'cancelled'
                         )
                         const bounds = [
                           ...daySlotsAll.map((s: any) => toMinutes(s.start_time)),
@@ -1773,7 +1796,7 @@ export default function DoctorDashboard() {
                   {clinicMembers.map((m: any) => {
                     const memberAppts = clinicAppts.filter((a: any) => a.doctor_id === m.doctor_id)
                     const memberAvail = clinicAvailabilities.filter((a: any) => a.doctor_id === m.doctor_id)
-                    const s = computeDoctorStats(memberAppts, memberAvail, m.doctors?.consultation_price ?? 0, today)
+                    const s = computeDoctorStats(memberAppts, memberAvail, m.doctors?.consultation_price ?? 0, now)
                     const memberName = `${m.doctors?.profiles?.first_name ?? ''} ${m.doctors?.profiles?.last_name ?? ''}`.trim() || 'Praticien'
                     return (
                       <div key={m.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
@@ -2318,7 +2341,7 @@ export default function DoctorDashboard() {
                             ${mine ? 'bg-sage-500 text-white rounded-br-sm' : 'bg-gray-100 text-gray-800 rounded-bl-sm'}`}>
                             <p>{m.content}</p>
                             <p className={`text-xs mt-1 ${mine ? 'text-sage-200' : 'text-gray-400'}`}>
-                              {format(new Date(m.created_at), 'HH:mm', { locale: fr })}
+                              {formatInTimeZone(new Date(m.created_at), PARIS_TZ, 'HH:mm', { locale: fr })}
                             </p>
                           </div>
                         </div>
@@ -2386,7 +2409,7 @@ export default function DoctorDashboard() {
                             : 'Patient anonyme'}
                         </span>
                       </div>
-                      <span className="text-xs text-gray-400">{format(new Date(r.created_at), 'd MMM yyyy', { locale: fr })}</span>
+                      <span className="text-xs text-gray-400">{formatInTimeZone(new Date(r.created_at), PARIS_TZ, 'd MMM yyyy', { locale: fr })}</span>
                     </div>
                     {r.comment && <p className="text-sm text-gray-600">{r.comment}</p>}
 
@@ -2499,7 +2522,7 @@ export default function DoctorDashboard() {
               <div className="flex justify-between">
                 <span className="text-gray-500">Date & heure</span>
                 <span className="font-medium text-gray-900">
-                  {format(new Date(selectedApptDetail.start_at), "EEEE d MMMM 'à' HH:mm", { locale: fr })}
+                  {formatInTimeZone(new Date(selectedApptDetail.start_at), PARIS_TZ, "EEEE d MMMM 'à' HH:mm", { locale: fr })}
                 </span>
               </div>
               <div className="flex justify-between">

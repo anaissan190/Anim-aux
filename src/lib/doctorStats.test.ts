@@ -1,8 +1,12 @@
 import { describe, it, expect } from 'vitest'
 import { computeDoctorStats, type DoctorStatsAppointment, type DoctorAvailabilityRule } from './doctorStats'
+import { parisDateKey, parisDayOfWeek } from './parisTime'
 
 // Horloge de référence fixe pour des tests déterministes.
 const NOW = new Date('2026-07-23T12:00:00Z')
+// Jour de semaine à Paris de NOW — jamais NOW.getDay() (lirait le fuseau
+// LOCAL du runner, qui tourne en Asia/Kuala_Lumpur dans cet environnement).
+const NOW_DOW = parisDayOfWeek(parisDateKey(NOW))
 
 function daysAgo(n: number): string {
   const d = new Date(NOW)
@@ -118,7 +122,7 @@ describe('computeDoctorStats', () => {
     // 09:00-11:00, créneaux de 30 min → 4 créneaux théoriques par jeudi
     // couvert sur les 30 derniers jours.
     const availabilities: DoctorAvailabilityRule[] = [
-      { day_of_week: NOW.getDay(), start_time: '09:00', end_time: '11:00', slot_duration_minutes: 30 },
+      { day_of_week: NOW_DOW, start_time: '09:00', end_time: '11:00', slot_duration_minutes: 30 },
     ]
     // Un seul RDV réservé (non annulé) dans la fenêtre des 30 derniers jours.
     const appts: DoctorStatsAppointment[] = [
@@ -132,7 +136,7 @@ describe('computeDoctorStats', () => {
 
   it('exclut les RDV annulés du nombre de créneaux réservés (fillRate)', () => {
     const availabilities: DoctorAvailabilityRule[] = [
-      { day_of_week: NOW.getDay(), start_time: '09:00', end_time: '10:00', slot_duration_minutes: 30 },
+      { day_of_week: NOW_DOW, start_time: '09:00', end_time: '10:00', slot_duration_minutes: 30 },
     ]
     const confirmedOnly = computeDoctorStats(
       [{ start_at: daysAgo(2), status: 'confirmed' }], availabilities, 100, NOW
@@ -148,7 +152,7 @@ describe('computeDoctorStats', () => {
     // Une seule disponibilité de 30 minutes sur toute la période, mais 30
     // RDV réservés dans la fenêtre → largement plus que le théorique.
     const availabilities: DoctorAvailabilityRule[] = [
-      { day_of_week: NOW.getDay(), start_time: '09:00', end_time: '09:30', slot_duration_minutes: 30 },
+      { day_of_week: NOW_DOW, start_time: '09:00', end_time: '09:30', slot_duration_minutes: 30 },
     ]
     const appts: DoctorStatsAppointment[] = Array.from({ length: 30 }, (_, i) => ({
       start_at: daysAgo(i + 1), status: 'confirmed' as const,
@@ -159,7 +163,7 @@ describe('computeDoctorStats', () => {
 
   it('utilise 30 minutes par défaut si slot_duration_minutes est absent', () => {
     const availabilities: DoctorAvailabilityRule[] = [
-      { day_of_week: NOW.getDay(), start_time: '09:00', end_time: '10:00' },
+      { day_of_week: NOW_DOW, start_time: '09:00', end_time: '10:00' },
     ]
     const stats = computeDoctorStats([], availabilities, 100, NOW)
     // Ne doit pas planter ni renvoyer Infinity/NaN malgré l'absence du champ.

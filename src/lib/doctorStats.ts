@@ -2,6 +2,7 @@
 // Calculs de l'onglet "Statistiques" du tableau de bord praticien —
 // extraits de DoctorDashboard.tsx en fonction pure pour être testables
 // sans avoir à monter le composant ni mocker Supabase.
+import { parisDateKey, parisDayOfWeek } from './parisTime'
 
 export interface DoctorStatsAppointment {
   start_at: string
@@ -67,7 +68,10 @@ export function computeDoctorStats(
   for (let i = 0; i <= 30; i++) {
     const day = new Date(thirtyDaysAgo)
     day.setDate(day.getDate() + i)
-    const dayOfWeek = day.getDay()
+    // Ancré sur le jour calendaire à Paris (src/lib/parisTime.ts), pas sur
+    // le fuseau local de l'appareil — sinon un praticien en voyage voit un
+    // taux de remplissage calculé contre les mauvais jours de la semaine.
+    const dayOfWeek = parisDayOfWeek(parisDateKey(day))
     availabilities.filter(a => a.day_of_week === dayOfWeek).forEach(a => {
       const [sh, sm] = a.start_time.split(':').map(Number)
       const [eh, em] = a.end_time.split(':').map(Number)

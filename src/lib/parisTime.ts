@@ -43,3 +43,37 @@ export function parisTimeToUtc(dateKey: string, time: string): Date {
 export function parisTimeString(date: Date): string {
   return formatInTimeZone(date, PARIS_TZ, 'HH:mm')
 }
+
+// Minutes depuis minuit (heure murale à Paris) pour l'instant donné —
+// pratique pour comparer/positionner un créneau contre des bornes
+// start_time/end_time ("HH:mm") venant de la base.
+export function parisMinutesOfDay(date: Date): number {
+  const [h, m] = parisTimeString(date).split(':').map(Number)
+  return h * 60 + m
+}
+
+// Décale une clé de date calendaire de N jours (négatif accepté). Arithmétique
+// purement calendaire, ancrée sur UTC (même principe que parisDayOfWeek) —
+// n'utilise jamais date-fns (addDays, startOfWeek...) sur un objet Date
+// "local", qui relirait le fuseau de l'appareil et redonnerait le même bug.
+export function addDaysToDateKey(dateKey: string, days: number): string {
+  const d = new Date(`${dateKey}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + days)
+  return d.toISOString().slice(0, 10)
+}
+
+// Lundi de la semaine (weekStartsOn: 1) contenant la clé de date donnée.
+export function parisStartOfWeekKey(dateKey: string): string {
+  const dow = parisDayOfWeek(dateKey) // 0=dimanche...6=samedi
+  const daysSinceMonday = dow === 0 ? 6 : dow - 1
+  return addDaysToDateKey(dateKey, -daysSinceMonday)
+}
+
+// Nombre de jours calendaires (à Paris) entre `from` et `target` — négatif
+// si `target` est dans le passé. Équivalent Paris-anchoré de
+// date-fns' differenceInCalendarDays, qui lit le fuseau local de l'appareil.
+export function parisCalendarDaysDiff(target: Date, from: Date = new Date()): number {
+  const targetUtc = new Date(`${parisDateKey(target)}T00:00:00Z`).getTime()
+  const fromUtc = new Date(`${parisDateKey(from)}T00:00:00Z`).getTime()
+  return Math.round((targetUtc - fromUtc) / 86_400_000)
+}

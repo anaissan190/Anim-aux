@@ -76,26 +76,40 @@ async function sendOvhSms(message: string, receiver: string) {
   const url = `https://eu.api.ovh.com/1.0/sms/${serviceName}/jobs`
   const body = JSON.stringify({ message, receivers: [receiver], sender: senderName })
 
-  const timeRes = await fetch('https://eu.api.ovh.com/1.0/auth/time')
-  const timestamp = await timeRes.text()
+  // Délai de 10s + try/catch (même garde-fou que send-reminders/index.ts,
+  // send-appointment-cancellation/index.ts et send-appointment-reschedule/
+  // index.ts, appliqué le 08/09/2026 partout SAUF ici — repéré lors de
+  // l'audit du 20/09/2026 après le correctif du champ `sender`) : sans ça,
+  // un OVH lent ou en panne fait planter toute l'invocation, plus grave
+  // ici que dans les 3 autres fonctions puisque celle-ci est appelée en
+  // synchrone juste après la réservation (useCreateAppointment) — un appel
+  // qui traîne bloquerait la confirmation visible par le patient.
+  try {
+    const timeRes = await fetch('https://eu.api.ovh.com/1.0/auth/time', { signal: AbortSignal.timeout(10_000) })
+    const timestamp = await timeRes.text()
 
-  const signature = '$1$' + await sha1Hex(`${appSecret}+${consumerKey}+POST+${url}+${body}+${timestamp}`)
+    const signature = '$1$' + await sha1Hex(`${appSecret}+${consumerKey}+POST+${url}+${body}+${timestamp}`)
 
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Ovh-Application': appKey,
-      'X-Ovh-Consumer': consumerKey,
-      'X-Ovh-Timestamp': timestamp,
-      'X-Ovh-Signature': signature,
-    },
-    body,
-  })
-  if (!res.ok) {
-    console.error('OVH SMS error', await res.text())
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Ovh-Application': appKey,
+        'X-Ovh-Consumer': consumerKey,
+        'X-Ovh-Timestamp': timestamp,
+        'X-Ovh-Signature': signature,
+      },
+      body,
+      signal: AbortSignal.timeout(10_000),
+    })
+    if (!res.ok) {
+      console.error('OVH SMS error', await res.text())
+    }
+    return res.ok
+  } catch (e) {
+    console.error('OVH SMS request failed/timed out', e)
+    return false
   }
-  return res.ok
 }
 
 Deno.serve(async (req) => {
@@ -205,6 +219,12 @@ Deno.serve(async (req) => {
           subject: 'Votre rendez-vous est confirmé',
           html,
         }),
+        // Même garde-fou que sendOvhSms ci-dessus (voir son commentaire) :
+        // le try/catch englobant tout le handler rattrape bien une
+        // exception, mais sans signal explicite un fetch qui ne répond
+        // jamais bloque la requête entière au lieu d'échouer proprement
+        // après 10s.
+        signal: AbortSignal.timeout(10_000),
       })
       emailSent = resendRes.ok
       if (!resendRes.ok) {
