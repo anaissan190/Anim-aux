@@ -30,7 +30,7 @@ export default function MobileTabBar() {
           className="absolute left-1/2 -translate-x-1/2 -top-3 w-[56px] h-[56px] rounded-full bg-sage-500 text-white
                      flex items-center justify-center text-2xl shadow-lg animate-fab-pulse">
           +
-          <span className="absolute -bottom-4 text-[9.5px] font-semibold text-sage-700 whitespace-nowrap">Réserver</span>
+          <span className="absolute -bottom-6 text-[9.5px] font-semibold text-sage-700 whitespace-nowrap">Réserver</span>
         </Link>
       </div>
     </div>
