@@ -71,7 +71,18 @@ async function sendOvhSms(message: string, receiver: string) {
   // expéditeur par défaut jamais configuré si `sender` n'est pas fourni
   // explicitement dans le corps de chaque requête.
   const senderName = Deno.env.get('OVH_SMS_SENDER')
-  if (!appKey || !appSecret || !consumerKey || !serviceName || !senderName) return false
+  // Repéré le 21/09/2026 : ce garde-fou renvoyait false sans la moindre
+  // trace (aucun console.error), indiscernable d'un SMS parti avec succès
+  // dans les logs — un secret manquant/mal nommé passait totalement
+  // inaperçu. Le message liste explicitement lequel manque, plutôt qu'un
+  // simple booléen à recouper manuellement avec les 5 variables.
+  if (!appKey || !appSecret || !consumerKey || !serviceName || !senderName) {
+    console.error('OVH SMS: secret(s) manquant(s)', {
+      OVH_APP_KEY: !!appKey, OVH_APP_SECRET: !!appSecret, OVH_CONSUMER_KEY: !!consumerKey,
+      OVH_SMS_SERVICE_NAME: !!serviceName, OVH_SMS_SENDER: !!senderName,
+    })
+    return false
+  }
 
   const url = `https://eu.api.ovh.com/1.0/sms/${serviceName}/jobs`
   const body = JSON.stringify({ message, receivers: [receiver], sender: senderName })
