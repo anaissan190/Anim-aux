@@ -21,7 +21,7 @@ export default function MobileHeader({ className = '', children }: Props) {
   const unreadMessages = conversationPartners.reduce((sum, p) => sum + (p.unread_count || 0), 0)
 
   return (
-    <div className={`relative px-4 pt-3 pb-4 ${className}`}>
+    <div className={`relative px-4 pb-4 ${className}`} style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
       <div className="flex items-center justify-end gap-2 mb-2">
         <div className="w-[38px] h-[38px] rounded-full bg-white/90 backdrop-blur-sm shadow-sm flex items-center justify-center [&_button]:p-0">
           <NotificationBell large />

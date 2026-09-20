@@ -47,7 +47,7 @@ export default function DoctorCard({ doctor, distanceKm, nextSlotAt }: Props) {
             <p className="text-[13px] text-gray-500 mt-0.5">
               {doctor.specialty}
               {doctor.city && ` · ${doctor.city}${distanceKm !== undefined ? ` · ${distanceKm.toFixed(1)} km` : ''}`}
-              {' · '}{doctor.average_rating.toFixed(1)} ({doctor.review_count} avis)
+              {' · '}{(doctor.average_rating ?? 0).toFixed(1)} ({doctor.review_count} avis)
             </p>
           </div>
           <div className="flex flex-col items-end gap-1 flex-shrink-0">

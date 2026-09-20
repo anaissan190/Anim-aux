@@ -38,7 +38,7 @@ export default function ClinicCard({ clinic, distanceKm }: Props) {
             </p>
           </div>
           {clinic.average_rating != null && (
-            <span className="text-xs text-gray-500 flex-shrink-0">⭐ {clinic.average_rating.toFixed(1)}</span>
+            <span className="text-xs text-gray-500 flex-shrink-0">⭐ {(clinic.average_rating ?? 0).toFixed(1)}</span>
           )}
         </div>
 

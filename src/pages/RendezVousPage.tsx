@@ -57,7 +57,7 @@ export default function RendezVousPage() {
         <button key={t} onClick={() => setTab(t)}
           className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors
             ${tab === t ? 'bg-white text-sage-600 shadow-sm' : 'text-gray-500'}`}>
-          {t === 'upcoming' ? `À venir (${upcoming.length})` : `Passés (${past.length})`}
+          {t === 'upcoming' ? `À venir${isLoading ? '' : ` (${upcoming.length})`}` : `Passés${isLoading ? '' : ` (${past.length})`}`}
         </button>
       ))}
     </div>

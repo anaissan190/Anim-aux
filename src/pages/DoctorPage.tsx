@@ -139,7 +139,7 @@ export default function DoctorPage() {
                 <div className="flex items-center gap-2 mt-2">
                   <StarRating rating={doctor.average_rating} />
                   <span className="text-sm text-gray-500">
-                    {doctor.average_rating.toFixed(1)} ({doctor.review_count} avis)
+                    {(doctor.average_rating ?? 0).toFixed(1)} ({doctor.review_count} avis)
                   </span>
                   {doctor.is_verified && <span className="badge-green">✓ Vérifié</span>}
                   {doctor.ethics_charter_accepted_at && (

@@ -25,6 +25,7 @@ const GENDER_SYMBOL: Record<string, string> = { 'Mâle': '♂', 'Femelle': '♀'
 // rangée porte ses propres requêtes (peu de risque de perf avec 1-3 animaux
 // par foyer), pour ne pas alourdir useAnimals() côté liste.
 function PetRow({ animal, index }: { animal: any; index: number }) {
+  const [imgError, setImgError] = useState(false)
   const { data: weights = [] } = useWeightTracking(animal.id)
   const { data: vaccines = [] } = useVaccines(animal.id)
   const latestWeight = weights[weights.length - 1]
@@ -43,8 +44,8 @@ function PetRow({ animal, index }: { animal: any; index: number }) {
       className="block card overflow-hidden animate-rise-in"
       style={{ animationDelay: `${index * 0.08}s` }}>
       <div className="h-24 bg-sage-100 flex items-center justify-center">
-        {animal.avatar_url
-          ? <img src={animal.avatar_url} alt={animal.name} className="w-full h-full object-cover" />
+        {animal.avatar_url && !imgError
+          ? <img src={animal.avatar_url} alt={animal.name} className="w-full h-full object-cover" onError={() => setImgError(true)} />
           : <span className="text-4xl">{SPECIES_EMOJI[animal.species] ?? '🐾'}</span>
         }
       </div>
@@ -88,6 +89,7 @@ function PetRow({ animal, index }: { animal: any; index: number }) {
 // importante (rappel de vaccin en retard/à venir, sinon le poids) — une
 // seule à la fois pour ne pas surcharger la photo.
 function AnimalDesktopCard({ animal, colorIndex }: { animal: any; colorIndex: number }) {
+  const [imgError, setImgError] = useState(false)
   const { data: weights = [] } = useWeightTracking(animal.id)
   const { data: vaccines = [] } = useVaccines(animal.id)
   const latestWeight = weights[weights.length - 1]
@@ -111,8 +113,8 @@ function AnimalDesktopCard({ animal, colorIndex }: { animal: any; colorIndex: nu
       className="relative block rounded-2xl overflow-hidden border border-sand-200 hover:shadow-md hover:-translate-y-0.5 transition-all group animate-rise-in"
       style={{ aspectRatio: '3 / 4', animationDelay: `${colorIndex * 60}ms` }}>
       <div className={`absolute inset-0 flex items-center justify-center ${photoBg}`}>
-        {animal.avatar_url
-          ? <img src={animal.avatar_url} alt={animal.name} className="w-full h-full object-cover" />
+        {animal.avatar_url && !imgError
+          ? <img src={animal.avatar_url} alt={animal.name} className="w-full h-full object-cover" onError={() => setImgError(true)} />
           : <span className="text-5xl">{SPECIES_EMOJI[animal.species] ?? '🐾'}</span>
         }
       </div>
@@ -137,7 +139,7 @@ function AnimalDesktopCard({ animal, colorIndex }: { animal: any; colorIndex: nu
 }
 
 export default function AnimalsPage() {
-  const { data: animals = [] } = useAnimals()
+  const { data: animals = [], isLoading: animalsLoading } = useAnimals()
   const createAnimal = useCreateAnimal()
 
   const [showAnimalForm, setShowAnimalForm] = useState(false)
@@ -306,7 +308,11 @@ export default function AnimalsPage() {
     </>
   )
 
-  const desktopAnimalsGrid_ = animals.length === 0 ? (
+  const desktopAnimalsGrid_ = animalsLoading ? (
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+      {[1, 2, 3].map(i => <div key={i} className="rounded-2xl bg-gray-100 animate-pulse" style={{ aspectRatio: '3 / 4' }} />)}
+    </div>
+  ) : animals.length === 0 ? (
     <div className="card p-14 text-center">
       <div className="w-16 h-16 rounded-full bg-sage-100 flex items-center justify-center mx-auto mb-4 text-3xl">🐾</div>
       <p className="font-serif font-semibold text-lg text-gray-900 mb-2">Aucun animal enregistré</p>
@@ -326,7 +332,11 @@ export default function AnimalsPage() {
   // Mobile : liste de rangées horizontales (avatar + nom/race + chevron),
   // reprenant exactement la structure de l'écran "Animaux" de l'aperçu
   // validé — pas une grille 2 colonnes de cartes centrées.
-  const mobileAnimalsGrid_ = animals.length === 0 ? (
+  const mobileAnimalsGrid_ = animalsLoading ? (
+    <div className="flex flex-col gap-3">
+      {[1, 2, 3].map(i => <div key={i} className="card h-24 animate-pulse" />)}
+    </div>
+  ) : animals.length === 0 ? (
     <div className="card p-8 text-center">
       <div className="text-4xl mb-3">🐾</div>
       <p className="text-gray-500 text-sm">Aucun animal enregistré. Ajoutez votre premier compagnon !</p>
