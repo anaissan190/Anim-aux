@@ -30,7 +30,7 @@ export default function MobileTabBar() {
           className="absolute left-1/2 -translate-x-1/2 -top-3 w-[56px] h-[56px] rounded-full bg-sage-500 text-white
                      flex items-center justify-center text-2xl shadow-lg animate-fab-pulse">
           +
-          <span className="absolute -bottom-6 text-[10.5px] font-semibold text-sage-700 whitespace-nowrap">Réserver</span>
+          <span className="absolute -bottom-6 text-[9.5px] font-semibold uppercase tracking-wide text-sage-700 whitespace-nowrap">Réserver</span>
         </Link>
       </div>
     </div>
@@ -45,7 +45,7 @@ function TabButton({ to, label, icon, active }: { to: string; label: string; ico
           ? <img src="/pwa-192.png" alt="" className={`w-6 h-6 rounded-md ${active ? '' : 'grayscale opacity-60'}`} />
           : icon}
       </span>
-      <span className="text-[10.5px] font-semibold">{label}</span>
+      <span className="text-[9.5px] font-semibold uppercase tracking-wide">{label}</span>
     </Link>
   )
 }
