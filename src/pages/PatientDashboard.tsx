@@ -262,7 +262,13 @@ export default function PatientDashboard() {
             </div>
           )}
         </div>
-
+      </div>
+      {/* Hors du conteneur animate-mobile-slide-in ci-dessus : son transform
+          (laissé actif en permanence par le fill-mode "both" de l'animation)
+          créerait un nouveau bloc de positionnement pour ce `fixed`, et
+          pousserait la barre hors du vrai viewport de l'appareil tant que
+          l'utilisateur n'a pas scrollé (constaté par Anaïs le 20/09/2026). */}
+      <div className="md:hidden">
         <MobileTabBar />
       </div>
       </div>

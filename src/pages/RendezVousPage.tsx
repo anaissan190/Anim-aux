@@ -120,7 +120,13 @@ export default function RendezVousPage() {
           </div>
         </div>
 
-        {/* Mobile : coquille "Wow / Aurora" */}
+        {/* Mobile : coquille "Wow / Aurora" — MobileTabBar reste HORS du
+            conteneur animé : animate-mobile-slide-in laisse un transform actif
+            en permanence (fill-mode both), ce qui créerait un nouveau bloc
+            de positionnement pour tout descendant `fixed` et pousserait la
+            barre du bas hors du vrai viewport de l'appareil (constaté par
+            Anaïs le 20/09/2026 : la barre restait mal placée tant qu'elle
+            n'avait pas scrollé). */}
         <div className="md:hidden pb-28 animate-mobile-slide-in">
           <MobileHeader className="bg-sage-100/60">
             <h1 className="font-playfair text-2xl font-bold text-gray-900">Mes rendez-vous</h1>
@@ -132,6 +138,8 @@ export default function RendezVousPage() {
             {tabs}
             {list}
           </div>
+        </div>
+        <div className="md:hidden">
           <MobileTabBar />
         </div>
       </div>
