@@ -591,7 +591,7 @@ export default function DoctorDashboard() {
               : 'bg-amber-50 border border-amber-100 text-amber-700'
           }`}>
             <span className="text-lg">{doctor.verification_status === 'rejected' ? '⚠️' : '⏳'}</span>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               {doctor.verification_status === 'rejected' ? (
                 <>
                   <p className="font-medium">Documents non validés</p>

@@ -240,13 +240,13 @@ export default function SearchPage() {
         </aside>
 
         {/* Résultats */}
-        <main className="flex-1">
+        <main className="flex-1 min-w-0">
           {(() => {
             const loading = isLoading || clinicsLoading
             const total = doctors.length + clinics.length
             return (
               <>
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
                   <p className="text-sm text-gray-500">
                     {!hasCriteria ? '' : loading ? 'Recherche...' : `${total} résultat${total > 1 ? 's' : ''} trouvé${total > 1 ? 's' : ''}`}
                   </p>
@@ -254,7 +254,7 @@ export default function SearchPage() {
                     <label className="flex items-center gap-2 text-sm text-gray-500">
                       Trier par
                       <select value={sort} onChange={e => setSort(e.target.value)}
-                        className="input text-sm py-1.5">
+                        className="input text-sm py-1.5 max-w-[150px] sm:max-w-none">
                         <option value="pertinence">Pertinence</option>
                         <option value="next_slot">Prochaine disponibilité</option>
                       </select>

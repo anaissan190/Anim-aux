@@ -566,7 +566,7 @@ export default function AnimalHealthPage() {
                   ) : (
                     <div key={v.id} className="card p-4 flex items-center gap-4">
                       <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-lg">💉</div>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm text-gray-900">{v.name}</p>
                         <p className="text-xs text-gray-500">Le {formatInTimeZone(new Date(v.date_administered), PARIS_TZ, 'd MMM yyyy', { locale: fr })}{v.administered_by ? ` · ${v.administered_by}` : ''}</p>
                       </div>
@@ -658,7 +658,7 @@ export default function AnimalHealthPage() {
                   ) : (
                     <div key={w.id} className="card p-4 flex items-center gap-4">
                       <div className="w-10 h-10 rounded-xl bg-moss-50 flex items-center justify-center text-lg">⚖️</div>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm text-gray-900">{w.weight_kg} kg</p>
                         <p className="text-xs text-gray-500">{formatInTimeZone(new Date(w.measured_at), PARIS_TZ, 'd MMM yyyy', { locale: fr })}{w.notes ? ` · ${w.notes}` : ''}</p>
                       </div>
@@ -731,7 +731,7 @@ export default function AnimalHealthPage() {
                   return (
                     <div key={r.id} className="card p-4 flex items-start gap-4">
                       <div className="w-10 h-10 rounded-xl bg-sage-100 flex items-center justify-center text-lg">{typeEmoji[r.type] ?? '📋'}</div>
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <p className="font-semibold text-sm text-gray-900">{r.title}</p>
                           <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{r.type}</span>
