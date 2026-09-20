@@ -72,8 +72,9 @@ export default function RegisterPage() {
     const selectedType = PRACTITIONER_TYPES.find(p => p.id === form.practitioner_type)
 
     let error: any
+    let data: any
     try {
-      ({ error } = await supabase.auth.signUp({
+      ({ data, error } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
         options: {
@@ -105,6 +106,20 @@ export default function RegisterPage() {
       // Un token Turnstile est à usage unique : sans ce reset, toute
       // nouvelle tentative échoue avec une erreur captcha, quelle que soit
       // la correction apportée au formulaire.
+      setCaptchaToken('')
+      setTurnstileKey(k => k + 1)
+      return
+    }
+    // Repéré le 21/09/2026 (mari d'Anaïs jamais reçu son email d'activation
+    // praticien) : par anti-énumération, Supabase ne renvoie PAS d'erreur
+    // quand l'email existe déjà — error est null, un faux user est renvoyé,
+    // et AUCUN email n'est envoyé. Le seul signal distinctif documenté est
+    // un tableau `identities` vide sur ce faux user (un vrai nouvel
+    // inscrit a toujours au moins une identité). Sans cette vérification,
+    // l'écran affichait "Vérifiez votre email" à quelqu'un qui n'en
+    // recevrait jamais aucun.
+    if (data?.user && data.user.identities?.length === 0) {
+      setGlobalError('Un compte existe déjà avec cet email. Essayez de vous connecter, ou de réinitialiser votre mot de passe si besoin.')
       setCaptchaToken('')
       setTurnstileKey(k => k + 1)
       return
