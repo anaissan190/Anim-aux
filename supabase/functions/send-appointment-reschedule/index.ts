@@ -229,7 +229,7 @@ Deno.serve(async (req) => {
     const doctorPhone = toE164(doctorProfile?.phone)
     if (doctorPhone) {
       smsSent = await sendOvhSms(
-        `Animeaux : ${patientName} a deplace son RDV au ${shortDate}.`,
+        `Animeaux: ${patientName} a deplace son RDV au ${shortDate}.`,
         doctorPhone
       )
     }
@@ -241,15 +241,17 @@ Deno.serve(async (req) => {
           <div style="text-align: center; margin-bottom: 16px;">
             <img src="https://monanimeaux.fr/pwa-192.png" width="56" height="56" alt="Animéaux" style="border-radius: 14px; display: inline-block;" />
           </div>
-          <h2 style="color: #d9670b;">Rendez-vous reporté</h2>
+          <h2 style="color: #d9670b;">Votre RDV a été déplacé</h2>
           <p>Bonjour ${escapeHtml(patientProfile?.first_name ?? '')},</p>
-          <p>${doctorNameHtml} a reporté votre rendez-vous. Nouvelle date :</p>
+          <p>${doctorNameHtml} a dû déplacer votre rendez-vous. Nouvelle date :</p>
           <p style="font-size: 16px; font-weight: 600; margin: 16px 0;">${dateStr}</p>
           <p style="margin-top: 20px;">
             <a href="https://monanimeaux.fr/rendez-vous" style="background: #d9670b; color: #fff; padding: 10px 20px; border-radius: 10px; text-decoration: none; font-weight: 500;">
               Voir mes rendez-vous
             </a>
           </p>
+          <p>Si ce nouvel horaire ne vous convient pas, vous pouvez annuler et reprendre un rendez-vous à tout moment.</p>
+          <p>Prenez soin de vous et de votre compagnon d'ici là 🐾</p>
           <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Animéaux — Votre animal, notre priorité.</p>
         </div>
       `
@@ -265,7 +267,7 @@ Deno.serve(async (req) => {
           body: JSON.stringify({
             from: Deno.env.get('EMAIL_FROM') ?? 'Animéaux <onboarding@resend.dev>',
             to: patientEmail,
-            subject: 'Votre rendez-vous a été reporté',
+            subject: 'Votre RDV a été déplacé',
             html,
           }),
           signal: AbortSignal.timeout(10_000),
@@ -282,7 +284,7 @@ Deno.serve(async (req) => {
     const patientPhone = toE164(patientProfile?.phone)
     if (patientPhone) {
       smsSent = await sendOvhSms(
-        `Animeaux : votre RDV avec ${doctorName} a ete reporte au ${shortDate}.`,
+        `Animeaux: RDV avec ${doctorName} reporte au ${shortDate}.`,
         patientPhone
       )
     }

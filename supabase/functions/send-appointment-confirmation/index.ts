@@ -175,6 +175,11 @@ Deno.serve(async (req) => {
       timeStyle: 'short',
       timeZone: 'Europe/Paris',
     })
+    // Version courte pour l'objet du mail ("mercredi 23 juillet") — dateStr
+    // complet (avec l'heure) y serait trop long.
+    const subjectDateStr = new Date(appt.start_at).toLocaleDateString('fr-FR', {
+      weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Paris',
+    })
 
     // Notification in-app — même logique que send-reminders.
     const { error: notifInsertError } = await supabaseAdmin.from('notifications').insert({
@@ -195,15 +200,21 @@ Deno.serve(async (req) => {
           <div style="text-align: center; margin-bottom: 16px;">
             <img src="https://monanimeaux.fr/pwa-192.png" width="56" height="56" alt="Animéaux" style="border-radius: 14px; display: inline-block;" />
           </div>
-          <h2 style="color: #d9670b;">Rendez-vous confirmé 🐾</h2>
+          <h2 style="color: #d9670b;">C'est confirmé 🐾</h2>
           <p>Bonjour ${escapeHtml(patientProfile?.first_name ?? '')},</p>
-          <p>Votre rendez-vous vient d'être confirmé :</p>
+          <p>Tout est en ordre ! Voici les détails de votre rendez-vous :</p>
           <ul style="line-height: 1.8;">
             <li><strong>Avec :</strong> ${doctorNameHtml}${doctorSpecialty ? ` (${escapeHtml(doctorSpecialty)})` : ''}</li>
             <li><strong>Le :</strong> ${dateStr}</li>
             ${appt.reason ? `<li><strong>Motif :</strong> ${escapeHtml(appt.reason)}</li>` : ''}
             ${price ? `<li><strong>Tarif :</strong> ${price} €</li>` : ''}
           </ul>
+          <p style="margin-top: 20px;">
+            <a href="https://monanimeaux.fr/rendez-vous" style="background: #d9670b; color: #fff; padding: 10px 20px; border-radius: 10px; text-decoration: none; font-weight: 500;">
+              Voir mes rendez-vous
+            </a>
+          </p>
+          <p>Prenez soin de vous et de votre compagnon d'ici là 🐾</p>
           <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Animéaux — Votre animal, notre priorité.</p>
         </div>
       `
@@ -216,7 +227,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           from: Deno.env.get('EMAIL_FROM') ?? 'Animéaux <onboarding@resend.dev>',
           to: patientEmail,
-          subject: 'Votre rendez-vous est confirmé',
+          subject: `C'est confirmé : RDV le ${subjectDateStr} 🐾`,
           html,
         }),
         // Même garde-fou que sendOvhSms ci-dessus (voir son commentaire) :
@@ -239,7 +250,7 @@ Deno.serve(async (req) => {
         dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Paris',
       })
       smsSent = await sendOvhSms(
-        `Animeaux : votre RDV avec ${doctorName} le ${shortDate} est confirme.`,
+        `Animeaux: RDV confirme avec ${doctorName} le ${shortDate}. A bientot !`,
         patientPhone
       )
     }

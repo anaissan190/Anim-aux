@@ -165,13 +165,15 @@ Deno.serve(async (req) => {
         </div>
         <h2 style="color: #d9670b;">Rendez-vous annulé</h2>
         <p>Bonjour ${escapeHtml(patientProfile?.first_name ?? '')},</p>
-        <p>${doctorNameHtml} a annulé votre rendez-vous prévu le <strong>${dateStr}</strong>.</p>
-        <p>Vous pouvez réserver un nouveau créneau directement depuis l'application.</p>
+        <p>Votre rendez-vous du <strong>${dateStr}</strong> avec ${doctorNameHtml} a malheureusement été annulé.</p>
+        <p>Toutes nos excuses pour la gêne occasionnée.</p>
+        <p>Besoin d'un nouveau créneau ?</p>
         <p style="margin-top: 20px;">
-          <a href="https://monanimeaux.fr/rendez-vous" style="background: #d9670b; color: #fff; padding: 10px 20px; border-radius: 10px; text-decoration: none; font-weight: 500;">
-            Voir mes rendez-vous
+          <a href="https://monanimeaux.fr/search" style="background: #d9670b; color: #fff; padding: 10px 20px; border-radius: 10px; text-decoration: none; font-weight: 500;">
+            Reprendre un RDV
           </a>
         </p>
+        <p>Prenez soin de vous et de votre compagnon 🐾</p>
         <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Animéaux — Votre animal, notre priorité.</p>
       </div>
     `
@@ -187,7 +189,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           from: Deno.env.get('EMAIL_FROM') ?? 'Animéaux <onboarding@resend.dev>',
           to: patientEmail,
-          subject: 'Votre rendez-vous a été annulé',
+          subject: 'Rendez-vous annulé',
           html,
         }),
         signal: AbortSignal.timeout(10_000),
@@ -208,7 +210,7 @@ Deno.serve(async (req) => {
       dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Paris',
     })
     smsSent = await sendOvhSms(
-      `Animeaux : votre RDV avec ${doctorName} du ${shortDate} a ete annule.`,
+      `Animeaux: votre RDV du ${shortDate} avec ${doctorName} est annule.`,
       patientPhone
     )
   }

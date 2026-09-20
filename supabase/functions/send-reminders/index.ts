@@ -206,9 +206,9 @@ Deno.serve(async (req) => {
           <div style="text-align: center; margin-bottom: 16px;">
             <img src="https://monanimeaux.fr/pwa-192.png" width="56" height="56" alt="Animéaux" style="border-radius: 14px; display: inline-block;" />
           </div>
-          <h2 style="color: #d9670b;">Rappel de rendez-vous 🐾</h2>
+          <h2 style="color: #d9670b;">À demain ! 🐾</h2>
           <p>Bonjour ${escapeHtml(patientProfile?.first_name ?? '')},</p>
-          <p>Petit rappel : vous avez un rendez-vous demain.</p>
+          <p>On se voit demain ! Petit récap :</p>
           <ul style="line-height: 1.8;">
             <li><strong>Avec :</strong> ${doctorNameHtml}${doctorSpecialty ? ` (${escapeHtml(doctorSpecialty)})` : ''}</li>
             <li><strong>Le :</strong> ${dateStr}</li>
@@ -222,7 +222,7 @@ Deno.serve(async (req) => {
           <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Animéaux — Votre animal, notre priorité.</p>
         </div>
       `
-      await sendReminderEmail(resendKey, patientEmail, 'Rappel de votre rendez-vous demain', html)
+      await sendReminderEmail(resendKey, patientEmail, 'À demain ! Rappel de votre RDV', html)
     }
 
     const patientPhone = toE164(patientProfile?.phone)
@@ -231,7 +231,7 @@ Deno.serve(async (req) => {
         dateStyle: 'short', timeStyle: 'short', timeZone: 'Europe/Paris',
       })
       await sendOvhSms(
-        `Animeaux : rappel RDV avec ${doctorName} le ${shortDate}.`,
+        `Animeaux: rappel RDV avec ${doctorName} le ${shortDate}.`,
         patientPhone
       )
     }
@@ -306,21 +306,26 @@ Deno.serve(async (req) => {
           </div>
           <h2 style="color: #d9670b;">Rappel de vaccin 🐾</h2>
           <p>Bonjour ${escapeHtml(ownerProfile?.first_name ?? '')},</p>
-          <p>Le vétérinaire de <strong>${escapeHtml(animal?.name ?? 'votre animal')}</strong> a indiqué un rappel de vaccin à prévoir prochainement :</p>
+          <p><strong>${escapeHtml(animal?.name ?? 'Votre animal')}</strong> doit recevoir un rappel :</p>
           <ul style="line-height: 1.8;">
             <li><strong>Vaccin :</strong> ${escapeHtml(vaccine.name)}</li>
             <li><strong>À faire avant le :</strong> ${dueDateStr}</li>
           </ul>
+          <p style="margin-top: 20px;">
+            <a href="https://monanimeaux.fr/search" style="background: #d9670b; color: #fff; padding: 10px 20px; border-radius: 10px; text-decoration: none; font-weight: 500;">
+              Prendre RDV
+            </a>
+          </p>
           <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Animéaux — Votre animal, notre priorité.</p>
         </div>
       `
-      await sendReminderEmail(resendKey, ownerEmail, `Rappel de vaccin pour ${animal?.name ?? 'votre animal'}`, html)
+      await sendReminderEmail(resendKey, ownerEmail, `${animal?.name ?? 'Votre animal'} a un rappel de vaccin à prévoir`, html)
     }
 
     const ownerPhone = toE164(ownerProfile?.phone)
     if (ownerPhone) {
       await sendOvhSms(
-        `Animeaux : rappel de vaccin (${vaccine.name}) pour ${animal?.name ?? 'votre animal'} avant le ${dueDateStr}.`,
+        `Animeaux: rappel de vaccin (${vaccine.name}) pour ${animal?.name ?? 'votre animal'} avant le ${dueDateStr}.`,
         ownerPhone
       )
     }
@@ -381,19 +386,24 @@ Deno.serve(async (req) => {
           <div style="text-align: center; margin-bottom: 16px;">
             <img src="https://monanimeaux.fr/pwa-192.png" width="56" height="56" alt="Animéaux" style="border-radius: 14px; display: inline-block;" />
           </div>
-          <h2 style="color: #d9670b;">Un avis sur votre rendez-vous ? 🐾</h2>
+          <h2 style="color: #d9670b;">Un avis sur votre RDV ? 🐾</h2>
           <p>Bonjour ${escapeHtml(patientProfile?.first_name ?? '')},</p>
-          <p>Votre rendez-vous avec <strong>${doctorNameHtml}</strong> est terminé. Si vous avez un instant, votre avis aide les autres propriétaires d'animaux à choisir un praticien.</p>
+          <p>Votre rendez-vous avec <strong>${doctorNameHtml}</strong> est terminé. Deux minutes pour partager votre avis ? Ça aide les autres propriétaires d'animaux à choisir un praticien.</p>
+          <p style="margin-top: 20px;">
+            <a href="https://monanimeaux.fr/doctor/${appt.doctor_id}" style="background: #d9670b; color: #fff; padding: 10px 20px; border-radius: 10px; text-decoration: none; font-weight: 500;">
+              Laisser un avis
+            </a>
+          </p>
           <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Animéaux — Votre animal, notre priorité.</p>
         </div>
       `
-      await sendReminderEmail(resendKey, patientEmail, 'Un avis sur votre dernier rendez-vous ?', html)
+      await sendReminderEmail(resendKey, patientEmail, `Comment s'est passé votre RDV avec ${doctorName} ?`, html)
     }
 
     const patientPhone = toE164(patientProfile?.phone)
     if (patientPhone) {
       await sendOvhSms(
-        `Animeaux : votre RDV avec ${doctorName} est termine. Donnez votre avis sur l'appli !`,
+        `Animeaux: votre RDV avec ${doctorName} est termine. Donnez votre avis sur l'appli !`,
         patientPhone
       )
     }
