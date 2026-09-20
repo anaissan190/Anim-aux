@@ -579,7 +579,7 @@ export default function DoctorDashboard() {
           voir src/components/ui/Navbar.tsx. */}
       <Navbar />
 
-      <div className="max-w-5xl mx-auto px-4 pt-8 pb-20 md:pb-8">
+      <div className="max-w-5xl mx-auto px-4 pt-8 pb-24 md:pb-8">
 
         {/* Bannière de statut de vérification — visible sur tous les onglets
             tant que le dossier n'est pas validé, pour rappeler que le profil

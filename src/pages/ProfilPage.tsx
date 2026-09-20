@@ -197,7 +197,7 @@ export default function ProfilPage() {
         </div>
       )}
 
-      <div className={`max-w-2xl mx-auto px-4 py-8 ${isPatient ? 'pb-24 md:pb-8' : ''}`}>
+      <div className={`max-w-2xl mx-auto px-4 py-8 ${isPatient ? 'pb-28 md:pb-8' : ''}`}>
 
         {isPatient ? (
           <div className="hidden md:block">

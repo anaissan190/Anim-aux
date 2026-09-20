@@ -121,7 +121,7 @@ export default function RendezVousPage() {
         </div>
 
         {/* Mobile : coquille "Wow / Aurora" */}
-        <div className="md:hidden pb-24 animate-mobile-slide-in">
+        <div className="md:hidden pb-28 animate-mobile-slide-in">
           <MobileHeader className="bg-sage-100/60">
             <h1 className="font-playfair text-2xl font-bold text-gray-900">Mes rendez-vous</h1>
             <p className="text-sm text-gray-500 mt-0.5">Passés et à venir</p>

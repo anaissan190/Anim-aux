@@ -149,7 +149,7 @@ export default function SearchPage() {
         </div>
       </div>
 
-      <div className={`max-w-5xl mx-auto px-4 py-6 flex gap-6 ${isPatient ? 'pb-24 md:pb-6' : ''}`}>
+      <div className={`max-w-5xl mx-auto px-4 py-6 flex gap-6 ${isPatient ? 'pb-28 md:pb-6' : ''}`}>
         {/* Filtres latéraux */}
         <aside className="hidden md:block w-56 flex-shrink-0 space-y-4">
           <div className="card p-4">

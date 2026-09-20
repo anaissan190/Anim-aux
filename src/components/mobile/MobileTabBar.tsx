@@ -19,7 +19,7 @@ export default function MobileTabBar() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden">
-      <div className="relative flex items-center bg-white border-t border-gray-100 pt-2.5 pb-[calc(env(safe-area-inset-bottom,0px)+10px)] px-2">
+      <div className="relative flex items-center bg-white border-t border-gray-100 pt-2.5 pb-[calc(env(safe-area-inset-bottom,0px)+20px)] px-2">
         {TABS.slice(0, 2).map(tab => <TabButton key={tab.to} {...tab} active={location.pathname === tab.to} />)}
 
         <div className="w-16 flex-shrink-0" />

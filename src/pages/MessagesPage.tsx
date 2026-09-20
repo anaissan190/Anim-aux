@@ -244,7 +244,7 @@ export default function MessagesPage() {
         </div>
       )}
 
-      <div className={`flex-1 min-h-0 max-w-5xl w-full mx-auto px-4 flex gap-4 ${isPatient ? 'pb-24 md:pb-6' : 'pb-6'}`}>
+      <div className={`flex-1 min-h-0 max-w-5xl w-full mx-auto px-4 flex gap-4 ${isPatient ? 'pb-28 md:pb-6' : 'pb-6'}`}>
 
         {/* Liste contacts — sur mobile, la liste et la conversation ouverte
             s'affichent l'une à la fois (comme une vraie appli de messagerie)
