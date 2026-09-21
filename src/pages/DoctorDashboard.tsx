@@ -650,6 +650,9 @@ export default function DoctorDashboard() {
                       onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadVerificationDocument(f); e.target.value = '' }} />
                   </label>
                 </div>
+                <p className="text-xs text-gray-400 -mt-3 mb-4">
+                  Indiquez le nom avant de cliquer sur « Ajouter un document » : il sera associé automatiquement au fichier choisi.
+                </p>
                 {verificationError && <p className="text-red-500 text-xs mb-3">{verificationError}</p>}
 
                 {verificationDocuments.length === 0 ? (
@@ -2121,6 +2124,9 @@ export default function DoctorDashboard() {
                     onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadVerificationDocument(f); e.target.value = '' }} />
                 </label>
               </div>
+              <p className="text-xs text-gray-400 -mt-3 mb-4">
+                Indiquez le nom avant de cliquer sur « Ajouter un document » : il sera associé automatiquement au fichier choisi.
+              </p>
               {verificationError && <p className="text-red-500 text-xs mb-3">{verificationError}</p>}
 
               {verificationDocuments.length === 0 ? (
