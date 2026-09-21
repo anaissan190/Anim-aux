@@ -45,7 +45,7 @@ const DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dima
 
 export default function DoctorDashboard() {
   const { profile } = useAuthStore()
-  const { data: doctor } = useCurrentDoctor()
+  const { data: doctor, isLoading: doctorLoading } = useCurrentDoctor()
   // Exemple de placeholder pour "Nom de prestation" adapté au métier réel
   // plutôt que systématiquement "Vaccination" — sans rapport pour un
   // comportementaliste, toiletteur, éducateur canin... (repéré en
@@ -586,59 +586,88 @@ export default function DoctorDashboard() {
   // l'ancienne bannière non-bloquante (migration 051) — le dépôt de
   // documents reste possible depuis cet écran, réutilisant les mêmes
   // hooks/état que l'onglet "Vérification de mon profil" plus bas.
-  if (doctor && doctor.verification_status !== 'verified') {
+  //
+  // Volontairement "fail closed" : le premier essai (21/09/2026) testait
+  // `doctor && doctor.verification_status !== 'verified'`, qui laissait
+  // passer vers le tableau de bord complet si `doctor` restait undefined
+  // (requête encore en cours, ou en échec) — l'inverse de ce qu'on veut
+  // pour un contrôle d'accès. On bloque désormais par défaut tant qu'on
+  // n'a pas la confirmation explicite `verification_status === 'verified'`.
+  if (doctorLoading) {
+    return (
+      <div className="min-h-screen bg-sage-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-sage-300 border-t-sage-600 rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (!doctor || doctor.verification_status !== 'verified') {
     return (
       <div className="min-h-screen bg-sage-50">
         <Navbar />
         <div className="max-w-2xl mx-auto px-4 py-12">
-          <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center">
-            <div className="text-5xl mb-4">{doctor.verification_status === 'rejected' ? '⚠️' : '⏳'}</div>
-            <h1 className="text-xl font-bold text-gray-900 mb-2">
-              {doctor.verification_status === 'rejected' ? 'Documents non validés' : 'Votre espace est en attente de validation'}
-            </h1>
-            <p className="text-sm text-gray-500">
-              {doctor.verification_status === 'rejected'
-                ? (verificationRejectedReason || "Vos documents n'ont pas pu être validés.") + ' Merci de déposer de nouveaux documents ci-dessous.'
-                : "Déposez au moins un document attestant de votre formation ou de votre activité (diplôme, carte professionnelle, extrait Kbis...) pour activer votre espace praticien. Votre dossier sera examiné rapidement."}
-            </p>
-          </div>
-
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mt-6">
-            <h2 className="font-semibold text-gray-900 mb-1">Mes documents justificatifs</h2>
-            <p className="text-xs text-gray-500 mb-4">
-              Diplôme, carte professionnelle, numéro d&apos;ordre, extrait Kbis...
-            </p>
-            <div className="flex flex-wrap gap-2 mb-4">
-              <select className="input text-sm w-auto" value={verificationDocType}
-                onChange={e => setVerificationDocType(e.target.value)}>
-                {VERIFICATION_DOC_TYPES.map(t => <option key={t}>{t}</option>)}
-              </select>
-              <label className="btn-secondary text-sm cursor-pointer">
-                {verificationUploading ? 'Envoi...' : '+ Ajouter un document'}
-                <input type="file" accept="image/*,.pdf" className="hidden" disabled={verificationUploading}
-                  onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadVerificationDocument(f); e.target.value = '' }} />
-              </label>
+          {!doctor ? (
+            <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center">
+              <div className="text-5xl mb-4">⚠️</div>
+              <h1 className="text-xl font-bold text-gray-900 mb-2">Profil praticien introuvable</h1>
+              <p className="text-sm text-gray-500">
+                Un problème empêche de charger votre profil praticien. Contactez-nous à{' '}
+                <a href="mailto:contact.animeaux@gmail.com" className="text-sage-600 underline">contact.animeaux@gmail.com</a>{' '}
+                pour qu'on puisse le résoudre.
+              </p>
             </div>
-            {verificationError && <p className="text-red-500 text-xs mb-3">{verificationError}</p>}
+          ) : (
+            <>
+              <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center">
+                <div className="text-5xl mb-4">{doctor.verification_status === 'rejected' ? '⚠️' : '⏳'}</div>
+                <h1 className="text-xl font-bold text-gray-900 mb-2">
+                  {doctor.verification_status === 'rejected' ? 'Documents non validés' : 'Votre espace est en attente de validation'}
+                </h1>
+                <p className="text-sm text-gray-500">
+                  {doctor.verification_status === 'rejected'
+                    ? (verificationRejectedReason || "Vos documents n'ont pas pu être validés.") + ' Merci de déposer de nouveaux documents ci-dessous.'
+                    : "Déposez au moins un document attestant de votre formation ou de votre activité (diplôme, carte professionnelle, extrait Kbis...) pour activer votre espace praticien. Votre dossier sera examiné rapidement."}
+                </p>
+              </div>
 
-            {verificationDocuments.length === 0 ? (
-              <p className="text-xs text-gray-400">Aucun document déposé pour l&apos;instant.</p>
-            ) : (
-              <ul className="space-y-2">
-                {verificationDocuments.map((doc: any) => (
-                  <li key={doc.id} className="flex items-center justify-between text-sm bg-gray-50 rounded-xl px-3 py-2">
-                    <a href={doc.file_url} target="_blank" rel="noreferrer" className="text-sage-600 hover:underline">
-                      📄 {doc.document_type} — {doc.file_name}
-                    </a>
-                    <button onClick={() => deleteVerificationDocument.mutate({ id: doc.id, doctorId: doctor.id })}
-                      className="text-gray-300 hover:text-red-500 transition-colors" title="Supprimer">
-                      ✕
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mt-6">
+                <h2 className="font-semibold text-gray-900 mb-1">Mes documents justificatifs</h2>
+                <p className="text-xs text-gray-500 mb-4">
+                  Diplôme, carte professionnelle, numéro d&apos;ordre, extrait Kbis...
+                </p>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <select className="input text-sm w-auto" value={verificationDocType}
+                    onChange={e => setVerificationDocType(e.target.value)}>
+                    {VERIFICATION_DOC_TYPES.map(t => <option key={t}>{t}</option>)}
+                  </select>
+                  <label className="btn-secondary text-sm cursor-pointer">
+                    {verificationUploading ? 'Envoi...' : '+ Ajouter un document'}
+                    <input type="file" accept="image/*,.pdf" className="hidden" disabled={verificationUploading}
+                      onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadVerificationDocument(f); e.target.value = '' }} />
+                  </label>
+                </div>
+                {verificationError && <p className="text-red-500 text-xs mb-3">{verificationError}</p>}
+
+                {verificationDocuments.length === 0 ? (
+                  <p className="text-xs text-gray-400">Aucun document déposé pour l&apos;instant.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {verificationDocuments.map((doc: any) => (
+                      <li key={doc.id} className="flex items-center justify-between text-sm bg-gray-50 rounded-xl px-3 py-2">
+                        <a href={doc.file_url} target="_blank" rel="noreferrer" className="text-sage-600 hover:underline">
+                          📄 {doc.document_type} — {doc.file_name}
+                        </a>
+                        <button onClick={() => deleteVerificationDocument.mutate({ id: doc.id, doctorId: doctor.id })}
+                          className="text-gray-300 hover:text-red-500 transition-colors" title="Supprimer">
+                          ✕
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
     )
