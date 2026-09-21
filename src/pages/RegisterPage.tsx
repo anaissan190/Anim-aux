@@ -29,7 +29,15 @@ const schema = z.object({
 // lien qui ferait naviguer hors de cette page — CGU, confidentialité, ou
 // un futur lien qu'on oublierait de traiter au cas par cas — restaure
 // automatiquement la saisie en cours au retour. Le mot de passe n'est
-// volontairement jamais persisté (hygiène de base, même en sessionStorage).
+// volontairement jamais persisté (hygiène de base).
+//
+// localStorage plutôt que sessionStorage (choix corrigé le 21/09/2026,
+// après un premier essai en sessionStorage qui ne réglait pas le problème
+// pour Anaïs) : sur iOS/PWA, target="_blank" ouvre parfois un VRAI second
+// onglet/contexte — et sessionStorage n'est jamais partagé entre onglets,
+// même de même origine, contrairement à localStorage. Le brouillon
+// survivait donc dans l'onglet d'origine (jamais démonté) mais restait
+// invisible depuis le second onglet où elle cliquait "Retour".
 const REGISTER_DRAFT_KEY = 'animeaux_register_draft'
 
 function loadRegisterDraft(): Partial<{
@@ -38,7 +46,7 @@ function loadRegisterDraft(): Partial<{
   acceptedTerms: boolean; acceptedEthicsCharter: boolean
 }> {
   try {
-    const raw = sessionStorage.getItem(REGISTER_DRAFT_KEY)
+    const raw = localStorage.getItem(REGISTER_DRAFT_KEY)
     return raw ? JSON.parse(raw) : {}
   } catch {
     return {}
@@ -69,13 +77,13 @@ export default function RegisterPage() {
 
   useEffect(() => {
     try {
-      sessionStorage.setItem(REGISTER_DRAFT_KEY, JSON.stringify({
+      localStorage.setItem(REGISTER_DRAFT_KEY, JSON.stringify({
         first_name: form.first_name, last_name: form.last_name, email: form.email,
         role: form.role, practitioner_type: form.practitioner_type,
         acceptedTerms, acceptedEthicsCharter,
       }))
     } catch {
-      // sessionStorage indisponible (navigation privée stricte...) : le
+      // localStorage indisponible (navigation privée stricte...) : le
       // brouillon ne survivra pas à une navigation, mais le formulaire
       // reste utilisable normalement — best-effort, pas bloquant.
     }
@@ -168,7 +176,7 @@ export default function RegisterPage() {
       setTurnstileKey(k => k + 1)
       return
     }
-    try { sessionStorage.removeItem(REGISTER_DRAFT_KEY) } catch { /* best-effort */ }
+    try { localStorage.removeItem(REGISTER_DRAFT_KEY) } catch { /* best-effort */ }
     setSuccess(true)
   }
 
