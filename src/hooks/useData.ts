@@ -2350,7 +2350,7 @@ export function useDoctorVerificationDocuments(doctorId?: string) {
 export function useUploadVerificationDocument() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ doctorId, file, documentType }: { doctorId: string; file: File; documentType: string }) => {
+    mutationFn: async ({ doctorId, file, documentType, label }: { doctorId: string; file: File; documentType: string; label?: string }) => {
       const ext = file.name.split('.').pop()
       const path = `${doctorId}/${Date.now()}.${ext}`
       const { error: uploadError } = await supabase.storage.from('verification-documents').upload(path, file)
@@ -2360,6 +2360,7 @@ export function useUploadVerificationDocument() {
         file_url: path,
         file_name: file.name,
         document_type: documentType,
+        document_label: label?.trim() || null,
       })
       if (error) throw error
     },

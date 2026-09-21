@@ -336,7 +336,7 @@ function AdminOverview({ onSelectDoctor, onViewReviews, onViewPatients, onViewCl
                         <li key={doc.id}>
                           <a href={doc.file_url} target="_blank" rel="noreferrer"
                             className="text-sm text-sage-600 hover:underline">
-                            📄 {doc.document_type} — {doc.file_name}
+                            📄 {doc.document_type}{doc.document_label ? ` — ${doc.document_label}` : ''} ({doc.file_name})
                           </a>
                         </li>
                       ))}
@@ -1159,7 +1159,7 @@ function AdminDoctorDetail({ doctorId, onBack }: { doctorId: string; onBack: () 
                   {d.documents.map((doc: any) => (
                     <li key={doc.id}>
                       <a href={doc.file_url} target="_blank" rel="noreferrer" className="text-sm text-sage-600 hover:underline">
-                        📄 {doc.document_type} — {doc.file_name}
+                        📄 {doc.document_type}{doc.document_label ? ` — ${doc.document_label}` : ''} ({doc.file_name})
                       </a>
                     </li>
                   ))}

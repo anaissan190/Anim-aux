@@ -206,6 +206,7 @@ export default function DoctorDashboard() {
   const uploadVerificationDocument = useUploadVerificationDocument()
   const deleteVerificationDocument = useDeleteVerificationDocument()
   const [verificationDocType, setVerificationDocType] = useState('Diplôme')
+  const [verificationDocLabel, setVerificationDocLabel] = useState('')
   const [verificationUploading, setVerificationUploading] = useState(false)
   const [verificationError, setVerificationError] = useState('')
 
@@ -214,7 +215,8 @@ export default function DoctorDashboard() {
     setVerificationUploading(true)
     setVerificationError('')
     try {
-      await uploadVerificationDocument.mutateAsync({ doctorId: doctor.id, file, documentType: verificationDocType })
+      await uploadVerificationDocument.mutateAsync({ doctorId: doctor.id, file, documentType: verificationDocType, label: verificationDocLabel })
+      setVerificationDocLabel('')
     } catch (e: any) {
       setVerificationError(e.message ?? "Erreur lors de l'envoi du document.")
     } finally {
@@ -640,6 +642,8 @@ export default function DoctorDashboard() {
                     onChange={e => setVerificationDocType(e.target.value)}>
                     {VERIFICATION_DOC_TYPES.map(t => <option key={t}>{t}</option>)}
                   </select>
+                  <input type="text" className="input text-sm w-auto" placeholder="Nom du document (optionnel)"
+                    value={verificationDocLabel} onChange={e => setVerificationDocLabel(e.target.value)} />
                   <label className="btn-secondary text-sm cursor-pointer">
                     {verificationUploading ? 'Envoi...' : '+ Ajouter un document'}
                     <input type="file" accept="image/*,.pdf" className="hidden" disabled={verificationUploading}
@@ -655,7 +659,7 @@ export default function DoctorDashboard() {
                     {verificationDocuments.map((doc: any) => (
                       <li key={doc.id} className="flex items-center justify-between text-sm bg-gray-50 rounded-xl px-3 py-2">
                         <a href={doc.file_url} target="_blank" rel="noreferrer" className="text-sage-600 hover:underline">
-                          📄 {doc.document_type} — {doc.file_name}
+                          📄 {doc.document_type}{doc.document_label ? ` — ${doc.document_label}` : ''} ({doc.file_name})
                         </a>
                         <button onClick={() => deleteVerificationDocument.mutate({ id: doc.id, doctorId: doctor.id })}
                           className="text-gray-300 hover:text-red-500 transition-colors" title="Supprimer">
@@ -2109,6 +2113,8 @@ export default function DoctorDashboard() {
                   onChange={e => setVerificationDocType(e.target.value)}>
                   {VERIFICATION_DOC_TYPES.map(t => <option key={t}>{t}</option>)}
                 </select>
+                <input type="text" className="input text-sm w-auto" placeholder="Nom du document (optionnel)"
+                  value={verificationDocLabel} onChange={e => setVerificationDocLabel(e.target.value)} />
                 <label className="btn-secondary text-sm cursor-pointer">
                   {verificationUploading ? 'Envoi...' : '+ Ajouter un document'}
                   <input type="file" accept="image/*,.pdf" className="hidden" disabled={verificationUploading}
@@ -2124,7 +2130,7 @@ export default function DoctorDashboard() {
                   {verificationDocuments.map((doc: any) => (
                     <li key={doc.id} className="flex items-center justify-between text-sm bg-gray-50 rounded-xl px-3 py-2">
                       <a href={doc.file_url} target="_blank" rel="noreferrer" className="text-sage-600 hover:underline">
-                        📄 {doc.document_type} — {doc.file_name}
+                        📄 {doc.document_type}{doc.document_label ? ` — ${doc.document_label}` : ''} ({doc.file_name})
                       </a>
                       <button onClick={() => deleteVerificationDocument.mutate({ id: doc.id, doctorId: doctor!.id })}
                         className="text-gray-300 hover:text-red-500 transition-colors" title="Supprimer">
