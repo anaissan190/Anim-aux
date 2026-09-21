@@ -273,11 +273,11 @@ export default function RegisterPage() {
                   className="mt-0.5 h-4 w-4 rounded border-gray-300 text-sage-600 focus:ring-sage-500" />
                 <span>
                   J'accepte les{' '}
-                  <Link to="/cgu" target="_blank" className="text-sage-600 font-medium hover:underline">
+                  <Link to="/cgu?from=register" target="_blank" className="text-sage-600 font-medium hover:underline">
                     Conditions Générales d'Utilisation
                   </Link>{' '}
                   et la{' '}
-                  <Link to="/confidentialite" target="_blank" className="text-sage-600 font-medium hover:underline">
+                  <Link to="/confidentialite?from=register" target="_blank" className="text-sage-600 font-medium hover:underline">
                     Politique de confidentialité
                   </Link>
                 </span>

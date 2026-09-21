@@ -19,11 +19,20 @@ export default function LegalPage() {
     document.getElementById(id)?.scrollIntoView({ block: 'start' })
   }, [location.pathname])
 
+  // RegisterPage lie ici avec target="_blank" (pour ne pas quitter le
+  // formulaire en cours) mais sur mobile/PWA ça dégénère souvent en
+  // rechargement complet de page plutôt qu'un vrai nouvel onglet — sans
+  // historique SPA, BackButton retombait sur son fallback fixe "/" au lieu
+  // de ramener vers l'inscription (repéré par Anaïs le 21/09/2026 : "ça me
+  // ramène au départ"). ?from=register (voir RegisterPage.tsx) permet de
+  // cibler le bon fallback même après un rechargement complet.
+  const fallback = new URLSearchParams(location.search).get('from') === 'register' ? '/register' : '/'
+
   return (
     <div className="min-h-screen bg-[#FFFAF0]">
       <Navbar />
       <div className="max-w-2xl mx-auto px-4 py-8">
-        <BackButton fallback="/" />
+        <BackButton fallback={fallback} />
 
         <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800 mb-8">
           Document renseigné avec les informations de l'entreprise — en attente de relecture par un professionnel du droit avant validation définitive.
