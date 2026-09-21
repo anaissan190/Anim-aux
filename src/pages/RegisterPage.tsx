@@ -42,7 +42,7 @@ const REGISTER_DRAFT_KEY = 'animeaux_register_draft'
 
 function loadRegisterDraft(): Partial<{
   first_name: string; last_name: string; email: string
-  role: 'patient' | 'doctor'; practitioner_type: string
+  role: 'patient' | 'doctor'; practitioner_type: string; otherProfession: string
   acceptedTerms: boolean; acceptedEthicsCharter: boolean
 }> {
   try {
@@ -65,6 +65,7 @@ export default function RegisterPage() {
     role: defaultRole as 'patient' | 'doctor',
     practitioner_type: draft.practitioner_type ?? '',
   })
+  const [otherProfession, setOtherProfession] = useState(draft.otherProfession ?? '')
   const [acceptedTerms, setAcceptedTerms] = useState(draft.acceptedTerms ?? false)
   const [acceptedEthicsCharter, setAcceptedEthicsCharter] = useState(draft.acceptedEthicsCharter ?? false)
   const [captchaToken, setCaptchaToken] = useState('')
@@ -79,7 +80,7 @@ export default function RegisterPage() {
     try {
       localStorage.setItem(REGISTER_DRAFT_KEY, JSON.stringify({
         first_name: form.first_name, last_name: form.last_name, email: form.email,
-        role: form.role, practitioner_type: form.practitioner_type,
+        role: form.role, practitioner_type: form.practitioner_type, otherProfession,
         acceptedTerms, acceptedEthicsCharter,
       }))
     } catch {
@@ -87,7 +88,7 @@ export default function RegisterPage() {
       // brouillon ne survivra pas à une navigation, mais le formulaire
       // reste utilisable normalement — best-effort, pas bloquant.
     }
-  }, [form.first_name, form.last_name, form.email, form.role, form.practitioner_type, acceptedTerms, acceptedEthicsCharter])
+  }, [form.first_name, form.last_name, form.email, form.role, form.practitioner_type, otherProfession, acceptedTerms, acceptedEthicsCharter])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -95,6 +96,11 @@ export default function RegisterPage() {
 
     if (form.role === 'doctor' && !form.practitioner_type) {
       setErrors({ practitioner_type: 'Veuillez choisir votre type de profession' })
+      return
+    }
+
+    if (form.role === 'doctor' && form.practitioner_type === 'autre' && !otherProfession.trim()) {
+      setErrors({ practitioner_type: 'Veuillez préciser votre profession' })
       return
     }
 
@@ -122,6 +128,11 @@ export default function RegisterPage() {
 
     setLoading(true)
     const selectedType = PRACTITIONER_TYPES.find(p => p.id === form.practitioner_type)
+    // "Autre" reste une valeur fixe de la liste (practitioner_type stocke
+    // toujours 'autre', pour les filtres/services associés) — seule la
+    // specialty affichée publiquement reprend la profession précisée en
+    // texte libre, plutôt que le mot générique "Autre".
+    const specialty = form.practitioner_type === 'autre' ? otherProfession.trim() : (selectedType?.label ?? '')
 
     let error: any
     let data: any
@@ -135,7 +146,7 @@ export default function RegisterPage() {
             first_name:        form.first_name,
             last_name:         form.last_name,
             role:              form.role,
-            specialty:         selectedType?.label ?? '',
+            specialty,
             practitioner_type: form.practitioner_type,
             terms_accepted:    acceptedTerms,
             ethics_charter_accepted: form.role === 'doctor' ? acceptedEthicsCharter : undefined,
@@ -253,6 +264,13 @@ export default function RegisterPage() {
                     </button>
                   ))}
                 </div>
+                {form.practitioner_type === 'autre' && (
+                  <div className="mt-2">
+                    <input value={otherProfession}
+                      onChange={e => { setOtherProfession(e.target.value); setErrors(errs => ({ ...errs, practitioner_type: '' })) }}
+                      className="input" placeholder="Précisez votre profession" />
+                  </div>
+                )}
                 {errors.practitioner_type && (
                   <p className="text-red-500 text-xs mt-1">{errors.practitioner_type}</p>
                 )}
