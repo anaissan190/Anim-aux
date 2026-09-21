@@ -32,6 +32,14 @@ import { compressImage } from '@/lib/compressImage'
 // voir src/components/ui/Navbar.tsx. Ce fichier ne gère plus que le
 // contenu de chaque onglet, piloté par le paramètre d'URL ?tab=.
 
+// Partagée entre l'écran de blocage (praticien pas encore vérifié) et
+// l'onglet "Vérification de mon profil" — un seul endroit à mettre à jour
+// pour ajouter un type de document (ex: Extrait Kbis, absent jusqu'ici
+// alors que c'est le justificatif le plus courant pour une entreprise).
+const VERIFICATION_DOC_TYPES = [
+  'Diplôme', "Carte professionnelle / Numéro d'ordre", 'Extrait Kbis', "Pièce d'identité", 'Autre',
+]
+
 
 const DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche']
 
@@ -571,6 +579,71 @@ export default function DoctorDashboard() {
     noShowRate, cancellationRate, totalRevenue, revenueLast30Days, fillRate, hasUnclosedPastAppts,
   } = computeDoctorStats(appointments, availabilities, doctor?.consultation_price ?? 0, now)
 
+  // Espace praticien bloqué tant que le dossier n'est pas validé par un
+  // admin (demande d'Anaïs le 21/09/2026 : un accès non-bloquant, même
+  // limité à "pas visible en recherche", laisse n'importe qui utiliser
+  // l'appli sans jamais avoir prouvé son identité/sa formation). Remplace
+  // l'ancienne bannière non-bloquante (migration 051) — le dépôt de
+  // documents reste possible depuis cet écran, réutilisant les mêmes
+  // hooks/état que l'onglet "Vérification de mon profil" plus bas.
+  if (doctor && doctor.verification_status !== 'verified') {
+    return (
+      <div className="min-h-screen bg-sage-50">
+        <Navbar />
+        <div className="max-w-2xl mx-auto px-4 py-12">
+          <div className="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 text-center">
+            <div className="text-5xl mb-4">{doctor.verification_status === 'rejected' ? '⚠️' : '⏳'}</div>
+            <h1 className="text-xl font-bold text-gray-900 mb-2">
+              {doctor.verification_status === 'rejected' ? 'Documents non validés' : 'Votre espace est en attente de validation'}
+            </h1>
+            <p className="text-sm text-gray-500">
+              {doctor.verification_status === 'rejected'
+                ? (verificationRejectedReason || "Vos documents n'ont pas pu être validés.") + ' Merci de déposer de nouveaux documents ci-dessous.'
+                : "Déposez au moins un document attestant de votre formation ou de votre activité (diplôme, carte professionnelle, extrait Kbis...) pour activer votre espace praticien. Votre dossier sera examiné rapidement."}
+            </p>
+          </div>
+
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mt-6">
+            <h2 className="font-semibold text-gray-900 mb-1">Mes documents justificatifs</h2>
+            <p className="text-xs text-gray-500 mb-4">
+              Diplôme, carte professionnelle, numéro d&apos;ordre, extrait Kbis...
+            </p>
+            <div className="flex flex-wrap gap-2 mb-4">
+              <select className="input text-sm w-auto" value={verificationDocType}
+                onChange={e => setVerificationDocType(e.target.value)}>
+                {VERIFICATION_DOC_TYPES.map(t => <option key={t}>{t}</option>)}
+              </select>
+              <label className="btn-secondary text-sm cursor-pointer">
+                {verificationUploading ? 'Envoi...' : '+ Ajouter un document'}
+                <input type="file" accept="image/*,.pdf" className="hidden" disabled={verificationUploading}
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadVerificationDocument(f); e.target.value = '' }} />
+              </label>
+            </div>
+            {verificationError && <p className="text-red-500 text-xs mb-3">{verificationError}</p>}
+
+            {verificationDocuments.length === 0 ? (
+              <p className="text-xs text-gray-400">Aucun document déposé pour l&apos;instant.</p>
+            ) : (
+              <ul className="space-y-2">
+                {verificationDocuments.map((doc: any) => (
+                  <li key={doc.id} className="flex items-center justify-between text-sm bg-gray-50 rounded-xl px-3 py-2">
+                    <a href={doc.file_url} target="_blank" rel="noreferrer" className="text-sage-600 hover:underline">
+                      📄 {doc.document_type} — {doc.file_name}
+                    </a>
+                    <button onClick={() => deleteVerificationDocument.mutate({ id: doc.id, doctorId: doctor.id })}
+                      className="text-gray-300 hover:text-red-500 transition-colors" title="Supprimer">
+                      ✕
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className={`relative min-h-screen ${tab === 'home' ? 'bg-sage-50' : 'bg-[#FFFAF0]'}`}>
       <div className="relative z-10">
@@ -580,38 +653,6 @@ export default function DoctorDashboard() {
       <Navbar />
 
       <div className="max-w-5xl mx-auto px-4 pt-8 pb-24 md:pb-8">
-
-        {/* Bannière de statut de vérification — visible sur tous les onglets
-            tant que le dossier n'est pas validé, pour rappeler que le profil
-            reste invisible en recherche jusque-là (voir useDoctors). */}
-        {doctor && doctor.verification_status !== 'verified' && (
-          <div className={`rounded-2xl p-4 mb-6 text-sm flex items-start gap-3 ${
-            doctor.verification_status === 'rejected'
-              ? 'bg-red-50 border border-red-100 text-red-700'
-              : 'bg-amber-50 border border-amber-100 text-amber-700'
-          }`}>
-            <span className="text-lg">{doctor.verification_status === 'rejected' ? '⚠️' : '⏳'}</span>
-            <div className="flex-1 min-w-0">
-              {doctor.verification_status === 'rejected' ? (
-                <>
-                  <p className="font-medium">Documents non validés</p>
-                  <p className="mt-0.5">
-                    {verificationRejectedReason || "Vos documents n'ont pas pu être validés."} Merci de les redéposer.
-                  </p>
-                </>
-              ) : (
-                <p>
-                  <span className="font-medium">Profil en attente de vérification.</span> Vous pouvez utiliser votre
-                  espace normalement, mais vous n'apparaîtrez dans les résultats de recherche qu'une fois vos
-                  documents justificatifs déposés et validés.
-                </p>
-              )}
-              <Link to="/dashboard/doctor?tab=profil" className="underline font-medium mt-1 inline-block">
-                Déposer mes documents
-              </Link>
-            </div>
-          </div>
-        )}
 
         {/* Engagement bien-être animal (migration 092) : case à cocher
             obligatoire pour toute NOUVELLE inscription depuis son ajout,
@@ -2037,10 +2078,7 @@ export default function DoctorDashboard() {
               <div className="flex flex-wrap gap-2 mb-4">
                 <select className="input text-sm w-auto" value={verificationDocType}
                   onChange={e => setVerificationDocType(e.target.value)}>
-                  <option>Diplôme</option>
-                  <option>Carte professionnelle / Numéro d&apos;ordre</option>
-                  <option>Pièce d&apos;identité</option>
-                  <option>Autre</option>
+                  {VERIFICATION_DOC_TYPES.map(t => <option key={t}>{t}</option>)}
                 </select>
                 <label className="btn-secondary text-sm cursor-pointer">
                   {verificationUploading ? 'Envoi...' : '+ Ajouter un document'}
