@@ -1,5 +1,5 @@
 // src/pages/RegisterPage.tsx
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { z } from 'zod'
 import { supabase } from '@/lib/supabase'
@@ -18,18 +18,47 @@ const schema = z.object({
   practitioner_type: z.string().optional(),
 })
 
+// CGU et Politique de confidentialité restent des pages à part entière
+// (target="_blank" — ouvre un vrai nouvel onglet sur desktop, où le
+// formulaire n'est jamais démonté). Sur mobile/PWA, target="_blank" ne
+// garantit aucun nouvel onglet : ça navigue dans le même contexte, et
+// l'état local du formulaire est perdu au démontage. Plutôt que de
+// dupliquer ces longs documents (CGU/confidentialité) dans une fenêtre
+// comme pour la charte bien-être animal (courte, 6 puces), on sauvegarde
+// une copie de brouillon du formulaire à chaque frappe : n'importe quel
+// lien qui ferait naviguer hors de cette page — CGU, confidentialité, ou
+// un futur lien qu'on oublierait de traiter au cas par cas — restaure
+// automatiquement la saisie en cours au retour. Le mot de passe n'est
+// volontairement jamais persisté (hygiène de base, même en sessionStorage).
+const REGISTER_DRAFT_KEY = 'animeaux_register_draft'
+
+function loadRegisterDraft(): Partial<{
+  first_name: string; last_name: string; email: string
+  role: 'patient' | 'doctor'; practitioner_type: string
+  acceptedTerms: boolean; acceptedEthicsCharter: boolean
+}> {
+  try {
+    const raw = sessionStorage.getItem(REGISTER_DRAFT_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
 export default function RegisterPage() {
   const navigate   = useNavigate()
   const [params]   = useSearchParams()
-  const defaultRole = params.get('role') === 'doctor' ? 'doctor' : 'patient'
+  const draft = loadRegisterDraft()
+  const defaultRole = draft.role ?? (params.get('role') === 'doctor' ? 'doctor' : 'patient')
 
   const [form, setForm] = useState({
-    first_name: '', last_name: '', email: '', password: '',
+    first_name: draft.first_name ?? '', last_name: draft.last_name ?? '',
+    email: draft.email ?? '', password: '',
     role: defaultRole as 'patient' | 'doctor',
-    practitioner_type: '',
+    practitioner_type: draft.practitioner_type ?? '',
   })
-  const [acceptedTerms, setAcceptedTerms] = useState(false)
-  const [acceptedEthicsCharter, setAcceptedEthicsCharter] = useState(false)
+  const [acceptedTerms, setAcceptedTerms] = useState(draft.acceptedTerms ?? false)
+  const [acceptedEthicsCharter, setAcceptedEthicsCharter] = useState(draft.acceptedEthicsCharter ?? false)
   const [captchaToken, setCaptchaToken] = useState('')
   const [turnstileKey, setTurnstileKey] = useState(0)
   const [errors, setErrors]       = useState<Record<string, string>>({})
@@ -37,6 +66,20 @@ export default function RegisterPage() {
   const [success, setSuccess]     = useState(false)
   const [globalError, setGlobalError] = useState('')
   const [showCharterModal, setShowCharterModal] = useState(false)
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(REGISTER_DRAFT_KEY, JSON.stringify({
+        first_name: form.first_name, last_name: form.last_name, email: form.email,
+        role: form.role, practitioner_type: form.practitioner_type,
+        acceptedTerms, acceptedEthicsCharter,
+      }))
+    } catch {
+      // sessionStorage indisponible (navigation privée stricte...) : le
+      // brouillon ne survivra pas à une navigation, mais le formulaire
+      // reste utilisable normalement — best-effort, pas bloquant.
+    }
+  }, [form.first_name, form.last_name, form.email, form.role, form.practitioner_type, acceptedTerms, acceptedEthicsCharter])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -125,6 +168,7 @@ export default function RegisterPage() {
       setTurnstileKey(k => k + 1)
       return
     }
+    try { sessionStorage.removeItem(REGISTER_DRAFT_KEY) } catch { /* best-effort */ }
     setSuccess(true)
   }
 
