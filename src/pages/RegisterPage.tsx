@@ -4,7 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { z } from 'zod'
 import { supabase } from '@/lib/supabase'
 import { PRACTITIONER_TYPES } from '@/lib/practitionerTypes'
-import { ETHICS_CHARTER_CLAUSES } from '@/lib/ethicsCharter'
+import { ETHICS_CHARTER_CLAUSES, ETHICS_CHARTER_DISCLAIMER } from '@/lib/ethicsCharter'
 import logoNavbar from '@/assets/logo-navbar.webp'
 import PasswordInput from '@/components/ui/PasswordInput'
 import Turnstile from '@/components/ui/Turnstile'
@@ -36,6 +36,7 @@ export default function RegisterPage() {
   const [loading, setLoading]     = useState(false)
   const [success, setSuccess]     = useState(false)
   const [globalError, setGlobalError] = useState('')
+  const [showCharterModal, setShowCharterModal] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -248,9 +249,18 @@ export default function RegisterPage() {
                     className="mt-0.5 h-4 w-4 rounded border-gray-300 text-sage-600 focus:ring-sage-500" />
                   <span>
                     Je m'engage à respecter la{' '}
-                    <Link to="/engagement" target="_blank" className="text-sage-600 font-medium hover:underline">
+                    {/* Ouverture en fenêtre plutôt qu'un lien vers /engagement
+                        (target="_blank" auparavant) : dans un navigateur
+                        mobile ou la PWA installée, target="_blank" ne
+                        garantit pas un vrai nouvel onglet — ça navigue dans
+                        le même contexte, et "retour" ne restaure jamais le
+                        formulaire déjà rempli (state local perdu au
+                        démontage). Repéré par Anaïs le 21/09/2026 : elle
+                        devait recommencer toute son inscription. */}
+                    <button type="button" onClick={() => setShowCharterModal(true)}
+                      className="text-sage-600 font-medium hover:underline">
                       Charte bien-être animal
-                    </Link>{' '}
+                    </button>{' '}
                     d'Animéaux
                   </span>
                 </label>
@@ -285,6 +295,23 @@ export default function RegisterPage() {
           </p>
         </div>
       </div>
+
+      {showCharterModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+          onClick={() => setShowCharterModal(false)}>
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full max-h-[85vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}>
+            <h2 className="text-lg font-bold text-gray-900 mb-4">Charte bien-être animal</h2>
+            <ul className="text-sm text-gray-600 list-disc list-inside space-y-2">
+              {ETHICS_CHARTER_CLAUSES.map(clause => <li key={clause}>{clause}</li>)}
+            </ul>
+            <p className="text-xs text-gray-400 mt-4">{ETHICS_CHARTER_DISCLAIMER}</p>
+            <button type="button" onClick={() => setShowCharterModal(false)} className="btn-primary w-full mt-6">
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
