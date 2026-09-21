@@ -207,16 +207,18 @@ export default function DoctorDashboard() {
   const deleteVerificationDocument = useDeleteVerificationDocument()
   const [verificationDocType, setVerificationDocType] = useState('Diplôme')
   const [verificationDocLabel, setVerificationDocLabel] = useState('')
+  const [verificationPendingFile, setVerificationPendingFile] = useState<File | null>(null)
   const [verificationUploading, setVerificationUploading] = useState(false)
   const [verificationError, setVerificationError] = useState('')
 
-  async function handleUploadVerificationDocument(file: File) {
-    if (!doctor) return
+  async function handleUploadVerificationDocument() {
+    if (!doctor || !verificationPendingFile) return
     setVerificationUploading(true)
     setVerificationError('')
     try {
-      await uploadVerificationDocument.mutateAsync({ doctorId: doctor.id, file, documentType: verificationDocType, label: verificationDocLabel })
+      await uploadVerificationDocument.mutateAsync({ doctorId: doctor.id, file: verificationPendingFile, documentType: verificationDocType, label: verificationDocLabel })
       setVerificationDocLabel('')
+      setVerificationPendingFile(null)
     } catch (e: any) {
       setVerificationError(e.message ?? "Erreur lors de l'envoi du document.")
     } finally {
@@ -637,7 +639,7 @@ export default function DoctorDashboard() {
                 <p className="text-xs text-gray-500 mb-4">
                   Diplôme, carte professionnelle, numéro d&apos;ordre, extrait Kbis...
                 </p>
-                <div className="flex flex-wrap gap-2 mb-4">
+                <div className="flex flex-wrap items-center gap-2 mb-1">
                   <select className="input text-sm w-auto" value={verificationDocType}
                     onChange={e => setVerificationDocType(e.target.value)}>
                     {VERIFICATION_DOC_TYPES.map(t => <option key={t}>{t}</option>)}
@@ -645,14 +647,23 @@ export default function DoctorDashboard() {
                   <input type="text" className="input text-sm w-auto" placeholder="Nom du document (optionnel)"
                     value={verificationDocLabel} onChange={e => setVerificationDocLabel(e.target.value)} />
                   <label className="btn-secondary text-sm cursor-pointer">
-                    {verificationUploading ? 'Envoi...' : '+ Ajouter un document'}
+                    Choisir un fichier
                     <input type="file" accept="image/*,.pdf" className="hidden" disabled={verificationUploading}
-                      onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadVerificationDocument(f); e.target.value = '' }} />
+                      onChange={e => { const f = e.target.files?.[0]; if (f) setVerificationPendingFile(f); e.target.value = '' }} />
                   </label>
                 </div>
-                <p className="text-xs text-gray-400 -mt-3 mb-4">
-                  Indiquez le nom avant de cliquer sur « Ajouter un document » : il sera associé automatiquement au fichier choisi.
-                </p>
+                {verificationPendingFile && (
+                  <div className="flex items-center gap-2 mb-4 text-sm bg-sage-50 rounded-xl px-3 py-2">
+                    <span className="flex-1 truncate">📎 {verificationPendingFile.name}</span>
+                    <button type="button" onClick={() => setVerificationPendingFile(null)}
+                      className="text-gray-400 hover:text-red-500 transition-colors" title="Annuler">✕</button>
+                    <button type="button" onClick={handleUploadVerificationDocument} disabled={verificationUploading}
+                      className="btn-primary text-xs px-3 py-1.5">
+                      {verificationUploading ? 'Envoi...' : 'Envoyer'}
+                    </button>
+                  </div>
+                )}
+                {!verificationPendingFile && <div className="mb-4" />}
                 {verificationError && <p className="text-red-500 text-xs mb-3">{verificationError}</p>}
 
                 {verificationDocuments.length === 0 ? (
@@ -2111,7 +2122,7 @@ export default function DoctorDashboard() {
                 que votre profil soit vérifié et visible dans les résultats de recherche.
               </p>
 
-              <div className="flex flex-wrap gap-2 mb-4">
+              <div className="flex flex-wrap items-center gap-2 mb-1">
                 <select className="input text-sm w-auto" value={verificationDocType}
                   onChange={e => setVerificationDocType(e.target.value)}>
                   {VERIFICATION_DOC_TYPES.map(t => <option key={t}>{t}</option>)}
@@ -2119,14 +2130,23 @@ export default function DoctorDashboard() {
                 <input type="text" className="input text-sm w-auto" placeholder="Nom du document (optionnel)"
                   value={verificationDocLabel} onChange={e => setVerificationDocLabel(e.target.value)} />
                 <label className="btn-secondary text-sm cursor-pointer">
-                  {verificationUploading ? 'Envoi...' : '+ Ajouter un document'}
+                  Choisir un fichier
                   <input type="file" accept="image/*,.pdf" className="hidden" disabled={verificationUploading}
-                    onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadVerificationDocument(f); e.target.value = '' }} />
+                    onChange={e => { const f = e.target.files?.[0]; if (f) setVerificationPendingFile(f); e.target.value = '' }} />
                 </label>
               </div>
-              <p className="text-xs text-gray-400 -mt-3 mb-4">
-                Indiquez le nom avant de cliquer sur « Ajouter un document » : il sera associé automatiquement au fichier choisi.
-              </p>
+              {verificationPendingFile && (
+                <div className="flex items-center gap-2 mb-4 text-sm bg-sage-50 rounded-xl px-3 py-2">
+                  <span className="flex-1 truncate">📎 {verificationPendingFile.name}</span>
+                  <button type="button" onClick={() => setVerificationPendingFile(null)}
+                    className="text-gray-400 hover:text-red-500 transition-colors" title="Annuler">✕</button>
+                  <button type="button" onClick={handleUploadVerificationDocument} disabled={verificationUploading}
+                    className="btn-primary text-xs px-3 py-1.5">
+                    {verificationUploading ? 'Envoi...' : 'Envoyer'}
+                  </button>
+                </div>
+              )}
+              {!verificationPendingFile && <div className="mb-4" />}
               {verificationError && <p className="text-red-500 text-xs mb-3">{verificationError}</p>}
 
               {verificationDocuments.length === 0 ? (
