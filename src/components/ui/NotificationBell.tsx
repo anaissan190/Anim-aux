@@ -8,6 +8,39 @@ import { useQueryClient } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
+// Contrairement au service worker (urlForNotificationType, pushNotifications.ts)
+// qui ne connaît pas le rôle du destinataire et doit rester prudent (retombe
+// sur "/"), ce composant tourne dans l'app authentifiée : le rôle est connu,
+// donc on peut choisir la bonne destination par rôle plutôt que de risquer
+// d'envoyer un praticien sur "/rendez-vous" (route patient uniquement,
+// bloquée par ProtectedRoute) — appointment_rescheduled par exemple est
+// envoyé aussi bien au patient qu'au praticien selon qui a déplacé le RDV
+// (voir migrations 077 et 083_patient_reschedule.sql). Fonction pure
+// extraite (même principe que urlForNotificationType) pour être testable
+// sans monter le composant.
+const APPOINTMENT_TYPES = ['appointment_confirmed', 'appointment_cancelled', 'appointment_rescheduled', 'appointment_reminder']
+
+export function destinationForNotification(type: string, relatedId: string | null, isDoctor: boolean): string | null {
+  if (APPOINTMENT_TYPES.includes(type)) {
+    return isDoctor ? '/dashboard/doctor?tab=disponibilites' : '/rendez-vous'
+  }
+  if ((type === 'review_reminder' || type === 'waitlist_slot_available') && relatedId) {
+    return `/doctor/${relatedId}`
+  }
+  if (type === 'vaccine_reminder' && relatedId) {
+    return `/animal/${relatedId}`
+  }
+  if (type === 'doctor_verified' || type === 'doctor_rejected') {
+    return '/dashboard/doctor'
+  }
+  if (type === 'doctor_document_submitted') {
+    // AdminDashboard s'ouvre par défaut sur l'onglet "En attente"
+    // (useState<Tab>('pending')) — pas besoin d'un paramètre d'URL dédié.
+    return '/dashboard/admin'
+  }
+  return null
+}
+
 export default function NotificationBell({ large = false }: { large?: boolean }) {
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
@@ -46,22 +79,11 @@ export default function NotificationBell({ large = false }: { large?: boolean })
     if (!open && unread > 0) markRead.mutate()
   }
 
-  // Seul le rappel d'avis mène quelque part pour l'instant (related_id =
-  // doctor_id) : les autres types n'ont pas de destination unique et
-  // évidente, on ne les rend donc pas cliquables plutôt que de deviner un
-  // lien approximatif.
   function handleNotificationClick(n: { type: string; related_id: string | null }) {
-    if (n.type === 'review_reminder' && n.related_id) {
+    const dest = destinationForNotification(n.type, n.related_id, user?.role === 'doctor')
+    if (dest) {
       setOpen(false)
-      navigate(`/doctor/${n.related_id}`)
-    } else if (n.type === 'appointment_cancelled' || n.type === 'appointment_rescheduled') {
-      setOpen(false)
-      navigate('/rendez-vous')
-    } else if (n.type === 'doctor_document_submitted') {
-      // AdminDashboard s'ouvre par défaut sur l'onglet "En attente"
-      // (useState<Tab>('pending')) — pas besoin d'un paramètre d'URL dédié.
-      setOpen(false)
-      navigate('/dashboard/admin')
+      navigate(dest)
     }
   }
 
@@ -101,7 +123,7 @@ export default function NotificationBell({ large = false }: { large?: boolean })
               ) : notifications.map(n => (
                 <div key={n.id}
                   onClick={() => handleNotificationClick(n)}
-                  className={`px-4 py-3 text-sm flex items-start gap-2 ${n.is_read ? 'bg-white' : 'bg-sage-50'} ${['review_reminder', 'appointment_cancelled', 'appointment_rescheduled', 'doctor_document_submitted'].includes(n.type) ? 'cursor-pointer hover:bg-sage-50' : ''}`}>
+                  className={`px-4 py-3 text-sm flex items-start gap-2 ${n.is_read ? 'bg-white' : 'bg-sage-50'} ${destinationForNotification(n.type, n.related_id, user?.role === 'doctor') ? 'cursor-pointer hover:bg-sage-50' : ''}`}>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900">{n.title}</p>
                     <p className="text-gray-500 text-xs mt-0.5">{n.body}</p>

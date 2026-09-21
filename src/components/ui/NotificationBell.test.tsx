@@ -8,7 +8,7 @@ vi.mock('@/lib/supabase', () => ({ supabase: createSupabaseMock() }))
 
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/authStore'
-import NotificationBell from './NotificationBell'
+import NotificationBell, { destinationForNotification } from './NotificationBell'
 
 const FAKE_USER = { id: 'u1', email: 'a@a.fr', role: 'patient' as const, is_admin: false, created_at: '' }
 
@@ -103,5 +103,50 @@ describe('NotificationBell', () => {
     // parallèle (desktop/mobile), un nom fixe ferait échouer le second
     // abonnement Supabase.
     expect(supabase.channel).toHaveBeenCalledWith(expect.stringMatching(/^notifications-u1-/))
+  })
+})
+
+describe('destinationForNotification', () => {
+  it('envoie un patient vers "/rendez-vous" pour un RDV annulé/reporté/confirmé/rappelé', () => {
+    for (const type of ['appointment_confirmed', 'appointment_cancelled', 'appointment_rescheduled', 'appointment_reminder']) {
+      expect(destinationForNotification(type, null, false)).toBe('/rendez-vous')
+    }
+  })
+
+  it('envoie un praticien vers l\'onglet RDV de son dashboard, pas "/rendez-vous" (route patient uniquement)', () => {
+    // appointment_rescheduled est envoyé au praticien quand c'est le
+    // patient qui déplace le RDV (migration 083_patient_reschedule.sql) —
+    // avant ce correctif, le clic renvoyait vers "/rendez-vous", une route
+    // ProtectedRoute réservée au rôle patient qui rejette un praticien.
+    expect(destinationForNotification('appointment_rescheduled', null, true)).toBe('/dashboard/doctor?tab=disponibilites')
+    expect(destinationForNotification('appointment_cancelled', null, true)).toBe('/dashboard/doctor?tab=disponibilites')
+  })
+
+  it('renvoie vers la fiche du praticien pour un rappel d\'avis ou une place de liste d\'attente libérée', () => {
+    expect(destinationForNotification('review_reminder', 'doc1', false)).toBe('/doctor/doc1')
+    expect(destinationForNotification('waitlist_slot_available', 'doc1', false)).toBe('/doctor/doc1')
+  })
+
+  it('renvoie vers la fiche santé de l\'animal pour un rappel de vaccin', () => {
+    expect(destinationForNotification('vaccine_reminder', 'animal1', false)).toBe('/animal/animal1')
+  })
+
+  it('renvoie vers le dashboard praticien pour une décision de vérification', () => {
+    expect(destinationForNotification('doctor_verified', null, true)).toBe('/dashboard/doctor')
+    expect(destinationForNotification('doctor_rejected', null, true)).toBe('/dashboard/doctor')
+  })
+
+  it('renvoie vers le dashboard admin au dépôt d\'un document praticien', () => {
+    expect(destinationForNotification('doctor_document_submitted', null, false)).toBe('/dashboard/admin')
+  })
+
+  it('ne renvoie aucune destination sans related_id pour les types qui en dépendent', () => {
+    expect(destinationForNotification('review_reminder', null, false)).toBeNull()
+    expect(destinationForNotification('waitlist_slot_available', null, false)).toBeNull()
+    expect(destinationForNotification('vaccine_reminder', null, false)).toBeNull()
+  })
+
+  it('ne renvoie aucune destination pour un type inconnu ou sans lien évident (ex. new_review, jamais réellement émis)', () => {
+    expect(destinationForNotification('new_review', 'x', false)).toBeNull()
   })
 })
