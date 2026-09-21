@@ -2363,6 +2363,18 @@ export function useUploadVerificationDocument() {
         document_label: label?.trim() || null,
       })
       if (error) throw error
+
+      // Email aux admins (Edge Function send-doctor-document-notification,
+      // service Resend) en plus de la notification in-app déjà créée par le
+      // trigger DB — best-effort, comme send-appointment-confirmation : le
+      // document reste déposé même si l'email échoue.
+      try {
+        await supabase.functions.invoke('send-doctor-document-notification', {
+          body: { doctorId, documentType, documentLabel: label?.trim() || null },
+        })
+      } catch (emailError) {
+        console.error('Notification email admin non envoyée :', emailError)
+      }
     },
     onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['doctor_verification_documents', vars.doctorId] }),
   })
