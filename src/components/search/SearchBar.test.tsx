@@ -58,8 +58,24 @@ describe('SearchBar', () => {
     const { builder } = renderBar()
     const input = screen.getByPlaceholderText('Spécialité, praticien...')
     await waitForSpecialtiesLoaded(builder)
-    fireEvent.change(input, { target: { value: 'vé' } })
-    expect(screen.getByText('Vétérinaire')).toBeInTheDocument()
+    // La liste de suggestions est un calcul ponctuel fait AU MOMENT du
+    // fireEvent.change (à partir de specialtiesRef.current) — si l'effet qui
+    // synchronise ce ref depuis useSpecialties() n'a pas encore tourné, le
+    // calcul se fait sur une liste vide et ne sera jamais refait tout seul.
+    // waitForSpecialtiesLoaded pariait sur un nombre de ticks fixe pour
+    // l'effet, insuffisant sous charge (suite complète) — repéré via 5
+    // exécutions consécutives de la suite, ~20% d'échec. waitFor englobant
+    // le fireEvent.change reessaie la frappe jusqu'à ce que le rendu soit
+    // prêt — mais React ignore un fireEvent.change dont la valeur est
+    // identique à l'état déjà en place (bail-out sur égalité), donc chaque
+    // tentative doit repasser par une valeur différente ('') pour forcer un
+    // vrai re-rendu à chaque essai, sinon les réessais suivants sont des
+    // no-op silencieux (2e itération de ce correctif, la 1re n'a pas suffi).
+    await waitFor(() => {
+      fireEvent.change(input, { target: { value: '' } })
+      fireEvent.change(input, { target: { value: 'vé' } })
+      expect(screen.getByText('Vétérinaire')).toBeInTheDocument()
+    })
     expect(screen.getByText('Vétérinaire équin')).toBeInTheDocument()
     expect(screen.queryByText('Toiletteur')).not.toBeInTheDocument()
   })
@@ -76,8 +92,11 @@ describe('SearchBar', () => {
     const { builder } = renderBar()
     const input = screen.getByPlaceholderText('Spécialité, praticien...')
     await waitForSpecialtiesLoaded(builder)
-    fireEvent.change(input, { target: { value: 'toi' } })
-    expect(screen.getByText('Toiletteur')).toBeInTheDocument()
+    await waitFor(() => {
+      fireEvent.change(input, { target: { value: '' } })
+      fireEvent.change(input, { target: { value: 'toi' } })
+      expect(screen.getByText('Toiletteur')).toBeInTheDocument()
+    })
     fireEvent.click(screen.getByText('Toiletteur'))
     expect(input).toHaveValue('Toiletteur')
   })
