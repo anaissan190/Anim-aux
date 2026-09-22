@@ -142,6 +142,10 @@ Deno.serve(async (req) => {
     }
 
     const resendKey = Deno.env.get('RESEND_API_KEY')
+    // Même piège que le secret SMS OVH manquant (21/09/2026) : sans ce log,
+    // une clé Resend absente/révoquée échoue silencieusement — la personne
+    // invitée ne reçoit jamais son lien de connexion, sans aucune trace.
+    if (!resendKey) console.error('invite-clinic-secretary: RESEND_API_KEY manquant')
     let emailSent = false
     const loginUrl = (Deno.env.get('APP_URL') || 'https://anim-aux-a2qn.vercel.app') + '/login'
 

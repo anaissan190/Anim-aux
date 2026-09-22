@@ -54,6 +54,10 @@ Deno.serve(async (req) => {
   if (recipientError) console.error('recipient query error', recipientError)
 
   const resendKey = Deno.env.get('RESEND_API_KEY')
+  // Même piège que le secret SMS OVH manquant (21/09/2026) : sans ce log,
+  // une clé Resend absente/révoquée échoue exactement comme "pas de
+  // destinataire trouvé", indiscernable dans les logs.
+  if (!resendKey) console.error('send-waitlist-email: RESEND_API_KEY manquant')
   if (!resendKey || !recipient?.email) {
     return new Response(JSON.stringify({ sent: false }), { headers: { 'Content-Type': 'application/json' } })
   }

@@ -77,6 +77,10 @@ Deno.serve(async (req) => {
     const adminEmails = (admins ?? []).map((a: any) => a.email).filter(Boolean)
 
     const resendKey = Deno.env.get('RESEND_API_KEY')
+    // Même piège que le secret SMS OVH manquant (21/09/2026) : sans ce log,
+    // une clé Resend absente/révoquée échoue exactement comme "aucun admin
+    // trouvé", indiscernable dans les logs.
+    if (!resendKey) console.error('send-doctor-document-notification: RESEND_API_KEY manquant')
     let emailSent = false
 
     if (resendKey && adminEmails.length > 0) {

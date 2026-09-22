@@ -203,6 +203,10 @@ Deno.serve(async (req) => {
     if (notifInsertError) console.error('notifications insert error', notifInsertError)
 
     const resendKey = Deno.env.get('RESEND_API_KEY')
+    // Même piège que le secret SMS OVH manquant (21/09/2026) : sans ce log,
+    // une clé Resend absente/révoquée échoue exactement comme "pas d'email
+    // patient", indiscernable dans les logs.
+    if (!resendKey) console.error('send-appointment-confirmation: RESEND_API_KEY manquant')
     let emailSent = false
 
     if (resendKey && patientEmail) {

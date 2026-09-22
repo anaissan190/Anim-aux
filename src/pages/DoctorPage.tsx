@@ -277,10 +277,20 @@ export default function DoctorPage() {
                 {doctor.consultation_price}€
                 <span className="text-sm font-normal text-gray-400 ml-1">/ consultation</span>
               </p>
-              {user ? (
+              {user && user.role === 'patient' ? (
                 <Link to={`/book/${doctor.id}`} className="btn-primary block text-center">
                   Voir les disponibilités
                 </Link>
+              ) : user ? (
+                // Compte connecté mais pas propriétaire d'animal (praticien,
+                // secrétariat, admin) : /book/:doctorId est réservé au rôle
+                // patient (ProtectedRoute), et renvoyait silencieusement vers
+                // l'accueil sans explication au clic — repéré lors de l'audit
+                // du 23/09/2026 avant une démo à un professionnel, dont le
+                // compte de test aurait pu être praticien/secrétariat.
+                <p className="text-sm text-gray-400 text-center">
+                  La prise de rendez-vous est réservée aux comptes propriétaires d&apos;animaux.
+                </p>
               ) : (
                 <div className="space-y-2">
                   <Link to="/login" className="btn-primary block text-center">Se connecter</Link>
