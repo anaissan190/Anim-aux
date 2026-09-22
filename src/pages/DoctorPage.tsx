@@ -93,12 +93,11 @@ export default function DoctorPage() {
         <BackButton fallback="/search" />
         <div className="grid md:grid-cols-3 gap-6">
 
-          {/* Colonne principale — order-2 sur mobile (voir bloc "Prendre
-              rendez-vous" plus bas) pour que la grille à une seule colonne
-              affiche d'abord la prise de RDV, pas tout en bas après avis et
-              localisation (repéré par Anaïs le 23/09/2026 sur mobile). */}
-          <div className="order-2 md:order-1 md:col-span-2 space-y-5">
-            {/* En-tête */}
+          {/* En-tête — seul élément avant la prise de RDV sur mobile (voir
+              bloc "Prendre rendez-vous" plus bas) : Anaïs voulait la prise
+              de RDV juste après le profil, pas au-dessus de tout (1er essai
+              du 23/09/2026, corrigé le même jour). */}
+          <div className="md:col-span-2">
             <div className="card p-6 flex gap-5 relative">
               {user?.role === 'patient' && id && (
                 <button
@@ -160,7 +159,59 @@ export default function DoctorPage() {
                 )}
               </div>
             </div>
+          </div>
 
+          {/* Sidebar — prise de RDV. Placée ici dans l'ordre du code (entre
+              l'en-tête et le reste du contenu) pour qu'elle s'affiche juste
+              après le profil sur mobile, ni tout en haut ni tout en bas
+              (2ème essai du 23/09/2026 — le 1er la remontait au-dessus de
+              tout, avant même le nom du praticien). En grille desktop
+              (md:), row-span-2 la fait s'étirer sur la hauteur de l'en-tête
+              ET du bloc suivant, pour occuper visuellement toute la colonne
+              de droite comme avant cette restructuration. */}
+          <div className="md:col-span-1 md:row-span-2">
+            <div className="card p-5 sticky top-24">
+              <h2 className="font-semibold text-gray-900 mb-1">Prendre rendez-vous</h2>
+              <p className="text-2xl font-bold text-sage-600 mb-4">
+                {doctor.consultation_price}€
+                <span className="text-sm font-normal text-gray-400 ml-1">/ consultation</span>
+              </p>
+              {user && user.role === 'patient' ? (
+                <Link to={`/book/${doctor.id}`} className="btn-primary block text-center">
+                  Voir les disponibilités
+                </Link>
+              ) : user ? (
+                <p className="text-sm text-gray-400 text-center">
+                  La prise de rendez-vous est réservée aux comptes propriétaires d&apos;animaux.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  <Link to="/login" className="btn-primary block text-center">Se connecter</Link>
+                  <Link to="/register" className="btn-secondary block text-center text-sm">Créer un compte</Link>
+                </div>
+              )}
+              {doctorProfile?.phone && (
+                <a href={`tel:${doctorProfile.phone}`}
+                  className="btn-secondary block text-center text-sm mt-2">
+                  📞 {doctorProfile.phone}
+                </a>
+              )}
+              {clinic?.phone && (
+                <a href={`tel:${clinic.phone}`}
+                  className="btn-secondary block text-center text-sm mt-2">
+                  📞 Cabinet : {clinic.phone}
+                </a>
+              )}
+              {user && (
+                <div className="mt-3 text-center">
+                  <ReportButton targetType="doctor" targetId={doctor.id} label="Signaler ce praticien" />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Reste du contenu (bio, localisation, avis) */}
+          <div className="md:col-span-2 space-y-5">
             {/* Bio */}
             {doctor.bio && (
               <div className="card p-6">
@@ -267,56 +318,6 @@ export default function DoctorPage() {
                       )}
                     </div>
                   ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Sidebar — prise de RDV. order-1 sur mobile : remonte avant la
-              colonne principale (localisation, avis...) dans la grille à
-              une seule colonne, au lieu de rester tout en bas. */}
-          <div className="order-1 md:order-2 md:col-span-1">
-            <div className="card p-5 sticky top-24">
-              <h2 className="font-semibold text-gray-900 mb-1">Prendre rendez-vous</h2>
-              <p className="text-2xl font-bold text-sage-600 mb-4">
-                {doctor.consultation_price}€
-                <span className="text-sm font-normal text-gray-400 ml-1">/ consultation</span>
-              </p>
-              {user && user.role === 'patient' ? (
-                <Link to={`/book/${doctor.id}`} className="btn-primary block text-center">
-                  Voir les disponibilités
-                </Link>
-              ) : user ? (
-                // Compte connecté mais pas propriétaire d'animal (praticien,
-                // secrétariat, admin) : /book/:doctorId est réservé au rôle
-                // patient (ProtectedRoute), et renvoyait silencieusement vers
-                // l'accueil sans explication au clic — repéré lors de l'audit
-                // du 23/09/2026 avant une démo à un professionnel, dont le
-                // compte de test aurait pu être praticien/secrétariat.
-                <p className="text-sm text-gray-400 text-center">
-                  La prise de rendez-vous est réservée aux comptes propriétaires d&apos;animaux.
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  <Link to="/login" className="btn-primary block text-center">Se connecter</Link>
-                  <Link to="/register" className="btn-secondary block text-center text-sm">Créer un compte</Link>
-                </div>
-              )}
-              {doctorProfile?.phone && (
-                <a href={`tel:${doctorProfile.phone}`}
-                  className="btn-secondary block text-center text-sm mt-2">
-                  📞 {doctorProfile.phone}
-                </a>
-              )}
-              {clinic?.phone && (
-                <a href={`tel:${clinic.phone}`}
-                  className="btn-secondary block text-center text-sm mt-2">
-                  📞 Cabinet : {clinic.phone}
-                </a>
-              )}
-              {user && (
-                <div className="mt-3 text-center">
-                  <ReportButton targetType="doctor" targetId={doctor.id} label="Signaler ce praticien" />
                 </div>
               )}
             </div>
