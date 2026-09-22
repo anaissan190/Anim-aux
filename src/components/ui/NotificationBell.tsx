@@ -1,5 +1,6 @@
 // src/components/ui/NotificationBell.tsx
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useNotifications, useMarkNotificationsRead, useDeleteNotification, useDeleteAllNotifications } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
@@ -103,17 +104,19 @@ export default function NotificationBell({ large = false }: { large?: boolean })
         )}
       </button>
 
-      {open && (
+      {open && createPortal(
+        // Rendu directement dans <body> (portal), pas à l'endroit où
+        // <NotificationBell> est monté dans l'arbre React : un simple
+        // "fixed" ne suffit pas dès qu'un ancêtre (animation de page,
+        // transform CSS...) redéfinit son propre référentiel de
+        // positionnement — le panneau se retrouvait écrasé en une bande
+        // verticale de quelques pixels dans la coquille mobile "Aurora"
+        // (signalé par Anaïs le 23/09/2026, absent de la Navbar desktop où
+        // le bug avait d'abord semblé corrigé). Un portal échappe à tout
+        // ancêtre, quel que soit l'endroit d'où la cloche est appelée.
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          {/* Positionné en fixed + inset-x sur mobile (pas absolute right-0) :
-              la cloche n'est pas forcément collée au bord droit de l'écran
-              (Navbar en a d'autres icônes à sa droite), donc un panneau
-              w-80 ancré sur SA droite dépassait hors écran à gauche sur
-              mobile — signalé par Anaïs le 23/09/2026 (texte tronqué côté
-              gauche du panneau). Le comportement desktop (absolute right-0
-              w-80) est inchangé à partir de md:. */}
-          <div className="fixed left-4 right-4 top-16 md:absolute md:left-auto md:right-0 md:top-12 md:w-80 card shadow-xl z-20 overflow-hidden">
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="fixed left-4 right-4 top-16 md:left-auto md:right-4 md:w-80 card shadow-xl z-50 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
               <p className="font-semibold text-sm">Notifications</p>
               {notifications.length > 0 && (
@@ -148,7 +151,8 @@ export default function NotificationBell({ large = false }: { large?: boolean })
               ))}
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   )
