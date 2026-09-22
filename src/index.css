@@ -41,6 +41,21 @@
 }
 
 @layer base {
+  /* Verrou anti-défilement horizontal : plusieurs bugs distincts (badge qui
+     ne revient pas à la ligne, panneau de notifications mal ancré, texte
+     tronqué sans min-w-0...) ont chacun rendu la page glissable de gauche
+     à droite sur mobile, repérés un par un par Anaïs le 23/09/2026 — corrigés
+     individuellement, mais rien n'empêchait qu'un futur ajout recrée le même
+     symptôme. Ce filet de sécurité l'empêche structurellement : même si un
+     élément dépasse encore de quelques pixels quelque part, la page ne
+     pourra plus jamais être tirée horizontalement, seul le défilement
+     vertical reste possible. Sur `html` ET `body` (pas l'un ou l'autre) car
+     selon le navigateur, c'est l'un ou l'autre qui porte le scroll racine. */
+  /* overflow-x: clip (pas "hidden") : "hidden" transforme html/body en
+     conteneur de défilement, ce qui casse position:sticky (la barre de
+     navigation ne restait plus collée en haut au scroll) — "clip" masque le
+     débordement horizontal sans créer ce conteneur, sticky reste intact. */
+  html, body { overflow-x: clip; }
   html { font-family: 'Public Sans', system-ui, sans-serif; }
   body { @apply bg-gray-50 text-gray-900 antialiased; }
   /* Seuls les vrais titres (h1/h2) passent en Lora (sérif chaud) — h3-h6
