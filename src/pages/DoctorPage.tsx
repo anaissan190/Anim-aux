@@ -119,7 +119,7 @@ export default function DoctorPage() {
                   <span className="text-3xl font-bold text-sage-600">{name[0]}</span>
                 )}
               </div>
-              <div>
+              <div className="min-w-0">
                 <h1 className="text-2xl font-bold text-gray-900">{name}</h1>
                 <p className="text-sage-600 font-medium">{doctor.specialty}</p>
                 {clinic ? (
@@ -138,7 +138,7 @@ export default function DoctorPage() {
                 ) : (
                   doctor.city && <p className="text-sm text-gray-500 mt-1">📍 {doctor.address ?? doctor.city}</p>
                 )}
-                <div className="flex items-center gap-2 mt-2">
+                <div className="flex flex-wrap items-center gap-2 mt-2">
                   <StarRating rating={doctor.average_rating} />
                   <span className="text-sm text-gray-500">
                     {(doctor.average_rating ?? 0).toFixed(1)} ({doctor.review_count} avis)
