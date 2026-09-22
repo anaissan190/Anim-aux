@@ -18,7 +18,17 @@ const markerIcon = L.divIcon({
 
 export default function LocationMap({ lat, lng, label }: { lat: number; lng: number; label: string }) {
   return (
-    <div className="h-56 rounded-xl overflow-hidden">
+    // isolate : les tuiles/marqueurs Leaflet utilisent en interne des
+    // z-index élevés (jusqu'à 700, pour se superposer entre eux à
+    // l'intérieur de la carte) qui, sans isolation explicite, ne sont
+    // cloisonnés par aucun ancêtre de la page — rien ici n'établit de
+    // nouveau contexte d'empilement avant ce wrapper. Ils pouvaient donc
+    // entrer en concurrence directe avec le menu du haut (sticky, z-50) et
+    // passer par-dessus pendant le défilement sur mobile (repéré par
+    // Anaïs le 23/09/2026, iPhone/Safari). "isolate" force tout le
+    // contenu de la carte dans son propre plan, qui ne peut plus jamais
+    // dépasser des éléments extérieurs quel que soit son z-index interne.
+    <div className="h-56 rounded-xl overflow-hidden isolate relative">
       <MapContainer center={[lat, lng]} zoom={15} scrollWheelZoom={false} style={{ height: '100%', width: '100%' }}>
         <TileLayer
           attribution='&copy; <a href="https://carto.com/attributions">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
