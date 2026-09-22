@@ -93,8 +93,11 @@ export default function DoctorPage() {
         <BackButton fallback="/search" />
         <div className="grid md:grid-cols-3 gap-6">
 
-          {/* Colonne principale */}
-          <div className="md:col-span-2 space-y-5">
+          {/* Colonne principale — order-2 sur mobile (voir bloc "Prendre
+              rendez-vous" plus bas) pour que la grille à une seule colonne
+              affiche d'abord la prise de RDV, pas tout en bas après avis et
+              localisation (repéré par Anaïs le 23/09/2026 sur mobile). */}
+          <div className="order-2 md:order-1 md:col-span-2 space-y-5">
             {/* En-tête */}
             <div className="card p-6 flex gap-5 relative">
               {user?.role === 'patient' && id && (
@@ -269,8 +272,10 @@ export default function DoctorPage() {
             </div>
           </div>
 
-          {/* Sidebar — prise de RDV */}
-          <div className="md:col-span-1">
+          {/* Sidebar — prise de RDV. order-1 sur mobile : remonte avant la
+              colonne principale (localisation, avis...) dans la grille à
+              une seule colonne, au lieu de rester tout en bas. */}
+          <div className="order-1 md:order-2 md:col-span-1">
             <div className="card p-5 sticky top-24">
               <h2 className="font-semibold text-gray-900 mb-1">Prendre rendez-vous</h2>
               <p className="text-2xl font-bold text-sage-600 mb-4">
