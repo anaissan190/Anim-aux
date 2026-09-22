@@ -654,7 +654,7 @@ export default function DoctorDashboard() {
                 </div>
                 {verificationPendingFile && (
                   <div className="flex items-center gap-2 mb-4 text-sm bg-sage-50 rounded-xl px-3 py-2">
-                    <span className="flex-1 truncate">📎 {verificationPendingFile.name}</span>
+                    <span className="flex-1 truncate min-w-0">📎 {verificationPendingFile.name}</span>
                     <button type="button" onClick={() => setVerificationPendingFile(null)}
                       className="text-gray-400 hover:text-red-500 transition-colors" title="Annuler">✕</button>
                     <button type="button" onClick={handleUploadVerificationDocument} disabled={verificationUploading}
@@ -2137,7 +2137,7 @@ export default function DoctorDashboard() {
               </div>
               {verificationPendingFile && (
                 <div className="flex items-center gap-2 mb-4 text-sm bg-sage-50 rounded-xl px-3 py-2">
-                  <span className="flex-1 truncate">📎 {verificationPendingFile.name}</span>
+                  <span className="flex-1 truncate min-w-0">📎 {verificationPendingFile.name}</span>
                   <button type="button" onClick={() => setVerificationPendingFile(null)}
                     className="text-gray-400 hover:text-red-500 transition-colors" title="Annuler">✕</button>
                   <button type="button" onClick={handleUploadVerificationDocument} disabled={verificationUploading}

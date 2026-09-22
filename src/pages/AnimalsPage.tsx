@@ -51,7 +51,7 @@ function PetRow({ animal, index }: { animal: any; index: number }) {
       </div>
       <div className="p-3">
         <div className="flex items-baseline justify-between gap-2">
-          <p className="font-playfair font-bold text-[15px] text-gray-900 truncate">
+          <p className="font-playfair font-bold text-[15px] text-gray-900 truncate min-w-0">
             {animal.name}{genderSymbol ? ` ${genderSymbol}` : ''}
           </p>
           {age !== null && <p className="text-[10.5px] font-bold text-gray-500 flex-shrink-0">{age} an{age > 1 ? 's' : ''}</p>}

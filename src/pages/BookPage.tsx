@@ -300,7 +300,7 @@ export default function BookPage() {
                   <ul className="mt-2 space-y-1">
                     {documents.map((d, i) => (
                       <li key={i} className="flex items-center justify-between text-xs bg-gray-50 rounded-lg px-3 py-2">
-                        <span className="truncate">📄 {d.file_name}</span>
+                        <span className="truncate min-w-0">📄 {d.file_name}</span>
                         <button type="button" onClick={() => removeDocument(i)}
                           className="text-red-400 hover:underline ml-2 flex-shrink-0">Retirer</button>
                       </li>
