@@ -106,7 +106,14 @@ export default function NotificationBell({ large = false }: { large?: boolean })
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-12 w-80 card shadow-xl z-20 overflow-hidden">
+          {/* Positionné en fixed + inset-x sur mobile (pas absolute right-0) :
+              la cloche n'est pas forcément collée au bord droit de l'écran
+              (Navbar en a d'autres icônes à sa droite), donc un panneau
+              w-80 ancré sur SA droite dépassait hors écran à gauche sur
+              mobile — signalé par Anaïs le 23/09/2026 (texte tronqué côté
+              gauche du panneau). Le comportement desktop (absolute right-0
+              w-80) est inchangé à partir de md:. */}
+          <div className="fixed left-4 right-4 top-16 md:absolute md:left-auto md:right-0 md:top-12 md:w-80 card shadow-xl z-20 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
               <p className="font-semibold text-sm">Notifications</p>
               {notifications.length > 0 && (
