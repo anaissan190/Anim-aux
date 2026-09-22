@@ -22,12 +22,22 @@ webpush.setVapidDetails(
 )
 
 Deno.serve(async (req) => {
-  // N'accepte que l'appel du trigger SQL (migration 068), qui envoie déjà
-  // Authorization: Bearer <service_role_key>. Sans cette vérification,
-  // n'importe qui muni de la clé anon publique pouvait déclencher l'envoi
-  // de push à volonté pour un notification_id qu'il peut lire.
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-  if (!serviceRoleKey || req.headers.get('Authorization') !== `Bearer ${serviceRoleKey}`) {
+  // Secret dédié à cet unique usage (migration 099) — plus la clé
+  // service_role, dont le format a changé côté Supabase (sb_secret_...)
+  // sans que l'ancienne copie JWT dans Vault ne soit mise à jour, cassant
+  // silencieusement l'envoi de push depuis le début (diagnostiqué le
+  // 22/09/2026 via les logs, qui révélaient un écart de longueur entre
+  // la valeur reçue et Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')). Un
+  // secret que nous contrôlons entièrement ne dépend plus du format de
+  // clé choisi par la plateforme.
+  const triggerSecret = Deno.env.get('PUSH_TRIGGER_SECRET')
+  const receivedAuth = (req.headers.get('Authorization') ?? '').trim()
+  const expectedAuth = `Bearer ${(triggerSecret ?? '').trim()}`
+  if (!triggerSecret || receivedAuth !== expectedAuth) {
+    console.error('send-push: Authorization ne correspond pas', {
+      receivedLength: receivedAuth.length,
+      expectedLength: expectedAuth.length,
+    })
     return new Response('Unauthorized', { status: 401 })
   }
 
