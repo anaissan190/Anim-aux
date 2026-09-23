@@ -617,7 +617,7 @@ function AdminPatientDetail({ userId, onBack }: { userId: string; onBack: () => 
           <div className="card p-6">
             <div className="flex items-center gap-4 mb-5">
               <div className="w-14 h-14 rounded-full bg-sage-500 flex items-center justify-center text-xl text-white font-bold overflow-hidden flex-shrink-0">
-                {p.avatar_url ? <img src={p.avatar_url} className="w-full h-full object-cover" alt="" /> : (p.first_name?.[0] ?? '?').toUpperCase()}
+                {p.avatar_url ? <img src={p.avatar_url} className="w-full h-full object-cover" alt="" loading="lazy" /> : (p.first_name?.[0] ?? '?').toUpperCase()}
               </div>
               <div>
                 <h1 className="text-lg font-bold text-gray-900">{p.first_name} {p.last_name}</h1>
@@ -676,7 +676,7 @@ function AdminPatientDetail({ userId, onBack }: { userId: string; onBack: () => 
                 {p.animals.map((a: any) => (
                   <div key={a.id} className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2">
                     <div className="w-7 h-7 rounded-full bg-sage-100 flex items-center justify-center text-xs overflow-hidden flex-shrink-0">
-                      {a.avatar_url ? <img src={a.avatar_url} className="w-full h-full object-cover" alt="" /> : '🐾'}
+                      {a.avatar_url ? <img src={a.avatar_url} className="w-full h-full object-cover" alt="" loading="lazy" /> : '🐾'}
                     </div>
                     <span className="text-sm text-gray-700">{a.name} <span className="text-gray-400">· {a.species}</span></span>
                   </div>
@@ -757,7 +757,7 @@ function AdminClinicsView({ onBack, onSelectClinic }: { onBack: () => void; onSe
               <button key={c.clinic_id} onClick={() => onSelectClinic(c.clinic_id)}
                 className="flex items-center gap-3 w-full text-left p-3 rounded-xl hover:bg-gray-50 transition-colors">
                 <div className="w-10 h-10 rounded-xl bg-sage-100 flex items-center justify-center text-lg overflow-hidden flex-shrink-0">
-                  {c.logo_url ? <img src={c.logo_url} className="w-full h-full object-cover" alt="" /> : '🏥'}
+                  {c.logo_url ? <img src={c.logo_url} className="w-full h-full object-cover" alt="" loading="lazy" /> : '🏥'}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-800 truncate">{c.name}</p>
@@ -796,7 +796,7 @@ function AdminClinicDetail({ clinicId, onBack, onSelectDoctor }: {
           <div className="card p-6">
             <div className="flex items-center gap-4 mb-5">
               <div className="w-14 h-14 rounded-2xl bg-sage-100 flex items-center justify-center text-2xl overflow-hidden flex-shrink-0">
-                {c.logo_url ? <img src={c.logo_url} className="w-full h-full object-cover" alt="" /> : '🏥'}
+                {c.logo_url ? <img src={c.logo_url} className="w-full h-full object-cover" alt="" loading="lazy" /> : '🏥'}
               </div>
               <div>
                 <h1 className="text-lg font-bold text-gray-900">{c.name}</h1>
@@ -1079,7 +1079,7 @@ function AdminDoctorDetail({ doctorId, onBack }: { doctorId: string; onBack: () 
               <div className="flex items-start justify-between gap-4 mb-5">
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 rounded-full bg-sage-500 flex items-center justify-center text-xl text-white font-bold overflow-hidden flex-shrink-0">
-                    {d.avatar_url ? <img src={d.avatar_url} className="w-full h-full object-cover" alt="" /> : (d.first_name?.[0] ?? '?').toUpperCase()}
+                    {d.avatar_url ? <img src={d.avatar_url} className="w-full h-full object-cover" alt="" loading="lazy" /> : (d.first_name?.[0] ?? '?').toUpperCase()}
                   </div>
                   <div>
                     <h1 className="text-lg font-bold text-gray-900">{d.first_name} {d.last_name}</h1>

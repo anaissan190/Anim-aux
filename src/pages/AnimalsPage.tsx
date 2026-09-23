@@ -45,7 +45,7 @@ function PetRow({ animal, index }: { animal: any; index: number }) {
       style={{ animationDelay: `${index * 0.08}s` }}>
       <div className="h-24 bg-sage-100 flex items-center justify-center">
         {animal.avatar_url && !imgError
-          ? <img src={animal.avatar_url} alt={animal.name} className="w-full h-full object-cover" onError={() => setImgError(true)} />
+          ? <img src={animal.avatar_url} alt={animal.name} className="w-full h-full object-cover" loading="lazy" onError={() => setImgError(true)} />
           : <span className="text-4xl">{SPECIES_EMOJI[animal.species] ?? '🐾'}</span>
         }
       </div>
@@ -114,7 +114,7 @@ function AnimalDesktopCard({ animal, colorIndex }: { animal: any; colorIndex: nu
       style={{ aspectRatio: '3 / 4', animationDelay: `${colorIndex * 60}ms` }}>
       <div className={`absolute inset-0 flex items-center justify-center ${photoBg}`}>
         {animal.avatar_url && !imgError
-          ? <img src={animal.avatar_url} alt={animal.name} className="w-full h-full object-cover" onError={() => setImgError(true)} />
+          ? <img src={animal.avatar_url} alt={animal.name} className="w-full h-full object-cover" loading="lazy" onError={() => setImgError(true)} />
           : <span className="text-5xl">{SPECIES_EMOJI[animal.species] ?? '🐾'}</span>
         }
       </div>

@@ -866,7 +866,7 @@ export default function DoctorDashboard() {
                       style={{ aspectRatio: '3 / 4', animationDelay: `${i * 40}ms` }}>
                       <div className={`absolute inset-0 flex items-center justify-center ${photoBg}`}>
                         {a.avatar_url
-                          ? <img src={a.avatar_url} alt={a.name} className="w-full h-full object-cover" />
+                          ? <img src={a.avatar_url} alt={a.name} className="w-full h-full object-cover" loading="lazy" />
                           : <span className="text-5xl">{SPECIES_EMOJI[a.species] ?? '🐾'}</span>
                         }
                       </div>
@@ -1668,7 +1668,7 @@ export default function DoctorDashboard() {
                   <div className="relative w-16 h-16 flex-shrink-0 group">
                     <div className="w-16 h-16 rounded-2xl bg-sage-100 flex items-center justify-center text-2xl overflow-hidden">
                       {clinic.logo_url
-                        ? <img src={clinic.logo_url} className="w-full h-full object-cover" alt={clinic.name} />
+                        ? <img src={clinic.logo_url} className="w-full h-full object-cover" alt={clinic.name} loading="lazy" />
                         : '🏥'}
                     </div>
                     <label className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
@@ -1999,7 +1999,7 @@ export default function DoctorDashboard() {
                 <div className="relative w-16 h-16 flex-shrink-0 group">
                   <div className="w-16 h-16 rounded-full bg-sage-100 flex items-center justify-center text-2xl overflow-hidden">
                     {profile?.avatar_url
-                      ? <img src={profile.avatar_url} className="w-full h-full object-cover" alt="Photo de profil" />
+                      ? <img src={profile.avatar_url} className="w-full h-full object-cover" alt="Photo de profil" loading="lazy" />
                       : '👤'}
                   </div>
                   <label className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">

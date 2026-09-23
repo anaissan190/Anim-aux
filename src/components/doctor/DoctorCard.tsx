@@ -31,7 +31,7 @@ export default function DoctorCard({ doctor, distanceKm, nextSlotAt }: Props) {
       {/* Avatar */}
       <div className={`w-14 h-14 rounded-full ${colors.bg} flex-shrink-0 overflow-hidden flex items-center justify-center`}>
         {doctor.profiles?.avatar_url ? (
-          <img src={doctor.profiles.avatar_url} alt={name} className="w-full h-full object-cover" />
+          <img src={doctor.profiles.avatar_url} alt={name} className="w-full h-full object-cover" loading="lazy" />
         ) : (
           <span className={`font-serif font-semibold text-base ${colors.text}`}>{initials}</span>
         )}

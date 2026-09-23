@@ -104,7 +104,7 @@ export default function SecretaryDashboard() {
                   {team.map((m: any) => (
                     <div key={m.doctor_id} className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-full bg-sage-100 flex items-center justify-center text-sage-700 font-bold text-sm overflow-hidden">
-                        {m.avatar_url ? <img src={m.avatar_url} className="w-full h-full object-cover" alt="" /> : (m.first_name?.[0]?.toUpperCase() ?? '?')}
+                        {m.avatar_url ? <img src={m.avatar_url} className="w-full h-full object-cover" alt="" loading="lazy" /> : (m.first_name?.[0]?.toUpperCase() ?? '?')}
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-800 flex items-center gap-1.5">

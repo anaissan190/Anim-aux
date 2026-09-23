@@ -49,7 +49,7 @@ export default function ClinicPage() {
         <div className="card p-6 flex gap-5 mb-6">
           <div className="w-20 h-20 rounded-2xl bg-sage-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
             {clinic.logo_url
-              ? <img src={clinic.logo_url} alt={clinic.name} className="w-full h-full object-cover" />
+              ? <img src={clinic.logo_url} alt={clinic.name} className="w-full h-full object-cover" loading="lazy" />
               : <span className="text-3xl">🏥</span>}
           </div>
           <div>
@@ -83,7 +83,7 @@ export default function ClinicPage() {
                   className="card p-5 hover:shadow-md hover:-translate-y-0.5 transition-all flex gap-4 group">
                   <div className="w-16 h-16 rounded-2xl bg-sage-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
                     {m.avatar_url
-                      ? <img src={m.avatar_url} alt={name} className="w-full h-full object-cover" />
+                      ? <img src={m.avatar_url} alt={name} className="w-full h-full object-cover" loading="lazy" />
                       : <span className="text-2xl font-bold text-sage-600">{name[0]}</span>}
                   </div>
                   <div className="flex-1 min-w-0">

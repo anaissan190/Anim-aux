@@ -114,7 +114,7 @@ export default function DoctorPage() {
               )}
               <div className="w-20 h-20 rounded-2xl bg-sage-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
                 {doctorProfile?.avatar_url ? (
-                  <img src={doctorProfile.avatar_url} alt={name} className="w-full h-full object-cover" />
+                  <img src={doctorProfile.avatar_url} alt={name} className="w-full h-full object-cover" loading="lazy" />
                 ) : (
                   <span className="text-3xl font-bold text-sage-600">{name[0]}</span>
                 )}
@@ -126,7 +126,7 @@ export default function DoctorPage() {
                   <div className="mt-1 flex items-center gap-2">
                     {clinic.logo_url && (
                       <img src={clinic.logo_url} alt={clinic.clinic_name}
-                        className="w-6 h-6 rounded-lg object-cover flex-shrink-0" />
+                        className="w-6 h-6 rounded-lg object-cover flex-shrink-0" loading="lazy" />
                     )}
                     <div>
                       <p className="text-sm text-gray-700 font-medium">🏥 Membre du cabinet {clinic.clinic_name}</p>

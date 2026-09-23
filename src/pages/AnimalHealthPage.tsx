@@ -1,6 +1,5 @@
 // src/pages/AnimalHealthPage.tsx
-import { useState, useEffect } from 'react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { useState, useEffect, Suspense, lazy } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { fr } from 'date-fns/locale'
 import { formatInTimeZone } from 'date-fns-tz'
@@ -33,12 +32,14 @@ import {
 } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { supabase } from '@/lib/supabase'
-import { SPECIES_EMOJI, SPECIES_MAX_WEIGHT, BREED_PLACEHOLDER } from '@/lib/animalSpecies'
+import { SPECIES_EMOJI, BREED_PLACEHOLDER } from '@/lib/animalSpecies'
 import { getPractitionerTypeBySpecialty } from '@/lib/practitionerTypes'
 import SpeciesSelect from '@/components/ui/SpeciesSelect'
 import { showToast } from '@/lib/toast'
 import { compressImage } from '@/lib/compressImage'
 import { CARE_TYPES, careTypeIcon, careTypeLabel } from '@/lib/careTypes'
+
+const WeightChart = lazy(() => import('@/components/animal/WeightChart'))
 
 export const DOC_TYPE_LABELS: Record<DocumentType, string> = {
   ordonnance: '💊 Ordonnance',
@@ -373,7 +374,7 @@ export default function AnimalHealthPage() {
           <div className="relative w-28 sm:w-36 flex-shrink-0 bg-sage-50 group">
             <div className="absolute inset-0 flex items-center justify-center text-5xl">
               {animal.avatar_url
-                ? <img src={animal.avatar_url} className="w-full h-full object-cover" alt={animal.name} />
+                ? <img src={animal.avatar_url} className="w-full h-full object-cover" alt={animal.name} loading="lazy" />
                 : emoji}
             </div>
             {!isDoctor && (
@@ -620,25 +621,14 @@ export default function AnimalHealthPage() {
                 </div>
               </div>
             )}
-            {/* Courbe de poids */}
+            {/* Courbe de poids — recharts chargé en lazy (voir WeightChart.tsx),
+                seulement quand cette section est réellement affichée. */}
             {weights.length >= 2 && (
               <div className="card p-5 mb-4">
                 <h3 className="text-sm font-semibold text-gray-700 mb-4">📈 Courbe de poids</h3>
-                <ResponsiveContainer width="100%" height={200}>
-                  <LineChart data={weights.map(w => ({
-                    date: formatInTimeZone(new Date(w.measured_at), PARIS_TZ, 'd MMM', { locale: fr }),
-                    poids: w.weight_kg,
-                  }))}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} unit=" kg" domain={[
-                      0,
-                      (dataMax: number) => Math.max(dataMax, SPECIES_MAX_WEIGHT[animal.species] ?? 50)
-                    ]} />
-                    <Tooltip formatter={(v: any) => [`${v} kg`, 'Poids']} />
-                    <Line type="monotone" dataKey="poids" stroke="#f2820f" strokeWidth={2} dot={{ fill: '#f2820f', r: 4 }} />
-                  </LineChart>
-                </ResponsiveContainer>
+                <Suspense fallback={<div className="h-[200px] flex items-center justify-center text-gray-400 text-sm">Chargement du graphique...</div>}>
+                  <WeightChart weights={weights} species={animal.species} />
+                </Suspense>
               </div>
             )}
 
@@ -813,7 +803,7 @@ export default function AnimalHealthPage() {
                     <a href={d.file_url} target="_blank" rel="noopener noreferrer"
                       className="w-10 h-10 rounded-xl bg-sage-50 flex items-center justify-center text-lg overflow-hidden flex-shrink-0">
                       {d.file_type?.startsWith('image/')
-                        ? <img src={d.file_url} className="w-full h-full object-cover" alt={d.file_name} />
+                        ? <img src={d.file_url} className="w-full h-full object-cover" alt={d.file_name} loading="lazy" />
                         : '📄'}
                     </a>
                     <div className="flex-1 min-w-0">

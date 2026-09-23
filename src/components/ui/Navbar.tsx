@@ -159,7 +159,7 @@ export default function Navbar() {
                 <Link to={user.role === 'doctor' ? '/dashboard/doctor?tab=profil' : '/profil'} title="Mon profil"
                   className="w-8 h-8 rounded-full bg-sage-100 flex items-center justify-center text-lg overflow-hidden hover:bg-sage-200 transition-colors">
                   {profile?.avatar_url
-                    ? <img src={profile.avatar_url} className="w-full h-full object-cover" alt="Mon profil" />
+                    ? <img src={profile.avatar_url} className="w-full h-full object-cover" alt="Mon profil" loading="lazy" />
                     : '👤'}
                 </Link>
                 {/* Masqué sur mobile côté praticien : la barre y est déjà

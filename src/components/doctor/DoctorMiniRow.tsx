@@ -24,7 +24,7 @@ export default function DoctorMiniRow({ doctor, colorIndex, isLast, mobile }: Pr
     <Link to={`/doctor/${doctor.id}`}
       className={`flex items-center gap-3 px-3.5 py-3 hover:bg-sage-50/60 transition-colors ${!isLast ? 'border-b border-gray-50' : ''}`}>
       {profile?.avatar_url ? (
-        <img src={profile.avatar_url} alt={name} className="w-11 h-11 rounded-full object-cover flex-shrink-0" />
+        <img src={profile.avatar_url} alt={name} className="w-11 h-11 rounded-full object-cover flex-shrink-0" loading="lazy" />
       ) : (
         <span className={`w-11 h-11 rounded-full ${bg} text-white ${nameFont} font-semibold text-sm flex items-center justify-center flex-shrink-0`}>
           {initials}

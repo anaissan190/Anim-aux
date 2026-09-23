@@ -21,7 +21,7 @@ export default function ClinicCard({ clinic, distanceKm }: Props) {
       className="card p-5 hover:shadow-md hover:-translate-y-0.5 transition-all flex gap-4 group border-2 border-sage-100">
       <div className="w-16 h-16 rounded-2xl bg-sage-100 flex-shrink-0 overflow-hidden flex items-center justify-center">
         {clinic.logo_url ? (
-          <img src={clinic.logo_url} alt={clinic.name} className="w-full h-full object-cover" />
+          <img src={clinic.logo_url} alt={clinic.name} className="w-full h-full object-cover" loading="lazy" />
         ) : (
           <span className="text-2xl">🏥</span>
         )}

@@ -64,7 +64,7 @@ export default function PatientDocumentsPage() {
                   className="card p-4 flex items-center gap-4 hover:shadow-md transition-shadow">
                   <div className="w-10 h-10 rounded-xl bg-sage-50 flex items-center justify-center text-lg overflow-hidden flex-shrink-0">
                     {d.file_type?.startsWith('image/')
-                      ? <img src={d.file_url} className="w-full h-full object-cover" alt={d.file_name} />
+                      ? <img src={d.file_url} className="w-full h-full object-cover" alt={d.file_name} loading="lazy" />
                       : '📄'}
                   </div>
                   <div className="flex-1 min-w-0">

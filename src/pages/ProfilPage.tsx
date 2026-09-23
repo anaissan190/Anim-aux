@@ -212,7 +212,7 @@ export default function ProfilPage() {
           <div className="relative w-16 h-16 flex-shrink-0 group">
             <div className="w-16 h-16 rounded-full bg-sage-100 flex items-center justify-center text-2xl overflow-hidden">
               {profile?.avatar_url
-                ? <img src={profile.avatar_url} className="w-full h-full object-cover" alt="Photo de profil" />
+                ? <img src={profile.avatar_url} className="w-full h-full object-cover" alt="Photo de profil" loading="lazy" />
                 : '👤'}
             </div>
             <label className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
