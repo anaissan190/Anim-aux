@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
       # npm install plutôt que npm ci : ce dernier exige une correspondance
       # stricte et complète du lock file pour CHAQUE plateforme possible des
       # dépendances optionnelles d'esbuild (linux/win32/netbsd/...), ce qui
