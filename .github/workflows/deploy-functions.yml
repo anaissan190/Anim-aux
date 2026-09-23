@@ -22,7 +22,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm ci
+      # npm install plutôt que npm ci : ce dernier exige une correspondance
+      # stricte et complète du lock file pour CHAQUE plateforme possible des
+      # dépendances optionnelles d'esbuild (linux/win32/netbsd/...), ce qui
+      # s'est avéré cassant à générer de façon fiable depuis un Mac (repéré
+      # le 22/09/2026, plusieurs tentatives infructueuses) — npm install
+      # complète les entrées manquantes à la volée sans échouer.
+      - run: npm install
       - run: npx tsc --noEmit
       - run: npx vitest run
 
