@@ -4,9 +4,10 @@ import { fr } from 'date-fns/locale'
 import { formatInTimeZone } from 'date-fns-tz'
 import { PARIS_TZ } from '@/lib/parisTime'
 import BackButton from '@/components/ui/BackButton'
-import { useAnimal, useVaccines, useWeightTracking, useHealthRecords, useAnimalOwner } from '@/hooks/useData'
+import { useAnimal, useCareItems, useWeightTracking, useHealthRecords, useAnimalOwner } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { SPECIES_EMOJI } from '@/lib/animalSpecies'
+import { careTypeLabel } from '@/lib/careTypes'
 
 // Vue imprimable/exportable du dossier de santé d'un animal — pensée pour
 // être montrée à un nouveau praticien ou une clinique d'urgence sans accès
@@ -17,7 +18,7 @@ export default function AnimalRecordExportPage() {
   const { user } = useAuthStore()
   const isDoctor = user?.role === 'doctor'
   const { data: animal, isLoading } = useAnimal(id!)
-  const { data: vaccines = [] } = useVaccines(id!)
+  const { data: careItems = [] } = useCareItems(id!)
   const { data: weights = [] } = useWeightTracking(id!)
   const { data: records = [] } = useHealthRecords(id!)
   const { data: owner } = useAnimalOwner(isDoctor ? animal?.owner_id : undefined)
@@ -66,26 +67,28 @@ export default function AnimalRecordExportPage() {
         </section>
 
         <section className="mb-8">
-          <h2 className="text-base font-semibold text-gray-900 mb-3">💉 Vaccins</h2>
-          {vaccines.length === 0 ? (
-            <p className="text-sm text-gray-400">Aucun vaccin enregistré.</p>
+          <h2 className="text-base font-semibold text-gray-900 mb-3">🔔 Suivis</h2>
+          {careItems.length === 0 ? (
+            <p className="text-sm text-gray-400">Aucun suivi enregistré.</p>
           ) : (
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="text-left text-gray-400 border-b border-gray-200">
-                  <th className="py-1.5 font-medium">Vaccin</th>
-                  <th className="py-1.5 font-medium">Administré le</th>
+                  <th className="py-1.5 font-medium">Type</th>
+                  <th className="py-1.5 font-medium">Nom</th>
+                  <th className="py-1.5 font-medium">Réalisé le</th>
                   <th className="py-1.5 font-medium">Rappel prévu</th>
                   <th className="py-1.5 font-medium">Par</th>
                 </tr>
               </thead>
               <tbody>
-                {vaccines.map((v: any) => (
-                  <tr key={v.id} className="border-b border-gray-100">
-                    <td className="py-1.5">{v.name}</td>
-                    <td className="py-1.5">{formatInTimeZone(new Date(v.date_administered), PARIS_TZ, 'd MMM yyyy', { locale: fr })}</td>
-                    <td className="py-1.5">{v.next_due_date ? formatInTimeZone(new Date(v.next_due_date), PARIS_TZ, 'd MMM yyyy', { locale: fr }) : '—'}</td>
-                    <td className="py-1.5">{v.administered_by || '—'}</td>
+                {careItems.map((c: any) => (
+                  <tr key={c.id} className="border-b border-gray-100">
+                    <td className="py-1.5">{careTypeLabel(c.care_type)}</td>
+                    <td className="py-1.5">{c.name}</td>
+                    <td className="py-1.5">{formatInTimeZone(new Date(c.date_administered), PARIS_TZ, 'd MMM yyyy', { locale: fr })}</td>
+                    <td className="py-1.5">{c.next_due_date ? formatInTimeZone(new Date(c.next_due_date), PARIS_TZ, 'd MMM yyyy', { locale: fr }) : '—'}</td>
+                    <td className="py-1.5">{c.administered_by || '—'}</td>
                   </tr>
                 ))}
               </tbody>

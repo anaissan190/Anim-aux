@@ -509,12 +509,12 @@ export function usePatientAppointments() {
 }
 
 // Tuile "Rappels" du dashboard patient : regroupe les rendez-vous déjà
-// planifiés (à venir) et les rappels de vaccin (date de rappel renseignée)
-// de tous ses animaux, tous confondus. Il n'existe pas encore de champ
-// dédié "check-up" dans le schéma — un contrôle général se traduit soit par
-// un RDV déjà pris (première section), soit par un rappel de vaccin
-// (deuxième section) : pas besoin d'une troisième source de données tant
-// qu'un vrai suivi de check-up n'est pas défini.
+// planifiés (à venir) et les rappels de suivi (date de rappel renseignée,
+// tous types confondus — vaccin, vermifuge, bilan annuel..., voir
+// care_items/migration 100 du 23/09/2026) de tous ses animaux. Le
+// commentaire précédent ("pas de champ check-up dans le schéma") n'est
+// plus d'actualité : care_type='checkup' couvre justement ce cas, sans
+// avoir eu besoin d'une troisième source de données séparée.
 export function usePatientReminders() {
   const { user } = useAuthStore()
   return useQuery({
@@ -537,19 +537,19 @@ export function usePatientReminders() {
       const animalIds = (animals ?? []).map((a: any) => a.id)
       const animalById = new Map((animals ?? []).map((a: any) => [a.id, a]))
 
-      let vaccineReminders: any[] = []
+      let careReminders: any[] = []
       if (animalIds.length > 0) {
-        const { data: vaccines, error: vaccErr } = await supabase
-          .from('vaccines')
-          .select('id, name, next_due_date, animal_id')
+        const { data: careItems, error: careErr } = await supabase
+          .from('care_items')
+          .select('id, name, care_type, next_due_date, animal_id')
           .in('animal_id', animalIds)
           .not('next_due_date', 'is', null)
           .order('next_due_date', { ascending: true })
-        if (vaccErr) throw vaccErr
-        vaccineReminders = (vaccines ?? []).map((v: any) => ({ ...v, animal: animalById.get(v.animal_id) }))
+        if (careErr) throw careErr
+        careReminders = (careItems ?? []).map((c: any) => ({ ...c, animal: animalById.get(c.animal_id) }))
       }
 
-      return { appointments: appts ?? [], vaccineReminders }
+      return { appointments: appts ?? [], careReminders }
     },
     enabled: !!user,
   })
@@ -1423,12 +1423,18 @@ export function useDeleteAnimal() {
   })
 }
 
-export function useVaccines(animalId: string) {
+// "vaccines" généralisée en "care_items" le 23/09/2026 (migration 100) :
+// un même mécanisme (table, RLS, rappels) couvre désormais vaccin,
+// vermifuge, bilan annuel et "autre" via le champ care_type, plutôt que
+// de dupliquer toute la mécanique pour chaque nouveau type de suivi.
+export type CareType = 'vaccine' | 'deworming' | 'checkup' | 'other'
+
+export function useCareItems(animalId: string) {
   return useQuery({
-    queryKey: ['vaccines', animalId],
+    queryKey: ['care_items', animalId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('vaccines')
+        .from('care_items')
         .select('*')
         .eq('animal_id', animalId)
         .order('date_administered', { ascending: false })
@@ -1439,52 +1445,54 @@ export function useVaccines(animalId: string) {
   })
 }
 
-export function useCreateVaccine() {
+export function useCreateCareItem() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (vaccine: {
+    mutationFn: async (careItem: {
       animal_id: string
+      care_type: CareType
       name: string
       date_administered: string
       next_due_date?: string
       administered_by?: string
       notes?: string
     }) => {
-      const { error } = await supabase.from('vaccines').insert(vaccine)
+      const { error } = await supabase.from('care_items').insert(careItem)
       if (error) throw error
     },
-    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['vaccines', vars.animal_id] }),
+    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['care_items', vars.animal_id] }),
   })
 }
 
-export function useUpdateVaccine() {
+export function useUpdateCareItem() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, animal_id, ...updates }: {
       id: string
       animal_id: string
+      care_type?: CareType
       name?: string
       date_administered?: string
       next_due_date?: string
       administered_by?: string
       notes?: string
     }) => {
-      const { error } = await supabase.from('vaccines').update(updates).eq('id', id)
+      const { error } = await supabase.from('care_items').update(updates).eq('id', id)
       if (error) throw error
       return animal_id
     },
-    onSuccess: (animalId) => qc.invalidateQueries({ queryKey: ['vaccines', animalId] }),
+    onSuccess: (animalId) => qc.invalidateQueries({ queryKey: ['care_items', animalId] }),
   })
 }
 
-export function useDeleteVaccine() {
+export function useDeleteCareItem() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ id }: { id: string; animal_id: string }) => {
-      const { error } = await supabase.from('vaccines').delete().eq('id', id)
+      const { error } = await supabase.from('care_items').delete().eq('id', id)
       if (error) throw error
     },
-    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['vaccines', vars.animal_id] }),
+    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['care_items', vars.animal_id] }),
   })
 }
 

@@ -1,6 +1,7 @@
 // src/pages/RemindersPage.tsx
 // Tuile "Rappels" du dashboard patient : rendez-vous déjà planifiés à venir
-// + rappels de vaccin, tous animaux confondus (voir usePatientReminders).
+// + rappels de suivi (vaccin, vermifuge, bilan annuel...), tous animaux
+// confondus (voir usePatientReminders, généralisé le 23/09/2026).
 import { fr } from 'date-fns/locale'
 import { formatInTimeZone } from 'date-fns-tz'
 import { Link } from 'react-router-dom'
@@ -10,11 +11,12 @@ import { usePatientReminders } from '@/hooks/useData'
 import { SPECIES_EMOJI } from '@/lib/animalSpecies'
 import { formatDoctorName } from '@/lib/practitionerTypes'
 import { parisCalendarDaysDiff, PARIS_TZ } from '@/lib/parisTime'
+import { careTypeIcon, careTypeLabel } from '@/lib/careTypes'
 
 export default function RemindersPage() {
   const { data, isLoading, error } = usePatientReminders()
   const appointments = data?.appointments ?? []
-  const vaccineReminders = data?.vaccineReminders ?? []
+  const careReminders = data?.careReminders ?? []
 
   return (
     <div className="min-h-screen bg-[#FFFAF0]">
@@ -24,7 +26,7 @@ export default function RemindersPage() {
 
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">🔔 Rappels</h1>
-          <p className="text-gray-500 text-sm mt-1">Vos prochains rendez-vous et rappels de vaccin, au même endroit.</p>
+          <p className="text-gray-500 text-sm mt-1">Vos prochains rendez-vous et rappels de suivi, au même endroit.</p>
         </div>
 
         {isLoading && (
@@ -74,28 +76,29 @@ export default function RemindersPage() {
               </div>
             )}
 
-            <h2 className="font-semibold text-gray-900 mb-3">💉 Rappels vaccins</h2>
-            {vaccineReminders.length === 0 ? (
+            <h2 className="font-semibold text-gray-900 mb-3">🔔 Rappels de suivi</h2>
+            {careReminders.length === 0 ? (
               <div className="card p-6 text-center">
-                <p className="text-gray-400 text-sm">Aucun rappel de vaccin en cours.</p>
+                <p className="text-gray-400 text-sm">Aucun rappel de suivi en cours.</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {vaccineReminders.map((v: any) => {
-                  const days = parisCalendarDaysDiff(new Date(v.next_due_date))
+                {careReminders.map((c: any) => {
+                  const days = parisCalendarDaysDiff(new Date(c.next_due_date))
                   const overdue = days < 0
                   const soon = days >= 0 && days <= 30
                   return (
-                    <Link key={v.id} to={v.animal ? `/animal/${v.animal.id}` : '#'}
+                    <Link key={c.id} to={c.animal ? `/animal/${c.animal.id}` : '#'}
                       className="card p-4 flex items-center gap-4 hover:shadow-md transition-shadow">
-                      <div className="w-10 h-10 rounded-xl bg-sage-100 flex items-center justify-center text-lg flex-shrink-0">💉</div>
+                      <div className="w-10 h-10 rounded-xl bg-sage-100 flex items-center justify-center text-lg flex-shrink-0">{careTypeIcon(c.care_type)}</div>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm text-gray-900">
-                          {v.name}
-                          {v.animal && <span className="text-gray-400 font-normal"> · {SPECIES_EMOJI[v.animal.species] ?? '🐾'} {v.animal.name}</span>}
+                          {c.name}
+                          <span className="text-gray-400 font-normal"> · {careTypeLabel(c.care_type)}</span>
+                          {c.animal && <span className="text-gray-400 font-normal"> · {SPECIES_EMOJI[c.animal.species] ?? '🐾'} {c.animal.name}</span>}
                         </p>
                         <p className="text-xs text-gray-500">
-                          Rappel prévu le {formatInTimeZone(new Date(v.next_due_date), PARIS_TZ, 'd MMM yyyy', { locale: fr })}
+                          Rappel prévu le {formatInTimeZone(new Date(c.next_due_date), PARIS_TZ, 'd MMM yyyy', { locale: fr })}
                         </p>
                       </div>
                       <span className={`text-xs px-2 py-1 rounded-full flex-shrink-0 ${

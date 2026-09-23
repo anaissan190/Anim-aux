@@ -28,7 +28,11 @@ export function destinationForNotification(type: string, relatedId: string | nul
   if ((type === 'review_reminder' || type === 'waitlist_slot_available') && relatedId) {
     return `/doctor/${relatedId}`
   }
-  if (type === 'vaccine_reminder' && relatedId) {
+  // vaccine_reminder gardé pour les notifications déjà en base avant la
+  // généralisation vaccines -> care_items (23/09/2026, voir migration
+  // 100) ; care_reminder est le type utilisé pour tout nouveau rappel
+  // (vaccin, vermifuge, bilan annuel...).
+  if ((type === 'vaccine_reminder' || type === 'care_reminder') && relatedId) {
     return `/animal/${relatedId}`
   }
   if (type === 'doctor_verified' || type === 'doctor_rejected') {

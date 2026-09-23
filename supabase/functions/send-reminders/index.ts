@@ -1,9 +1,11 @@
 // supabase/functions/send-reminders/index.ts
 // Cette Edge Function est appelée par un cron Supabase toutes les heures.
-// Elle envoie des rappels pour les RDV dans les 24h, des rappels de
-// vaccin (vaccines.next_due_date, saisi par le praticien) dans les 7
-// jours, et une invitation à laisser un avis quelques heures après un
-// RDV marqué terminé par le praticien.
+// Elle envoie des rappels pour les RDV dans les 24h, des rappels de suivi
+// récurrent (care_items.next_due_date — vaccin, vermifuge, bilan annuel,
+// saisi par le praticien ; table généralisée depuis "vaccines" le
+// 23/09/2026, voir migration 100) dans les 7 jours, et une invitation à
+// laisser un avis quelques heures après un RDV marqué terminé par le
+// praticien.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -11,6 +13,20 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 )
+
+// Libellés français par type de suivi — utilisés dans les titres/corps de
+// notification, email et SMS. 'other' reste générique ("suivi") plutôt que
+// de deviner un mot pour un type que le praticien a choisi de ne pas
+// préciser davantage.
+const CARE_TYPE_LABELS: Record<string, string> = {
+  vaccine: 'vaccin',
+  deworming: 'vermifuge',
+  checkup: 'bilan annuel',
+  other: 'suivi',
+}
+function careTypeLabel(careType: string | null | undefined): string {
+  return CARE_TYPE_LABELS[careType ?? ''] ?? CARE_TYPE_LABELS.other
+}
 
 // Normalise un numéro français saisi sous n'importe quelle forme courante
 // (espaces, points, tirets, avec ou sans indicatif) vers le format E.164
@@ -252,12 +268,12 @@ Deno.serve(async (req) => {
     sent++
   }
 
-  // Rappels de vaccin : la date de rappel (next_due_date) est saisie une
-  // fois par le praticien sur la fiche santé de l'animal, potentiellement
-  // des mois à l'avance — on avertit le propriétaire dans la semaine qui
-  // précède l'échéance, une seule fois (reminder_sent_at empêche de le
-  // renvoyer à chaque exécution horaire tant que la date reste dans cette
-  // fenêtre de 7 jours).
+  // Rappels de suivi récurrent (vaccin, vermifuge, bilan annuel...) : la
+  // date de rappel (next_due_date) est saisie une fois par le praticien sur
+  // la fiche santé de l'animal, potentiellement des mois à l'avance — on
+  // avertit le propriétaire dans la semaine qui précède l'échéance, une
+  // seule fois (reminder_sent_at empêche de le renvoyer à chaque exécution
+  // horaire tant que la date reste dans cette fenêtre de 7 jours).
   const weekAhead = new Date()
   weekAhead.setDate(weekAhead.getDate() + 7)
 
@@ -268,46 +284,47 @@ Deno.serve(async (req) => {
   // mais ces deux bornes ne le faisaient pas).
   const parisDateStr = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: 'Europe/Paris' })
 
-  const { data: dueVaccines, error: vaccError } = await supabase
-    .from('vaccines')
+  const { data: dueCareItems, error: careError } = await supabase
+    .from('care_items')
     .select(`
-      id, name, next_due_date, animal_id,
+      id, name, care_type, next_due_date, animal_id,
       animals!inner(name, owner:users!owner_id(email, profiles(first_name, last_name, phone)))
     `)
     .not('next_due_date', 'is', null)
     .is('reminder_sent_at', null)
     .lte('next_due_date', parisDateStr(weekAhead))
-    // Pas de borne basse (gte sur aujourd'hui) volontairement : un vaccin
-    // en retard (date passée, jamais rappelé — ex. RDV manqué, panne du
-    // cron) sortait de la fenêtre et n'était plus JAMAIS rappelé, alors
-    // qu'il continuait de s'afficher "En retard" sur /rappels comme si
-    // c'était toujours suivi. reminder_sent_at reste le seul garde-fou
-    // anti-doublon, suffisant : un vaccin en retard n'a besoin que d'un
-    // rappel, pas d'une fenêtre de validité.
-  if (vaccError) console.error('vaccines query error', vaccError)
+    // Pas de borne basse (gte sur aujourd'hui) volontairement : un suivi en
+    // retard (date passée, jamais rappelé — ex. RDV manqué, panne du cron)
+    // sortait de la fenêtre et n'était plus JAMAIS rappelé, alors qu'il
+    // continuait de s'afficher "En retard" sur /rappels comme si c'était
+    // toujours suivi. reminder_sent_at reste le seul garde-fou anti-doublon,
+    // suffisant : un suivi en retard n'a besoin que d'un rappel, pas d'une
+    // fenêtre de validité.
+  if (careError) console.error('care_items query error', careError)
 
-  let vaccineReminders = 0
-  for (const vaccine of dueVaccines ?? []) {
-    const animal = (vaccine.animals as any)
+  let careReminders = 0
+  for (const careItem of dueCareItems ?? []) {
+    const animal = (careItem.animals as any)
     const owner = animal?.owner
     const ownerProfile = owner?.profiles
     const ownerEmail = owner?.email
-    const dueDateStr = new Date(vaccine.next_due_date).toLocaleDateString('fr-FR', {
+    const label = careTypeLabel(careItem.care_type)
+    const dueDateStr = new Date(careItem.next_due_date).toLocaleDateString('fr-FR', {
       dateStyle: 'long', timeZone: 'Europe/Paris',
     })
 
-    const { error: vaccNotifError } = await supabase.from('notifications').insert({
+    const { error: careNotifError } = await supabase.from('notifications').insert({
       user_id: animal?.owner_id ?? null,
-      type: 'vaccine_reminder',
-      title: 'Rappel de vaccin',
-      body: `${animal?.name ?? 'Votre animal'} doit recevoir un rappel de vaccin (${vaccine.name}) avant le ${dueDateStr}.`,
-      related_id: vaccine.animal_id,
+      type: 'care_reminder',
+      title: `Rappel de ${label}`,
+      body: `${animal?.name ?? 'Votre animal'} doit recevoir un rappel de ${label} (${careItem.name}) avant le ${dueDateStr}.`,
+      related_id: careItem.animal_id,
     })
-    if (vaccNotifError) console.error('vaccine reminder notification insert error', vaccNotifError)
+    if (careNotifError) console.error('care reminder notification insert error', careNotifError)
 
     if (resendKey && ownerEmail) {
-      // name (animal) et vaccine.name sont des champs libres saisis par le
-      // propriétaire/le praticien, jamais validés contre l'injection de
+      // name (animal) et careItem.name sont des champs libres saisis par
+      // le propriétaire/le praticien, jamais validés contre l'injection de
       // balises — échappés avant interpolation dans l'email HTML, même
       // raison que pour `reason` en haut de fichier.
       const html = `
@@ -315,11 +332,11 @@ Deno.serve(async (req) => {
           <div style="text-align: center; margin-bottom: 16px;">
             <img src="https://monanimeaux.fr/pwa-192.png" width="56" height="56" alt="Animéaux" style="border-radius: 14px; display: inline-block;" />
           </div>
-          <h2 style="color: #d9670b;">Rappel de vaccin 🐾</h2>
+          <h2 style="color: #d9670b;">Rappel de ${escapeHtml(label)} 🐾</h2>
           <p>Bonjour ${escapeHtml(ownerProfile?.first_name ?? '')},</p>
           <p><strong>${escapeHtml(animal?.name ?? 'Votre animal')}</strong> doit recevoir un rappel :</p>
           <ul style="line-height: 1.8;">
-            <li><strong>Vaccin :</strong> ${escapeHtml(vaccine.name)}</li>
+            <li><strong>${escapeHtml(label.charAt(0).toUpperCase() + label.slice(1))} :</strong> ${escapeHtml(careItem.name)}</li>
             <li><strong>À faire avant le :</strong> ${dueDateStr}</li>
           </ul>
           <p style="margin-top: 20px;">
@@ -330,20 +347,20 @@ Deno.serve(async (req) => {
           <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Animéaux — Votre animal, notre priorité.</p>
         </div>
       `
-      await sendReminderEmail(resendKey, ownerEmail, `${animal?.name ?? 'Votre animal'} a un rappel de vaccin à prévoir`, html)
+      await sendReminderEmail(resendKey, ownerEmail, `${animal?.name ?? 'Votre animal'} a un rappel de ${label} à prévoir`, html)
     }
 
     const ownerPhone = toE164(ownerProfile?.phone)
     if (ownerPhone) {
       await sendOvhSms(
-        `Animeaux: rappel de vaccin (${vaccine.name}) pour ${animal?.name ?? 'votre animal'} avant le ${dueDateStr}.`,
+        `Animeaux: rappel de ${label} (${careItem.name}) pour ${animal?.name ?? 'votre animal'} avant le ${dueDateStr}.`,
         ownerPhone
       )
     }
 
-    const { error: vaccUpdateError } = await supabase.from('vaccines').update({ reminder_sent_at: new Date().toISOString() }).eq('id', vaccine.id)
-    if (vaccUpdateError) console.error('reminder_sent_at update error', vaccUpdateError)
-    vaccineReminders++
+    const { error: careUpdateError } = await supabase.from('care_items').update({ reminder_sent_at: new Date().toISOString() }).eq('id', careItem.id)
+    if (careUpdateError) console.error('reminder_sent_at update error', careUpdateError)
+    careReminders++
   }
 
   // Rappel "laissez un avis" : quelques heures après qu'un RDV a été
@@ -425,12 +442,12 @@ Deno.serve(async (req) => {
   }
 
   return new Response(JSON.stringify({
-    sent, vaccineReminders, reviewReminders,
+    sent, careReminders, reviewReminders,
     // Erreurs éventuelles des 3 requêtes ci-dessus, exposées ici en plus de
     // console.error (visible dans net._http_response sans avoir à ouvrir
     // les Logs de la fonction — pratique pour diagnostiquer un cron qui
     // tourne "sans erreur" mais n'envoie rien).
-    errors: { apptError: apptError?.message, vaccError: vaccError?.message, reviewApptError: reviewApptError?.message },
+    errors: { apptError: apptError?.message, careError: careError?.message, reviewApptError: reviewApptError?.message },
   }), {
     headers: { 'Content-Type': 'application/json' }
   })

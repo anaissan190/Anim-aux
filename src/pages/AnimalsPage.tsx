@@ -10,7 +10,7 @@ import { Link } from 'react-router-dom'
 import Navbar from '@/components/ui/Navbar'
 import MobileHeader from '@/components/mobile/MobileHeader'
 import MobileTabBar from '@/components/mobile/MobileTabBar'
-import { useAnimals, useCreateAnimal, useWeightTracking, useVaccines } from '@/hooks/useData'
+import { useAnimals, useCreateAnimal, useWeightTracking, useCareItems } from '@/hooks/useData'
 import { SPECIES_EMOJI, BREED_PLACEHOLDER } from '@/lib/animalSpecies'
 import SpeciesSelect from '@/components/ui/SpeciesSelect'
 import { differenceInYears } from 'date-fns'
@@ -21,20 +21,20 @@ import { compressImage } from '@/lib/compressImage'
 
 const GENDER_SYMBOL: Record<string, string> = { 'Mâle': '♂', 'Femelle': '♀' }
 
-// Rangée d'un animal sur mobile, avec pastilles poids/vaccin — chaque
+// Rangée d'un animal sur mobile, avec pastilles poids/suivi — chaque
 // rangée porte ses propres requêtes (peu de risque de perf avec 1-3 animaux
 // par foyer), pour ne pas alourdir useAnimals() côté liste.
 function PetRow({ animal, index }: { animal: any; index: number }) {
   const [imgError, setImgError] = useState(false)
   const { data: weights = [] } = useWeightTracking(animal.id)
-  const { data: vaccines = [] } = useVaccines(animal.id)
+  const { data: careItems = [] } = useCareItems(animal.id)
   const latestWeight = weights[weights.length - 1]
-  const upcomingVaccine = vaccines.find((v: any) => v.next_due_date && new Date(v.next_due_date) > new Date())
+  const upcomingCareItem = careItems.find((c: any) => c.next_due_date && new Date(c.next_due_date) > new Date())
   // Distinct d'un simple "pas de rappel à venir" : un rappel dont la date
-  // est déjà passée affichait "✅ À jour" (upcomingVaccine ne le matchait
+  // est déjà passée affichait "✅ À jour" (upcomingCareItem ne le matchait
   // pas, faute de filtre séparé), donnant une fausse impression de sécurité.
-  const overdueVaccine = vaccines.find((v: any) => v.next_due_date && new Date(v.next_due_date) <= new Date())
-  const hasVaccineHistory = vaccines.length > 0
+  const overdueCareItem = careItems.find((c: any) => c.next_due_date && new Date(c.next_due_date) <= new Date())
+  const hasCareHistory = careItems.length > 0
 
   const age = animal.date_of_birth ? differenceInYears(new Date(), new Date(animal.date_of_birth)) : null
   const genderSymbol = GENDER_SYMBOL[animal.gender as string]
@@ -63,15 +63,15 @@ function PetRow({ animal, index }: { animal: any; index: number }) {
               ⚖️ {latestWeight.weight_kg} kg
             </span>
           )}
-          {overdueVaccine ? (
+          {overdueCareItem ? (
             <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-red-100 text-red-700">
               ⚠️ Rappel en retard
             </span>
-          ) : upcomingVaccine ? (
+          ) : upcomingCareItem ? (
             <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
-              💉 {formatInTimeZone(new Date(upcomingVaccine.next_due_date), PARIS_TZ, 'd MMM', { locale: fr })}
+              🔔 {formatInTimeZone(new Date(upcomingCareItem.next_due_date), PARIS_TZ, 'd MMM', { locale: fr })}
             </span>
-          ) : hasVaccineHistory ? (
+          ) : hasCareHistory ? (
             <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-moss-100 text-moss-800">
               ✅ À jour
             </span>
@@ -91,19 +91,19 @@ function PetRow({ animal, index }: { animal: any; index: number }) {
 function AnimalDesktopCard({ animal, colorIndex }: { animal: any; colorIndex: number }) {
   const [imgError, setImgError] = useState(false)
   const { data: weights = [] } = useWeightTracking(animal.id)
-  const { data: vaccines = [] } = useVaccines(animal.id)
+  const { data: careItems = [] } = useCareItems(animal.id)
   const latestWeight = weights[weights.length - 1]
-  const upcomingVaccine = vaccines.find((v: any) => v.next_due_date && new Date(v.next_due_date) > new Date())
-  const overdueVaccine = vaccines.find((v: any) => v.next_due_date && new Date(v.next_due_date) <= new Date())
+  const upcomingCareItem = careItems.find((c: any) => c.next_due_date && new Date(c.next_due_date) > new Date())
+  const overdueCareItem = careItems.find((c: any) => c.next_due_date && new Date(c.next_due_date) <= new Date())
 
   const age = animal.date_of_birth ? differenceInYears(new Date(), new Date(animal.date_of_birth)) : null
   const genderSymbol = GENDER_SYMBOL[animal.gender as string]
   const photoBg = colorIndex % 2 === 0 ? 'bg-sage-100' : 'bg-moss-100'
 
-  const badge = overdueVaccine
+  const badge = overdueCareItem
     ? { label: '⚠️ Rappel en retard', cls: 'bg-red-100 text-red-700' }
-    : upcomingVaccine
-    ? { label: `💉 ${formatInTimeZone(new Date(upcomingVaccine.next_due_date), PARIS_TZ, 'd MMM', { locale: fr })}`, cls: 'bg-amber-100 text-amber-700' }
+    : upcomingCareItem
+    ? { label: `🔔 ${formatInTimeZone(new Date(upcomingCareItem.next_due_date), PARIS_TZ, 'd MMM', { locale: fr })}`, cls: 'bg-amber-100 text-amber-700' }
     : latestWeight
     ? { label: `⚖️ ${latestWeight.weight_kg} kg`, cls: 'bg-white/90 text-gray-700' }
     : null

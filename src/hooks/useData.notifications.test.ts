@@ -45,27 +45,27 @@ describe('usePatientAppointments', () => {
 })
 
 describe('usePatientReminders', () => {
-  it('associe chaque rappel de vaccin à son animal', async () => {
+  it('associe chaque rappel de suivi à son animal', async () => {
     useAuthStore.setState({ user: FAKE_PATIENT })
     const animals = [{ id: 'a1', name: 'Rex', species: 'Chien' }]
-    const vaccines = [{ id: 'v1', name: 'Rage', next_due_date: '2026-08-01', animal_id: 'a1' }]
+    const careItems = [{ id: 'v1', name: 'Rage', care_type: 'vaccine', next_due_date: '2026-08-01', animal_id: 'a1' }]
 
     vi.mocked(supabase.from).mockImplementation((table: string) => {
       if (table === 'appointments') return createQueryBuilderMock({ data: [], error: null })
       if (table === 'animals') return createQueryBuilderMock({ data: animals, error: null })
-      if (table === 'vaccines') return createQueryBuilderMock({ data: vaccines, error: null })
+      if (table === 'care_items') return createQueryBuilderMock({ data: careItems, error: null })
       return createQueryBuilderMock({ data: [], error: null })
     })
 
     const { result } = renderHook(() => usePatientReminders(), { wrapper })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(result.current.data?.vaccineReminders).toEqual([
-      { ...vaccines[0], animal: animals[0] },
+    expect(result.current.data?.careReminders).toEqual([
+      { ...careItems[0], animal: animals[0] },
     ])
   })
 
-  it('ne requête pas les vaccins si le patient n\'a aucun animal', async () => {
+  it('ne requête pas les suivis si le patient n\'a aucun animal', async () => {
     useAuthStore.setState({ user: FAKE_PATIENT })
     vi.mocked(supabase.from).mockImplementation((table: string) => {
       if (table === 'appointments') return createQueryBuilderMock({ data: [], error: null })
@@ -76,8 +76,8 @@ describe('usePatientReminders', () => {
     const { result } = renderHook(() => usePatientReminders(), { wrapper })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
-    expect(result.current.data?.vaccineReminders).toEqual([])
-    expect(supabase.from).not.toHaveBeenCalledWith('vaccines')
+    expect(result.current.data?.careReminders).toEqual([])
+    expect(supabase.from).not.toHaveBeenCalledWith('care_items')
   })
 })
 

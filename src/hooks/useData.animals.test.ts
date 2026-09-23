@@ -1,4 +1,4 @@
-// src/hooks/useData.animals.test.ts — animaux, vaccins, poids, dossiers santé
+// src/hooks/useData.animals.test.ts — animaux, suivis (care_items), poids, dossiers santé
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -12,7 +12,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/authStore'
 import {
   useSpecialties, useAnimals, useAnimal, useCreateAnimal, useUpdateAnimal, useDeleteAnimal,
-  useVaccines, useCreateVaccine, useUpdateVaccine, useDeleteVaccine,
+  useCareItems, useCreateCareItem, useUpdateCareItem, useDeleteCareItem,
   useWeightTracking, useCreateWeight, useUpdateWeight, useDeleteWeight,
   useHealthRecords,
 } from './useData'
@@ -100,44 +100,44 @@ describe('useDeleteAnimal', () => {
   })
 })
 
-describe('useVaccines', () => {
+describe('useCareItems', () => {
   it('filtre par animal_id, trié par date décroissante', async () => {
     const builder = createQueryBuilderMock({ data: [], error: null })
     vi.mocked(supabase.from).mockReturnValue(builder)
-    const { result } = renderHook(() => useVaccines('a1'), { wrapper })
+    const { result } = renderHook(() => useCareItems('a1'), { wrapper })
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(builder.eq).toHaveBeenCalledWith('animal_id', 'a1')
     expect(builder.order).toHaveBeenCalledWith('date_administered', { ascending: false })
   })
 })
 
-describe('useCreateVaccine', () => {
-  it('insère le vaccin tel quel', async () => {
+describe('useCreateCareItem', () => {
+  it('insère le suivi tel quel', async () => {
     const builder = createQueryBuilderMock({ data: null, error: null })
     vi.mocked(supabase.from).mockReturnValue(builder)
-    const { result } = renderHook(() => useCreateVaccine(), { wrapper })
-    const vaccine = { animal_id: 'a1', name: 'Rage', date_administered: '2026-01-01' }
-    await result.current.mutateAsync(vaccine)
-    expect(builder.insert).toHaveBeenCalledWith(vaccine)
+    const { result } = renderHook(() => useCreateCareItem(), { wrapper })
+    const careItem = { animal_id: 'a1', care_type: 'vaccine' as const, name: 'Rage', date_administered: '2026-01-01' }
+    await result.current.mutateAsync(careItem)
+    expect(builder.insert).toHaveBeenCalledWith(careItem)
   })
 })
 
-describe('useUpdateVaccine', () => {
+describe('useUpdateCareItem', () => {
   it('sépare id/animal_id des champs à mettre à jour', async () => {
     const builder = createQueryBuilderMock({ data: null, error: null })
     vi.mocked(supabase.from).mockReturnValue(builder)
-    const { result } = renderHook(() => useUpdateVaccine(), { wrapper })
+    const { result } = renderHook(() => useUpdateCareItem(), { wrapper })
     await result.current.mutateAsync({ id: 'v1', animal_id: 'a1', name: 'Rage rappel' })
     expect(builder.update).toHaveBeenCalledWith({ name: 'Rage rappel' })
     expect(builder.eq).toHaveBeenCalledWith('id', 'v1')
   })
 })
 
-describe('useDeleteVaccine', () => {
-  it('supprime le vaccin par id', async () => {
+describe('useDeleteCareItem', () => {
+  it('supprime le suivi par id', async () => {
     const builder = createQueryBuilderMock({ data: null, error: null })
     vi.mocked(supabase.from).mockReturnValue(builder)
-    const { result } = renderHook(() => useDeleteVaccine(), { wrapper })
+    const { result } = renderHook(() => useDeleteCareItem(), { wrapper })
     await result.current.mutateAsync({ id: 'v1', animal_id: 'a1' })
     expect(builder.eq).toHaveBeenCalledWith('id', 'v1')
   })

@@ -127,8 +127,12 @@ describe('destinationForNotification', () => {
     expect(destinationForNotification('waitlist_slot_available', 'doc1', false)).toBe('/doctor/doc1')
   })
 
-  it('renvoie vers la fiche santé de l\'animal pour un rappel de vaccin', () => {
+  it('renvoie vers la fiche santé de l\'animal pour un rappel de suivi (vaccin ou care_reminder)', () => {
+    // vaccine_reminder : notifications en base avant la généralisation
+    // vaccines -> care_items du 23/09/2026 (migration 100) ; care_reminder :
+    // type utilisé pour tout nouveau rappel depuis cette date.
     expect(destinationForNotification('vaccine_reminder', 'animal1', false)).toBe('/animal/animal1')
+    expect(destinationForNotification('care_reminder', 'animal1', false)).toBe('/animal/animal1')
   })
 
   it('renvoie vers le dashboard praticien pour une décision de vérification', () => {
@@ -144,6 +148,7 @@ describe('destinationForNotification', () => {
     expect(destinationForNotification('review_reminder', null, false)).toBeNull()
     expect(destinationForNotification('waitlist_slot_available', null, false)).toBeNull()
     expect(destinationForNotification('vaccine_reminder', null, false)).toBeNull()
+    expect(destinationForNotification('care_reminder', null, false)).toBeNull()
   })
 
   it('ne renvoie aucune destination pour un type inconnu ou sans lien évident (ex. new_review, jamais réellement émis)', () => {

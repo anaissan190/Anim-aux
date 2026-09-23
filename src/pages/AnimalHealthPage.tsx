@@ -9,13 +9,13 @@ import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
 import {
   useAnimal,
-  useVaccines,
+  useCareItems,
   useWeightTracking,
   useHealthRecords,
   useCurrentDoctor,
-  useCreateVaccine,
-  useUpdateVaccine,
-  useDeleteVaccine,
+  useCreateCareItem,
+  useUpdateCareItem,
+  useDeleteCareItem,
   useCreateWeight,
   useUpdateWeight,
   useDeleteWeight,
@@ -29,6 +29,7 @@ import {
   useCreateAnimalDocument,
   useDeleteAnimalDocument,
   type DocumentType,
+  type CareType,
 } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { supabase } from '@/lib/supabase'
@@ -37,6 +38,7 @@ import { getPractitionerTypeBySpecialty } from '@/lib/practitionerTypes'
 import SpeciesSelect from '@/components/ui/SpeciesSelect'
 import { showToast } from '@/lib/toast'
 import { compressImage } from '@/lib/compressImage'
+import { CARE_TYPES, careTypeIcon, careTypeLabel } from '@/lib/careTypes'
 
 export const DOC_TYPE_LABELS: Record<DocumentType, string> = {
   ordonnance: '💊 Ordonnance',
@@ -52,15 +54,15 @@ export default function AnimalHealthPage() {
   const { user, profile } = useAuthStore()
   const isDoctor = user?.role === 'doctor'
   const { data: animal, isLoading } = useAnimal(id!)
-  const { data: vaccines = [] } = useVaccines(id!)
+  const { data: careItems = [] } = useCareItems(id!)
   const { data: weights = [] } = useWeightTracking(id!)
   const { data: records = [] } = useHealthRecords(id!)
   const { data: documents = [] } = useAnimalDocuments(id!)
   const { data: owner } = useAnimalOwner(isDoctor ? animal?.owner_id : undefined)
-  // Onglets Vaccins/Poids réservés aux vétérinaires (voir tab === 'vaccines'/
+  // Onglets Suivis/Poids réservés aux vétérinaires (voir tab === 'care'/
   // 'weight' plus bas) : masqués pour un praticien non-vétérinaire (retiré
   // à sa demande du 08/09/2026, en préparant une démo à une
-  // comportementaliste — le bouton "+ Ajouter un vaccin" n'a pas de sens
+  // comportementaliste — le bouton "+ Ajouter un suivi" n'a pas de sens
   // pour son métier). Reste visible pour un patient (isDoctor false) et,
   // par défaut, tant que la spécialité du praticien n'est pas encore
   // chargée, pour éviter un flash "masqué puis affiché" chez un vétérinaire.
@@ -70,9 +72,9 @@ export default function AnimalHealthPage() {
 
   const doctorName = profile ? `${profile.first_name} ${profile.last_name}`.trim() : ''
 
-  const createVaccine = useCreateVaccine()
-  const updateVaccine = useUpdateVaccine()
-  const deleteVaccine = useDeleteVaccine()
+  const createCareItem = useCreateCareItem()
+  const updateCareItem = useUpdateCareItem()
+  const deleteCareItem = useDeleteCareItem()
   const createWeight  = useCreateWeight()
   const updateWeight  = useUpdateWeight()
   const deleteWeight  = useDeleteWeight()
@@ -158,15 +160,15 @@ export default function AnimalHealthPage() {
     }
   }
 
-  const [tab, setTab] = useState<'overview' | 'vaccines' | 'weight' | 'records' | 'documents'>('overview')
+  const [tab, setTab] = useState<'overview' | 'care' | 'weight' | 'records' | 'documents'>('overview')
   // Filet de sécurité : si isNonVetDoctor bascule à true après un premier
   // rendu où canSeeMedicalTabs valait encore true par défaut (currentDoctor
   // pas encore chargé), on ne doit pas rester coincé sur un onglet
   // désormais masqué.
   useEffect(() => {
-    if (!canSeeMedicalTabs && (tab === 'vaccines' || tab === 'weight')) setTab('overview')
+    if (!canSeeMedicalTabs && (tab === 'care' || tab === 'weight')) setTab('overview')
   }, [canSeeMedicalTabs, tab])
-  const [showVaccineForm, setShowVaccineForm] = useState(false)
+  const [showCareForm, setShowCareForm] = useState(false)
   const [showWeightForm, setShowWeightForm] = useState(false)
   const [showRecordForm, setShowRecordForm] = useState(false)
   const [docLabel, setDocLabel] = useState('')
@@ -174,7 +176,7 @@ export default function AnimalHealthPage() {
   const [docUploading, setDocUploading] = useState(false)
   const [docError, setDocError] = useState('')
 
-  const [vaccineForm, setVaccineForm] = useState({ name: '', date_administered: '', next_due_date: '', administered_by: '' })
+  const [careForm, setCareForm] = useState<{ care_type: CareType; name: string; date_administered: string; next_due_date: string; administered_by: string }>({ care_type: 'vaccine', name: '', date_administered: '', next_due_date: '', administered_by: '' })
   const [weightForm, setWeightForm] = useState({ weight_kg: '', measured_at: '', notes: '' })
   const [recordForm, setRecordForm] = useState({ date: '', type: 'Consultation', title: '', description: '', professional_name: '' })
 
@@ -182,9 +184,9 @@ export default function AnimalHealthPage() {
   const [editWeightForm, setEditWeightForm] = useState({ weight_kg: '', measured_at: '', notes: '' })
   const [weightError, setWeightError] = useState('')
 
-  const [editingVaccineId, setEditingVaccineId] = useState<string | null>(null)
-  const [editVaccineForm, setEditVaccineForm] = useState({ name: '', date_administered: '', next_due_date: '', administered_by: '' })
-  const [vaccineError, setVaccineError] = useState('')
+  const [editingCareId, setEditingCareId] = useState<string | null>(null)
+  const [editCareForm, setEditCareForm] = useState<{ care_type: CareType; name: string; date_administered: string; next_due_date: string; administered_by: string }>({ care_type: 'vaccine', name: '', date_administered: '', next_due_date: '', administered_by: '' })
+  const [careError, setCareError] = useState('')
 
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null)
   const [editRecordForm, setEditRecordForm] = useState({ date: '', type: 'Consultation', title: '', description: '', professional_name: '' })
@@ -193,7 +195,7 @@ export default function AnimalHealthPage() {
   // Pré-remplit le nom du praticien connecté dans les formulaires
   useEffect(() => {
     if (!isDoctor || !doctorName) return
-    setVaccineForm(f => f.administered_by ? f : { ...f, administered_by: doctorName })
+    setCareForm(f => f.administered_by ? f : { ...f, administered_by: doctorName })
     setRecordForm(f => f.professional_name ? f : { ...f, professional_name: doctorName })
   }, [isDoctor, doctorName])
 
@@ -201,51 +203,52 @@ export default function AnimalHealthPage() {
   if (!animal) return <div className="min-h-screen bg-[#FFFAF0]"><Navbar /><div className="flex items-center justify-center h-64"><p className="text-gray-400">Animal introuvable</p></div></div>
 
   const lastWeight = weights.length > 0 ? weights[weights.length - 1] : null
-  // `vaccines` est trié par date_administered décroissante (voir
-  // useVaccines) — prendre le premier avec un next_due_date renvoyait le
-  // vaccin le plus RÉCEMMENT administré, pas le rappel le plus proche (donc
+  // `care_items` est trié par date_administered décroissante (voir
+  // useCareItems) — prendre le premier avec un next_due_date renvoyait le
+  // suivi le plus RÉCEMMENT administré, pas le rappel le plus proche (donc
   // potentiellement le moins urgent). Trié ici par échéance croissante.
-  const nextVaccine = [...vaccines]
-    .filter(v => v.next_due_date)
+  const nextCareItem = [...careItems]
+    .filter(c => c.next_due_date)
     .sort((a, b) => new Date(a.next_due_date!).getTime() - new Date(b.next_due_date!).getTime())[0]
 
   const emoji = SPECIES_EMOJI[animal.species] ?? '🐾'
 
-  async function submitVaccine() {
-    if (!vaccineForm.name || !vaccineForm.date_administered) return
-    await createVaccine.mutateAsync({ ...vaccineForm, animal_id: id! })
-    setVaccineForm({ name: '', date_administered: '', next_due_date: '', administered_by: isDoctor ? doctorName : '' })
-    setShowVaccineForm(false)
+  async function submitCareItem() {
+    if (!careForm.name || !careForm.date_administered) return
+    await createCareItem.mutateAsync({ ...careForm, animal_id: id! })
+    setCareForm({ care_type: 'vaccine', name: '', date_administered: '', next_due_date: '', administered_by: isDoctor ? doctorName : '' })
+    setShowCareForm(false)
   }
 
-  function startEditVaccine(v: any) {
-    setEditingVaccineId(v.id)
-    setEditVaccineForm({
-      name: v.name ?? '',
-      date_administered: v.date_administered ?? '',
-      next_due_date: v.next_due_date ?? '',
-      administered_by: v.administered_by ?? '',
+  function startEditCareItem(c: any) {
+    setEditingCareId(c.id)
+    setEditCareForm({
+      care_type: c.care_type ?? 'vaccine',
+      name: c.name ?? '',
+      date_administered: c.date_administered ?? '',
+      next_due_date: c.next_due_date ?? '',
+      administered_by: c.administered_by ?? '',
     })
-    setVaccineError('')
+    setCareError('')
   }
 
-  async function submitEditVaccine() {
-    if (!editingVaccineId || !editVaccineForm.name || !editVaccineForm.date_administered) return
-    setVaccineError('')
+  async function submitEditCareItem() {
+    if (!editingCareId || !editCareForm.name || !editCareForm.date_administered) return
+    setCareError('')
     try {
-      await updateVaccine.mutateAsync({ id: editingVaccineId, animal_id: id!, ...editVaccineForm })
-      setEditingVaccineId(null)
+      await updateCareItem.mutateAsync({ id: editingCareId, animal_id: id!, ...editCareForm })
+      setEditingCareId(null)
     } catch (e: any) {
-      setVaccineError(e.message ?? "Erreur lors de l'enregistrement.")
+      setCareError(e.message ?? "Erreur lors de l'enregistrement.")
     }
   }
 
-  async function removeVaccine(v: any) {
-    setVaccineError('')
+  async function removeCareItem(c: any) {
+    setCareError('')
     try {
-      await deleteVaccine.mutateAsync({ id: v.id, animal_id: id! })
+      await deleteCareItem.mutateAsync({ id: c.id, animal_id: id! })
     } catch (e: any) {
-      setVaccineError(e.message ?? "Erreur lors de la suppression.")
+      setCareError(e.message ?? "Erreur lors de la suppression.")
     }
   }
 
@@ -492,8 +495,8 @@ export default function AnimalHealthPage() {
         )}
 
         <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-6 w-fit">
-          {([['overview', '📋 Résumé'], ['vaccines', '💉 Vaccins'], ['weight', '⚖️ Poids'], ['records', '📁 Dossier'], ['documents', '📎 Documents']] as const)
-            .filter(([t]) => canSeeMedicalTabs || (t !== 'vaccines' && t !== 'weight'))
+          {([['overview', '📋 Résumé'], ['care', '🔔 Suivis'], ['weight', '⚖️ Poids'], ['records', '📁 Dossier'], ['documents', '📎 Documents']] as const)
+            .filter(([t]) => canSeeMedicalTabs || (t !== 'care' && t !== 'weight'))
             .map(([t, label]) => (
             <button key={t} onClick={() => setTab(t)}
               className={`px-4 py-2 text-xs font-medium rounded-lg transition-colors ${tab === t ? 'bg-white text-sage-600 shadow-sm' : 'text-gray-500'}`}>
@@ -505,10 +508,10 @@ export default function AnimalHealthPage() {
         {tab === 'overview' && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 animate-rise-in">
             <div className="card p-5">
-              <h3 className="font-semibold text-sm text-gray-700 mb-3">💉 Vaccins</h3>
-              <p className="text-3xl font-bold text-sage-600 mb-1">{vaccines.length}</p>
-              <p className="text-xs text-gray-400">vaccins enregistrés</p>
-              {nextVaccine && <p className="text-xs text-amber-600 mt-2">⏰ Rappel : {formatInTimeZone(new Date(nextVaccine.next_due_date!), PARIS_TZ, 'd MMM yyyy', { locale: fr })}</p>}
+              <h3 className="font-semibold text-sm text-gray-700 mb-3">🔔 Suivis</h3>
+              <p className="text-3xl font-bold text-sage-600 mb-1">{careItems.length}</p>
+              <p className="text-xs text-gray-400">suivis enregistrés</p>
+              {nextCareItem && <p className="text-xs text-amber-600 mt-2">⏰ Rappel : {formatInTimeZone(new Date(nextCareItem.next_due_date!), PARIS_TZ, 'd MMM yyyy', { locale: fr })}</p>}
             </div>
             <div className="card p-5">
               <h3 className="font-semibold text-sm text-gray-700 mb-3">⚖️ Poids actuel</h3>
@@ -523,57 +526,72 @@ export default function AnimalHealthPage() {
           </div>
         )}
 
-        {tab === 'vaccines' && canSeeMedicalTabs && (
+        {tab === 'care' && canSeeMedicalTabs && (
           <div className="animate-rise-in">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="font-semibold text-gray-900">Vaccins de {animal.name}</h2>
-              <button onClick={() => setShowVaccineForm(true)} className="btn-primary text-sm">+ Ajouter</button>
+              <h2 className="font-semibold text-gray-900">Suivis de {animal.name}</h2>
+              <button onClick={() => setShowCareForm(true)} className="btn-primary text-sm">+ Ajouter</button>
             </div>
-            {showVaccineForm && (
+            {showCareForm && (
               <div className="card p-5 mb-4 border-2 border-sage-200">
-                <h3 className="font-semibold text-sm mb-3">Nouveau vaccin</h3>
+                <h3 className="font-semibold text-sm mb-3">Nouveau suivi</h3>
                 <div className="grid grid-cols-2 gap-3">
-                  <div><label className="text-xs text-gray-500">Nom du vaccin *</label><input className="input text-sm mt-1" value={vaccineForm.name} onChange={e => setVaccineForm(f => ({...f, name: e.target.value}))} placeholder="Ex: Rage, Carré..." /></div>
-                  <div><label className="text-xs text-gray-500">Date administration *</label><input type="date" className="input text-sm mt-1" value={vaccineForm.date_administered} onChange={e => setVaccineForm(f => ({...f, date_administered: e.target.value}))} /></div>
-                  <div><label className="text-xs text-gray-500">Prochain rappel</label><input type="date" className="input text-sm mt-1" value={vaccineForm.next_due_date} onChange={e => setVaccineForm(f => ({...f, next_due_date: e.target.value}))} /></div>
-                  <div><label className="text-xs text-gray-500">Administré par</label><input className="input text-sm mt-1" value={vaccineForm.administered_by} onChange={e => setVaccineForm(f => ({...f, administered_by: e.target.value}))} placeholder="Dr..." /></div>
+                  <div>
+                    <label className="text-xs text-gray-500">Type de suivi *</label>
+                    <select className="input text-sm mt-1" value={careForm.care_type} onChange={e => setCareForm(f => ({...f, care_type: e.target.value as CareType}))}>
+                      {CARE_TYPES.map(t => <option key={t.id} value={t.id}>{t.icon} {t.label}</option>)}
+                    </select>
+                  </div>
+                  <div><label className="text-xs text-gray-500">Nom *</label><input className="input text-sm mt-1" value={careForm.name} onChange={e => setCareForm(f => ({...f, name: e.target.value}))} placeholder="Ex: Rage, Carré, Vermifuge annuel..." /></div>
+                  <div><label className="text-xs text-gray-500">Date de réalisation *</label><input type="date" className="input text-sm mt-1" value={careForm.date_administered} onChange={e => setCareForm(f => ({...f, date_administered: e.target.value}))} /></div>
+                  <div><label className="text-xs text-gray-500">Prochain rappel</label><input type="date" className="input text-sm mt-1" value={careForm.next_due_date} onChange={e => setCareForm(f => ({...f, next_due_date: e.target.value}))} /></div>
+                  <div><label className="text-xs text-gray-500">Réalisé par</label><input className="input text-sm mt-1" value={careForm.administered_by} onChange={e => setCareForm(f => ({...f, administered_by: e.target.value}))} placeholder="Dr..." /></div>
                 </div>
                 <div className="flex gap-2 mt-3">
-                  <button onClick={submitVaccine} className="btn-primary text-sm">Enregistrer</button>
-                  <button onClick={() => setShowVaccineForm(false)} className="btn-secondary text-sm">Annuler</button>
+                  <button onClick={submitCareItem} className="btn-primary text-sm">Enregistrer</button>
+                  <button onClick={() => setShowCareForm(false)} className="btn-secondary text-sm">Annuler</button>
                 </div>
               </div>
             )}
-            {vaccineError && <p className="text-red-500 text-sm mb-3">{vaccineError}</p>}
-            {vaccines.length === 0
-              ? <div className="card p-10 text-center"><p className="text-gray-400 text-sm">Aucun vaccin enregistré.</p></div>
-              : <div className="space-y-3">{vaccines.map(v => (
-                  editingVaccineId === v.id ? (
-                    <div key={v.id} className="card p-5 border-2 border-sage-200">
+            {careError && <p className="text-red-500 text-sm mb-3">{careError}</p>}
+            {careItems.length === 0
+              ? <div className="card p-10 text-center"><p className="text-gray-400 text-sm">Aucun suivi enregistré.</p></div>
+              : <div className="space-y-3">{careItems.map(c => (
+                  editingCareId === c.id ? (
+                    <div key={c.id} className="card p-5 border-2 border-sage-200">
                       <div className="grid grid-cols-2 gap-3">
-                        <div><label className="text-xs text-gray-500">Nom du vaccin *</label><input className="input text-sm mt-1" value={editVaccineForm.name} onChange={e => setEditVaccineForm(f => ({...f, name: e.target.value}))} /></div>
-                        <div><label className="text-xs text-gray-500">Date administration *</label><input type="date" className="input text-sm mt-1" value={editVaccineForm.date_administered} onChange={e => setEditVaccineForm(f => ({...f, date_administered: e.target.value}))} /></div>
-                        <div><label className="text-xs text-gray-500">Prochain rappel</label><input type="date" className="input text-sm mt-1" value={editVaccineForm.next_due_date} onChange={e => setEditVaccineForm(f => ({...f, next_due_date: e.target.value}))} /></div>
-                        <div><label className="text-xs text-gray-500">Administré par</label><input className="input text-sm mt-1" value={editVaccineForm.administered_by} onChange={e => setEditVaccineForm(f => ({...f, administered_by: e.target.value}))} /></div>
+                        <div>
+                          <label className="text-xs text-gray-500">Type de suivi *</label>
+                          <select className="input text-sm mt-1" value={editCareForm.care_type} onChange={e => setEditCareForm(f => ({...f, care_type: e.target.value as CareType}))}>
+                            {CARE_TYPES.map(t => <option key={t.id} value={t.id}>{t.icon} {t.label}</option>)}
+                          </select>
+                        </div>
+                        <div><label className="text-xs text-gray-500">Nom *</label><input className="input text-sm mt-1" value={editCareForm.name} onChange={e => setEditCareForm(f => ({...f, name: e.target.value}))} /></div>
+                        <div><label className="text-xs text-gray-500">Date de réalisation *</label><input type="date" className="input text-sm mt-1" value={editCareForm.date_administered} onChange={e => setEditCareForm(f => ({...f, date_administered: e.target.value}))} /></div>
+                        <div><label className="text-xs text-gray-500">Prochain rappel</label><input type="date" className="input text-sm mt-1" value={editCareForm.next_due_date} onChange={e => setEditCareForm(f => ({...f, next_due_date: e.target.value}))} /></div>
+                        <div><label className="text-xs text-gray-500">Réalisé par</label><input className="input text-sm mt-1" value={editCareForm.administered_by} onChange={e => setEditCareForm(f => ({...f, administered_by: e.target.value}))} /></div>
                       </div>
                       <div className="flex gap-2 mt-3">
-                        <button onClick={submitEditVaccine} disabled={updateVaccine.isPending} className="btn-primary text-sm">
-                          {updateVaccine.isPending ? 'Enregistrement...' : 'Enregistrer'}
+                        <button onClick={submitEditCareItem} disabled={updateCareItem.isPending} className="btn-primary text-sm">
+                          {updateCareItem.isPending ? 'Enregistrement...' : 'Enregistrer'}
                         </button>
-                        <button onClick={() => setEditingVaccineId(null)} className="btn-secondary text-sm">Annuler</button>
+                        <button onClick={() => setEditingCareId(null)} className="btn-secondary text-sm">Annuler</button>
                       </div>
                     </div>
                   ) : (
-                    <div key={v.id} className="card p-4 flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-lg">💉</div>
+                    <div key={c.id} className="card p-4 flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center text-lg">{careTypeIcon(c.care_type)}</div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm text-gray-900">{v.name}</p>
-                        <p className="text-xs text-gray-500">Le {formatInTimeZone(new Date(v.date_administered), PARIS_TZ, 'd MMM yyyy', { locale: fr })}{v.administered_by ? ` · ${v.administered_by}` : ''}</p>
+                        <p className="font-semibold text-sm text-gray-900">
+                          {c.name}
+                          <span className="text-gray-400 font-normal"> · {careTypeLabel(c.care_type)}</span>
+                        </p>
+                        <p className="text-xs text-gray-500">Le {formatInTimeZone(new Date(c.date_administered), PARIS_TZ, 'd MMM yyyy', { locale: fr })}{c.administered_by ? ` · ${c.administered_by}` : ''}</p>
                       </div>
-                      {v.next_due_date && <div className="text-right"><p className="text-xs text-amber-600 font-medium">Rappel</p><p className="text-xs text-gray-500">{formatInTimeZone(new Date(v.next_due_date), PARIS_TZ, 'd MMM yyyy', { locale: fr })}</p></div>}
+                      {c.next_due_date && <div className="text-right"><p className="text-xs text-amber-600 font-medium">Rappel</p><p className="text-xs text-gray-500">{formatInTimeZone(new Date(c.next_due_date), PARIS_TZ, 'd MMM yyyy', { locale: fr })}</p></div>}
                       <div className="flex gap-2 flex-shrink-0">
-                        <button onClick={() => startEditVaccine(v)} className="text-xs text-sage-600 hover:underline">✏️</button>
-                        <button onClick={() => removeVaccine(v)} disabled={deleteVaccine.isPending} className="text-xs text-red-400 hover:underline">🗑️</button>
+                        <button onClick={() => startEditCareItem(c)} className="text-xs text-sage-600 hover:underline">✏️</button>
+                        <button onClick={() => removeCareItem(c)} disabled={deleteCareItem.isPending} className="text-xs text-red-400 hover:underline">🗑️</button>
                       </div>
                     </div>
                   )
