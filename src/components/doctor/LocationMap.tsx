@@ -1,4 +1,11 @@
 // src/components/doctor/LocationMap.tsx
+// Le CSS de Leaflet était chargé depuis unpkg.com (CDN tiers) en render-
+// blocking dans index.html <head>, sur TOUTES les pages de l'appli — alors
+// que ce composant n'est utilisé que sur DoctorPage. Importé ici à la place
+// (leaflet est déjà une dépendance npm locale, pas besoin du CDN) : Vite
+// l'inclut dans ce même chunk chargé en lazy (voir son import dans
+// DoctorPage.tsx), donc plus aucune page ne le paie sauf celle-ci.
+import 'leaflet/dist/leaflet.css'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import L from 'leaflet'
 

@@ -1,16 +1,20 @@
 // src/pages/DoctorPage.tsx
-import { useState } from 'react'
+import { useState, Suspense, lazy } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useDoctor, useDoctorReviews, useCreateReview, useDoctorPublicClinic, useCreateReport, useIsFavorite, useToggleFavorite, useMyHistoryWithDoctor } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
 import StarRating from '@/components/ui/StarRating'
-import LocationMap from '@/components/doctor/LocationMap'
 import { sanitizeHtml } from '@/lib/sanitizeHtml'
 import { fr } from 'date-fns/locale'
 import { formatInTimeZone } from 'date-fns-tz'
 import { PARIS_TZ } from '@/lib/parisTime'
+
+// leaflet + react-leaflet sont chargés en lazy : ~50 Ko compressés, le plus
+// gros bloc de ce chunk, pour une carte qui n'apparaît qu'en bas de page
+// (voir aussi le retrait du CSS Leaflet du <head> global dans index.html).
+const LocationMap = lazy(() => import('@/components/doctor/LocationMap'))
 
 export default function DoctorPage() {
   const { id } = useParams<{ id: string }>()
@@ -234,8 +238,10 @@ export default function DoctorPage() {
               return (
                 <div className="card p-6">
                   <h2 className="font-semibold text-gray-900 mb-3">Localisation</h2>
-                  <LocationMap lat={mapLat} lng={mapLng}
-                    label={clinic ? (clinic.address ?? clinic.city ?? '') : (doctor.address ?? doctor.city ?? '')} />
+                  <Suspense fallback={<div className="h-56 rounded-xl bg-gray-100 animate-pulse" />}>
+                    <LocationMap lat={mapLat} lng={mapLng}
+                      label={clinic ? (clinic.address ?? clinic.city ?? '') : (doctor.address ?? doctor.city ?? '')} />
+                  </Suspense>
                   <p className="text-xs text-gray-400 mt-2">
                     📍 {clinic ? (clinic.address ?? clinic.city) : (doctor.address ?? doctor.city)}
                   </p>
