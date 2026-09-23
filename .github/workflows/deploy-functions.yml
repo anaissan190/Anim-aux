@@ -21,10 +21,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          # Node 20 fait planter les tests (jsdom/undici appellent
-          # webidl.util.markAsUncloneable, absent de cette version) —
-          # repéré le 23/09/2026 en comparant à l'environnement local
-          # (Node 24), qui n'a jamais eu ce problème.
           node-version: 24
       # npm install plutôt que npm ci : ce dernier exige une correspondance
       # stricte et complète du lock file pour CHAQUE plateforme possible des
