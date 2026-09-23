@@ -16,7 +16,8 @@ import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorRe
   usePushSubscriptionStatus, useEnablePushNotifications, useDisablePushNotifications, useMessagingRealtime,
   useCalendarFeedToken, useRegenerateCalendarFeedToken } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
-import { PRACTITIONER_TYPES, getPractitionerTypeBySpecialty } from '@/lib/practitionerTypes'
+import { PRACTITIONER_TYPES, getPractitionerType, getPractitionerTypesBySpecialties } from '@/lib/practitionerTypes'
+import PractitionerTypePicker from '@/components/doctor/PractitionerTypePicker'
 import { SPECIES_EMOJI, PRACTICE_SPECIES_OPTIONS } from '@/lib/animalSpecies'
 import { type DoctorTab as Tab, ALL_DOCTOR_TAB_IDS as ALL_TAB_IDS } from '@/lib/doctorDashboardTabs'
 import { computeDoctorStats } from '@/lib/doctorStats'
@@ -50,7 +51,7 @@ export default function DoctorDashboard() {
   // plutôt que systématiquement "Vaccination" — sans rapport pour un
   // comportementaliste, toiletteur, éducateur canin... (repéré en
   // préparant une démo à une comportementaliste).
-  const servicePlaceholderExample = getPractitionerTypeBySpecialty(doctor?.specialty)?.services[0]?.name ?? 'Vaccination'
+  const servicePlaceholderExample = getPractitionerTypesBySpecialties(doctor?.specialties)[0]?.services[0]?.name ?? 'Vaccination'
   const { data: verificationRejectedReason } = useMyVerificationRejectedReason(doctor?.verification_status === 'rejected')
   const acceptEthicsCharter = useAcceptEthicsCharter()
   const { data: appointments = [], isLoading } = useDoctorAppointments(doctor?.id)
@@ -103,7 +104,7 @@ export default function DoctorDashboard() {
   const updateProfile = useUpdateProfile()
   const updateDoctorInfo = useUpdateDoctor()
   const [profileForm, setProfileForm] = useState({
-    first_name: '', last_name: '', specialty: '', city: '', address: '', bio: '', phone: '',
+    first_name: '', last_name: '', specialties: [] as string[], city: '', address: '', bio: '', phone: '',
     accepted_species: [] as string[], home_visit: false,
     // Adresse personnelle (table profiles, distincte de l'adresse du
     // cabinet ci-dessus) — présente sur /profil (patient) mais jusqu'ici
@@ -114,6 +115,7 @@ export default function DoctorDashboard() {
     // pertinence côté praticien.
     home_address: '',
   })
+  const [otherProfession, setOtherProfession] = useState('')
   const [profileError, setProfileError] = useState('')
   const [profileSaved, setProfileSaved] = useState(false)
   const [photoUploading, setPhotoUploading] = useState(false)
@@ -262,10 +264,28 @@ export default function DoctorDashboard() {
   useEffect(() => {
     if (profileInitialized.current) return
     if (!profile || !doctor) return
+    // profileForm.specialties stocke des ID de PRACTITIONER_TYPES (pour le
+    // picker), pas les libellés bruts de doctor.specialties — un métier
+    // sans correspondance connue (profession libre saisie via "Autre")
+    // devient un seul "autre", avec son texte d'origine préservé côté
+    // otherProfession — sinon ré-enregistrer ce formulaire écrasait la
+    // profession personnalisée par le mot générique "Autre" (voir même
+    // correctif sur ProfilPage.tsx).
+    const ids: string[] = []
+    let otherText = ''
+    for (const label of doctor.specialties ?? []) {
+      const matched = PRACTITIONER_TYPES.find(p => p.label === label)
+      if (matched) {
+        if (!ids.includes(matched.id)) ids.push(matched.id)
+      } else {
+        if (!ids.includes('autre')) ids.push('autre')
+        otherText = label
+      }
+    }
     setProfileForm({
       first_name: profile.first_name ?? '',
       last_name: profile.last_name ?? '',
-      specialty: doctor.specialty ?? '',
+      specialties: ids,
       city: doctor.city ?? '',
       address: doctor.address ?? '',
       bio: doctor.bio ?? '',
@@ -274,6 +294,7 @@ export default function DoctorDashboard() {
       home_visit: doctor.home_visit ?? false,
       home_address: profile.address ?? '',
     })
+    setOtherProfession(otherText)
     profileInitialized.current = true
   }, [profile, doctor])
 
@@ -298,7 +319,9 @@ export default function DoctorDashboard() {
           address: profileForm.home_address,
         }),
         updateDoctorInfo.mutateAsync({
-          specialty: profileForm.specialty,
+          specialties: profileForm.specialties
+            .map(id => id === 'autre' ? otherProfession.trim() : getPractitionerType(id)?.label)
+            .filter((label): label is string => !!label),
           city: profileForm.city,
           address: profileForm.address,
           bio: profileForm.bio,
@@ -537,7 +560,7 @@ export default function DoctorDashboard() {
         byId.set(key, {
           doctorId: key,
           name: d?.profiles ? `${d.profiles.first_name} ${d.profiles.last_name}` : 'Praticien',
-          specialty: d?.specialty ?? '',
+          specialty: d?.specialties?.join(' · ') ?? '',
           services: [],
         })
       }
@@ -732,7 +755,7 @@ export default function DoctorDashboard() {
                   Bonjour, {profile?.first_name ?? ''} {profile?.last_name ?? ''} 👋
                 </h1>
                 <p className="text-gray-500 text-sm mt-1">
-                  {doctor?.specialty}{doctor?.city ? ` · ${doctor.city}` : ''}
+                  {doctor?.specialties?.join(' · ')}{doctor?.city ? ` · ${doctor.city}` : ''}
                 </p>
               </div>
             </div>
@@ -774,7 +797,7 @@ export default function DoctorDashboard() {
               <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
                 <h3 className="font-semibold text-sm text-gray-900 mb-4">Mon profil</h3>
                 <div className="space-y-2 text-sm text-gray-600">
-                  <div className="flex items-center gap-2"><span>🩺</span><span>{doctor?.specialty || '—'}</span></div>
+                  <div className="flex items-center gap-2"><span>🩺</span><span>{doctor?.specialties?.join(' · ') || '—'}</span></div>
                   <div className="flex items-center gap-2"><span>📍</span><span>{doctor?.city || 'Ville non renseignée'}</span></div>
                   {avgRating && <div className="flex items-center gap-2"><span>⭐</span><span>{avgRating} / 5 ({reviews.length} avis)</span></div>}
                 </div>
@@ -1754,7 +1777,7 @@ export default function DoctorDashboard() {
                       <p className="text-sm font-medium text-gray-800">
                         {m.doctors?.profiles?.first_name} {m.doctors?.profiles?.last_name}
                       </p>
-                      <p className="text-xs text-gray-400">{m.doctors?.specialty}</p>
+                      <p className="text-xs text-gray-400">{m.doctors?.specialties?.join(' · ')}</p>
                     </div>
                     {clinic.owner_id === m.doctors?.user_id ? (
                       <span className="ml-auto text-xs bg-sage-100 text-sage-700 px-2 py-0.5 rounded-full">Admin</span>
@@ -2027,16 +2050,12 @@ export default function DoctorDashboard() {
                       onChange={e => setProfileForm(f => ({ ...f, last_name: e.target.value }))} />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Spécialité / Métier</label>
-                  <select className="input" value={profileForm.specialty}
-                    onChange={e => setProfileForm(f => ({ ...f, specialty: e.target.value }))}>
-                    <option value="" disabled>Choisir un métier</option>
-                    {PRACTITIONER_TYPES.map(t => (
-                      <option key={t.id} value={t.label}>{t.label}</option>
-                    ))}
-                  </select>
-                </div>
+                <PractitionerTypePicker
+                  selectedIds={profileForm.specialties}
+                  onChange={ids => setProfileForm(f => ({ ...f, specialties: ids }))}
+                  otherText={otherProfession}
+                  onOtherTextChange={setOtherProfession}
+                />
                 {!clinic && (
                   <div className="grid grid-cols-2 gap-4">
                     <div>

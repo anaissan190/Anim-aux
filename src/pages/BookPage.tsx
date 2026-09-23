@@ -11,7 +11,7 @@ import { addMinutes } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { formatInTimeZone } from 'date-fns-tz'
 import { SPECIES_EMOJI } from '@/lib/animalSpecies'
-import { getPractitionerTypeBySpecialty } from '@/lib/practitionerTypes'
+import { getPractitionerTypesBySpecialties } from '@/lib/practitionerTypes'
 import { parisDateKey, parisDayOfWeek, parisTimeString, PARIS_TZ } from '@/lib/parisTime'
 
 type Step = 1 | 2 | 3
@@ -80,20 +80,24 @@ export default function BookPage() {
 
   // Motifs de RDV vétérinaires par défaut ("ordonnance", "urgence"...) —
   // affichés tels quels pour un vétérinaire (comportement d'origine, non
-  // modifié) et en filet de sécurité si la spécialité n'est pas reconnue.
+  // modifié) et en filet de sécurité si aucune spécialité n'est reconnue.
   // Pour tout autre métier (comportementaliste, toiletteur, éducateur
   // canin...), on propose ses propres prestations (practitionerTypes.ts)
   // plutôt que des motifs médicaux qui n'ont pas de sens pour lui — repéré
   // en préparant une démo à une comportementaliste, dont le premier écran
-  // de réservation affichait "Renouvellement ordonnance"/"Urgence".
-  const practitionerType = getPractitionerTypeBySpecialty(doctor?.specialty)
+  // de réservation affichait "Renouvellement ordonnance"/"Urgence". Un
+  // praticien à plusieurs métiers (depuis le 23/09/2026) propose l'union
+  // de tous ses motifs, dédupliquée, plutôt que seulement le premier.
+  const practitionerTypes = getPractitionerTypesBySpecialties(doctor?.specialties)
   const VET_REASONS = [
     'Consultation générale', 'Renouvellement ordonnance',
-    'Bilan annuel', 'Suivi de traitement', 'Urgence', 'Autre',
+    'Bilan annuel', 'Suivi de traitement', 'Urgence',
   ]
-  const REASONS = !practitionerType || practitionerType.id === 'veterinaire'
-    ? VET_REASONS
-    : [...practitionerType.services.map(s => s.name), 'Autre']
+  const REASONS = practitionerTypes.length === 0
+    ? [...VET_REASONS, 'Autre']
+    : [...new Set(practitionerTypes.flatMap(t =>
+        t.id === 'veterinaire' ? VET_REASONS : t.services.map(s => s.name)
+      )), 'Autre']
 
   const doctorProfile = doctor?.profiles as any
   const name = doctorProfile
@@ -148,7 +152,7 @@ export default function BookPage() {
             </div>
             <div>
               <p className="font-semibold text-sm text-gray-900">{name}</p>
-              <p className="text-xs text-sage-600">{doctor.specialty} · {doctor.consultation_price}€</p>
+              <p className="text-xs text-sage-600">{doctor.specialties?.join(' · ')} · {doctor.consultation_price}€</p>
             </div>
             <Link to={`/doctor/${doctorId}`} className="ml-auto text-xs text-gray-400 hover:underline">Modifier</Link>
           </div>
@@ -339,7 +343,7 @@ export default function BookPage() {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Spécialité</span>
-                <span>{doctor?.specialty}</span>
+                <span>{doctor?.specialties?.join(' · ')}</span>
               </div>
               {selectedSlot && (
                 <div className="flex justify-between text-sm">

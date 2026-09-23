@@ -149,7 +149,7 @@ Deno.serve(async (req) => {
     .select(`
       id, start_at, patient_id,
       patient:users!patient_id(email, profiles(first_name, phone)),
-      doctors!inner(user_id, specialty, profiles!doctors_user_id_profiles_fkey(first_name, last_name, phone))
+      doctors!inner(user_id, specialties, profiles!doctors_user_id_profiles_fkey(first_name, last_name, phone))
     `)
     .eq('id', notification.related_id)
     .single()
@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
   const doctorProfile = doctorRow?.profiles
   // "Dr" réservé aux vétérinaires (voir practitionerTypes.ts côté front,
   // dupliqué ici comme le reste de ce fichier n'important pas src/).
-  const isVeterinarian = doctorRow?.specialty === 'Vétérinaire'
+  const isVeterinarian = (doctorRow?.specialties ?? []).includes('Vétérinaire')
   const doctorName = doctorProfile ? (isVeterinarian ? `Dr ${doctorProfile.first_name} ${doctorProfile.last_name}` : `${doctorProfile.first_name} ${doctorProfile.last_name}`) : 'Votre praticien'
   const doctorNameHtml = doctorProfile
     ? (isVeterinarian ? `Dr ${escapeHtml(doctorProfile.first_name)} ${escapeHtml(doctorProfile.last_name)}` : `${escapeHtml(doctorProfile.first_name)} ${escapeHtml(doctorProfile.last_name)}`)

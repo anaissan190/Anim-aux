@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
     .select(`
       id, start_at,
       patient:users!patient_id(email, profiles(first_name, phone)),
-      doctors!inner(specialty, profiles!doctors_user_id_profiles_fkey(first_name, last_name))
+      doctors!inner(specialties, profiles!doctors_user_id_profiles_fkey(first_name, last_name))
     `)
     .eq('id', notification.related_id)
     .single()
@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
   const doctorProfile = (appt.doctors as any)?.profiles
   // "Dr" réservé aux vétérinaires (voir practitionerTypes.ts côté front,
   // dupliqué ici comme le reste de ce fichier n'important pas src/).
-  const isVeterinarian = (appt.doctors as any)?.specialty === 'Vétérinaire'
+  const isVeterinarian = ((appt.doctors as any)?.specialties ?? []).includes('Vétérinaire')
   const doctorName = doctorProfile ? (isVeterinarian ? `Dr ${doctorProfile.first_name} ${doctorProfile.last_name}` : `${doctorProfile.first_name} ${doctorProfile.last_name}`) : 'Votre praticien'
   // Version échappée dédiée à l'email HTML — `doctorName` reste en clair
   // pour le SMS (les entités HTML s'afficheraient littéralement dedans).

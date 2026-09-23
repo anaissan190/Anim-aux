@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { matchesSpecialtySearch } from './doctorSearch'
+import { matchesSpecialtySearch, matchesAnySpecialty } from './doctorSearch'
 
 describe('matchesSpecialtySearch', () => {
   it('matche quand le terme est un sous-texte de la spécialité stockée', () => {
@@ -22,5 +22,21 @@ describe('matchesSpecialtySearch', () => {
     expect(matchesSpecialtySearch('', 'chat')).toBe(false)
     expect(matchesSpecialtySearch(null, 'chat')).toBe(false)
     expect(matchesSpecialtySearch(undefined, 'chat')).toBe(false)
+  })
+})
+
+describe('matchesAnySpecialty', () => {
+  it('matche dès qu\'un seul métier du tableau correspond (praticien à plusieurs casquettes)', () => {
+    expect(matchesAnySpecialty(['Éducateur canin', 'Naturopathe animalier'], 'naturopathe')).toBe(true)
+  })
+
+  it('ne matche pas si aucun métier du tableau ne correspond', () => {
+    expect(matchesAnySpecialty(['Éducateur canin', 'Naturopathe animalier'], 'vétérinaire')).toBe(false)
+  })
+
+  it('ne matche jamais un tableau vide ou absent', () => {
+    expect(matchesAnySpecialty([], 'chat')).toBe(false)
+    expect(matchesAnySpecialty(null, 'chat')).toBe(false)
+    expect(matchesAnySpecialty(undefined, 'chat')).toBe(false)
   })
 })

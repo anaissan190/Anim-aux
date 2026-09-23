@@ -32,7 +32,7 @@ export default function DoctorMiniRow({ doctor, colorIndex, isLast, mobile }: Pr
       )}
       <div className="flex-1 min-w-0">
         <p className={`${nameFont} text-[15px] font-semibold text-gray-900 truncate`}>{name}</p>
-        <p className="text-[12px] text-gray-500">{doctor.specialty}</p>
+        <p className="text-[12px] text-gray-500">{doctor.specialties?.join(' · ')}</p>
       </div>
       <span className="text-gray-300 font-bold text-lg">›</span>
     </Link>

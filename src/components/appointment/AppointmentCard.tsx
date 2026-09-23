@@ -114,7 +114,7 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
       startAt: appointment.start_at,
       endAt: appointment.end_at,
       doctorName,
-      specialty: (appointment.doctors as any)?.specialty,
+      specialty: (appointment.doctors as any)?.specialties?.join(' · '),
       address: (appointment.doctors as any)?.address,
       city: (appointment.doctors as any)?.city,
       reason: appointment.reason,
@@ -175,7 +175,7 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
       {/* Infos */}
       <div className="flex-1 min-w-0">
         <p className="font-serif text-[17px] font-semibold text-gray-900 truncate">{name || 'Praticien'}</p>
-        <p className="text-sm text-sage-600 mt-0.5">{(appointment.doctors as any)?.specialty ?? ''}</p>
+        <p className="text-sm text-sage-600 mt-0.5">{(appointment.doctors as any)?.specialties?.join(' · ') ?? ''}</p>
         {appointment.reason && (
           <p className="text-xs text-gray-500 mt-1 truncate">Motif : {appointment.reason}</p>
         )}

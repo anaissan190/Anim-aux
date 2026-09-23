@@ -6,7 +6,7 @@ import { parisDateKey, parisTimeToUtc } from '@/lib/parisTime'
 
 function baseDoctor(overrides: Record<string, any> = {}): any {
   return {
-    id: 'doc-1', specialty: 'Vétérinaire', average_rating: 4.5, review_count: 12,
+    id: 'doc-1', specialties: ['Vétérinaire'], average_rating: 4.5, review_count: 12,
     consultation_price: 50, city: 'Paris', is_verified: false, home_visit: false,
     profiles: { first_name: 'Jean', last_name: 'Dupont', avatar_url: null },
     ...overrides,

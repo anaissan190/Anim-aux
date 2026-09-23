@@ -56,14 +56,16 @@ Deno.serve(async (req) => {
 
   const { data: doctor } = await supabase
     .from('doctors')
-    .select('specialty, address, city, profiles!doctors_user_id_profiles_fkey(first_name, last_name)')
+    .select('specialties, address, city, profiles!doctors_user_id_profiles_fkey(first_name, last_name)')
     .eq('id', tokenRow.doctor_id)
     .single()
   const doctorProfile = (doctor as any)?.profiles
   // "Dr" réservé aux vétérinaires (voir practitionerTypes.ts côté front,
-  // dupliqué ici comme le reste de ce fichier n'important pas src/).
+  // dupliqué ici comme le reste de ce fichier n'important pas src/). Un
+  // praticien peut cumuler plusieurs métiers depuis le 23/09/2026 — "Dr"
+  // dès que 'Vétérinaire' figure parmi eux, peu importe les autres.
   const doctorName = doctorProfile
-    ? ((doctor as any)?.specialty === 'Vétérinaire' ? `Dr ${doctorProfile.first_name} ${doctorProfile.last_name}` : `${doctorProfile.first_name} ${doctorProfile.last_name}`)
+    ? (((doctor as any)?.specialties ?? []).includes('Vétérinaire') ? `Dr ${doctorProfile.first_name} ${doctorProfile.last_name}` : `${doctorProfile.first_name} ${doctorProfile.last_name}`)
     : 'Praticien'
 
   // Agenda confirmé à partir d'hier (couvre un RDV du jour déjà commencé) :

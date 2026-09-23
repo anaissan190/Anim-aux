@@ -24,7 +24,7 @@ beforeEach(() => {
 
 function makeDoctor(overrides: Record<string, any> = {}) {
   return {
-    id: 'doc-1', specialty: 'Vétérinaire', verification_status: 'verified',
+    id: 'doc-1', specialties: ['Vétérinaire'], verification_status: 'verified',
     average_rating: 4.5, consultation_price: 50, home_visit: false, accepted_species: ['Chiens'],
     profiles: { first_name: 'Jean', last_name: 'Dupont', avatar_url: null },
     ...overrides,
@@ -55,7 +55,7 @@ describe('useDoctors', () => {
   })
 
   it('un praticien en cabinet reste trouvable par son nom même en recherche par spécialité', async () => {
-    const doctors = [makeDoctor({ id: 'doc-2', specialty: 'Ostéopathe', profiles: { first_name: 'Marie', last_name: 'Curie', avatar_url: null } })]
+    const doctors = [makeDoctor({ id: 'doc-2', specialties: ['Ostéopathe'], profiles: { first_name: 'Marie', last_name: 'Curie', avatar_url: null } })]
     vi.mocked(supabase.rpc).mockResolvedValue({ data: [{ doctor_id: 'doc-2' }], error: null } as any)
     vi.mocked(supabase.from).mockReturnValue(createQueryBuilderMock({ data: doctors, error: null }))
 
@@ -66,7 +66,7 @@ describe('useDoctors', () => {
   })
 
   it('un membre de cabinet trouvé par sa spécialité (pas son nom) reste exclu', async () => {
-    const doctors = [makeDoctor({ id: 'doc-2', specialty: 'Ostéopathe' })]
+    const doctors = [makeDoctor({ id: 'doc-2', specialties: ['Ostéopathe'] })]
     vi.mocked(supabase.rpc).mockResolvedValue({ data: [{ doctor_id: 'doc-2' }], error: null } as any)
     vi.mocked(supabase.from).mockReturnValue(createQueryBuilderMock({ data: doctors, error: null }))
 

@@ -90,7 +90,7 @@ export default function ClinicPage() {
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <h3 className="font-semibold text-gray-900 group-hover:text-sage-600 transition-colors">{name}</h3>
-                        <p className="text-sm text-sage-600 font-medium">{m.specialty}</p>
+                        <p className="text-sm text-sage-600 font-medium">{m.specialties?.join(' · ')}</p>
                       </div>
                       {m.is_verified && <span className="badge-green flex-shrink-0">✓ Vérifié</span>}
                     </div>

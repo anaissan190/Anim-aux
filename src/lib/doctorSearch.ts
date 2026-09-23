@@ -14,3 +14,10 @@ export function matchesSpecialtySearch(specialty: string | null | undefined, ter
   // "botte de foin" (haystack).
   return normalized.includes(term) || term.includes(normalized)
 }
+
+// Un praticien peut avoir plusieurs métiers (doctors.specialties, depuis
+// le 23/09/2026) — trouvable dès qu'UN SEUL d'entre eux correspond au
+// terme recherché.
+export function matchesAnySpecialty(specialties: string[] | null | undefined, term: string): boolean {
+  return (specialties ?? []).some(specialty => matchesSpecialtySearch(specialty, term))
+}

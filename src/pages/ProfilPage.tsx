@@ -9,6 +9,7 @@ import MobileHeader from '@/components/mobile/MobileHeader'
 import MobileTabBar from '@/components/mobile/MobileTabBar'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 import { PRACTITIONER_TYPES, getPractitionerType } from '@/lib/practitionerTypes'
+import PractitionerTypePicker from '@/components/doctor/PractitionerTypePicker'
 import { PRACTICE_SPECIES_OPTIONS } from '@/lib/animalSpecies'
 import { showToast } from '@/lib/toast'
 import { compressImage } from '@/lib/compressImage'
@@ -106,7 +107,8 @@ export default function ProfilPage() {
   const [emergencyPhone, setEmergencyPhone] = useState('')
 
   // Champs praticien
-  const [practitionerTypeId, setPractitionerTypeId] = useState('')
+  const [practitionerTypeIds, setPractitionerTypeIds] = useState<string[]>([])
+  const [otherProfession, setOtherProfession] = useState('')
   const [bio, setBio]               = useState('')
   const [city, setCity]             = useState('')
   const [address, setAddress]       = useState('')
@@ -130,8 +132,24 @@ export default function ProfilPage() {
 
   useEffect(() => {
     if (doctor) {
-      const matched = PRACTITIONER_TYPES.find(p => p.label === doctor.specialty)
-      setPractitionerTypeId(matched?.id ?? (doctor.specialty ? 'autre' : ''))
+      // Un métier de doctor.specialties qui ne correspond à aucun libellé
+      // connu (ex: profession libre saisie via "Autre" à l'inscription)
+      // devient un seul "autre" dans le picker, avec son texte d'origine
+      // préservé — sans ça, ré-enregistrer ce formulaire écrasait la
+      // profession personnalisée par le mot générique "Autre".
+      const ids: string[] = []
+      let otherText = ''
+      for (const label of doctor.specialties ?? []) {
+        const matched = PRACTITIONER_TYPES.find(p => p.label === label)
+        if (matched) {
+          if (!ids.includes(matched.id)) ids.push(matched.id)
+        } else {
+          if (!ids.includes('autre')) ids.push('autre')
+          otherText = label
+        }
+      }
+      setPractitionerTypeIds(ids)
+      setOtherProfession(otherText)
       setBio(doctor.bio || '')
       setCity(doctor.city || '')
       setAddress(doctor.address || '')
@@ -158,8 +176,11 @@ export default function ProfilPage() {
         emergency_contact_phone: emergencyPhone,
       })
       if (isDoctor) {
+        const specialties = practitionerTypeIds
+          .map(id => id === 'autre' ? otherProfession.trim() : getPractitionerType(id)?.label)
+          .filter((label): label is string => !!label)
         await updateDoctor.mutateAsync({
-          specialty: getPractitionerType(practitionerTypeId)?.label ?? '',
+          specialties,
           bio,
           city,
           address,
@@ -289,14 +310,12 @@ export default function ProfilPage() {
             <div className="card p-6">
               <h2 className="font-semibold text-gray-900 mb-4">🩺 Informations professionnelles</h2>
               <div className="mb-3">
-                <label className="text-xs text-gray-500">Spécialité / Activité</label>
-                <select className="input text-sm mt-1" value={practitionerTypeId}
-                  onChange={e => setPractitionerTypeId(e.target.value)}>
-                  <option value="" disabled>Sélectionnez votre profession</option>
-                  {PRACTITIONER_TYPES.map(type => (
-                    <option key={type.id} value={type.id}>{type.icon} {type.label}</option>
-                  ))}
-                </select>
+                <PractitionerTypePicker
+                  selectedIds={practitionerTypeIds}
+                  onChange={setPractitionerTypeIds}
+                  otherText={otherProfession}
+                  onOtherTextChange={setOtherProfession}
+                />
               </div>
               <div className="mb-3">
                 <label className="text-xs text-gray-500 block mb-1">Bio / Présentation</label>

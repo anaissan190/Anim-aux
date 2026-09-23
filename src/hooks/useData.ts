@@ -9,7 +9,7 @@ import { geocodeAddress } from '@/lib/geo'
 import { generateAvailableSlots } from '@/lib/slots'
 import { findNextAvailableSlot } from '@/lib/nextSlot'
 import { urlBase64ToUint8Array } from '@/lib/pushNotifications'
-import { matchesSpecialtySearch } from '@/lib/doctorSearch'
+import { matchesAnySpecialty } from '@/lib/doctorSearch'
 import { parisDateKey, parisDayOfWeek, parisTimeToUtc } from '@/lib/parisTime'
 
 export function useDoctors(filters: SearchFilters = {}, enabled: boolean = true) {
@@ -31,7 +31,7 @@ export function useDoctors(filters: SearchFilters = {}, enabled: boolean = true)
         // migration 088) — un select('*') sur cette liste de recherche
         // publique échouerait entièrement (permission refusée) si la colonne
         // n'est pas explicitement exclue.
-        .select('id, user_id, specialty, rpps_number, bio, consultation_price, address, city, lat, lng, is_verified, average_rating, review_count, created_at, updated_at, accepted_species, home_visit, verification_status, profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url)')
+        .select('id, user_id, specialties, rpps_number, bio, consultation_price, address, city, lat, lng, is_verified, average_rating, review_count, created_at, updated_at, accepted_species, home_visit, verification_status, profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url)')
         // Un praticien dont le dossier de vérification n'est pas validé
         // (documents en attente ou rejetés) reste invisible du public,
         // même s'il peut déjà utiliser son tableau de bord — voir
@@ -54,7 +54,7 @@ export function useDoctors(filters: SearchFilters = {}, enabled: boolean = true)
         : (data ?? []).filter((d: any) => {
             const fullName = `${d.profiles?.first_name ?? ''} ${d.profiles?.last_name ?? ''}`.toLowerCase()
             if (fullName.includes(term)) return true
-            return matchesSpecialtySearch(d.specialty, term) && !excludedIds.has(d.id)
+            return matchesAnySpecialty(d.specialties, term) && !excludedIds.has(d.id)
           })
 
       if (!filters.availability) return filtered
@@ -266,7 +266,7 @@ export function useDoctor(id: string) {
       const { data, error } = await supabase
         .from('doctors')
         // Voir useDoctors : même exclusion de verification_rejected_reason.
-        .select('id, user_id, specialty, rpps_number, bio, consultation_price, address, city, lat, lng, is_verified, average_rating, review_count, created_at, updated_at, accepted_species, home_visit, verification_status, ethics_charter_accepted_at, profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url, phone)')
+        .select('id, user_id, specialties, rpps_number, bio, consultation_price, address, city, lat, lng, is_verified, average_rating, review_count, created_at, updated_at, accepted_species, home_visit, verification_status, ethics_charter_accepted_at, profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url, phone)')
         .eq('id', id)
         .single()
       if (error) throw error
@@ -286,7 +286,7 @@ export function useCurrentDoctor() {
         // Même exclusion de verification_rejected_reason que useDoctor/
         // useDoctors — le praticien lit son propre motif de rejet via
         // useMyVerificationRejectedReason (RPC dédiée) sur DoctorDashboard.
-        .select('id, user_id, specialty, rpps_number, bio, consultation_price, address, city, lat, lng, is_verified, average_rating, review_count, created_at, updated_at, accepted_species, home_visit, verification_status, ethics_charter_accepted_at')
+        .select('id, user_id, specialties, rpps_number, bio, consultation_price, address, city, lat, lng, is_verified, average_rating, review_count, created_at, updated_at, accepted_species, home_visit, verification_status, ethics_charter_accepted_at')
         .eq('user_id', user!.id)
         .single()
       if (error) throw error
@@ -498,7 +498,7 @@ export function usePatientAppointments() {
       // "*" l'incluait quand même dans la réponse réseau.
       const { data, error } = await supabase
         .from('appointments')
-        .select('id, patient_id, doctor_id, start_at, end_at, status, reason, confirmed_by_patient_at, doctors!inner(id, specialty, city, profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url)), reviews(id, rating, comment)')
+        .select('id, patient_id, doctor_id, start_at, end_at, status, reason, confirmed_by_patient_at, doctors!inner(id, specialties, city, profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url)), reviews(id, rating, comment)')
         .eq('patient_id', user!.id)
         .order('start_at', { ascending: false })
       if (error) throw error
@@ -522,7 +522,7 @@ export function usePatientReminders() {
     queryFn: async () => {
       const { data: appts, error: apptErr } = await supabase
         .from('appointments')
-        .select('id, start_at, reason, doctors!inner(specialty, profiles!doctors_user_id_profiles_fkey(first_name, last_name))')
+        .select('id, start_at, reason, doctors!inner(specialties, profiles!doctors_user_id_profiles_fkey(first_name, last_name))')
         .eq('patient_id', user!.id)
         .eq('status', 'confirmed')
         .gte('start_at', new Date().toISOString())
@@ -1004,7 +1004,7 @@ export function useFavorites() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('favorites')
-        .select('id, doctor_id, created_at, doctors!inner(id, specialty, profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url))')
+        .select('id, doctor_id, created_at, doctors!inner(id, specialties, profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url))')
         .eq('patient_id', user!.id)
         .order('created_at', { ascending: false })
       if (error) throw error
@@ -1671,7 +1671,7 @@ export function usePatientDoctorDocuments() {
       // résultat aux pièces jointes de ses propres RDV.
       const { data: apptDocs, error: apptErr } = await supabase
         .from('appointment_documents')
-        .select('*, appointments(start_at, doctors(specialty, profiles!doctors_user_id_profiles_fkey(first_name, last_name)))')
+        .select('*, appointments(start_at, doctors(specialties, profiles!doctors_user_id_profiles_fkey(first_name, last_name)))')
         .order('created_at', { ascending: false })
       if (apptErr) throw apptErr
       const bookingDocs = (apptDocs ?? []).map((d: any) => ({ ...d, source: 'appointment' as const }))
@@ -1767,7 +1767,7 @@ export function useClinicMembers(clinicId?: string) {
         .from('clinic_members')
         .select(`
           id, doctor_id, joined_at,
-          doctors(id, specialty, user_id, consultation_price,
+          doctors(id, specialties, user_id, consultation_price,
             profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url)
           )
         `)
@@ -1903,7 +1903,7 @@ export function useClinicAppointments(clinicId?: string) {
       const { data, error } = await supabase
         .from('appointments')
         .select(`id, patient_id, doctor_id, start_at, end_at, status, reason, confirmed_by_patient_at,
-          doctors!inner(specialty, user_id, profiles!doctors_user_id_profiles_fkey(first_name, last_name)),
+          doctors!inner(specialties, user_id, profiles!doctors_user_id_profiles_fkey(first_name, last_name)),
           appointment_animals(animals(id, name, species))
         `)
         .in('doctor_id', doctorIds)
@@ -1986,7 +1986,7 @@ export function useClinicServices(clinicId?: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('clinic_services')
-        .select('*, doctors(id, user_id, specialty, profiles!doctors_user_id_profiles_fkey(first_name, last_name))')
+        .select('*, doctors(id, user_id, specialties, profiles!doctors_user_id_profiles_fkey(first_name, last_name))')
         .eq('clinic_id', clinicId!)
         .order('created_at')
       if (error) throw error
@@ -2174,7 +2174,7 @@ export function useUpdateDoctor() {
   const { user } = useAuthStore()
   return useMutation({
     mutationFn: async (updates: {
-      specialty?: string
+      specialties?: string[]
       bio?: string
       city?: string
       address?: string
@@ -2183,7 +2183,15 @@ export function useUpdateDoctor() {
       home_visit?: boolean
     }) => {
       if (!user) throw new Error('Utilisateur non connecté')
-      const payload: typeof updates & { lat?: number; lng?: number } = { ...updates }
+      const payload: typeof updates & { lat?: number; lng?: number; specialty?: string } = { ...updates }
+      // Garde l'ancienne colonne `specialty` (dépréciée, encore lue par
+      // quelques RPC admin/recherche cabinet pas encore basculées sur le
+      // tableau `specialties` — voir migration 102) synchronisée avec le
+      // premier métier choisi, pour qu'elles ne se figent pas dès la
+      // première modification de profil plutôt que de planter.
+      if (updates.specialties !== undefined) {
+        payload.specialty = updates.specialties[0] ?? ''
+      }
       if (updates.city !== undefined || updates.address !== undefined) {
         const coords = await geocodeAddress(updates.address, updates.city)
         if (coords) { payload.lat = coords.lat; payload.lng = coords.lng }

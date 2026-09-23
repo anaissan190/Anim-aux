@@ -8,6 +8,7 @@ import { ETHICS_CHARTER_CLAUSES, ETHICS_CHARTER_DISCLAIMER } from '@/lib/ethicsC
 import logoNavbar from '@/assets/logo-navbar.webp'
 import PasswordInput from '@/components/ui/PasswordInput'
 import Turnstile from '@/components/ui/Turnstile'
+import PractitionerTypePicker from '@/components/doctor/PractitionerTypePicker'
 
 const schema = z.object({
   first_name:        z.string().min(2, 'Prénom requis'),
@@ -15,7 +16,7 @@ const schema = z.object({
   email:             z.string().email('Email invalide'),
   password:          z.string().min(8, 'Minimum 8 caractères'),
   role:              z.enum(['patient', 'doctor']),
-  practitioner_type: z.string().optional(),
+  practitioner_types: z.array(z.string()).optional(),
 })
 
 // CGU et Politique de confidentialité restent des pages à part entière
@@ -42,7 +43,7 @@ const REGISTER_DRAFT_KEY = 'animeaux_register_draft'
 
 function loadRegisterDraft(): Partial<{
   first_name: string; last_name: string; email: string
-  role: 'patient' | 'doctor'; practitioner_type: string; otherProfession: string
+  role: 'patient' | 'doctor'; practitioner_types: string[]; otherProfession: string
   acceptedTerms: boolean; acceptedEthicsCharter: boolean
 }> {
   try {
@@ -63,7 +64,7 @@ export default function RegisterPage() {
     first_name: draft.first_name ?? '', last_name: draft.last_name ?? '',
     email: draft.email ?? '', password: '',
     role: defaultRole as 'patient' | 'doctor',
-    practitioner_type: draft.practitioner_type ?? '',
+    practitioner_types: draft.practitioner_types ?? [] as string[],
   })
   const [otherProfession, setOtherProfession] = useState(draft.otherProfession ?? '')
   const [acceptedTerms, setAcceptedTerms] = useState(draft.acceptedTerms ?? false)
@@ -80,7 +81,7 @@ export default function RegisterPage() {
     try {
       localStorage.setItem(REGISTER_DRAFT_KEY, JSON.stringify({
         first_name: form.first_name, last_name: form.last_name, email: form.email,
-        role: form.role, practitioner_type: form.practitioner_type, otherProfession,
+        role: form.role, practitioner_types: form.practitioner_types, otherProfession,
         acceptedTerms, acceptedEthicsCharter,
       }))
     } catch {
@@ -88,18 +89,18 @@ export default function RegisterPage() {
       // brouillon ne survivra pas à une navigation, mais le formulaire
       // reste utilisable normalement — best-effort, pas bloquant.
     }
-  }, [form.first_name, form.last_name, form.email, form.role, form.practitioner_type, otherProfession, acceptedTerms, acceptedEthicsCharter])
+  }, [form.first_name, form.last_name, form.email, form.role, form.practitioner_types, otherProfession, acceptedTerms, acceptedEthicsCharter])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setGlobalError('')
 
-    if (form.role === 'doctor' && !form.practitioner_type) {
-      setErrors({ practitioner_type: 'Veuillez choisir votre type de profession' })
+    if (form.role === 'doctor' && form.practitioner_types.length === 0) {
+      setErrors({ practitioner_type: 'Veuillez choisir au moins une profession' })
       return
     }
 
-    if (form.role === 'doctor' && form.practitioner_type === 'autre' && !otherProfession.trim()) {
+    if (form.role === 'doctor' && form.practitioner_types.includes('autre') && !otherProfession.trim()) {
       setErrors({ practitioner_type: 'Veuillez préciser votre profession' })
       return
     }
@@ -127,12 +128,14 @@ export default function RegisterPage() {
     }
 
     setLoading(true)
-    const selectedType = PRACTITIONER_TYPES.find(p => p.id === form.practitioner_type)
-    // "Autre" reste une valeur fixe de la liste (practitioner_type stocke
-    // toujours 'autre', pour les filtres/services associés) — seule la
-    // specialty affichée publiquement reprend la profession précisée en
-    // texte libre, plutôt que le mot générique "Autre".
-    const specialty = form.practitioner_type === 'autre' ? otherProfession.trim() : (selectedType?.label ?? '')
+    // "Autre" reste une valeur fixe de la liste (practitioner_types garde
+    // toujours 'autre', pour les filtres/services associés) — seul le
+    // libellé affiché publiquement reprend la profession précisée en texte
+    // libre, plutôt que le mot générique "Autre". Un praticien peut cumuler
+    // plusieurs métiers (ex: éducateur canin ET naturopathe animalier).
+    const specialties = form.practitioner_types
+      .map(id => id === 'autre' ? otherProfession.trim() : PRACTITIONER_TYPES.find(p => p.id === id)?.label)
+      .filter((label): label is string => !!label)
 
     let error: any
     let data: any
@@ -146,8 +149,8 @@ export default function RegisterPage() {
             first_name:        form.first_name,
             last_name:         form.last_name,
             role:              form.role,
-            specialty,
-            practitioner_type: form.practitioner_type,
+            specialty:         specialties[0] ?? '',
+            specialties,
             terms_accepted:    acceptedTerms,
             ethics_charter_accepted: form.role === 'doctor' ? acceptedEthicsCharter : undefined,
           }
@@ -218,7 +221,7 @@ export default function RegisterPage() {
           <div className="flex gap-2 mb-6 p-1 bg-gray-100 rounded-xl">
             {(['patient', 'doctor'] as const).map(r => (
               <button key={r} type="button"
-                onClick={() => setForm(f => ({ ...f, role: r, practitioner_type: '' }))}
+                onClick={() => setForm(f => ({ ...f, role: r, practitioner_types: [] }))}
                 className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors
                   ${form.role === r ? 'bg-white text-sage-600 shadow-sm' : 'text-gray-500'}`}>
                 {r === 'patient' ? '🙋 Propriétaire' : '🩺 Praticien'}
@@ -244,37 +247,15 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Choix du type de praticien */}
+            {/* Choix du/des type(s) de praticien */}
             {form.role === 'doctor' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Votre profession
-                </label>
-                <div className="grid grid-cols-1 gap-2">
-                  {PRACTITIONER_TYPES.map(type => (
-                    <button key={type.id} type="button"
-                      onClick={() => setForm(f => ({ ...f, practitioner_type: type.id }))}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm text-left transition-colors
-                        ${form.practitioner_type === type.id
-                          ? 'border-sage-500 bg-sage-50 text-sage-700 font-medium'
-                          : 'border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
-                      <span className="text-xl">{type.icon}</span>
-                      <span>{type.label}</span>
-                      {form.practitioner_type === type.id && <span className="ml-auto text-sage-500">✓</span>}
-                    </button>
-                  ))}
-                </div>
-                {form.practitioner_type === 'autre' && (
-                  <div className="mt-2">
-                    <input value={otherProfession}
-                      onChange={e => { setOtherProfession(e.target.value); setErrors(errs => ({ ...errs, practitioner_type: '' })) }}
-                      className="input" placeholder="Précisez votre profession" />
-                  </div>
-                )}
-                {errors.practitioner_type && (
-                  <p className="text-red-500 text-xs mt-1">{errors.practitioner_type}</p>
-                )}
-              </div>
+              <PractitionerTypePicker
+                selectedIds={form.practitioner_types}
+                onChange={ids => { setForm(f => ({ ...f, practitioner_types: ids })); setErrors(errs => ({ ...errs, practitioner_type: '' })) }}
+                otherText={otherProfession}
+                onOtherTextChange={text => { setOtherProfession(text); setErrors(errs => ({ ...errs, practitioner_type: '' })) }}
+                error={errors.practitioner_type}
+              />
             )}
 
             <div>

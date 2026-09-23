@@ -59,8 +59,8 @@ export default function RemindersPage() {
                       <div className="w-10 h-10 rounded-xl bg-sage-100 flex items-center justify-center text-lg flex-shrink-0">📅</div>
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-sm text-gray-900">
-                          {formatDoctorName(a.doctors?.specialty, doctorProfile?.first_name, doctorProfile?.last_name)}
-                          {a.doctors?.specialty && <span className="text-gray-400 font-normal"> · {a.doctors.specialty}</span>}
+                          {formatDoctorName(a.doctors?.specialties, doctorProfile?.first_name, doctorProfile?.last_name)}
+                          {a.doctors?.specialties?.length > 0 && <span className="text-gray-400 font-normal"> · {a.doctors.specialties.join(' · ')}</span>}
                         </p>
                         <p className="text-xs text-gray-500">
                           {formatInTimeZone(new Date(a.start_at), PARIS_TZ, "d MMM yyyy 'à' HH:mm", { locale: fr })}

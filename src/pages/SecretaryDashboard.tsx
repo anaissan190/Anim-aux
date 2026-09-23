@@ -84,7 +84,7 @@ export default function SecretaryDashboard() {
                             {formatInTimeZone(new Date(a.start_at), PARIS_TZ, "EEEE d MMM 'à' HH:mm", { locale: fr })}
                           </p>
                           <p className="text-xs text-gray-400">
-                            {formatDoctorName(a.doctor_specialty, a.doctor_first_name, a.doctor_last_name)}
+                            {formatDoctorName(a.doctor_specialties, a.doctor_first_name, a.doctor_last_name)}
                             {a.patient_first_name && ` · ${a.patient_first_name} ${a.patient_last_name}`}
                             {a.animal_name && ` · ${a.animal_name}`}
                           </p>
@@ -119,7 +119,7 @@ export default function SecretaryDashboard() {
                             </span>
                           )}
                         </p>
-                        <p className="text-xs text-gray-400">{m.specialty}</p>
+                        <p className="text-xs text-gray-400">{m.specialties?.join(' · ')}</p>
                       </div>
                     </div>
                   ))}

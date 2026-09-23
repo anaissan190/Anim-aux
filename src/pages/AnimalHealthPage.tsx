@@ -33,7 +33,7 @@ import {
 import { useAuthStore } from '@/lib/authStore'
 import { supabase } from '@/lib/supabase'
 import { SPECIES_EMOJI, BREED_PLACEHOLDER } from '@/lib/animalSpecies'
-import { getPractitionerTypeBySpecialty } from '@/lib/practitionerTypes'
+import { getPractitionerTypesBySpecialties } from '@/lib/practitionerTypes'
 import SpeciesSelect from '@/components/ui/SpeciesSelect'
 import { showToast } from '@/lib/toast'
 import { compressImage } from '@/lib/compressImage'
@@ -68,7 +68,10 @@ export default function AnimalHealthPage() {
   // par défaut, tant que la spécialité du praticien n'est pas encore
   // chargée, pour éviter un flash "masqué puis affiché" chez un vétérinaire.
   const { data: currentDoctor } = useCurrentDoctor()
-  const isNonVetDoctor = isDoctor && !!currentDoctor && getPractitionerTypeBySpecialty(currentDoctor.specialty)?.id !== 'veterinaire'
+  // Union : un praticien à plusieurs métiers (ex: vétérinaire + naturopathe)
+  // garde ses fonctionnalités vétérinaires dès que 'Vétérinaire' figure
+  // parmi ses spécialités, peu importe les autres.
+  const isNonVetDoctor = isDoctor && !!currentDoctor && !getPractitionerTypesBySpecialties(currentDoctor.specialties).some(t => t.id === 'veterinaire')
   const canSeeMedicalTabs = !isNonVetDoctor
 
   const doctorName = profile ? `${profile.first_name} ${profile.last_name}`.trim() : ''

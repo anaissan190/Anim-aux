@@ -125,7 +125,7 @@ export default function DoctorPage() {
               </div>
               <div className="min-w-0">
                 <h1 className="text-2xl font-bold text-gray-900">{name}</h1>
-                <p className="text-sage-600 font-medium">{doctor.specialty}</p>
+                <p className="text-sage-600 font-medium">{doctor.specialties?.join(' · ')}</p>
                 {clinic ? (
                   <div className="mt-1 flex items-center gap-2">
                     {clinic.logo_url && (

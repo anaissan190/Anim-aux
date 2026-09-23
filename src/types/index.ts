@@ -47,7 +47,7 @@ export interface Profile {
 export interface Doctor {
   id: string
   user_id: string
-  specialty: string
+  specialties: string[]
   rpps_number?: string
   bio?: string
   consultation_price: number

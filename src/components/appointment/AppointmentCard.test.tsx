@@ -17,7 +17,7 @@ function baseAppointment(overrides: Record<string, any> = {}): any {
     id: 'appt-1', doctor_id: 'doc-1', patient_id: 'patient-1',
     start_at: future.toISOString(), end_at: futureEnd.toISOString(), status: 'confirmed', reason: null,
     profiles: { first_name: 'Anaïs', last_name: 'S' },
-    doctors: { specialty: 'Vétérinaire', profiles: { first_name: 'Jean', last_name: 'Dupont' } },
+    doctors: { specialties: ['Vétérinaire'], profiles: { first_name: 'Jean', last_name: 'Dupont' } },
     animals: [],
     ...overrides,
   }

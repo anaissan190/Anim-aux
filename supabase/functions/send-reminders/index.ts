@@ -173,7 +173,7 @@ Deno.serve(async (req) => {
     .select(`
       id, start_at, reason, patient_id,
       patient:users!patient_id(email, profiles(first_name, last_name, phone)),
-      doctors!inner(specialty, profiles!doctors_user_id_profiles_fkey(first_name, last_name))
+      doctors!inner(specialties, profiles!doctors_user_id_profiles_fkey(first_name, last_name))
     `)
     .gte('start_at', from.toISOString())
     .lt('start_at', to.toISOString())
@@ -199,10 +199,11 @@ Deno.serve(async (req) => {
     const patientProfile = (appt.patient as any)?.profiles
     const patientEmail = (appt.patient as any)?.email
     const doctorProfile = (appt.doctors as any)?.profiles
-    const doctorSpecialty = (appt.doctors as any)?.specialty
+    const doctorSpecialties = (appt.doctors as any)?.specialties ?? []
     // "Dr" réservé aux vétérinaires (voir practitionerTypes.ts côté front,
-    // dupliqué ici comme le reste de ce fichier n'important pas src/).
-    const isVeterinarian = doctorSpecialty === 'Vétérinaire'
+    // dupliqué ici comme le reste de ce fichier n'important pas src/). Un
+    // praticien peut cumuler plusieurs métiers depuis le 23/09/2026.
+    const isVeterinarian = doctorSpecialties.includes('Vétérinaire')
     const doctorName = doctorProfile ? (isVeterinarian ? `Dr ${doctorProfile.first_name} ${doctorProfile.last_name}` : `${doctorProfile.first_name} ${doctorProfile.last_name}`) : 'votre praticien'
     // Version échappée dédiée aux emails HTML — `doctorName` reste en clair
     // pour la notification in-app (échappée par React au rendu) et le SMS.
@@ -380,7 +381,7 @@ Deno.serve(async (req) => {
     .select(`
       id, doctor_id, patient_id,
       patient:users!patient_id(email, profiles(first_name, phone)),
-      doctors!inner(specialty, profiles!doctors_user_id_profiles_fkey(first_name, last_name))
+      doctors!inner(specialties, profiles!doctors_user_id_profiles_fkey(first_name, last_name))
     `)
     .eq('status', 'completed')
     .is('review_reminder_sent_at', null)
@@ -393,7 +394,7 @@ Deno.serve(async (req) => {
     const patientProfile = (appt.patient as any)?.profiles
     const patientEmail = (appt.patient as any)?.email
     const doctorProfile = (appt.doctors as any)?.profiles
-    const isVeterinarian = (appt.doctors as any)?.specialty === 'Vétérinaire'
+    const isVeterinarian = ((appt.doctors as any)?.specialties ?? []).includes('Vétérinaire')
     const doctorName = doctorProfile ? (isVeterinarian ? `Dr ${doctorProfile.first_name} ${doctorProfile.last_name}` : `${doctorProfile.first_name} ${doctorProfile.last_name}`) : 'votre praticien'
     const doctorNameHtml = doctorProfile
       ? (isVeterinarian ? `Dr ${escapeHtml(doctorProfile.first_name)} ${escapeHtml(doctorProfile.last_name)}` : `${escapeHtml(doctorProfile.first_name)} ${escapeHtml(doctorProfile.last_name)}`)

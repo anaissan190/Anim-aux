@@ -219,16 +219,36 @@ export function getPractitionerTypeBySpecialty(specialty: string | null | undefi
   })
 }
 
+// Un praticien peut exercer plusieurs métiers depuis le 23/09/2026 (ex:
+// éducateur canin ET naturopathe animalier) — doctors.specialties est
+// désormais un tableau. Dédoublonne par id (deux libellés proches
+// pourraient matcher le même type via getPractitionerTypeBySpecialty).
+export function getPractitionerTypesBySpecialties(specialties: string[] | null | undefined): PractitionerType[] {
+  const seen = new Set<string>()
+  const result: PractitionerType[] = []
+  for (const specialty of specialties ?? []) {
+    const type = getPractitionerTypeBySpecialty(specialty)
+    if (type && !seen.has(type.id)) {
+      seen.add(type.id)
+      result.push(type)
+    }
+  }
+  return result
+}
+
 // "Dr" est un titre réservé aux vétérinaires (seul métier de cette liste
 // habilité à le porter) — un comportementaliste, un toiletteur ou un
-// éducateur canin n'est jamais un docteur. `doctors.specialty` stocke le
-// libellé (ex. "Vétérinaire"), pas l'id, donc la comparaison se fait sur
-// getPractitionerType('veterinaire')!.label plutôt que sur un id.
+// éducateur canin n'est jamais un docteur. `doctors.specialties` stocke
+// les libellés (ex. "Vétérinaire"), pas les id, donc la comparaison se
+// fait sur getPractitionerType('veterinaire')!.label plutôt que sur un
+// id. Un praticien qui est À LA FOIS vétérinaire et autre chose (ex.
+// vétérinaire + naturopathe) reste "Dr" — la présence du métier suffit,
+// peu importe les autres métiers déclarés à côté.
 export function formatDoctorName(
-  specialty: string | null | undefined,
+  specialties: string[] | null | undefined,
   firstName: string | null | undefined,
   lastName: string | null | undefined
 ): string {
-  const isVeterinarian = specialty === getPractitionerType('veterinaire')?.label
+  const isVeterinarian = (specialties ?? []).includes(getPractitionerType('veterinaire')?.label ?? '')
   return isVeterinarian ? `Dr ${firstName ?? ''} ${lastName ?? ''}` : `${firstName ?? ''} ${lastName ?? ''}`
 }

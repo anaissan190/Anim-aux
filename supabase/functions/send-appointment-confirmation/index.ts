@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
       .select(`
         id, start_at, reason, patient_id,
         patient:users!patient_id(email, profiles(first_name, last_name, phone)),
-        doctors!inner(consultation_price, specialty, profiles!doctors_user_id_profiles_fkey(first_name, last_name))
+        doctors!inner(consultation_price, specialties, profiles!doctors_user_id_profiles_fkey(first_name, last_name))
       `)
       .eq('id', appointmentId)
       .single()
@@ -162,13 +162,14 @@ Deno.serve(async (req) => {
     const patientProfile = (appt.patient as any)?.profiles
     const patientEmail = (appt.patient as any)?.email
     const doctorProfile = (appt.doctors as any)?.profiles
-    const doctorSpecialty = (appt.doctors as any)?.specialty
+    const doctorSpecialties = (appt.doctors as any)?.specialties ?? []
     // "Dr" est un titre réservé aux vétérinaires (seul métier de la liste
     // practitionerTypes.ts habilité à le porter) — un comportementaliste,
     // un toiletteur ou un éducateur canin n'est jamais un docteur. Dupliqué
     // ici comme les autres petites fonctions de ce fichier (toE164,
-    // escapeHtml) : les Edge Functions Deno n'importent pas src/.
-    const isVeterinarian = doctorSpecialty === 'Vétérinaire'
+    // escapeHtml) : les Edge Functions Deno n'importent pas src/. Un
+    // praticien peut cumuler plusieurs métiers depuis le 23/09/2026.
+    const isVeterinarian = doctorSpecialties.includes('Vétérinaire')
     const doctorName = doctorProfile ? (isVeterinarian ? `Dr ${doctorProfile.first_name} ${doctorProfile.last_name}` : `${doctorProfile.first_name} ${doctorProfile.last_name}`) : 'votre praticien'
     // Prénom/nom sont des champs libres saisis à l'inscription (patient ET
     // praticien) — jamais validés contre l'injection de balises. Version

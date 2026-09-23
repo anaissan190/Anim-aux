@@ -58,7 +58,7 @@ export default function PatientDocumentsPage() {
           <div className="space-y-3">
             {documents.map((d: any) => {
               const doctorProfile = d.source === 'appointment' ? d.appointments?.doctors?.profiles : null
-              const doctorSpecialty = d.source === 'appointment' ? d.appointments?.doctors?.specialty : null
+              const doctorSpecialties = d.source === 'appointment' ? d.appointments?.doctors?.specialties : null
               return (
                 <a key={d.id} href={d.file_url} target="_blank" rel="noopener noreferrer"
                   className="card p-4 flex items-center gap-4 hover:shadow-md transition-shadow">
@@ -78,7 +78,7 @@ export default function PatientDocumentsPage() {
                     </div>
                     <p className="text-xs text-gray-500">
                       {d.source === 'animal' && d.animals?.name && `${SPECIES_EMOJI[d.animals.species] ?? '🐾'} ${d.animals.name}`}
-                      {d.source === 'appointment' && doctorProfile && `RDV avec ${formatDoctorName(doctorSpecialty, doctorProfile.first_name, doctorProfile.last_name)}`}
+                      {d.source === 'appointment' && doctorProfile && `RDV avec ${formatDoctorName(doctorSpecialties, doctorProfile.first_name, doctorProfile.last_name)}`}
                     </p>
                     <p className="text-xs text-gray-400">
                       Déposé par {d.uploaderName} le {formatInTimeZone(new Date(d.created_at), PARIS_TZ, "d MMM yyyy 'à' HH:mm", { locale: fr })}
