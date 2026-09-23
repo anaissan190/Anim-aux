@@ -28,6 +28,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  vi.unstubAllEnvs()
 })
 
 describe('usePushSubscriptionStatus', () => {
@@ -60,7 +61,28 @@ describe('usePushSubscriptionStatus', () => {
 })
 
 describe('useEnablePushNotifications', () => {
+  // Repéré le 23/09/2026 : VITE_VAPID_PUBLIC_KEY a été absente de Vercel en
+  // production pendant un temps sans qu'aucun message clair ne le signale —
+  // urlBase64ToUint8Array(undefined) plantait avec "Cannot read properties
+  // of undefined (reading 'length')", un message qui ne dit rien de la
+  // vraie cause à quelqu'un cliquant sur "Activer les notifications".
+  it('lève un message clair si VITE_VAPID_PUBLIC_KEY est absente, avant même de demander la permission', async () => {
+    // Efface explicitement la valeur ambiante de .env.local — sans ce
+    // stub, ce test passerait localement (où la clé existe) mais ne
+    // couvrirait jamais réellement le cas absent (celui qui a fait planter
+    // la prod avant que VITE_VAPID_PUBLIC_KEY soit ajoutée sur Vercel).
+    vi.stubEnv('VITE_VAPID_PUBLIC_KEY', '')
+    const requestPermission = vi.fn(() => Promise.resolve('granted'))
+    vi.stubGlobal('Notification', { requestPermission })
+
+    const { result } = renderHook(() => useEnablePushNotifications(), { wrapper })
+    await expect(result.current.mutateAsync()).rejects.toThrow('indisponibles')
+    expect(requestPermission).not.toHaveBeenCalled()
+    expect(supabase.from).not.toHaveBeenCalled()
+  })
+
   it('lève une erreur si la permission est refusée, sans appeler Supabase', async () => {
+    vi.stubEnv('VITE_VAPID_PUBLIC_KEY', 'AAAAAAAA')
     vi.stubGlobal('Notification', { requestPermission: vi.fn(() => Promise.resolve('denied')) })
 
     const { result } = renderHook(() => useEnablePushNotifications(), { wrapper })
@@ -69,6 +91,7 @@ describe('useEnablePushNotifications', () => {
   })
 
   it("s'abonne et enregistre l'abonnement dans push_subscriptions si la permission est accordée", async () => {
+    vi.stubEnv('VITE_VAPID_PUBLIC_KEY', 'AAAAAAAA')
     vi.stubGlobal('Notification', { requestPermission: vi.fn(() => Promise.resolve('granted')) })
     const subscribeMock = vi.fn(() => Promise.resolve({
       toJSON: () => ({ endpoint: 'https://push.example/1', keys: { p256dh: 'p256dh-value', auth: 'auth-value' } }),

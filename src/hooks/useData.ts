@@ -2244,6 +2244,17 @@ export function useEnablePushNotifications() {
   const { user } = useAuthStore()
   return useMutation({
     mutationFn: async () => {
+      // Repéré le 23/09/2026 : cette clé a été absente des variables
+      // d'environnement de production pendant un temps (jamais configurée
+      // sur Vercel) sans qu'aucun message clair ne le signale — l'appel
+      // plantait avec "Cannot read properties of undefined (reading
+      // 'length')" dans urlBase64ToUint8Array, un message qui ne dit rien
+      // sur la vraie cause à quelqu'un cliquant sur "Activer les
+      // notifications".
+      if (!import.meta.env.VITE_VAPID_PUBLIC_KEY) {
+        throw new Error("Notifications push indisponibles pour l'instant (configuration manquante). Réessayez plus tard.")
+      }
+
       const permission = await Notification.requestPermission()
       if (permission !== 'granted') throw new Error('Permission refusée pour les notifications.')
 
