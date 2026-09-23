@@ -17,6 +17,16 @@ on:
 jobs:
   tester:
     runs-on: ubuntu-latest
+    # Valeurs factices : certains tests (authStore, supabase.ts) importent
+    # le vrai client Supabase sans le mocker (ils ne stubbent que ses
+    # méthodes, jamais de vrai appel réseau) — le module lève une erreur à
+    # la construction si ces variables sont absentes, ce qu'il n'y a jamais
+    # localement grâce à .env.local (inexistant en CI). Aucune vraie
+    # information ici, juste de quoi satisfaire la vérification.
+    env:
+      VITE_SUPABASE_URL: https://fake-project.supabase.co
+      VITE_SUPABASE_ANON_KEY: fake-anon-key-for-ci
+      VITE_VAPID_PUBLIC_KEY: fake-vapid-public-key-for-ci
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
