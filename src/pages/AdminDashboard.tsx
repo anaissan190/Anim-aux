@@ -142,7 +142,7 @@ function AdminOverview({ onSelectDoctor, onViewReviews, onViewPatients, onViewCl
         const q = search.trim().toLowerCase()
         return `${d.first_name} ${d.last_name}`.toLowerCase().includes(q)
           || d.email?.toLowerCase().includes(q)
-          || d.specialty?.toLowerCase().includes(q)
+          || d.specialties?.some((s: string) => s.toLowerCase().includes(q))
       })
     : activeList
 
@@ -313,7 +313,7 @@ function AdminOverview({ onSelectDoctor, onViewReviews, onViewPatients, onViewCl
                         )}
                       </div>
                       <p className="text-xs text-gray-500">
-                        {d.specialty} · {d.email}{d.city ? ` · ${d.city}` : ''}
+                        {d.specialties?.join(' · ')} · {d.email}{d.city ? ` · ${d.city}` : ''}
                       </p>
                       <p className="text-xs text-gray-400 mt-0.5">
                         Inscrit {formatInTimeZone(new Date(d.created_at), PARIS_TZ, "d MMMM yyyy 'à' HH:mm", { locale: fr })}
@@ -489,7 +489,7 @@ function AdminReviewsView({ onBack }: { onBack: () => void }) {
                 {r.comment && <p className="text-sm text-gray-700 mb-2">{r.comment}</p>}
                 <p className="text-xs text-gray-400 mb-2">
                   {r.patient_name || 'Propriétaire'} → <span className="text-gray-600 font-medium">{r.doctor_name || 'Praticien'}</span>
-                  {r.doctor_specialty && ` (${r.doctor_specialty})`}
+                  {r.doctor_specialties?.length > 0 && ` (${r.doctor_specialties.join(' · ')})`}
                 </p>
                 {confirmingId === r.id ? (
                   <div className="flex items-center gap-2">
@@ -840,7 +840,7 @@ function AdminClinicDetail({ clinicId, onBack, onSelectDoctor }: {
                   <button key={m.doctor_id} onClick={() => onSelectDoctor(m.doctor_id)}
                     className="flex items-center gap-2 w-full text-left p-2 rounded-xl hover:bg-gray-50 transition-colors">
                     <span className="text-sm text-gray-800 flex-1">
-                      {m.first_name} {m.last_name} <span className="text-gray-400">· {m.specialty}</span>
+                      {m.first_name} {m.last_name} <span className="text-gray-400">· {m.specialties?.join(' · ')}</span>
                       {m.is_owner && <span className="text-xs text-sage-600 ml-1">(propriétaire)</span>}
                     </span>
                     <span className={STATUS_BADGE[m.verification_status]}>{STATUS_LABEL[m.verification_status]}</span>
@@ -998,7 +998,7 @@ function AdminAppointmentsView({ onBack, initialFilter }: { onBack: () => void; 
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-gray-800 truncate">
                     {a.patient_name || 'Propriétaire'} → <span className="font-medium">{a.doctor_name || 'Praticien'}</span>
-                    {a.doctor_specialty && <span className="text-gray-400"> ({a.doctor_specialty})</span>}
+                    {a.doctor_specialties?.length > 0 && <span className="text-gray-400"> ({a.doctor_specialties.join(' · ')})</span>}
                   </p>
                   {a.reason && <p className="text-xs text-gray-400 truncate">{a.reason}</p>}
                 </div>
@@ -1083,7 +1083,7 @@ function AdminDoctorDetail({ doctorId, onBack }: { doctorId: string; onBack: () 
                   </div>
                   <div>
                     <h1 className="text-lg font-bold text-gray-900">{d.first_name} {d.last_name}</h1>
-                    <p className="text-sm text-gray-500">{d.specialty}</p>
+                    <p className="text-sm text-gray-500">{d.specialties?.join(' · ')}</p>
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-1">
@@ -1327,7 +1327,7 @@ function AdminReportsView({ onBack, onSelectDoctor }: { onBack: () => void; onSe
                         <button onClick={() => onSelectDoctor(r.target_id)} className="text-sage-600 hover:underline font-medium">
                           {r.target_preview.doctor_name || 'Praticien'}
                         </button>
-                        {r.target_preview.specialty && <span className="text-gray-400"> · {r.target_preview.specialty}</span>}
+                        {r.target_preview.specialties?.length > 0 && <span className="text-gray-400"> · {r.target_preview.specialties.join(' · ')}</span>}
                       </p>
                     )}
                   </div>

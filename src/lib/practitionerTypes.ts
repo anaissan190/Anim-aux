@@ -204,8 +204,10 @@ export function getPractitionerType(id: string): PractitionerType | undefined {
   return PRACTITIONER_TYPES.find(p => p.id === id)
 }
 
-// Retrouve le PractitionerType à partir du libellé stocké sur doctors.specialty
-// (jamais l'id). Comparaison dans les deux sens comme matchesSpecialtySearch
+// Retrouve le PractitionerType à partir d'UN libellé (jamais l'id) — brique
+// de base réutilisée par getPractitionerTypesBySpecialties pour le tableau
+// doctors.specialties (un praticien peut cumuler plusieurs métiers depuis
+// le 23/09/2026). Comparaison dans les deux sens comme matchesSpecialtySearch
 // (src/lib/doctorSearch.ts) plutôt qu'une égalité stricte : un libellé
 // renommé depuis l'inscription du praticien (ex. "Comportementaliste" →
 // "Comportementaliste animalier") ne doit pas faire perdre la correspondance

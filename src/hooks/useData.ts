@@ -2300,15 +2300,7 @@ export function useUpdateDoctor() {
       home_visit?: boolean
     }) => {
       if (!user) throw new Error('Utilisateur non connecté')
-      const payload: typeof updates & { lat?: number; lng?: number; specialty?: string } = { ...updates }
-      // Garde l'ancienne colonne `specialty` (dépréciée, encore lue par
-      // quelques RPC admin/recherche cabinet pas encore basculées sur le
-      // tableau `specialties` — voir migration 102) synchronisée avec le
-      // premier métier choisi, pour qu'elles ne se figent pas dès la
-      // première modification de profil plutôt que de planter.
-      if (updates.specialties !== undefined) {
-        payload.specialty = updates.specialties[0] ?? ''
-      }
+      const payload: typeof updates & { lat?: number; lng?: number } = { ...updates }
       if (updates.city !== undefined || updates.address !== undefined) {
         const coords = await geocodeAddress(updates.address, updates.city)
         if (coords) { payload.lat = coords.lat; payload.lng = coords.lng }
