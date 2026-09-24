@@ -135,6 +135,13 @@ describe('destinationForNotification', () => {
     expect(destinationForNotification('care_reminder', 'animal1', false)).toBe('/animal/animal1')
   })
 
+  it('renvoie vers la fiche santé de l\'animal pour un partage de dossier entre praticiens (les 4 types)', () => {
+    expect(destinationForNotification('referral_requested', 'animal1', false)).toBe('/animal/animal1')
+    expect(destinationForNotification('referral_accepted', 'animal1', true)).toBe('/animal/animal1')
+    expect(destinationForNotification('referral_declined', 'animal1', true)).toBe('/animal/animal1')
+    expect(destinationForNotification('referral_revoked', 'animal1', true)).toBe('/animal/animal1')
+  })
+
   it('renvoie vers le dashboard praticien pour une décision de vérification', () => {
     expect(destinationForNotification('doctor_verified', null, true)).toBe('/dashboard/doctor')
     expect(destinationForNotification('doctor_rejected', null, true)).toBe('/dashboard/doctor')
@@ -149,6 +156,7 @@ describe('destinationForNotification', () => {
     expect(destinationForNotification('waitlist_slot_available', null, false)).toBeNull()
     expect(destinationForNotification('vaccine_reminder', null, false)).toBeNull()
     expect(destinationForNotification('care_reminder', null, false)).toBeNull()
+    expect(destinationForNotification('referral_requested', null, false)).toBeNull()
   })
 
   it('ne renvoie aucune destination pour un type inconnu ou sans lien évident (ex. new_review, jamais réellement émis)', () => {

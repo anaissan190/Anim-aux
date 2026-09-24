@@ -35,6 +35,13 @@ export function destinationForNotification(type: string, relatedId: string | nul
   if ((type === 'vaccine_reminder' || type === 'care_reminder') && relatedId) {
     return `/animal/${relatedId}`
   }
+  // Partage de dossier entre praticiens (migration 105) : related_id
+  // porte animal_id (pas l'id de la ligne animal_referrals) pour les 4
+  // types — propriétaire (demande reçue) comme médecin référent (réponse
+  // reçue) atterrissent tous les deux sur la même fiche animal.
+  if ((type === 'referral_requested' || type === 'referral_accepted' || type === 'referral_declined' || type === 'referral_revoked') && relatedId) {
+    return `/animal/${relatedId}`
+  }
   if (type === 'doctor_verified' || type === 'doctor_rejected') {
     return '/dashboard/doctor'
   }

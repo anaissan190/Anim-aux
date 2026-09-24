@@ -27,6 +27,9 @@ import {
   useAnimalDocuments,
   useCreateAnimalDocument,
   useDeleteAnimalDocument,
+  useOwnerReferralsForAnimal,
+  useRespondToAnimalReferral,
+  useReferralContext,
   type DocumentType,
   type CareType,
 } from '@/hooks/useData'
@@ -38,6 +41,9 @@ import SpeciesSelect from '@/components/ui/SpeciesSelect'
 import { showToast } from '@/lib/toast'
 import { compressImage } from '@/lib/compressImage'
 import { CARE_TYPES, careTypeIcon, careTypeLabel } from '@/lib/careTypes'
+import { referralStatusLabel } from '@/lib/animalReferrals'
+
+const ReferAnimalModal = lazy(() => import('@/components/doctor/ReferAnimalModal'))
 
 const WeightChart = lazy(() => import('@/components/animal/WeightChart'))
 
@@ -75,6 +81,15 @@ export default function AnimalHealthPage() {
   const canSeeMedicalTabs = !isNonVetDoctor
 
   const doctorName = profile ? `${profile.first_name} ${profile.last_name}`.trim() : ''
+
+  // Partage de dossier entre praticiens (migration 105) : demandes en
+  // attente côté propriétaire, et contexte "reçu en référence" côté
+  // médecin destinataire (quand ce n'est pas un lien cabinet/RDV
+  // classique qui donne accès à cette fiche).
+  const { data: ownerReferrals = [] } = useOwnerReferralsForAnimal(!isDoctor ? id! : '')
+  const { data: referralContext } = useReferralContext(id!, isDoctor ? currentDoctor?.id : undefined)
+  const respondToReferral = useRespondToAnimalReferral()
+  const [showReferModal, setShowReferModal] = useState(false)
 
   const createCareItem = useCreateCareItem()
   const updateCareItem = useUpdateCareItem()
@@ -422,6 +437,17 @@ export default function AnimalHealthPage() {
             {isDoctor && owner && (
               <p className="text-xs text-sage-600 mt-2.5">👤 Propriétaire : {owner.first_name} {owner.last_name}</p>
             )}
+            {isDoctor && currentDoctor && (
+              <button onClick={() => setShowReferModal(true)} className="text-xs text-sage-600 hover:underline mt-2.5">
+                🤝 Envoyer à un confrère
+              </button>
+            )}
+            {isDoctor && referralContext && (
+              <p className="text-xs text-amber-600 mt-2.5">
+                🔗 Reçu en référence de {(referralContext.referring_doctor as any)?.profiles?.first_name} {(referralContext.referring_doctor as any)?.profiles?.last_name}
+                {referralContext.reason ? ` — ${referralContext.reason}` : ''}
+              </p>
+            )}
             {!isDoctor && (
               <div className="flex gap-3 mt-2.5">
                 <button onClick={openEditForm} className="text-xs text-sage-600 hover:underline">✏️ Modifier</button>
@@ -440,6 +466,38 @@ export default function AnimalHealthPage() {
             )}
           </div>
         </div>
+
+        {!isDoctor && ownerReferrals.map((r: any) => (
+          <div key={r.id} className={`card p-4 mb-4 border-2 ${r.status === 'pending' ? 'border-amber-200 bg-amber-50' : 'border-sage-200 bg-sage-50'}`}>
+            <p className="text-sm text-gray-800">
+              {r.status === 'pending' ? (
+                <>
+                  <strong>{r.referring_doctor?.profiles?.first_name} {r.referring_doctor?.profiles?.last_name}</strong> souhaite
+                  transmettre le dossier de {animal.name} à <strong>{r.target_doctor?.profiles?.first_name} {r.target_doctor?.profiles?.last_name}</strong>.
+                </>
+              ) : (
+                <>
+                  <strong>{r.target_doctor?.profiles?.first_name} {r.target_doctor?.profiles?.last_name}</strong> a
+                  accès au dossier de {animal.name} (transmis par {r.referring_doctor?.profiles?.first_name} {r.referring_doctor?.profiles?.last_name}).
+                </>
+              )}
+            </p>
+            {r.reason && <p className="text-xs text-gray-500 mt-1">« {r.reason} »</p>}
+            <div className="flex gap-2 mt-3">
+              {r.status === 'pending' ? (
+                <>
+                  <button onClick={() => respondToReferral.mutate({ id: r.id, animal_id: id!, status: 'accepted' })}
+                    disabled={respondToReferral.isPending} className="btn-primary text-sm">Accepter</button>
+                  <button onClick={() => respondToReferral.mutate({ id: r.id, animal_id: id!, status: 'declined' })}
+                    disabled={respondToReferral.isPending} className="btn-secondary text-sm">Refuser</button>
+                </>
+              ) : (
+                <button onClick={() => respondToReferral.mutate({ id: r.id, animal_id: id!, status: 'revoked' })}
+                  disabled={respondToReferral.isPending} className="text-xs text-red-500 hover:underline">🗑️ Révoquer l'accès</button>
+              )}
+            </div>
+          </div>
+        ))}
 
         {!isDoctor && showEditForm && (
           <div className="card p-5 mb-6 border-2 border-sage-200">
@@ -833,6 +891,12 @@ export default function AnimalHealthPage() {
           </div>
         )}
       </div>
+
+      {showReferModal && currentDoctor && (
+        <Suspense fallback={null}>
+          <ReferAnimalModal animalId={id!} referringDoctorId={currentDoctor.id} onClose={() => setShowReferModal(false)} />
+        </Suspense>
+      )}
     </div>
   )
 }

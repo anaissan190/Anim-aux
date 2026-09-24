@@ -1701,6 +1701,123 @@ export function useDeleteAnimalDocument() {
   })
 }
 
+// ── PARTAGE DE DOSSIER ENTRE PRATICIENS (animal_referrals, migration 105) ────
+// Un médecin avec un accès légitime à l'animal (RDV/cabinet) propose de
+// transmettre le dossier à un confrère ; le propriétaire doit accepter
+// avant que le confrère n'ait le moindre accès (lecture seule, limité à
+// cet animal). Voir migrations 105/106 pour la mécanique RLS complète.
+
+export function useCreateAnimalReferral() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (referral: { animal_id: string; referring_doctor_id: string; target_doctor_id: string; reason?: string }) => {
+      const { error } = await supabase.from('animal_referrals').insert(referral)
+      if (error) throw error
+    },
+    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['animal-referrals', vars.animal_id] }),
+  })
+}
+
+// Demandes en attente sur un animal, côté propriétaire — jointes aux
+// profils des deux médecins pour l'affichage (nom du référent + du
+// destinataire dans le bandeau d'accord).
+// pending (à accepter/refuser) ET accepted (déjà partagé, révocable) —
+// declined/revoked ne sont plus actionnables, pas la peine d'encombrer le
+// bandeau avec un historique.
+export function useOwnerReferralsForAnimal(animalId: string) {
+  return useQuery({
+    queryKey: ['animal-referrals', animalId, 'owner'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('animal_referrals')
+        .select(`
+          id, reason, status, created_at,
+          referring_doctor:doctors!referring_doctor_id(id, profiles!doctors_user_id_profiles_fkey(first_name, last_name)),
+          target_doctor:doctors!target_doctor_id(id, profiles!doctors_user_id_profiles_fkey(first_name, last_name))
+        `)
+        .eq('animal_id', animalId)
+        .in('status', ['pending', 'accepted'])
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data ?? []
+    },
+    enabled: !!animalId,
+  })
+}
+
+// Réponse du propriétaire : accepter/refuser une demande, ou révoquer un
+// accès déjà accepté — même statut, transition validée côté serveur
+// (trigger prevent_animal_referral_tampering, 105). .select().single()
+// + PGRST116 : même garde-fou que useUpdateAppointmentStatus — une
+// demande déjà répondue par ailleurs (autre onglet) ne doit jamais
+// passer pour un succès silencieux.
+export function useRespondToAnimalReferral() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, animal_id, status }: { id: string; animal_id: string; status: 'accepted' | 'declined' | 'revoked' }) => {
+      const { data, error } = await supabase
+        .from('animal_referrals')
+        .update({ status })
+        .eq('id', id)
+        .select('id')
+        .single()
+      if (error) {
+        if (error.code === 'PGRST116') {
+          throw new Error('Cette demande a déjà été traitée ou n\'existe plus.')
+        }
+        throw error
+      }
+      return data
+    },
+    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['animal-referrals', vars.animal_id] }),
+  })
+}
+
+// Dossiers reçus en référence, côté médecin destinataire — pour la
+// sous-section dédiée de DoctorDashboard (séparée de "Mes patients" :
+// portée différente, un seul animal, pas tout le patient).
+export function useReceivedReferrals(doctorId?: string) {
+  return useQuery({
+    queryKey: ['received-referrals', doctorId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('animal_referrals')
+        .select(`
+          id, reason, responded_at,
+          animals(id, name, species, avatar_url),
+          referring_doctor:doctors!referring_doctor_id(id, profiles!doctors_user_id_profiles_fkey(first_name, last_name))
+        `)
+        .eq('target_doctor_id', doctorId!)
+        .eq('status', 'accepted')
+        .order('responded_at', { ascending: false })
+      if (error) throw error
+      return data ?? []
+    },
+    enabled: !!doctorId,
+  })
+}
+
+// Contexte d'un partage accepté pour CET animal + CE médecin — pour le
+// bandeau "Reçu en référence de Dr X" sur AnimalHealthPage quand la page
+// est atteinte via un partage plutôt qu'un lien cabinet/RDV classique.
+export function useReferralContext(animalId: string, doctorId?: string) {
+  return useQuery({
+    queryKey: ['animal-referrals', animalId, 'context', doctorId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('animal_referrals')
+        .select('id, reason, referring_doctor:doctors!referring_doctor_id(id, profiles!doctors_user_id_profiles_fkey(first_name, last_name))')
+        .eq('animal_id', animalId)
+        .eq('target_doctor_id', doctorId!)
+        .eq('status', 'accepted')
+        .maybeSingle()
+      if (error) throw error
+      return data
+    },
+    enabled: !!animalId && !!doctorId,
+  })
+}
+
 // ── CLINICS ──────────────────────────────────────────────────────────────────
 
 export function useMyClinic(doctorId?: string) {

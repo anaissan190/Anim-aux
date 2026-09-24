@@ -16,7 +16,24 @@ export type NotificationType =
   | 'vaccine_reminder'
   | 'care_reminder'
   | 'review_reminder'
+  | 'referral_requested'
+  | 'referral_accepted'
+  | 'referral_declined'
+  | 'referral_revoked'
 export type DoctorVerificationStatus = 'pending' | 'verified' | 'rejected'
+export type AnimalReferralStatus = 'pending' | 'accepted' | 'declined' | 'revoked'
+
+export interface AnimalReferral {
+  id: string
+  animal_id: string
+  owner_id: string
+  referring_doctor_id: string
+  target_doctor_id: string
+  reason?: string | null
+  status: AnimalReferralStatus
+  created_at: string
+  responded_at?: string | null
+}
 
 export interface User {
   id: string

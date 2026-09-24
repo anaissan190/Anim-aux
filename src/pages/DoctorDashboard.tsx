@@ -14,7 +14,7 @@ import AppointmentCard from '@/components/appointment/AppointmentCard'
 import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useReplyToReview, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useDoctorServices, useAddDoctorService, useDeleteDoctorService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments, useInviteClinicSecretary, useClinicStaffList, useExportMyData,
   useDoctorVerificationDocuments, useUploadVerificationDocument, useDeleteVerificationDocument, useMyVerificationRejectedReason, useAcceptEthicsCharter,
   usePushSubscriptionStatus, useEnablePushNotifications, useDisablePushNotifications, useMessagingRealtime,
-  useCalendarFeedToken, useRegenerateCalendarFeedToken } from '@/hooks/useData'
+  useCalendarFeedToken, useRegenerateCalendarFeedToken, useReceivedReferrals } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { PRACTITIONER_TYPES, getPractitionerType, getPractitionerTypesBySpecialties } from '@/lib/practitionerTypes'
 import PractitionerTypePicker from '@/components/doctor/PractitionerTypePicker'
@@ -127,6 +127,7 @@ export default function DoctorDashboard() {
   const { data: clinicAppts = [], error: clinicApptsError } = useClinicAppointments(clinic?.id)
   const { data: clinicServices = [] } = useClinicServices(clinic?.id)
   const { data: doctorServices = [] } = useDoctorServices(doctor?.id)
+  const { data: receivedReferrals = [] } = useReceivedReferrals(doctor?.id)
   const { data: clinicAvailabilities = [] } = useClinicAvailabilities(clinic?.id)
   const { data: clinicBlockedAll = [] }     = useClinicBlockedSlotsAll(clinic?.id)
   const [calendarWeekOffset, setCalendarWeekOffset] = useState(0)
@@ -912,6 +913,35 @@ export default function DoctorDashboard() {
                     </Link>
                   )
                 })}
+              </div>
+            )}
+
+            {/* Dossiers reçus en référence : accès limité à UN animal via
+                un partage explicite (migration 105), pas via un lien
+                cabinet/RDV — séparé de la galerie ci-dessus pour ne pas
+                laisser croire à un accès plus large qu'il ne l'est. */}
+            {receivedReferrals.length > 0 && (
+              <div className="mt-8">
+                <h3 className="text-sm font-semibold text-gray-900 mb-1">🤝 Dossiers reçus en référence</h3>
+                <p className="text-xs text-gray-500 mb-3">Un confrère vous a transmis ces dossiers, avec l'accord du propriétaire.</p>
+                <div className="space-y-2">
+                  {receivedReferrals.map((r: any) => {
+                    const a = r.animals
+                    const rd = r.referring_doctor?.profiles
+                    return (
+                      <Link key={r.id} to={`/animal/${a?.id}`}
+                        className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:bg-sage-50 transition-colors">
+                        <div className="w-10 h-10 rounded-xl bg-sage-100 flex items-center justify-center text-lg overflow-hidden flex-shrink-0">
+                          {a?.avatar_url ? <img src={a.avatar_url} className="w-full h-full object-cover" alt="" loading="lazy" /> : (SPECIES_EMOJI[a?.species] ?? '🐾')}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-900">{a?.name}</p>
+                          <p className="text-xs text-gray-500 truncate">Transmis par {rd?.first_name} {rd?.last_name}{r.reason ? ` — ${r.reason}` : ''}</p>
+                        </div>
+                      </Link>
+                    )
+                  })}
+                </div>
               </div>
             )}
           </div>
