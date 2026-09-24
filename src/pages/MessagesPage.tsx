@@ -12,6 +12,7 @@ import { useConversation, useSendMessage, useConversationPartners, useMarkConver
 import { useAuthStore } from '@/lib/authStore'
 import { supabase } from '@/lib/supabase'
 import { useQueryClient } from '@tanstack/react-query'
+import { showToast } from '@/lib/toast'
 
 function hiddenKey(userId: string) { return `animeaux-hidden-conversations-${userId}` }
 // user_id -> date ISO à laquelle la conversation a été masquée. Comparé à
@@ -203,9 +204,16 @@ export default function MessagesPage() {
   async function handleSend(e: React.FormEvent) {
     e.preventDefault()
     if (!text.trim() || !selectedUserId) return
-    await send.mutateAsync({ receiverId: selectedUserId, content: text.trim() })
-    unhideContact(selectedUserId)
-    setText('')
+    try {
+      await send.mutateAsync({ receiverId: selectedUserId, content: text.trim() })
+      unhideContact(selectedUserId)
+      setText('')
+    } catch (e: any) {
+      // Ex: praticien qui a désactivé la messagerie (migration 109) —
+      // sans ce try/catch, le rejet de mutateAsync restait silencieux
+      // (aucun affichage), le champ gardait le texte comme si de rien.
+      showToast(e.message ?? "Erreur lors de l'envoi du message.")
+    }
   }
 
   // Le praticien est redirigé vers son propre onglet Messages (useEffect

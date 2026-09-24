@@ -42,6 +42,12 @@ export function destinationForNotification(type: string, relatedId: string | nul
   if ((type === 'referral_requested' || type === 'referral_accepted' || type === 'referral_declined' || type === 'referral_revoked') && relatedId) {
     return `/animal/${relatedId}`
   }
+  // Relance patients inactifs (migration 108) : pas de related_id (pas de
+  // praticien/animal précis à recommander), renvoie directement vers la
+  // recherche pour reprendre RDV.
+  if (type === 'reengagement_reminder') {
+    return '/search'
+  }
   if (type === 'doctor_verified' || type === 'doctor_rejected') {
     return '/dashboard/doctor'
   }

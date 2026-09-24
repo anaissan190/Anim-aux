@@ -20,6 +20,7 @@ export type NotificationType =
   | 'referral_accepted'
   | 'referral_declined'
   | 'referral_revoked'
+  | 'reengagement_reminder'
 export type DoctorVerificationStatus = 'pending' | 'verified' | 'rejected'
 export type AnimalReferralStatus = 'pending' | 'accepted' | 'declined' | 'revoked'
 

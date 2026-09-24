@@ -142,6 +142,10 @@ describe('destinationForNotification', () => {
     expect(destinationForNotification('referral_revoked', 'animal1', true)).toBe('/animal/animal1')
   })
 
+  it('renvoie vers la recherche pour une relance de patient inactif (pas de related_id)', () => {
+    expect(destinationForNotification('reengagement_reminder', null, false)).toBe('/search')
+  })
+
   it('renvoie vers le dashboard praticien pour une décision de vérification', () => {
     expect(destinationForNotification('doctor_verified', null, true)).toBe('/dashboard/doctor')
     expect(destinationForNotification('doctor_rejected', null, true)).toBe('/dashboard/doctor')

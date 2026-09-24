@@ -115,6 +115,7 @@ export default function ProfilPage() {
   const [price, setPrice]           = useState('')
   const [acceptedSpecies, setAcceptedSpecies] = useState<string[]>([])
   const [homeVisit, setHomeVisit]   = useState(false)
+  const [messagingEnabled, setMessagingEnabled] = useState(true)
 
   const [loading, setLoading] = useState(false)
 
@@ -156,6 +157,7 @@ export default function ProfilPage() {
       setPrice(doctor.consultation_price?.toString() || '')
       setAcceptedSpecies(doctor.accepted_species || [])
       setHomeVisit(doctor.home_visit || false)
+      setMessagingEnabled(doctor.messaging_enabled ?? true)
     }
   }, [doctor])
 
@@ -187,6 +189,7 @@ export default function ProfilPage() {
           consultation_price: price ? parseInt(price) : undefined,
           accepted_species: acceptedSpecies,
           home_visit: homeVisit,
+          messaging_enabled: messagingEnabled,
         })
       }
       showToast('✓ Profil mis à jour avec succès !')
@@ -358,6 +361,16 @@ export default function ProfilPage() {
                   className="accent-sage-500 w-4 h-4" />
                 🏠 Je me déplace à domicile
               </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer mt-2">
+                <input type="checkbox" checked={messagingEnabled} onChange={e => setMessagingEnabled(e.target.checked)}
+                  className="accent-sage-500 w-4 h-4" />
+                💬 Recevoir des messages des patients
+              </label>
+              {!messagingEnabled && (
+                <p className="text-xs text-gray-400 mt-1">
+                  Les patients ne pourront plus vous envoyer de nouveaux messages. Vos conversations déjà en cours restent visibles.
+                </p>
+              )}
             </div>
           )}
 

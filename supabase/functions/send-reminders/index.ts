@@ -442,13 +442,88 @@ Deno.serve(async (req) => {
     reviewReminders++
   }
 
+  // Relance des patients inactifs : dernier RDV terminé il y a plus de 6
+  // mois, jamais relancé depuis. "Le plus récent par patient" ne s'exprime
+  // pas facilement en SQL seul sans RPC dédiée — regroupement fait ici en
+  // mémoire (volume attendu modeste pour une plateforme de ce type).
+  const sixMonthsAgo = new Date()
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6)
+
+  const { data: allCompleted, error: reengagementQueryError } = await supabase
+    .from('appointments')
+    .select(`
+      id, patient_id, start_at, reengagement_reminder_sent_at,
+      patient:users!patient_id(email, profiles(first_name, phone))
+    `)
+    .eq('status', 'completed')
+    .order('patient_id', { ascending: true })
+    .order('start_at', { ascending: false })
+  if (reengagementQueryError) console.error('reengagement query error', reengagementQueryError)
+
+  // Ne garde que le RDV le plus récent de chaque patient (premier
+  // rencontré grâce au tri start_at décroissant ci-dessus).
+  const latestByPatient = new Map<string, any>()
+  for (const appt of allCompleted ?? []) {
+    if (!latestByPatient.has(appt.patient_id)) latestByPatient.set(appt.patient_id, appt)
+  }
+  const inactiveAppointments = [...latestByPatient.values()].filter(
+    appt => !appt.reengagement_reminder_sent_at && new Date(appt.start_at) < sixMonthsAgo
+  )
+
+  let reengagementReminders = 0
+  for (const appt of inactiveAppointments) {
+    const patientProfile = (appt.patient as any)?.profiles
+    const patientEmail = (appt.patient as any)?.email
+
+    const { error: reengagementNotifError } = await supabase.from('notifications').insert({
+      user_id: appt.patient_id,
+      type: 'reengagement_reminder',
+      title: 'Ça fait un moment ! 🐾',
+      body: 'Un bilan de santé s\'impose peut-être pour votre compagnon — prenez rendez-vous quand vous voulez.',
+      related_id: null,
+    })
+    if (reengagementNotifError) console.error('reengagement notification insert error', reengagementNotifError)
+
+    if (resendKey && patientEmail) {
+      const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color: #1f2937;">
+          <div style="text-align: center; margin-bottom: 16px;">
+            <img src="https://monanimeaux.fr/pwa-192.png" width="56" height="56" alt="Animéaux" style="border-radius: 14px; display: inline-block;" />
+          </div>
+          <h2 style="color: #d9670b;">Ça fait un moment ! 🐾</h2>
+          <p>Bonjour ${escapeHtml(patientProfile?.first_name ?? '')},</p>
+          <p>Cela fait quelques mois que vous n'avez pas pris rendez-vous sur Animéaux. Un bilan de santé s'impose peut-être pour votre compagnon ?</p>
+          <p style="margin-top: 20px;">
+            <a href="https://monanimeaux.fr/search" style="background: #d9670b; color: #fff; padding: 10px 20px; border-radius: 10px; text-decoration: none; font-weight: 500;">
+              Prendre rendez-vous
+            </a>
+          </p>
+          <p style="color: #6b7280; font-size: 13px; margin-top: 24px;">Animéaux — Votre animal, notre priorité.</p>
+        </div>
+      `
+      await sendReminderEmail(resendKey, patientEmail, 'Ça fait un moment ! Reprenez rendez-vous quand vous voulez', html)
+    }
+
+    const patientPhone = toE164(patientProfile?.phone)
+    if (patientPhone) {
+      await sendOvhSms(
+        'Animeaux: ca fait un moment ! Reprenez RDV quand vous voulez sur monanimeaux.fr',
+        patientPhone
+      )
+    }
+
+    const { error: reengagementUpdateError } = await supabase.from('appointments').update({ reengagement_reminder_sent_at: new Date().toISOString() }).eq('id', appt.id)
+    if (reengagementUpdateError) console.error('reengagement_reminder_sent_at update error', reengagementUpdateError)
+    reengagementReminders++
+  }
+
   return new Response(JSON.stringify({
-    sent, careReminders, reviewReminders,
-    // Erreurs éventuelles des 3 requêtes ci-dessus, exposées ici en plus de
+    sent, careReminders, reviewReminders, reengagementReminders,
+    // Erreurs éventuelles des requêtes ci-dessus, exposées ici en plus de
     // console.error (visible dans net._http_response sans avoir à ouvrir
     // les Logs de la fonction — pratique pour diagnostiquer un cron qui
     // tourne "sans erreur" mais n'envoie rien).
-    errors: { apptError: apptError?.message, careError: careError?.message, reviewApptError: reviewApptError?.message },
+    errors: { apptError: apptError?.message, careError: careError?.message, reviewApptError: reviewApptError?.message, reengagementQueryError: reengagementQueryError?.message },
   }), {
     headers: { 'Content-Type': 'application/json' }
   })

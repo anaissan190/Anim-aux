@@ -105,7 +105,7 @@ export default function DoctorDashboard() {
   const updateDoctorInfo = useUpdateDoctor()
   const [profileForm, setProfileForm] = useState({
     first_name: '', last_name: '', specialties: [] as string[], city: '', address: '', bio: '', phone: '',
-    accepted_species: [] as string[], home_visit: false,
+    accepted_species: [] as string[], home_visit: false, messaging_enabled: true,
     // Adresse personnelle (table profiles, distincte de l'adresse du
     // cabinet ci-dessus) — présente sur /profil (patient) mais jusqu'ici
     // jamais exposée ici, alors qu'un médecin y a accès en naviguant
@@ -293,6 +293,7 @@ export default function DoctorDashboard() {
       phone: profile.phone ?? '',
       accepted_species: doctor.accepted_species ?? [],
       home_visit: doctor.home_visit ?? false,
+      messaging_enabled: doctor.messaging_enabled ?? true,
       home_address: profile.address ?? '',
     })
     setOtherProfession(otherText)
@@ -328,6 +329,7 @@ export default function DoctorDashboard() {
           bio: profileForm.bio,
           accepted_species: profileForm.accepted_species,
           home_visit: profileForm.home_visit,
+          messaging_enabled: profileForm.messaging_enabled,
         }),
       ])
       setProfileSaved(true)
@@ -2124,6 +2126,17 @@ export default function DoctorDashboard() {
                     className="accent-sage-500 w-4 h-4" />
                   🏠 Je me déplace à domicile
                 </label>
+                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer mt-2">
+                  <input type="checkbox" checked={profileForm.messaging_enabled}
+                    onChange={e => setProfileForm(f => ({ ...f, messaging_enabled: e.target.checked }))}
+                    className="accent-sage-500 w-4 h-4" />
+                  💬 Recevoir des messages des patients
+                </label>
+                {!profileForm.messaging_enabled && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    Les patients ne pourront plus vous envoyer de nouveaux messages. Vos conversations déjà en cours restent visibles.
+                  </p>
+                )}
                 {/* La bio reste éditable même pour un membre de cabinet — seules
                     ville/adresse dépendent du cabinet, pas la présentation
                     personnelle du praticien. */}
@@ -2500,9 +2513,13 @@ export default function DoctorDashboard() {
                   <form onSubmit={async e => {
                     e.preventDefault()
                     if (!msgText.trim() || !selectedUserId) return
-                    await send.mutateAsync({ receiverId: selectedUserId, content: msgText.trim() })
-                    unhideConversation(selectedUserId)
-                    setMsgText('')
+                    try {
+                      await send.mutateAsync({ receiverId: selectedUserId, content: msgText.trim() })
+                      unhideConversation(selectedUserId)
+                      setMsgText('')
+                    } catch (err: any) {
+                      showToast(err.message ?? "Erreur lors de l'envoi du message.")
+                    }
                   }} className="p-4 border-t border-gray-100 flex gap-2 flex-shrink-0">
                     <input value={msgText} onChange={e => setMsgText(e.target.value)}
                       placeholder="Votre message..." className="input flex-1" />

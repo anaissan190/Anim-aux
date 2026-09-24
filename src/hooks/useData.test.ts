@@ -160,6 +160,17 @@ describe('useSendMessage', () => {
     const { result } = renderHook(() => useSendMessage(), { wrapper })
     await expect(result.current.mutateAsync({ receiverId: 'doc-1', content: 'Bonjour !' })).rejects.toBeTruthy()
   })
+
+  it('affiche un message clair si le praticien a désactivé la messagerie (RLS 42501, migration 109)', async () => {
+    useAuthStore.setState({ user: FAKE_PATIENT })
+    vi.mocked(supabase.from).mockReturnValue(
+      createQueryBuilderMock({ data: null, error: { code: '42501', message: 'new row violates row-level security policy' } })
+    )
+
+    const { result } = renderHook(() => useSendMessage(), { wrapper })
+    await expect(result.current.mutateAsync({ receiverId: 'doc-1', content: 'Bonjour !' }))
+      .rejects.toThrow('Ce praticien a désactivé la messagerie pour le moment.')
+  })
 })
 
 describe('useUpdateAppointmentStatus', () => {

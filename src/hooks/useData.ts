@@ -286,7 +286,7 @@ export function useCurrentDoctor() {
         // Même exclusion de verification_rejected_reason que useDoctor/
         // useDoctors — le praticien lit son propre motif de rejet via
         // useMyVerificationRejectedReason (RPC dédiée) sur DoctorDashboard.
-        .select('id, user_id, specialties, rpps_number, bio, consultation_price, address, city, lat, lng, is_verified, average_rating, review_count, created_at, updated_at, accepted_species, home_visit, verification_status, ethics_charter_accepted_at')
+        .select('id, user_id, specialties, rpps_number, bio, consultation_price, address, city, lat, lng, is_verified, average_rating, review_count, created_at, updated_at, accepted_species, home_visit, verification_status, ethics_charter_accepted_at, messaging_enabled')
         .eq('user_id', user!.id)
         .single()
       if (error) throw error
@@ -1165,7 +1165,15 @@ export function useSendMessage() {
         content,
         appointment_id: appointmentId,
       })
-      if (error) throw error
+      if (error) {
+        // 42501 = RLS a bloqué l'insert — ici la policy restrictive
+        // "messages: bloque l'envoi si le praticien a désactivé la
+        // messagerie" (migration 109), pas une vraie erreur serveur.
+        if (error.code === '42501') {
+          throw new Error('Ce praticien a désactivé la messagerie pour le moment.')
+        }
+        throw error
+      }
     },
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ['messages', user?.id, vars.receiverId] })
@@ -2337,6 +2345,7 @@ export function useUpdateDoctor() {
       consultation_price?: number
       accepted_species?: string[]
       home_visit?: boolean
+      messaging_enabled?: boolean
     }) => {
       if (!user) throw new Error('Utilisateur non connecté')
       const payload: typeof updates & { lat?: number; lng?: number } = { ...updates }
