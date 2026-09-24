@@ -5,12 +5,12 @@
 // repris tels quels de PatientDashboard (mêmes hooks, même comportement) —
 // seul l'habillage change entre desktop (Navbar classique) et mobile
 // (MobileHeader/MobileTabBar).
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import Navbar from '@/components/ui/Navbar'
 import MobileHeader from '@/components/mobile/MobileHeader'
 import MobileTabBar from '@/components/mobile/MobileTabBar'
-import { useAnimals, useCreateAnimal, useWeightTracking, useCareItems } from '@/hooks/useData'
+import { useAnimals, useCreateAnimal, useAnimalsWeightTracking, useAnimalsCareItems } from '@/hooks/useData'
 import { SPECIES_EMOJI, BREED_PLACEHOLDER } from '@/lib/animalSpecies'
 import SpeciesSelect from '@/components/ui/SpeciesSelect'
 import { differenceInYears } from 'date-fns'
@@ -21,20 +21,23 @@ import { compressImage } from '@/lib/compressImage'
 
 const GENDER_SYMBOL: Record<string, string> = { 'Mâle': '♂', 'Femelle': '♀' }
 
-// Rangée d'un animal sur mobile, avec pastilles poids/suivi — chaque
-// rangée porte ses propres requêtes (peu de risque de perf avec 1-3 animaux
-// par foyer), pour ne pas alourdir useAnimals() côté liste.
-function PetRow({ animal, index }: { animal: any; index: number }) {
+// Poids le plus récent + statut des suivis d'un animal, calculés UNE FOIS
+// au niveau de la page (voir buildCareStatusByAnimal) à partir de deux
+// requêtes globales, plutôt que chaque rangée/carte ne fasse ses propres
+// requêtes poids+suivis — 2N requêtes en parallèle pour N animaux avant ce
+// correctif (repéré pendant l'audit perf du 23/09/2026), désormais 2 au
+// total pour toute la liste.
+interface AnimalCareStatus {
+  latestWeightKg: number | null
+  upcomingDueDate: string | null
+  overdueDueDate: string | null
+  hasCareHistory: boolean
+}
+
+// Rangée d'un animal sur mobile, avec pastilles poids/suivi.
+function PetRow({ animal, index, careStatus }: { animal: any; index: number; careStatus: AnimalCareStatus }) {
   const [imgError, setImgError] = useState(false)
-  const { data: weights = [] } = useWeightTracking(animal.id)
-  const { data: careItems = [] } = useCareItems(animal.id)
-  const latestWeight = weights[weights.length - 1]
-  const upcomingCareItem = careItems.find((c: any) => c.next_due_date && new Date(c.next_due_date) > new Date())
-  // Distinct d'un simple "pas de rappel à venir" : un rappel dont la date
-  // est déjà passée affichait "✅ À jour" (upcomingCareItem ne le matchait
-  // pas, faute de filtre séparé), donnant une fausse impression de sécurité.
-  const overdueCareItem = careItems.find((c: any) => c.next_due_date && new Date(c.next_due_date) <= new Date())
-  const hasCareHistory = careItems.length > 0
+  const { latestWeightKg, upcomingDueDate, overdueDueDate, hasCareHistory } = careStatus
 
   const age = animal.date_of_birth ? differenceInYears(new Date(), new Date(animal.date_of_birth)) : null
   const genderSymbol = GENDER_SYMBOL[animal.gender as string]
@@ -58,18 +61,18 @@ function PetRow({ animal, index }: { animal: any; index: number }) {
         </div>
         <p className="text-[11.5px] font-bold text-gray-500 mb-1.5">{animal.breed ?? animal.species}</p>
         <div className="flex gap-1.5 flex-wrap">
-          {latestWeight && (
+          {latestWeightKg !== null && (
             <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-moss-100 text-moss-800">
-              ⚖️ {latestWeight.weight_kg} kg
+              ⚖️ {latestWeightKg} kg
             </span>
           )}
-          {overdueCareItem ? (
+          {overdueDueDate ? (
             <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-red-100 text-red-700">
               ⚠️ Rappel en retard
             </span>
-          ) : upcomingCareItem ? (
+          ) : upcomingDueDate ? (
             <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
-              🔔 {formatInTimeZone(new Date(upcomingCareItem.next_due_date), PARIS_TZ, 'd MMM', { locale: fr })}
+              🔔 {formatInTimeZone(new Date(upcomingDueDate), PARIS_TZ, 'd MMM', { locale: fr })}
             </span>
           ) : hasCareHistory ? (
             <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-moss-100 text-moss-800">
@@ -88,24 +91,20 @@ function PetRow({ animal, index }: { animal: any; index: number }) {
 // "encore vide"). Une pastille en haut à droite reprend l'info la plus
 // importante (rappel de vaccin en retard/à venir, sinon le poids) — une
 // seule à la fois pour ne pas surcharger la photo.
-function AnimalDesktopCard({ animal, colorIndex }: { animal: any; colorIndex: number }) {
+function AnimalDesktopCard({ animal, colorIndex, careStatus }: { animal: any; colorIndex: number; careStatus: AnimalCareStatus }) {
   const [imgError, setImgError] = useState(false)
-  const { data: weights = [] } = useWeightTracking(animal.id)
-  const { data: careItems = [] } = useCareItems(animal.id)
-  const latestWeight = weights[weights.length - 1]
-  const upcomingCareItem = careItems.find((c: any) => c.next_due_date && new Date(c.next_due_date) > new Date())
-  const overdueCareItem = careItems.find((c: any) => c.next_due_date && new Date(c.next_due_date) <= new Date())
+  const { latestWeightKg, upcomingDueDate, overdueDueDate } = careStatus
 
   const age = animal.date_of_birth ? differenceInYears(new Date(), new Date(animal.date_of_birth)) : null
   const genderSymbol = GENDER_SYMBOL[animal.gender as string]
   const photoBg = colorIndex % 2 === 0 ? 'bg-sage-100' : 'bg-moss-100'
 
-  const badge = overdueCareItem
+  const badge = overdueDueDate
     ? { label: '⚠️ Rappel en retard', cls: 'bg-red-100 text-red-700' }
-    : upcomingCareItem
-    ? { label: `🔔 ${formatInTimeZone(new Date(upcomingCareItem.next_due_date), PARIS_TZ, 'd MMM', { locale: fr })}`, cls: 'bg-amber-100 text-amber-700' }
-    : latestWeight
-    ? { label: `⚖️ ${latestWeight.weight_kg} kg`, cls: 'bg-white/90 text-gray-700' }
+    : upcomingDueDate
+    ? { label: `🔔 ${formatInTimeZone(new Date(upcomingDueDate), PARIS_TZ, 'd MMM', { locale: fr })}`, cls: 'bg-amber-100 text-amber-700' }
+    : latestWeightKg !== null
+    ? { label: `⚖️ ${latestWeightKg} kg`, cls: 'bg-white/90 text-gray-700' }
     : null
 
   return (
@@ -141,6 +140,42 @@ function AnimalDesktopCard({ animal, colorIndex }: { animal: any; colorIndex: nu
 export default function AnimalsPage() {
   const { data: animals = [], isLoading: animalsLoading } = useAnimals()
   const createAnimal = useCreateAnimal()
+
+  // Poids + suivis de TOUS les animaux en 2 requêtes (au lieu de 2 par
+  // animal) — voir useAnimalsWeightTracking/useAnimalsCareItems.
+  const animalIds = animals.map(a => a.id)
+  const { data: weightRows = [] } = useAnimalsWeightTracking(animalIds)
+  const { data: careRows = [] } = useAnimalsCareItems(animalIds)
+  const careStatusByAnimal = useMemo(() => {
+    const latestWeightByAnimal = new Map<string, number>()
+    for (const w of weightRows as any[]) latestWeightByAnimal.set(w.animal_id, w.weight_kg) // écrase avec le plus récent (tri croissant côté requête)
+
+    const now = new Date()
+    const upcomingByAnimal = new Map<string, string>()
+    const overdueByAnimal = new Map<string, string>()
+    const hasCareByAnimal = new Set<string>()
+    for (const c of careRows as any[]) {
+      hasCareByAnimal.add(c.animal_id)
+      if (!c.next_due_date) continue
+      const due = new Date(c.next_due_date)
+      // Premier match dans l'ordre reçu, comme le .find() d'origine —
+      // pas nécessairement la date la plus proche s'il y en a plusieurs.
+      if (due > now && !upcomingByAnimal.has(c.animal_id)) upcomingByAnimal.set(c.animal_id, c.next_due_date)
+      if (due <= now && !overdueByAnimal.has(c.animal_id)) overdueByAnimal.set(c.animal_id, c.next_due_date)
+    }
+
+    const map = new Map<string, AnimalCareStatus>()
+    for (const a of animals) {
+      map.set(a.id, {
+        latestWeightKg: latestWeightByAnimal.get(a.id) ?? null,
+        upcomingDueDate: upcomingByAnimal.get(a.id) ?? null,
+        overdueDueDate: overdueByAnimal.get(a.id) ?? null,
+        hasCareHistory: hasCareByAnimal.has(a.id),
+      })
+    }
+    return map
+  }, [animals, weightRows, careRows])
+  const emptyCareStatus: AnimalCareStatus = { latestWeightKg: null, upcomingDueDate: null, overdueDueDate: null, hasCareHistory: false }
 
   const [showAnimalForm, setShowAnimalForm] = useState(false)
   const [animalForm, setAnimalForm] = useState({
@@ -325,7 +360,7 @@ export default function AnimalsPage() {
     // Galerie de cartes portrait (photo + nom incrusté) — option "B2" choisie
     // par Anaïs le 07/09/2026 parmi plusieurs propositions.
     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-      {animals.map((a, i) => <AnimalDesktopCard key={a.id} animal={a} colorIndex={i} />)}
+      {animals.map((a, i) => <AnimalDesktopCard key={a.id} animal={a} colorIndex={i} careStatus={careStatusByAnimal.get(a.id) ?? emptyCareStatus} />)}
     </div>
   )
 
@@ -343,7 +378,7 @@ export default function AnimalsPage() {
     </div>
   ) : (
     <div className="flex flex-col gap-3">
-      {animals.map((a, i) => <PetRow key={a.id} animal={a} index={i} />)}
+      {animals.map((a, i) => <PetRow key={a.id} animal={a} index={i} careStatus={careStatusByAnimal.get(a.id) ?? emptyCareStatus} />)}
     </div>
   )
 

@@ -1429,6 +1429,27 @@ export function useDeleteAnimal() {
 // de dupliquer toute la mécanique pour chaque nouveau type de suivi.
 export type CareType = 'vaccine' | 'deworming' | 'checkup' | 'other'
 
+// Version "plusieurs animaux" de useCareItems : une seule requête pour
+// toute la liste "Mes animaux" (AnimalsPage.tsx) au lieu d'une par ligne
+// (PetRow/AnimalDesktopCard en faisaient chacun 2 — poids + suivis — soit
+// 2N requêtes en parallèle pour N animaux, repéré pendant l'audit perf du
+// 23/09/2026). Colonnes minimales : la liste n'a besoin que de savoir s'il
+// existe un suivi et sa prochaine échéance, pas le détail complet.
+export function useAnimalsCareItems(animalIds: string[]) {
+  return useQuery({
+    queryKey: ['care_items-batch', ...animalIds],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('care_items')
+        .select('animal_id, next_due_date')
+        .in('animal_id', animalIds)
+      if (error) throw error
+      return data ?? []
+    },
+    enabled: animalIds.length > 0,
+  })
+}
+
 export function useCareItems(animalId: string) {
   return useQuery({
     queryKey: ['care_items', animalId],
@@ -1493,6 +1514,24 @@ export function useDeleteCareItem() {
       if (error) throw error
     },
     onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['care_items', vars.animal_id] }),
+  })
+}
+
+// Version "plusieurs animaux" de useWeightTracking — même raison que
+// useAnimalsCareItems ci-dessus.
+export function useAnimalsWeightTracking(animalIds: string[]) {
+  return useQuery({
+    queryKey: ['weight-batch', ...animalIds],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('weight_tracking')
+        .select('animal_id, weight_kg, measured_at')
+        .in('animal_id', animalIds)
+        .order('measured_at', { ascending: true })
+      if (error) throw error
+      return data ?? []
+    },
+    enabled: animalIds.length > 0,
   })
 }
 

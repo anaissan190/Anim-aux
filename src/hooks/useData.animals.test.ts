@@ -12,8 +12,8 @@ import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/authStore'
 import {
   useSpecialties, useAnimals, useAnimal, useCreateAnimal, useUpdateAnimal, useDeleteAnimal,
-  useCareItems, useCreateCareItem, useUpdateCareItem, useDeleteCareItem,
-  useWeightTracking, useCreateWeight, useUpdateWeight, useDeleteWeight,
+  useCareItems, useCreateCareItem, useUpdateCareItem, useDeleteCareItem, useAnimalsCareItems,
+  useWeightTracking, useCreateWeight, useUpdateWeight, useDeleteWeight, useAnimalsWeightTracking,
   useHealthRecords,
 } from './useData'
 
@@ -111,6 +111,22 @@ describe('useCareItems', () => {
   })
 })
 
+describe('useAnimalsCareItems', () => {
+  it('filtre sur tous les animal_id fournis en une seule requête', async () => {
+    const builder = createQueryBuilderMock({ data: [], error: null })
+    vi.mocked(supabase.from).mockReturnValue(builder)
+    const { result } = renderHook(() => useAnimalsCareItems(['a1', 'a2']), { wrapper })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(supabase.from).toHaveBeenCalledTimes(1)
+    expect(builder.in).toHaveBeenCalledWith('animal_id', ['a1', 'a2'])
+  })
+
+  it('n\'exécute pas la requête sans animal', () => {
+    renderHook(() => useAnimalsCareItems([]), { wrapper })
+    expect(supabase.from).not.toHaveBeenCalled()
+  })
+})
+
 describe('useCreateCareItem', () => {
   it('insère le suivi tel quel', async () => {
     const builder = createQueryBuilderMock({ data: null, error: null })
@@ -150,6 +166,23 @@ describe('useWeightTracking', () => {
     const { result } = renderHook(() => useWeightTracking('a1'), { wrapper })
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(builder.order).toHaveBeenCalledWith('measured_at', { ascending: true })
+  })
+})
+
+describe('useAnimalsWeightTracking', () => {
+  it('filtre sur tous les animal_id fournis en une seule requête, triée croissante', async () => {
+    const builder = createQueryBuilderMock({ data: [], error: null })
+    vi.mocked(supabase.from).mockReturnValue(builder)
+    const { result } = renderHook(() => useAnimalsWeightTracking(['a1', 'a2']), { wrapper })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(supabase.from).toHaveBeenCalledTimes(1)
+    expect(builder.in).toHaveBeenCalledWith('animal_id', ['a1', 'a2'])
+    expect(builder.order).toHaveBeenCalledWith('measured_at', { ascending: true })
+  })
+
+  it('n\'exécute pas la requête sans animal', () => {
+    renderHook(() => useAnimalsWeightTracking([]), { wrapper })
+    expect(supabase.from).not.toHaveBeenCalled()
   })
 })
 
