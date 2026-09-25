@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run dev       # Démarre le serveur de dev sur http://localhost:3000
 npm run build     # Vérification TypeScript + build production (tsc && vite build)
 npm run preview   # Prévisualise le build de production en local
-npm run lint      # ESLint sur tous les fichiers .ts/.tsx dans src/
+npm run lint      # tsc --noEmit avec détection des variables/imports inutilisés (ESLint n'est pas installé)
 npm run test      # Lance les tests unitaires (Vitest) une fois
 npm run test:watch # Idem, en mode watch
 ```

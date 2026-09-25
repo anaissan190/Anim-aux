@@ -30,12 +30,14 @@ import {
   useOwnerReferralsForAnimal,
   useRespondToAnimalReferral,
   useReferralContext,
+  useSentReferralsForAnimal,
   type DocumentType,
   type CareType,
 } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { supabase } from '@/lib/supabase'
 import { SPECIES_EMOJI, BREED_PLACEHOLDER } from '@/lib/animalSpecies'
+import { referralSenderStatusLabel, referralBadgeClass } from '@/lib/animalReferrals'
 import { getPractitionerTypesBySpecialties } from '@/lib/practitionerTypes'
 import SpeciesSelect from '@/components/ui/SpeciesSelect'
 import { showToast } from '@/lib/toast'
@@ -87,6 +89,7 @@ export default function AnimalHealthPage() {
   // classique qui donne accès à cette fiche).
   const { data: ownerReferrals = [] } = useOwnerReferralsForAnimal(!isDoctor ? id! : '')
   const { data: referralContext } = useReferralContext(id!, isDoctor ? currentDoctor?.id : undefined)
+  const { data: sentReferrals = [] } = useSentReferralsForAnimal(id!, isDoctor ? currentDoctor?.id : undefined)
   const respondToReferral = useRespondToAnimalReferral()
   const [showReferModal, setShowReferModal] = useState(false)
 
@@ -440,6 +443,16 @@ export default function AnimalHealthPage() {
               <button onClick={() => setShowReferModal(true)} className="text-xs text-sage-600 hover:underline mt-2.5">
                 🤝 Envoyer à un confrère
               </button>
+            )}
+            {isDoctor && sentReferrals.length > 0 && (
+              <ul className="mt-2 space-y-1">
+                {sentReferrals.map((r: any) => (
+                  <li key={r.id} className="flex items-center gap-2 flex-wrap text-xs text-gray-600">
+                    <span>→ {r.target_doctor?.profiles?.first_name} {r.target_doctor?.profiles?.last_name}</span>
+                    <span className={referralBadgeClass(r.status)}>{referralSenderStatusLabel(r.status)}</span>
+                  </li>
+                ))}
+              </ul>
             )}
             {isDoctor && referralContext && (
               <p className="text-xs text-amber-600 mt-2.5">

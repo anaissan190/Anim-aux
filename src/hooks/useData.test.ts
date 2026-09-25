@@ -18,7 +18,7 @@ import { useAuthStore } from '@/lib/authStore'
 import {
   useAvailabilities, useMyWaitlistEntry, useJoinWaitlist, useConversationPartners,
   useLeaveWaitlist, useSendMessage, useUpdateAppointmentStatus, useCreateReview,
-  useReplyToReview, useCompleteOnboarding,
+  useReplyToReview, useCompleteOnboarding, useSentReferralsForAnimal,
 } from './useData'
 
 const FAKE_PATIENT = { id: 'patient-1', email: 'a@a.fr', role: 'patient' as const, is_admin: false, created_at: '' }
@@ -252,5 +252,26 @@ describe('useCompleteOnboarding', () => {
 
     const { result } = renderHook(() => useCompleteOnboarding(), { wrapper })
     await expect(result.current.mutateAsync()).rejects.toBeTruthy()
+  })
+})
+
+describe('useSentReferralsForAnimal', () => {
+  it('liste les partages envoyés par ce praticien pour cet animal, tous statuts confondus', async () => {
+    const sent = [{ id: 'r1', status: 'pending', reason: null, created_at: '2026-09-25', target_doctor: { id: 'd2', profiles: { first_name: 'A', last_name: 'B' } } }]
+    const builder = createQueryBuilderMock({ data: sent, error: null })
+    vi.mocked(supabase.from).mockReturnValue(builder)
+
+    const { result } = renderHook(() => useSentReferralsForAnimal('animal-1', 'doc-1'), { wrapper })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(supabase.from).toHaveBeenCalledWith('animal_referrals')
+    expect(builder.eq).toHaveBeenCalledWith('animal_id', 'animal-1')
+    expect(builder.eq).toHaveBeenCalledWith('referring_doctor_id', 'doc-1')
+    expect(result.current.data).toEqual(sent)
+  })
+
+  it('n\'exécute pas la requête sans praticien connecté', () => {
+    const { result } = renderHook(() => useSentReferralsForAnimal('animal-1', undefined), { wrapper })
+    expect(result.current.fetchStatus).toBe('idle')
   })
 })

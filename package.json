@@ -9,7 +9,7 @@
     "dev": "vite",
     "build": "tsc && vitest run && vite build",
     "preview": "vite preview",
-    "lint": "eslint src --ext ts,tsx",
+    "lint": "tsc --noEmit --noUnusedLocals --noUnusedParameters",
     "test": "vitest run",
     "test:watch": "vitest"
   },

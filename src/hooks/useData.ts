@@ -1792,6 +1792,30 @@ export function useOwnerReferralsForAnimal(animalId: string) {
   })
 }
 
+// Partages que CE praticien a envoyés pour cet animal, tous statuts — pour
+// qu'il voie où en est chaque demande (en attente, acceptée, refusée...)
+// sans avoir à demander au propriétaire. Policy "médecin référent voit ses
+// envois" (migration 105).
+export function useSentReferralsForAnimal(animalId: string, doctorId?: string) {
+  return useQuery({
+    queryKey: ['animal-referrals', animalId, 'sent', doctorId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('animal_referrals')
+        .select(`
+          id, reason, status, created_at,
+          target_doctor:doctors!target_doctor_id(id, profiles!doctors_user_id_profiles_fkey(first_name, last_name))
+        `)
+        .eq('animal_id', animalId)
+        .eq('referring_doctor_id', doctorId!)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data ?? []
+    },
+    enabled: !!animalId && !!doctorId,
+  })
+}
+
 // Réponse du propriétaire : accepter/refuser une demande, ou révoquer un
 // accès déjà accepté — même statut, transition validée côté serveur
 // (trigger prevent_animal_referral_tampering, 105). .select().single()
