@@ -1,6 +1,6 @@
 // src/pages/RegisterPage.tsx
 import { useState, useEffect } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { z } from 'zod'
 import { supabase } from '@/lib/supabase'
 import { PRACTITIONER_TYPES } from '@/lib/practitionerTypes'
@@ -55,7 +55,6 @@ function loadRegisterDraft(): Partial<{
 }
 
 export default function RegisterPage() {
-  const navigate   = useNavigate()
   const [params]   = useSearchParams()
   const draft = loadRegisterDraft()
   const defaultRole = draft.role ?? (params.get('role') === 'doctor' ? 'doctor' : 'patient')

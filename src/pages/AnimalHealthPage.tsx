@@ -41,7 +41,6 @@ import SpeciesSelect from '@/components/ui/SpeciesSelect'
 import { showToast } from '@/lib/toast'
 import { compressImage } from '@/lib/compressImage'
 import { CARE_TYPES, careTypeIcon, careTypeLabel } from '@/lib/careTypes'
-import { referralStatusLabel } from '@/lib/animalReferrals'
 
 const ReferAnimalModal = lazy(() => import('@/components/doctor/ReferAnimalModal'))
 

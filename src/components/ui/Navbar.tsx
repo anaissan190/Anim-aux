@@ -26,11 +26,6 @@ export default function Navbar() {
   const { data: currentDoctor } = useCurrentDoctor()
   const { data: clinic } = useMyClinic(currentDoctor?.id)
 
-  const dashboardPath =
-    user?.role === 'doctor'    ? '/dashboard/doctor' :
-    user?.role === 'secretary' ? '/dashboard/secretariat' :
-    '/dashboard/patient'
-
   // Onglet actif du dashboard praticien, dérivé directement de l'URL — pour
   // pouvoir surligner le bon onglet ici, dans la Navbar.
   const onDoctorDashboard = user?.role === 'doctor' && location.pathname === '/dashboard/doctor'

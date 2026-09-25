@@ -1,6 +1,6 @@
 // src/pages/BookPage.tsx
 import { useState } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { useDoctor, useAnimals, useAvailabilities } from '@/hooks/useData'
 import { useCreateAppointment, useMyWaitlistEntry, useJoinWaitlist, useLeaveWaitlist } from '@/hooks/useData'
 import { supabase } from '@/lib/supabase'
@@ -18,7 +18,6 @@ type Step = 1 | 2 | 3
 
 export default function BookPage() {
   const { doctorId } = useParams<{ doctorId: string }>()
-  const navigate = useNavigate()
   const { data: doctor } = useDoctor(doctorId!)
   const { data: animals = [] } = useAnimals()
   const { data: availabilities = [] } = useAvailabilities(doctorId!)

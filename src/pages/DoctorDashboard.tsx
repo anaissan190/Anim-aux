@@ -9,7 +9,6 @@ import PushNotificationBanner from '@/components/ui/PushNotificationBanner'
 import DoctorMobileTabBar from '@/components/mobile/DoctorMobileTabBar'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 import { supabase } from '@/lib/supabase'
-import { useQueryClient } from '@tanstack/react-query'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
 import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useReplyToReview, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useDoctorServices, useAddDoctorService, useDeleteDoctorService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments, useInviteClinicSecretary, useClinicStaffList, useExportMyData,
   useDoctorVerificationDocuments, useUploadVerificationDocument, useDeleteVerificationDocument, useMyVerificationRejectedReason, useAcceptEthicsCharter,
@@ -412,7 +411,6 @@ export default function DoctorDashboard() {
   const [clinicError, setClinicError] = useState('')
 
   // Messages
-  const qc = useQueryClient()
   const [contacts, setContacts] = useState<any[]>([])
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [msgText, setMsgText] = useState('')

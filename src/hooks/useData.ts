@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/authStore'
-import type { SearchFilters, Appointment, AppointmentStatus } from '@/types'
+import type { SearchFilters, AppointmentStatus } from '@/types'
 import { addMinutes } from 'date-fns'
 import { geocodeAddress } from '@/lib/geo'
 import { generateAvailableSlots } from '@/lib/slots'
@@ -1801,7 +1801,7 @@ export function useOwnerReferralsForAnimal(animalId: string) {
 export function useRespondToAnimalReferral() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ id, animal_id, status }: { id: string; animal_id: string; status: 'accepted' | 'declined' | 'revoked' }) => {
+    mutationFn: async ({ id, status }: { id: string; animal_id: string; status: 'accepted' | 'declined' | 'revoked' }) => {
       const { data, error } = await supabase
         .from('animal_referrals')
         .update({ status })
@@ -2302,7 +2302,6 @@ export function useDeleteHealthRecord() {
 }
 
 export function useUpdateProfile() {
-  const qc = useQueryClient()
   const { profile, setProfile } = useAuthStore()
   return useMutation({
     mutationFn: async (updates: {

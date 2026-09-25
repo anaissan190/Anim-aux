@@ -11,7 +11,6 @@ import MobileTabBar from '@/components/mobile/MobileTabBar'
 import { useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useMessagingRealtime } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { supabase } from '@/lib/supabase'
-import { useQueryClient } from '@tanstack/react-query'
 import { showToast } from '@/lib/toast'
 
 function hiddenKey(userId: string) { return `animeaux-hidden-conversations-${userId}` }
@@ -32,7 +31,7 @@ function saveHidden(userId: string, map: HiddenMap) {
 }
 
 export default function MessagesPage() {
-  const { user, profile } = useAuthStore()
+  const { user } = useAuthStore()
   const navigate = useNavigate()
   // Ouverture directe d'une conversation depuis une notification push
   // ('new_message', voir urlForNotificationType) : sans ça, le clic
@@ -43,7 +42,6 @@ export default function MessagesPage() {
   const [text, setText] = useState('')
   const [contacts, setContacts] = useState<any[]>([])
   const bottomRef = useRef<HTMLDivElement>(null)
-  const qc = useQueryClient()
 
   // Cette page (recherche par nom d'animal, "prenez un RDV"...) est pensée
   // pour un propriétaire d'animal. Le praticien a sa propre expérience,
