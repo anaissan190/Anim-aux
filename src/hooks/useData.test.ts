@@ -18,7 +18,7 @@ import { useAuthStore } from '@/lib/authStore'
 import {
   useAvailabilities, useMyWaitlistEntry, useJoinWaitlist, useConversationPartners,
   useLeaveWaitlist, useSendMessage, useUpdateAppointmentStatus, useCreateReview,
-  useReplyToReview,
+  useReplyToReview, useCompleteOnboarding,
 } from './useData'
 
 const FAKE_PATIENT = { id: 'patient-1', email: 'a@a.fr', role: 'patient' as const, is_admin: false, created_at: '' }
@@ -222,5 +222,35 @@ describe('useReplyToReview', () => {
     await expect(
       result.current.mutateAsync({ reviewId: 'review-1', doctorId: 'doc-1', reply: 'Merci !' })
     ).rejects.toThrow('Avis introuvable')
+  })
+})
+
+describe('useCompleteOnboarding', () => {
+  it('enregistre la date de fin du tuto sur le profil et met le store à jour', async () => {
+    useAuthStore.setState({
+      user: FAKE_PATIENT,
+      profile: { id: 'p1', user_id: 'patient-1', first_name: 'A', last_name: 'B', onboarding_completed_at: null, created_at: '', updated_at: '' } as any,
+    })
+    const builder = createQueryBuilderMock({ data: null, error: null })
+    vi.mocked(supabase.from).mockReturnValue(builder)
+
+    const { result } = renderHook(() => useCompleteOnboarding(), { wrapper })
+    await result.current.mutateAsync()
+
+    expect(supabase.from).toHaveBeenCalledWith('profiles')
+    expect(builder.update).toHaveBeenCalledWith({ onboarding_completed_at: expect.any(String) })
+    expect(builder.eq).toHaveBeenCalledWith('user_id', 'patient-1')
+    expect(useAuthStore.getState().profile?.onboarding_completed_at).toEqual(expect.any(String))
+  })
+
+  it('propage l\'erreur si l\'écriture échoue', async () => {
+    useAuthStore.setState({
+      user: FAKE_PATIENT,
+      profile: { id: 'p1', user_id: 'patient-1', first_name: 'A', last_name: 'B', onboarding_completed_at: null, created_at: '', updated_at: '' } as any,
+    })
+    vi.mocked(supabase.from).mockReturnValue(createQueryBuilderMock({ data: null, error: { message: 'boom' } }))
+
+    const { result } = renderHook(() => useCompleteOnboarding(), { wrapper })
+    await expect(result.current.mutateAsync()).rejects.toBeTruthy()
   })
 })

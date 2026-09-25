@@ -26,7 +26,7 @@ export default function MobileTabBar() {
 
         {TABS.slice(2).map(tab => <TabButton key={tab.to} {...tab} active={location.pathname === tab.to} />)}
 
-        <Link to="/search"
+        <Link to="/search" data-tour="book"
           className="absolute left-1/2 -translate-x-1/2 -top-3 w-[56px] h-[56px] rounded-full bg-sage-500 text-white
                      flex items-center justify-center text-2xl shadow-lg animate-fab-pulse">
           +
@@ -39,7 +39,7 @@ export default function MobileTabBar() {
 
 function TabButton({ to, label, icon, active }: { to: string; label: string; icon?: string; active: boolean }) {
   return (
-    <Link to={to} className={`flex-1 flex flex-col items-center gap-0.5 py-1 ${active ? 'text-sage-600' : 'text-gray-400'}`}>
+    <Link to={to} data-tour={to === '/profil' ? 'profile' : `patient-tab:${to}`} className={`flex-1 flex flex-col items-center gap-0.5 py-1 ${active ? 'text-sage-600' : 'text-gray-400'}`}>
       <span className="relative w-[30px] h-[30px] flex items-center justify-center text-lg">
         {to === '/dashboard/patient'
           ? <img src="/pwa-192.png" alt="" className={`w-6 h-6 rounded-md ${active ? '' : 'grayscale opacity-60'}`} />

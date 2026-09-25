@@ -40,7 +40,7 @@ export default function DoctorMobileTabBar() {
         {tabs.map(tab => {
           const active = onDashboard && activeTab === tab.id
           return (
-            <Link key={tab.id} to={`/dashboard/doctor?tab=${tab.id}`}
+            <Link key={tab.id} to={`/dashboard/doctor?tab=${tab.id}`} data-tour={`doctor-tab:${tab.id}`}
               className={`relative flex-1 flex flex-col items-center gap-[3px] ${active ? 'text-sage-600' : 'text-gray-400'}`}>
               {active && (
                 <span className="absolute -top-[10px] left-1/2 -translate-x-1/2 w-4 h-[3px] rounded-full bg-sage-500" />

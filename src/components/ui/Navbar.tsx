@@ -63,7 +63,7 @@ export default function Navbar() {
                 dans l'onglet Mon cabinet (visibilité restreinte au créateur
                 pour celles des confrères) — retour d'Anaïs du 07/09/2026. */}
             {DOCTOR_TABS.filter(t => !(clinic && t.id === 'stats')).map(t => (
-              <Link key={t.id} to={`/dashboard/doctor?tab=${t.id}`}
+              <Link key={t.id} to={`/dashboard/doctor?tab=${t.id}`} data-tour={`doctor-tab:${t.id}`}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors
                   ${onDoctorDashboard && activeDoctorTab === t.id
                     ? 'bg-sage-500 text-white'
@@ -97,7 +97,7 @@ export default function Navbar() {
         {user && user.role !== 'doctor' && user.role !== 'secretary' && !user.is_admin && (
           <div className="hidden md:flex flex-1 min-w-0 items-center justify-center gap-1.5 overflow-x-auto scrollbar-hide">
             {PATIENT_TABS.map(t => (
-              <Link key={t.path} to={t.path}
+              <Link key={t.path} to={t.path} data-tour={`patient-tab:${t.path}`}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors
                   ${location.pathname === t.path
                     ? 'bg-sage-500 text-white'
@@ -145,7 +145,7 @@ export default function Navbar() {
               {/* Accès rapide Messages à côté de la cloche, pour tous les
                   rôles — même traitement que le praticien. Pastille rouge
                   dès qu'il y a un message non lu. */}
-              <Link to={user.role === 'doctor' ? '/dashboard/doctor?tab=messages' : '/messages'} title="Messages"
+              <Link to={user.role === 'doctor' ? '/dashboard/doctor?tab=messages' : '/messages'} title="Messages" data-tour="messages"
                 className="relative p-2 rounded-xl hover:bg-gray-50 transition-colors text-lg leading-none">
                 ✉️
                 {unreadMessages > 0 && (
@@ -156,7 +156,7 @@ export default function Navbar() {
               </Link>
               <NotificationBell />
               <div className="flex items-center gap-2">
-                <Link to={user.role === 'doctor' ? '/dashboard/doctor?tab=profil' : '/profil'} title="Mon profil"
+                <Link to={user.role === 'doctor' ? '/dashboard/doctor?tab=profil' : '/profil'} title="Mon profil" data-tour="profile"
                   className="w-8 h-8 rounded-full bg-sage-100 flex items-center justify-center text-lg overflow-hidden hover:bg-sage-200 transition-colors">
                   {profile?.avatar_url
                     ? <img src={profile.avatar_url} className="w-full h-full object-cover" alt="Mon profil" loading="lazy" />

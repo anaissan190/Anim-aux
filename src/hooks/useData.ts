@@ -2333,6 +2333,27 @@ export function useUpdateProfile() {
   })
 }
 
+// Tuto de première connexion terminé ou fermé (voir OnboardingTour.tsx).
+// Le store est mis à jour AVANT la requête : la visite disparaît tout de
+// suite et ne peut pas se relancer par un re-rendu pendant l'aller-retour
+// réseau. Si la requête échoue, le store est de toute façon réhydraté depuis
+// la base à la prochaine connexion (le tuto se rejouera alors une fois).
+export function useCompleteOnboarding() {
+  const { profile, setProfile } = useAuthStore()
+  return useMutation({
+    mutationFn: async () => {
+      if (!profile) throw new Error('Profil non chargé')
+      const completedAt = new Date().toISOString()
+      setProfile({ ...profile, onboarding_completed_at: completedAt })
+      const { error } = await supabase
+        .from('profiles')
+        .update({ onboarding_completed_at: completedAt })
+        .eq('user_id', profile.user_id)
+      if (error) throw error
+    },
+  })
+}
+
 export function useUpdateDoctor() {
   const qc = useQueryClient()
   const { user } = useAuthStore()

@@ -107,7 +107,7 @@ export default function NotificationBell({ large = false }: { large?: boolean })
 
   return (
     <div className="relative">
-      <button onClick={handleOpen} className={`relative rounded-xl hover:bg-gray-50 transition-colors ${large ? 'p-[8.5px] text-[21px] leading-none' : 'p-2'}`}>
+      <button onClick={handleOpen} data-tour="notifications" className={`relative rounded-xl hover:bg-gray-50 transition-colors ${large ? 'p-[8.5px] text-[21px] leading-none' : 'p-2'}`}>
         {large ? '🔔' : (
           <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}

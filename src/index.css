@@ -105,3 +105,27 @@
   .badge-red    { @apply badge bg-red-100 text-red-800; }
   .badge-gray   { @apply badge bg-gray-100 text-gray-600; }
 }
+
+/* Visite guidée de première connexion (OnboardingTour.tsx) : le cercle et la
+   flèche se tracent au crayon (stroke-dashoffset animé sur pathLength=1), la
+   pointe apparaît en fin de tracé, la bulle glisse légèrement. Désactivé si
+   l'utilisateur demande moins d'animations. */
+@keyframes tour-draw { from { stroke-dashoffset: 1 } to { stroke-dashoffset: 0 } }
+@keyframes tour-head-in { 0%, 75% { opacity: 0 } 100% { opacity: 1 } }
+@keyframes tour-pop { from { opacity: 0; transform: translateY(4px) } to { opacity: 1; transform: translateY(0) } }
+.tour-line {
+  fill: none; stroke: #FFF1DC; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+  stroke-dasharray: 1; stroke-dashoffset: 1;
+}
+.tour-ring { animation: tour-draw .6s ease-out forwards; }
+.tour-arrow { animation: tour-draw .7s ease-in-out .45s forwards; }
+.tour-head {
+  fill: none; stroke: #FFF1DC; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+  opacity: 0; animation: tour-head-in 1.15s ease-out forwards;
+}
+.tour-bubble { animation: tour-pop .35s ease-out .5s both; }
+@media (prefers-reduced-motion: reduce) {
+  .tour-line { stroke-dashoffset: 0; animation: none; }
+  .tour-head { opacity: 1; animation: none; }
+  .tour-bubble { animation: none; }
+}

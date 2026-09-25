@@ -26,7 +26,7 @@ export default function MobileHeader({ className = '', children }: Props) {
         <div className="w-[38px] h-[38px] rounded-full bg-white/90 backdrop-blur-sm shadow-sm flex items-center justify-center [&_button]:p-0">
           <NotificationBell large />
         </div>
-        <Link to="/messages"
+        <Link to="/messages" data-tour="messages"
           className="relative w-[38px] h-[38px] rounded-full bg-white/90 backdrop-blur-sm border border-white/70 shadow-sm flex items-center justify-center text-lg flex-shrink-0">
           💬
           {unreadMessages > 0 && (

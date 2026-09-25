@@ -58,6 +58,9 @@ export interface Profile {
   address?: string
   emergency_contact_name?: string
   emergency_contact_phone?: string
+  // Fin (ou fermeture) du tuto de première connexion — null = pas encore vu,
+  // undefined = profil en cache d'avant la migration 110 (voir onboardingTour.ts).
+  onboarding_completed_at?: string | null
   created_at: string
   updated_at: string
 }
