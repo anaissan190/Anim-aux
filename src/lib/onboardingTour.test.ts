@@ -14,6 +14,11 @@ describe('getTourSteps', () => {
     expect(doctor).not.toContain('patient-tab:/animaux')
   })
 
+  it('explique aussi Tarifs, Avis et Statistiques au praticien', () => {
+    const doctor = getTourSteps('doctor').map(s => s.key)
+    expect(doctor).toEqual(expect.arrayContaining(['doctor-tab:tarifs', 'doctor-tab:avis', 'doctor-tab:stats']))
+  })
+
   it('utilise des clés uniques dans chaque parcours', () => {
     for (const role of ['patient', 'doctor'] as const) {
       const keys = getTourSteps(role).map(s => s.key)
