@@ -10,7 +10,7 @@ import DoctorMobileTabBar from '@/components/mobile/DoctorMobileTabBar'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 import { supabase } from '@/lib/supabase'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
-import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useReplyToReview, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useDoctorServices, useAddDoctorService, useDeleteDoctorService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments, useInviteClinicSecretary, useClinicStaffList, useExportMyData,
+import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useReplyToReview, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useDoctorServices, useAddDoctorService, useDeleteDoctorService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments, useInviteClinicSecretary, useClinicStaffList, useExportMyData, useMyWaitlistCount,
   useDoctorVerificationDocuments, useUploadVerificationDocument, useDeleteVerificationDocument, useMyVerificationRejectedReason, useAcceptEthicsCharter,
   usePushSubscriptionStatus, useEnablePushNotifications, useDisablePushNotifications, useMessagingRealtime,
   useCalendarFeedToken, useRegenerateCalendarFeedToken, useReceivedReferrals } from '@/hooks/useData'
@@ -20,6 +20,7 @@ import PractitionerTypePicker from '@/components/doctor/PractitionerTypePicker'
 import { SPECIES_EMOJI, PRACTICE_SPECIES_OPTIONS } from '@/lib/animalSpecies'
 import { type DoctorTab as Tab, ALL_DOCTOR_TAB_IDS as ALL_TAB_IDS } from '@/lib/doctorDashboardTabs'
 import { computeDoctorStats } from '@/lib/doctorStats'
+import DoctorStatsPanel from '@/components/doctor/DoctorStatsPanel'
 import AnimatedBar from '@/components/ui/AnimatedBar'
 import AnimatedCounter from '@/components/ui/AnimatedCounter'
 import { showToast } from '@/lib/toast'
@@ -606,6 +607,7 @@ export default function DoctorDashboard() {
   const {
     noShowRate, cancellationRate, totalRevenue, revenueLast30Days, fillRate, hasUnclosedPastAppts,
   } = computeDoctorStats(appointments, availabilities, doctor?.consultation_price ?? 0, now)
+  const { data: waitlistCount } = useMyWaitlistCount(doctor?.id)
 
   // Espace praticien bloqué tant que le dossier n'est pas validé par un
   // admin (demande d'Anaïs le 21/09/2026 : un accès non-bloquant, même
@@ -2623,49 +2625,16 @@ export default function DoctorDashboard() {
             <h2 className="text-xl font-bold text-gray-900 mb-1">Statistiques</h2>
             <p className="text-sm text-gray-500 mb-6">Un aperçu de votre activité sur la plateforme.</p>
 
-            {hasUnclosedPastAppts && (
-              <div className="bg-amber-50 border border-amber-200 text-amber-800 text-sm px-4 py-3 rounded-xl mb-6">
-                💡 Vos statistiques resteront vides tant que vos rendez-vous passés ne sont pas clôturés.
-                Marquez-les en <strong>Terminé</strong> ou <strong>Absent(e)</strong> (bouton sur chaque RDV,
-                onglet Mon espace) pour voir apparaître revenu et taux de no-show.
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center">
-                <p className="text-2xl font-bold text-sage-600"><AnimatedCounter target={totalRevenue} suffix=" €" /></p>
-                <p className="text-xs text-gray-500 mt-1">Revenu total (RDV terminés)</p>
-              </div>
-              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center">
-                <p className="text-2xl font-bold text-sage-600"><AnimatedCounter target={revenueLast30Days} suffix=" €" /></p>
-                <p className="text-xs text-gray-500 mt-1">Revenu (30 derniers jours)</p>
-              </div>
-              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center">
-                <p className={`text-2xl font-bold ${noShowRate !== null && noShowRate > 15 ? 'text-red-500' : 'text-sage-600'}`}>
-                  {noShowRate !== null ? `${noShowRate}%` : '—'}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">Taux de no-show</p>
-              </div>
-              <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-center">
-                <p className="text-2xl font-bold text-sage-600">{cancellationRate !== null ? `${cancellationRate}%` : '—'}</p>
-                <p className="text-xs text-gray-500 mt-1">Taux d'annulation</p>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold text-sm text-gray-900">Taux de remplissage (30 derniers jours)</h3>
-                <span className="text-lg font-bold text-sage-600">{fillRate !== null ? `${fillRate}%` : '—'}</span>
-              </div>
-              {fillRate !== null ? (
-                <AnimatedBar percent={fillRate} />
-              ) : (
-                <p className="text-xs text-gray-400">Renseignez vos disponibilités pour voir cette statistique.</p>
-              )}
-              <p className="text-xs text-gray-400 mt-2">
-                Estimation à partir de vos disponibilités récurrentes — ne tient pas compte des congés posés.
-              </p>
-            </div>
+            <DoctorStatsPanel
+              appointments={appointments as any}
+              availabilities={availabilities}
+              reviews={reviews}
+              consultationPrice={doctor?.consultation_price ?? 0}
+              averageRating={doctor?.average_rating ?? 0}
+              reviewCount={doctor?.review_count ?? 0}
+              waitlistCount={waitlistCount}
+              now={now}
+            />
           </div>
         )}
       </div>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parisDateKey, parisDayOfWeek, parisTimeToUtc, parisTimeString, PARIS_TZ, addDaysToDateKey, parisStartOfWeekKey, parisMinutesOfDay, parisCalendarDaysDiff } from './parisTime'
+import { parisDateKey, parisDayOfWeek, parisTimeToUtc, parisTimeString, PARIS_TZ, addDaysToDateKey, parisStartOfWeekKey, parisMinutesOfDay, parisCalendarDaysDiff, parisHour, parisMonthKey, shiftMonthKey } from './parisTime'
 
 describe('parisDateKey', () => {
   it('donne la date à Paris, pas celle du fuseau local d\'exécution', () => {
@@ -124,5 +124,50 @@ describe('parisStartOfWeekKey', () => {
 
   it('traverse correctement un changement de mois', () => {
     expect(parisStartOfWeekKey('2026-10-01')).toBe('2026-09-28') // jeudi 1er oct. -> lundi 28 sept.
+  })
+})
+
+describe('parisHour', () => {
+  it('lit l\'heure murale à Paris, pas le fuseau local de l\'appareil', () => {
+    // 2026-09-21T10:30:00Z = 12:30 à Paris (CEST, UTC+2)
+    expect(parisHour(new Date('2026-09-21T10:30:00Z'))).toBe(12)
+  })
+
+  it('gère minuit et 23h', () => {
+    expect(parisHour(parisTimeToUtc('2026-01-15', '00:05'))).toBe(0)
+    expect(parisHour(parisTimeToUtc('2026-01-15', '23:55'))).toBe(23)
+  })
+})
+
+describe('parisMonthKey', () => {
+  it('renvoie "yyyy-MM" du mois calendaire à Paris', () => {
+    expect(parisMonthKey(new Date('2026-09-21T10:30:00Z'))).toBe('2026-09')
+  })
+
+  it('bascule juste après minuit heure de Paris, même si UTC est encore la veille', () => {
+    // 2026-09-30T23:00:00Z = 2026-10-01T01:00 à Paris (CEST, UTC+2)
+    expect(parisMonthKey(new Date('2026-09-30T23:00:00Z'))).toBe('2026-10')
+  })
+})
+
+describe('shiftMonthKey', () => {
+  it('avance de N mois', () => {
+    expect(shiftMonthKey('2026-09', 2)).toBe('2026-11')
+  })
+
+  it('recule de N mois (nombre négatif)', () => {
+    expect(shiftMonthKey('2026-09', -1)).toBe('2026-08')
+  })
+
+  it('traverse un changement d\'année en avançant', () => {
+    expect(shiftMonthKey('2026-11', 3)).toBe('2027-02')
+  })
+
+  it('traverse un changement d\'année en reculant', () => {
+    expect(shiftMonthKey('2026-01', -1)).toBe('2025-12')
+  })
+
+  it('à 0 mois, renvoie la même clé', () => {
+    expect(shiftMonthKey('2026-09', 0)).toBe('2026-09')
   })
 })

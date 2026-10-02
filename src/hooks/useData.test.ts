@@ -18,7 +18,7 @@ import { useAuthStore } from '@/lib/authStore'
 import {
   useAvailabilities, useMyWaitlistEntry, useJoinWaitlist, useConversationPartners,
   useLeaveWaitlist, useSendMessage, useUpdateAppointmentStatus, useCreateReview,
-  useReplyToReview, useCompleteOnboarding, useSentReferralsForAnimal,
+  useReplyToReview, useCompleteOnboarding, useSentReferralsForAnimal, useMyWaitlistCount,
 } from './useData'
 
 const FAKE_PATIENT = { id: 'patient-1', email: 'a@a.fr', role: 'patient' as const, is_admin: false, created_at: '' }
@@ -272,6 +272,23 @@ describe('useSentReferralsForAnimal', () => {
 
   it('n\'exécute pas la requête sans praticien connecté', () => {
     const { result } = renderHook(() => useSentReferralsForAnimal('animal-1', undefined), { wrapper })
+    expect(result.current.fetchStatus).toBe('idle')
+  })
+})
+
+describe('useMyWaitlistCount', () => {
+  it('appelle la RPC get_my_waitlist_count et renvoie son résultat', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: 3, error: null } as any)
+
+    const { result } = renderHook(() => useMyWaitlistCount('doc-1'), { wrapper })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(supabase.rpc).toHaveBeenCalledWith('get_my_waitlist_count')
+    expect(result.current.data).toBe(3)
+  })
+
+  it('n\'exécute pas la requête sans praticien connu', () => {
+    const { result } = renderHook(() => useMyWaitlistCount(undefined), { wrapper })
     expect(result.current.fetchStatus).toBe('idle')
   })
 })

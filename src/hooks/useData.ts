@@ -571,7 +571,7 @@ export function useDoctorAppointments(doctorId?: string) {
       // côté base (migration 080) pour le rôle authenticated.
       const { data, error } = await supabase
         .from('appointments')
-        .select('id, patient_id, doctor_id, start_at, end_at, status, reason, confirmed_by_patient_at, appointment_animals(animals(id, name, species, avatar_url))')
+        .select('id, patient_id, doctor_id, start_at, end_at, status, reason, created_at, updated_at, confirmed_by_patient_at, appointment_animals(animals(id, name, species, avatar_url))')
         .eq('doctor_id', doctorId!)
         .order('start_at', { ascending: true })
       if (error) throw error
@@ -912,6 +912,22 @@ export function useAnimalOwner(userId?: string) {
       return data
     },
     enabled: !!userId,
+  })
+}
+
+// Nombre de patients en liste d'attente pour CE praticien (migration 111,
+// RPC security definer — aucune policy SELECT directe sur waitlist_entries
+// pour un praticien, volontairement : seul un compte agrégé est exposé, pas
+// l'identité de chaque patient en attente).
+export function useMyWaitlistCount(doctorId?: string) {
+  return useQuery({
+    queryKey: ['my-waitlist-count', doctorId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_my_waitlist_count')
+      if (error) throw error
+      return (data ?? 0) as number
+    },
+    enabled: !!doctorId,
   })
 }
 

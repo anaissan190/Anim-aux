@@ -77,3 +77,28 @@ export function parisCalendarDaysDiff(target: Date, from: Date = new Date()): nu
   const fromUtc = new Date(`${parisDateKey(from)}T00:00:00Z`).getTime()
   return Math.round((targetUtc - fromUtc) / 86_400_000)
 }
+
+// Heure murale à Paris (0-23), pour grouper des rendez-vous par heure de la
+// journée (statistiques praticien : heures les plus chargées) sans jamais
+// lire le fuseau local de l'appareil (voir l'en-tête de ce fichier).
+export function parisHour(date: Date): number {
+  return Number(parisTimeString(date).split(':')[0])
+}
+
+// "yyyy-MM" du mois calendaire à Paris — clé neutre pour grouper/comparer
+// des rendez-vous par mois (statistiques praticien), même principe que
+// parisDateKey pour les jours.
+export function parisMonthKey(date: Date = new Date()): string {
+  return formatInTimeZone(date, PARIS_TZ, 'yyyy-MM')
+}
+
+// Décale une clé de mois ("yyyy-MM") de N mois (négatif accepté), avec
+// retenue sur l'année — arithmétique purement calendaire, jamais via un
+// objet Date "local" (même précaution que addDaysToDateKey).
+export function shiftMonthKey(monthKey: string, months: number): string {
+  const [y, m] = monthKey.split('-').map(Number)
+  const total = (y * 12 + (m - 1)) + months
+  const year = Math.floor(total / 12)
+  const month = (total % 12) + 1
+  return `${year}-${String(month).padStart(2, '0')}`
+}
