@@ -2167,6 +2167,27 @@ export function useCreateClinic() {
   })
 }
 
+// Fermeture du cabinet par son créateur (ex. reprise d'une activité seule ou
+// salariée) — delete direct autorisé par la policy "clinics: owner
+// supprime" (migration 039). Le trigger clinics_prevent_deletion_with_members
+// (migration 112) refuse côté serveur tant que d'autres praticiens sont
+// encore membres : son message d'erreur (error.message) est déjà rédigé
+// pour être affiché tel quel à l'utilisateur, comme les autres RPC/triggers
+// métier de ce fichier.
+export function useDeleteClinic() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ clinicId }: { clinicId: string; doctorId: string }) => {
+      const { error } = await supabase.from('clinics').delete().eq('id', clinicId)
+      if (error) throw new Error(error.message)
+    },
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['clinic', vars.doctorId] })
+      qc.invalidateQueries({ queryKey: ['clinic_members', vars.clinicId] })
+    },
+  })
+}
+
 export function useJoinClinic() {
   const qc = useQueryClient()
   return useMutation({

@@ -10,7 +10,7 @@ import DoctorMobileTabBar from '@/components/mobile/DoctorMobileTabBar'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 import { supabase } from '@/lib/supabase'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
-import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useReplyToReview, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useDoctorServices, useAddDoctorService, useDeleteDoctorService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments, useInviteClinicSecretary, useClinicStaffList, useExportMyData, useMyWaitlistCount,
+import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useReplyToReview, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useDoctorServices, useAddDoctorService, useDeleteDoctorService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments, useInviteClinicSecretary, useClinicStaffList, useExportMyData, useMyWaitlistCount, useDeleteClinic,
   useDoctorVerificationDocuments, useUploadVerificationDocument, useDeleteVerificationDocument, useMyVerificationRejectedReason, useAcceptEthicsCharter,
   usePushSubscriptionStatus, useEnablePushNotifications, useDisablePushNotifications, useMessagingRealtime,
   useCalendarFeedToken, useRegenerateCalendarFeedToken, useReceivedReferrals } from '@/hooks/useData'
@@ -152,6 +152,9 @@ export default function DoctorDashboard() {
   const removeClinicMember = useRemoveClinicMember()
   const [removeMemberError, setRemoveMemberError] = useState('')
   const [confirmRemoveMemberId, setConfirmRemoveMemberId] = useState<string | null>(null)
+  const [confirmDeleteClinic, setConfirmDeleteClinic] = useState(false)
+  const [deleteClinicError, setDeleteClinicError] = useState('')
+  const deleteClinic = useDeleteClinic()
   const [confirmDeleteServiceId, setConfirmDeleteServiceId] = useState<string | null>(null)
   const [confirmDeleteBlockedSlotId, setConfirmDeleteBlockedSlotId] = useState<string | null>(null)
   const inviteSecretary = useInviteClinicSecretary()
@@ -2014,6 +2017,55 @@ export default function DoctorDashboard() {
                 </>
               )}
             </div>
+
+            {/* Zone dangereuse — réservée au créateur. Fermer le cabinet ne
+                supprime aucune donnée patient/RDV (seuls doctor_id/patient_id
+                y sont rattachés, pas clinic_id) : seules l'identité du
+                cabinet, ses tarifs communs (clinic_services) et l'accès de
+                son éventuel secrétariat (clinic_staff) disparaissent — tout
+                en CASCADE depuis `clinics`. */}
+            {isClinicAdmin && (
+              <div className="bg-white rounded-2xl p-5 shadow-sm border border-red-100">
+                <h3 className="font-semibold text-red-600 mb-1">Zone dangereuse</h3>
+                <p className="text-xs text-gray-500 mb-4">
+                  Fermez ce cabinet si vous changez d'activité (reprise en solo ou en tant que salarié).
+                  Vos rendez-vous et vos patients restent intacts : seuls le cabinet, ses tarifs communs et
+                  l'accès de son éventuel secrétariat disparaissent.
+                  {clinicMembers.length > 1 && ' Retirez d\'abord vos confrères ci-dessus : un cabinet avec d\'autres membres ne peut pas être supprimé.'}
+                </p>
+                {deleteClinicError && <p className="text-red-500 text-sm mb-3">{deleteClinicError}</p>}
+                {confirmDeleteClinic ? (
+                  <div className="flex items-center gap-3 text-sm">
+                    <span className="text-red-600">Vraiment fermer « {clinic.name} » ?</span>
+                    <button
+                      onClick={async () => {
+                        setDeleteClinicError('')
+                        try {
+                          await deleteClinic.mutateAsync({ clinicId: clinic.id, doctorId: doctor!.id })
+                          showToast('✓ Cabinet fermé.')
+                          setConfirmDeleteClinic(false)
+                        } catch (e: any) {
+                          setDeleteClinicError(e.message ?? 'Erreur lors de la fermeture du cabinet.')
+                        }
+                      }}
+                      disabled={deleteClinic.isPending}
+                      className="text-red-500 hover:underline font-semibold">
+                      {deleteClinic.isPending ? 'Fermeture...' : 'Oui, fermer le cabinet'}
+                    </button>
+                    <button onClick={() => setConfirmDeleteClinic(false)} className="text-gray-400 hover:underline">
+                      Annuler
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => { setDeleteClinicError(''); setConfirmDeleteClinic(true) }}
+                    disabled={clinicMembers.length > 1}
+                    className="btn-danger text-sm px-4 py-2 disabled:opacity-40 disabled:cursor-not-allowed">
+                    Fermer le cabinet
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         )}
 

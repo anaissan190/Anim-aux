@@ -18,7 +18,7 @@ import { useAuthStore } from '@/lib/authStore'
 import {
   useAvailabilities, useMyWaitlistEntry, useJoinWaitlist, useConversationPartners,
   useLeaveWaitlist, useSendMessage, useUpdateAppointmentStatus, useCreateReview,
-  useReplyToReview, useCompleteOnboarding, useSentReferralsForAnimal, useMyWaitlistCount,
+  useReplyToReview, useCompleteOnboarding, useSentReferralsForAnimal, useMyWaitlistCount, useDeleteClinic,
 } from './useData'
 
 const FAKE_PATIENT = { id: 'patient-1', email: 'a@a.fr', role: 'patient' as const, is_admin: false, created_at: '' }
@@ -290,5 +290,29 @@ describe('useMyWaitlistCount', () => {
   it('n\'exécute pas la requête sans praticien connu', () => {
     const { result } = renderHook(() => useMyWaitlistCount(undefined), { wrapper })
     expect(result.current.fetchStatus).toBe('idle')
+  })
+})
+
+describe('useDeleteClinic', () => {
+  it('supprime le cabinet et invalide le cache du praticien', async () => {
+    const builder = createQueryBuilderMock({ data: null, error: null })
+    vi.mocked(supabase.from).mockReturnValue(builder)
+
+    const { result } = renderHook(() => useDeleteClinic(), { wrapper })
+    await result.current.mutateAsync({ clinicId: 'clinic-1', doctorId: 'doc-1' })
+
+    expect(supabase.from).toHaveBeenCalledWith('clinics')
+    expect(builder.delete).toHaveBeenCalled()
+    expect(builder.eq).toHaveBeenCalledWith('id', 'clinic-1')
+  })
+
+  it("propage le message du trigger s'il reste d'autres praticiens membres", async () => {
+    vi.mocked(supabase.from).mockReturnValue(
+      createQueryBuilderMock({ data: null, error: { message: "Retirez d'abord les autres praticiens du cabinet avant de pouvoir le supprimer." } })
+    )
+
+    const { result } = renderHook(() => useDeleteClinic(), { wrapper })
+    await expect(result.current.mutateAsync({ clinicId: 'clinic-1', doctorId: 'doc-1' }))
+      .rejects.toThrow("Retirez d'abord les autres praticiens du cabinet avant de pouvoir le supprimer.")
   })
 })
