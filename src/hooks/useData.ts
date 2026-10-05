@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/authStore'
 import { isCareLinkAppointment } from '@/lib/careLink'
 import { documentStoragePath } from '@/lib/storageUrls'
+import { removeStoredFiles } from '@/lib/storageCleanup'
 import type { SearchFilters, AppointmentStatus } from '@/types'
 import { addMinutes } from 'date-fns'
 import { geocodeAddress } from '@/lib/geo'
@@ -1475,8 +1476,15 @@ export function useDeleteAnimal() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async (id: string) => {
+      // Fichiers de l'animal (photo + documents) relevés avant la suppression :
+      // la base les efface en cascade, pas le stockage.
+      const [{ data: animal }, { data: docs }] = await Promise.all([
+        supabase.from('animals').select('avatar_url').eq('id', id).maybeSingle(),
+        supabase.from('animal_documents').select('file_url').eq('animal_id', id),
+      ])
       const { error } = await supabase.from('animals').delete().eq('id', id)
       if (error) throw error
+      await removeStoredFiles([animal?.avatar_url, ...(docs ?? []).map((d: any) => d.file_url)])
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['animals'] }),
   })
@@ -1787,8 +1795,13 @@ export function useDeleteAnimalDocument() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ id }: { id: string; animal_id: string }) => {
+      // Adresse du fichier lue AVANT la suppression de la ligne, pour pouvoir
+      // supprimer aussi le fichier réel (sinon il restait indéfiniment dans le
+      // stockage). Un échec de lecture ne bloque pas la suppression elle-même.
+      const { data: row } = await supabase.from('animal_documents').select('file_url').eq('id', id).maybeSingle()
       const { error } = await supabase.from('animal_documents').delete().eq('id', id)
       if (error) throw error
+      await removeStoredFiles([row?.file_url])
     },
     // ['patient-doctor-documents'] manquait (présent sur useCreateAnimalDocument) :
     // le document supprimé restait visible dans la vue agrégée côté médecin.

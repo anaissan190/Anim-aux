@@ -43,6 +43,7 @@ import { getPractitionerTypesBySpecialties } from '@/lib/practitionerTypes'
 import SpeciesSelect from '@/components/ui/SpeciesSelect'
 import { showToast } from '@/lib/toast'
 import { compressImage } from '@/lib/compressImage'
+import { removeStoredFiles } from '@/lib/storageCleanup'
 import { CARE_TYPES, careTypeIcon, careTypeLabel } from '@/lib/careTypes'
 
 const ReferAnimalModal = lazy(() => import('@/components/doctor/ReferAnimalModal'))
@@ -171,7 +172,9 @@ export default function AnimalHealthPage() {
       const { error: uploadErr } = await supabase.storage.from('avatars').upload(path, compressed, { upsert: true })
       if (uploadErr) throw uploadErr
       const { data } = supabase.storage.from('avatars').getPublicUrl(path)
+      const previousPhoto = animal?.avatar_url
       await updateAnimal.mutateAsync({ id: id!, avatar_url: data.publicUrl })
+      await removeStoredFiles([previousPhoto])
     } catch (e) {
       // Best-effort silencieux comme le reste de la page (pas de state
       // d'erreur dédié ici) — mais sans avaler l'échec en enregistrant

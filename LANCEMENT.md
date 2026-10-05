@@ -1,0 +1,56 @@
+# Lancement d'Animéaux — liste à suivre
+
+Ce qui reste à faire **en dehors du code** pour ouvrir l'application au public, puis un scénario de test complet.
+À cocher au fur et à mesure. Dernière mise à jour : 06/10/2026.
+
+## 1. Abonnements (les deux sont indispensables dès que de vrais utilisateurs arrivent)
+- [ ] **Supabase → offre Pro** (~25 $/mois) : Organisation → Billing. Sans elle, le projet est **mis en pause après 7 jours sans activité** et il n'y a pas de sauvegardes automatiques.
+- [ ] **Vercel → offre Pro** (~20 $/mois) : l'offre gratuite (« Hobby ») interdit l'usage commercial.
+- [ ] Après le passage en Pro : Supabase → Database → **Backups** : vérifier qu'une sauvegarde quotidienne apparaît.
+
+## 2. Réglages Supabase (Authentication)
+Dans le menu de gauche : **Authentication**.
+- [ ] **Attack Protection → CAPTCHA protection** : activer, fournisseur **Cloudflare Turnstile**, coller la **clé secrète** Turnstile (Cloudflare → Turnstile → ton site → « Secret key »). Sans cela, le captcha affiché dans l'application peut être contourné en appelant directement l'API.
+- [ ] **URL Configuration** : *Site URL* = `https://monanimeaux.fr` ; *Redirect URLs* = uniquement `https://monanimeaux.fr/**` (ajouter `http://localhost:3000/**` seulement si tu développes encore en local).
+- [ ] **Sign In / Providers → Email** : *Minimum password length* = 8 ou plus ; *Confirm email* activé.
+- [ ] **Emails → Templates** : vérifier que « Confirm signup » et « Reset password » contiennent bien les modèles de `supabase/email-templates/`.
+
+## 3. Surveillance
+- [ ] **Sentry** : projet → Alerts → créer une alerte « nouvelle erreur » avec notification par email.
+- [ ] **UptimeRobot** (gratuit) : surveiller `https://monanimeaux.fr` toutes les 5 minutes, alerte par email.
+
+## 4. Juridique
+- [ ] Faire relire **CGU, politique de confidentialité et mentions légales** par un professionnel du droit (ou un service juridique en ligne).
+- [ ] Vérifier les coordonnées des hébergeurs dans les mentions légales (Vercel, Supabase).
+- [ ] Après relecture : demander le retrait du bandeau « en attente de relecture » (`src/pages/LegalPage.tsx`).
+- [ ] Souscrire une assurance responsabilité civile professionnelle si ce n'est pas fait (à voir avec un conseiller).
+
+## 5. Données de test
+- [x] Comptes de test supprimés (reste 4 comptes : toi, l'admin, Gary, Lina).
+- [ ] Les deux praticiens de démonstration (Gary, Lina) sont-ils visibles dans la recherche publique ? Si oui, les masquer avant l'ouverture, ou les supprimer.
+
+## 6. Scénario de test complet (avec des comptes tout neufs)
+À faire sur téléphone **et** sur ordinateur. Utiliser de **vraies** adresses (`toi+essai1@gmail.com`, jamais une adresse inventée).
+
+**Propriétaire**
+1. Inscription → email de confirmation reçu (vérifier les spams) → clic sur le lien → connexion.
+2. La visite guidée s'affiche une seule fois.
+3. Ajouter un animal avec photo ; changer la photo (l'ancienne ne doit plus apparaître).
+4. Réserver un rendez-vous chez un praticien de test, avec un document joint.
+5. Ouvrir le document (Documents) : il s'ouvre.
+6. Écrire un message au praticien.
+7. Annuler le rendez-vous.
+8. Profil → « Télécharger mes données » : un fichier se télécharge.
+
+**Praticien**
+1. Inscription → dépôt d'un document justificatif → validation par l'admin → première arrivée sur le tableau de bord (visite guidée).
+2. Notification « Nouveau rendez-vous » reçue (application + téléphone) à la réservation du propriétaire.
+3. Voir l'animal dans « Mes patients », ajouter un suivi, un poids.
+4. Annuler le rendez-vous côté praticien → le propriétaire reçoit notification **et** email.
+5. Onglet Statistiques et export comptable.
+6. Créer un cabinet, le fermer.
+
+**Suppression de compte** : Profil → zone dangereuse → supprimer. Vérifier ensuite dans Supabase qu'il ne reste plus rien (compte, animaux).
+
+## 7. Nettoyage automatique des fichiers
+Une fonction (`purge-orphan-files`) supprime chaque dimanche les fichiers de stockage que plus rien ne référence. À activer une fois (voir la migration 125).

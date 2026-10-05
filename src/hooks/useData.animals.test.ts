@@ -98,6 +98,21 @@ describe('useDeleteAnimal', () => {
     expect(builder.delete).toHaveBeenCalled()
     expect(builder.eq).toHaveBeenCalledWith('id', 'a1')
   })
+
+  it('supprime aussi la photo et les documents de l\'animal dans le stockage', async () => {
+    const removeAvatars = vi.fn().mockResolvedValue({ data: [], error: null })
+    const removeDocs = vi.fn().mockResolvedValue({ data: [], error: null })
+    vi.mocked(supabase.storage.from).mockImplementation(((bucket: string) => ({ remove: bucket === 'avatars' ? removeAvatars : removeDocs })) as any)
+    vi.mocked(supabase.from).mockImplementation(((table: string) =>
+      table === 'animals'
+        ? createQueryBuilderMock({ data: { avatar_url: 'https://x.supabase.co/storage/v1/object/public/avatars/animals/a1.jpeg' }, error: null })
+        : createQueryBuilderMock({ data: [{ file_url: 'https://x.supabase.co/storage/v1/object/public/documents/animals/d1.pdf' }], error: null })
+    ) as any)
+    const { result } = renderHook(() => useDeleteAnimal(), { wrapper })
+    await result.current.mutateAsync('a1')
+    expect(removeAvatars).toHaveBeenCalledWith(['animals/a1.jpeg'])
+    expect(removeDocs).toHaveBeenCalledWith(['animals/d1.pdf'])
+  })
 })
 
 describe('useCareItems', () => {

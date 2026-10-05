@@ -20,6 +20,7 @@ import PractitionerTypePicker from '@/components/doctor/PractitionerTypePicker'
 import { SPECIES_EMOJI, PRACTICE_SPECIES_OPTIONS } from '@/lib/animalSpecies'
 import { type DoctorTab as Tab, ALL_DOCTOR_TAB_IDS as ALL_TAB_IDS } from '@/lib/doctorDashboardTabs'
 import { computeDoctorStats } from '@/lib/doctorStats'
+import { removeStoredFiles } from '@/lib/storageCleanup'
 import DoctorStatsPanel from '@/components/doctor/DoctorStatsPanel'
 import AnimatedBar from '@/components/ui/AnimatedBar'
 import AnimatedCounter from '@/components/ui/AnimatedCounter'
@@ -358,7 +359,9 @@ export default function DoctorDashboard() {
       const { error: uploadError } = await supabase.storage.from('avatars').upload(path, compressed, { upsert: true })
       if (uploadError) throw uploadError
       const { data } = supabase.storage.from('avatars').getPublicUrl(path)
+      const previousAvatar = profile?.avatar_url
       await updateProfile.mutateAsync({ avatar_url: data.publicUrl })
+      await removeStoredFiles([previousAvatar])
     } catch (e: any) {
       setPhotoError(e.message ?? "Erreur lors de l'envoi de la photo.")
     } finally {
@@ -383,6 +386,7 @@ export default function DoctorDashboard() {
         id: clinic.id, name: clinic.name, address: clinic.address ?? undefined,
         city: clinic.city ?? undefined, phone: clinic.phone ?? undefined, logo_url: data.publicUrl,
       })
+      await removeStoredFiles([clinic.logo_url])
     } catch (e: any) {
       setClinicLogoError(e.message ?? "Erreur lors de l'envoi du logo.")
     } finally {

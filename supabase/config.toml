@@ -439,6 +439,8 @@ verify_jwt = false
 verify_jwt = false
 [functions.send-doctor-document-notification]
 verify_jwt = false
+[functions.purge-orphan-files]
+verify_jwt = false
 [functions.send-push]
 verify_jwt = false
 [functions.send-reminders]

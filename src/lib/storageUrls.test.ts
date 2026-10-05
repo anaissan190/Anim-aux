@@ -25,3 +25,30 @@ describe('documentStoragePath', () => {
     expect(documentStoragePath('')).toBeNull()
   })
 })
+
+import { storageLocationFromUrl, groupFilesByBucket } from './storageUrls'
+
+describe('storageLocationFromUrl', () => {
+  it('reconnaît un avatar et un document, URL publique ou signée', () => {
+    expect(storageLocationFromUrl(`${BASE}/public/avatars/animals/a1.jpeg`)).toEqual({ bucket: 'avatars', path: 'animals/a1.jpeg' })
+    expect(storageLocationFromUrl(`${BASE}/sign/documents/animals/d1.pdf?token=t`)).toEqual({ bucket: 'documents', path: 'animals/d1.pdf' })
+  })
+  it('ignore les autres buckets, les autres sites et les valeurs vides', () => {
+    expect(storageLocationFromUrl(`${BASE}/public/verification-documents/x/y.pdf`)).toBeNull()
+    expect(storageLocationFromUrl('https://exemple.fr/photo.jpg')).toBeNull()
+    expect(storageLocationFromUrl(null)).toBeNull()
+  })
+})
+
+describe('groupFilesByBucket', () => {
+  it('regroupe par bucket, sans doublon ni URL étrangère', () => {
+    const grouped = groupFilesByBucket([
+      `${BASE}/public/avatars/animals/a1.jpeg`,
+      `${BASE}/public/avatars/animals/a1.jpeg`,
+      `${BASE}/public/documents/animals/d1.pdf`,
+      'https://exemple.fr/photo.jpg',
+      undefined,
+    ])
+    expect(grouped).toEqual({ avatars: ['animals/a1.jpeg'], documents: ['animals/d1.pdf'] })
+  })
+})

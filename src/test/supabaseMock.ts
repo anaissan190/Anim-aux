@@ -49,6 +49,7 @@ export function createSupabaseMock() {
         upload: vi.fn(() => Promise.resolve({ data: null, error: null })),
         getPublicUrl: vi.fn(() => ({ data: { publicUrl: '' } })),
         createSignedUrl: vi.fn(() => Promise.resolve({ data: { signedUrl: '' }, error: null })),
+        remove: vi.fn(() => Promise.resolve({ data: [], error: null })),
       })),
     },
     channel: vi.fn(() => ({

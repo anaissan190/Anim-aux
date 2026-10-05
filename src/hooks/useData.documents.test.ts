@@ -159,4 +159,24 @@ describe('useDeleteAnimalDocument', () => {
     await result.current.mutateAsync({ id: 'd1', animal_id: 'a1' })
     expect(builder.eq).toHaveBeenCalledWith('id', 'd1')
   })
+
+  it('supprime aussi le fichier réel du stockage', async () => {
+    const remove = vi.fn().mockResolvedValue({ data: [], error: null })
+    vi.mocked(supabase.storage.from).mockReturnValue({ remove } as any)
+    const builder = createQueryBuilderMock({ data: { file_url: 'https://x.supabase.co/storage/v1/object/public/documents/animals/d1.pdf' }, error: null })
+    vi.mocked(supabase.from).mockReturnValue(builder)
+    const { result } = renderHook(() => useDeleteAnimalDocument(), { wrapper })
+    await result.current.mutateAsync({ id: 'd1', animal_id: 'a1' })
+    expect(supabase.storage.from).toHaveBeenCalledWith('documents')
+    expect(remove).toHaveBeenCalledWith(['animals/d1.pdf'])
+  })
+
+  it('réussit même si la suppression du fichier échoue (la ligne est déjà supprimée)', async () => {
+    const remove = vi.fn().mockRejectedValue(new Error('réseau'))
+    vi.mocked(supabase.storage.from).mockReturnValue({ remove } as any)
+    const builder = createQueryBuilderMock({ data: { file_url: 'https://x.supabase.co/storage/v1/object/public/documents/animals/d1.pdf' }, error: null })
+    vi.mocked(supabase.from).mockReturnValue(builder)
+    const { result } = renderHook(() => useDeleteAnimalDocument(), { wrapper })
+    await expect(result.current.mutateAsync({ id: 'd1', animal_id: 'a1' })).resolves.toBeUndefined()
+  })
 })

@@ -13,6 +13,7 @@ import PractitionerTypePicker from '@/components/doctor/PractitionerTypePicker'
 import { PRACTICE_SPECIES_OPTIONS } from '@/lib/animalSpecies'
 import { showToast } from '@/lib/toast'
 import { compressImage } from '@/lib/compressImage'
+import { removeStoredFiles } from '@/lib/storageCleanup'
 
 export default function ProfilPage() {
   const { user, profile, signOut } = useAuthStore()
@@ -46,7 +47,9 @@ export default function ProfilPage() {
       const { error: uploadError } = await supabase.storage.from('avatars').upload(path, compressed, { upsert: true })
       if (uploadError) throw uploadError
       const { data } = supabase.storage.from('avatars').getPublicUrl(path)
+      const previousAvatar = profile?.avatar_url
       await updateProfile.mutateAsync({ avatar_url: data.publicUrl })
+      await removeStoredFiles([previousAvatar])
     } catch (e: any) {
       setPhotoError(e.message ?? "Erreur lors de l'envoi de la photo.")
     } finally {
