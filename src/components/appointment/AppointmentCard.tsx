@@ -4,7 +4,7 @@ import { differenceInMinutes, addMinutes } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import { formatInTimeZone } from 'date-fns-tz'
 import { Link } from 'react-router-dom'
-import { useUpdateAppointmentStatus, useRescheduleAppointment, useAppointmentDocuments } from '@/hooks/useData'
+import { useUpdateAppointmentStatus, useRescheduleAppointment, useAppointmentDocuments, useSignedDocumentUrls } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import { generateAppointmentIcs } from '@/lib/ics'
 import AvailabilityCalendar from '@/components/appointment/AvailabilityCalendar'
@@ -55,6 +55,7 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
   const update = useUpdateAppointmentStatus()
   const reschedule = useRescheduleAppointment()
   const { data: attachments = [] } = useAppointmentDocuments(appointment.id)
+  const resolveDocUrl = useSignedDocumentUrls(attachments.map((a: any) => a.file_url))
   const start = new Date(appointment.start_at)
   const [showReschedule, setShowReschedule] = useState(false)
   const [newSlot, setNewSlot] = useState<Date | null>(null)
@@ -191,7 +192,7 @@ export default function AppointmentCard({ appointment, showPatient }: Props) {
         {attachments.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-1">
             {attachments.map((doc: any) => (
-              <a key={doc.id} href={doc.file_url} target="_blank" rel="noopener noreferrer"
+              <a key={doc.id} href={resolveDocUrl(doc.file_url)} target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-xs text-sage-600 hover:underline">
                 📎 {doc.file_name}
               </a>

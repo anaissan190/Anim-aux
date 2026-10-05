@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/authStore'
 import { isCareLinkAppointment } from '@/lib/careLink'
+import { documentStoragePath } from '@/lib/storageUrls'
 import type { SearchFilters, AppointmentStatus } from '@/types'
 import { addMinutes } from 'date-fns'
 import { geocodeAddress } from '@/lib/geo'
@@ -740,6 +741,35 @@ export function useLeaveWaitlist() {
 }
 
 // Pièces jointes liées à un RDV (documents envoyés par le patient à la réservation)
+// Liens temporaires (1 h) pour les documents du bucket "documents", qui n'est
+// plus public (migration 122) : une URL publique stockée en base ne sert plus à
+// rien, on en retrouve le chemin et on demande un lien signé. Renvoie une
+// fonction `resolve(fileUrl)` à utiliser dans le rendu ; tant que le lien signé
+// n'est pas prêt — ou s'il échoue — elle renvoie l'URL d'origine, ce qui garde
+// l'affichage fonctionnel pendant la transition (bucket encore public).
+export function useSignedDocumentUrls(fileUrls: (string | null | undefined)[]) {
+  const paths = [...new Set(fileUrls.map(documentStoragePath).filter((p): p is string => !!p))].sort()
+  const { data: signedByPath = {} } = useQuery({
+    queryKey: ['signed-document-urls', paths.join('|')],
+    queryFn: async () => {
+      const { data, error } = await supabase.storage.from('documents').createSignedUrls(paths, 60 * 60)
+      if (error) throw error
+      const map: Record<string, string> = {}
+      for (const item of data ?? []) {
+        if (item.path && item.signedUrl) map[item.path] = item.signedUrl
+      }
+      return map
+    },
+    enabled: paths.length > 0,
+    // Renouvelé bien avant l'expiration d'1 h des liens.
+    staleTime: 1000 * 60 * 45,
+  })
+  return (fileUrl: string | null | undefined): string => {
+    const path = documentStoragePath(fileUrl)
+    return (path && signedByPath[path]) || fileUrl || ''
+  }
+}
+
 export function useAppointmentDocuments(appointmentId?: string) {
   return useQuery({
     queryKey: ['appointment_documents', appointmentId],

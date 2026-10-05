@@ -9,13 +9,14 @@ import { formatInTimeZone } from 'date-fns-tz'
 import { PARIS_TZ } from '@/lib/parisTime'
 import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
-import { usePatientDoctorDocuments } from '@/hooks/useData'
+import { usePatientDoctorDocuments, useSignedDocumentUrls } from '@/hooks/useData'
 import { SPECIES_EMOJI } from '@/lib/animalSpecies'
 import { DOC_TYPE_LABELS } from '@/pages/AnimalHealthPage'
 import { formatDoctorName } from '@/lib/practitionerTypes'
 
 export default function PatientDocumentsPage() {
   const { data: documents = [], isLoading, error } = usePatientDoctorDocuments()
+  const resolveDocUrl = useSignedDocumentUrls(documents.map((d: any) => d.file_url))
 
   return (
     <div className="min-h-screen bg-[#FFFAF0]">
@@ -60,11 +61,11 @@ export default function PatientDocumentsPage() {
               const doctorProfile = d.source === 'appointment' ? d.appointments?.doctors?.profiles : null
               const doctorSpecialties = d.source === 'appointment' ? d.appointments?.doctors?.specialties : null
               return (
-                <a key={d.id} href={d.file_url} target="_blank" rel="noopener noreferrer"
+                <a key={d.id} href={resolveDocUrl(d.file_url)} target="_blank" rel="noopener noreferrer"
                   className="card p-4 flex items-center gap-4 hover:shadow-md transition-shadow">
                   <div className="w-10 h-10 rounded-xl bg-sage-50 flex items-center justify-center text-lg overflow-hidden flex-shrink-0">
                     {d.file_type?.startsWith('image/')
-                      ? <img src={d.file_url} className="w-full h-full object-cover" alt={d.file_name} loading="lazy" />
+                      ? <img src={resolveDocUrl(d.file_url)} className="w-full h-full object-cover" alt={d.file_name} loading="lazy" />
                       : '📄'}
                   </div>
                   <div className="flex-1 min-w-0">

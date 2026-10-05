@@ -18,7 +18,7 @@ import { useAuthStore } from '@/lib/authStore'
 import {
   useAvailabilities, useMyWaitlistEntry, useJoinWaitlist, useConversationPartners,
   useLeaveWaitlist, useSendMessage, useUpdateAppointmentStatus, useCreateReview,
-  useReplyToReview, useCompleteOnboarding, useSentReferralsForAnimal, useMyWaitlistCount, useDeleteClinic, useRemoveClinicSecretary,
+  useReplyToReview, useCompleteOnboarding, useSentReferralsForAnimal, useMyWaitlistCount, useDeleteClinic, useRemoveClinicSecretary, useSignedDocumentUrls,
 } from './useData'
 
 const FAKE_PATIENT = { id: 'patient-1', email: 'a@a.fr', role: 'patient' as const, is_admin: false, created_at: '' }
@@ -338,5 +338,37 @@ describe('useRemoveClinicSecretary', () => {
     const { result } = renderHook(() => useRemoveClinicSecretary(), { wrapper })
     await expect(result.current.mutateAsync({ clinicId: 'clinic-1', userId: 'user-9' }))
       .rejects.toThrow('Seul le créateur du cabinet')
+  })
+})
+
+describe('useSignedDocumentUrls', () => {
+  it("remplace l'URL publique par un lien signé dès qu'il est prêt", async () => {
+    const createSignedUrls = vi.fn().mockResolvedValue({ data: [{ path: 'animals/a1.pdf', signedUrl: 'https://signed/a1?token=t' }], error: null })
+    vi.mocked(supabase.storage.from).mockReturnValue({ createSignedUrls } as any)
+
+    const publicUrl = 'https://x.supabase.co/storage/v1/object/public/documents/animals/a1.pdf'
+    const { result } = renderHook(() => useSignedDocumentUrls([publicUrl]), { wrapper })
+
+    await waitFor(() => expect(result.current(publicUrl)).toBe('https://signed/a1?token=t'))
+    expect(createSignedUrls).toHaveBeenCalledWith(['animals/a1.pdf'], 3600)
+  })
+
+  it("garde l'URL d'origine tant que le lien n'est pas prêt ou s'il échoue", async () => {
+    const createSignedUrls = vi.fn().mockResolvedValue({ data: null, error: { message: 'denied' } })
+    vi.mocked(supabase.storage.from).mockReturnValue({ createSignedUrls } as any)
+
+    const publicUrl = 'https://x.supabase.co/storage/v1/object/public/documents/animals/a1.pdf'
+    const { result } = renderHook(() => useSignedDocumentUrls([publicUrl]), { wrapper })
+
+    expect(result.current(publicUrl)).toBe(publicUrl)
+    await waitFor(() => expect(createSignedUrls).toHaveBeenCalled())
+    expect(result.current(publicUrl)).toBe(publicUrl)
+  })
+
+  it("n'appelle pas Storage s'il n'y a aucun document", () => {
+    const from = vi.mocked(supabase.storage.from)
+    from.mockClear()
+    renderHook(() => useSignedDocumentUrls([]), { wrapper })
+    expect(from).not.toHaveBeenCalled()
   })
 })

@@ -25,6 +25,7 @@ import {
   useDeleteAnimal,
   useAnimalOwner,
   useAnimalDocuments,
+  useSignedDocumentUrls,
   useCreateAnimalDocument,
   useDeleteAnimalDocument,
   useOwnerReferralsForAnimal,
@@ -66,6 +67,7 @@ export default function AnimalHealthPage() {
   const { data: weights = [] } = useWeightTracking(id!)
   const { data: records = [] } = useHealthRecords(id!)
   const { data: documents = [] } = useAnimalDocuments(id!)
+  const resolveDocUrl = useSignedDocumentUrls(documents.map((d: any) => d.file_url))
   const { data: owner } = useAnimalOwner(isDoctor ? animal?.owner_id : undefined)
   // Onglets Suivis/Poids réservés aux vétérinaires (voir tab === 'care'/
   // 'weight' plus bas) : masqués pour un praticien non-vétérinaire (retiré
@@ -887,15 +889,15 @@ export default function AnimalHealthPage() {
               ? <div className="card p-10 text-center"><p className="text-gray-400 text-sm">Aucun document envoyé.</p></div>
               : <div className="space-y-3">{documents.map((d: any) => (
                   <div key={d.id} className="card p-4 flex items-center gap-4">
-                    <a href={d.file_url} target="_blank" rel="noopener noreferrer"
+                    <a href={resolveDocUrl(d.file_url)} target="_blank" rel="noopener noreferrer"
                       className="w-10 h-10 rounded-xl bg-sage-50 flex items-center justify-center text-lg overflow-hidden flex-shrink-0">
                       {d.file_type?.startsWith('image/')
-                        ? <img src={d.file_url} className="w-full h-full object-cover" alt={d.file_name} loading="lazy" />
+                        ? <img src={resolveDocUrl(d.file_url)} className="w-full h-full object-cover" alt={d.file_name} loading="lazy" />
                         : '📄'}
                     </a>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <a href={d.file_url} target="_blank" rel="noopener noreferrer"
+                        <a href={resolveDocUrl(d.file_url)} target="_blank" rel="noopener noreferrer"
                           className="font-semibold text-sm text-gray-900 hover:underline truncate">
                           {d.label || d.file_name}
                         </a>

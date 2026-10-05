@@ -10,7 +10,7 @@ import DoctorMobileTabBar from '@/components/mobile/DoctorMobileTabBar'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 import { supabase } from '@/lib/supabase'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
-import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useReplyToReview, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useDoctorServices, useAddDoctorService, useDeleteDoctorService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments, useInviteClinicSecretary, useClinicStaffList, useExportMyData, useMyWaitlistCount, useDeleteClinic, useRemoveClinicSecretary,
+import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useReplyToReview, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useDoctorServices, useAddDoctorService, useDeleteDoctorService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments, useInviteClinicSecretary, useClinicStaffList, useExportMyData, useMyWaitlistCount, useDeleteClinic, useRemoveClinicSecretary, useSignedDocumentUrls,
   useDoctorVerificationDocuments, useUploadVerificationDocument, useDeleteVerificationDocument, useMyVerificationRejectedReason, useAcceptEthicsCharter,
   usePushSubscriptionStatus, useEnablePushNotifications, useDisablePushNotifications, useMessagingRealtime,
   useCalendarFeedToken, useRegenerateCalendarFeedToken, useReceivedReferrals } from '@/hooks/useData'
@@ -141,6 +141,7 @@ export default function DoctorDashboard() {
   const [selectedCalendarDay, setSelectedCalendarDay] = useState<Date>(() => parisTimeToUtc(parisDateKey(), '00:00:00'))
   const [selectedApptDetail, setSelectedApptDetail] = useState<any | null>(null)
   const { data: selectedApptDocuments = [] } = useAppointmentDocuments(selectedApptDetail?.id)
+  const resolveDocUrl = useSignedDocumentUrls(selectedApptDocuments.map((d: any) => d.file_url))
   const createClinic      = useCreateClinic()
   const joinClinic        = useJoinClinic()
   const addClinicService  = useAddClinicService()
@@ -2811,7 +2812,7 @@ export default function DoctorDashboard() {
               ) : (
                 <div className="space-y-1.5">
                   {selectedApptDocuments.map((d: any) => (
-                    <a key={d.id} href={d.file_url} target="_blank" rel="noopener noreferrer"
+                    <a key={d.id} href={resolveDocUrl(d.file_url)} target="_blank" rel="noopener noreferrer"
                       className="flex items-center gap-2 text-xs text-sage-600 hover:underline bg-gray-50 rounded-lg px-3 py-2">
                       📄 {d.file_name}
                     </a>
