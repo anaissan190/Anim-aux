@@ -6,7 +6,6 @@ import type { User } from '@/types'
 import logoNavbar from '@/assets/logo-navbar.webp'
 import PasswordInput from '@/components/ui/PasswordInput'
 import Turnstile from '@/components/ui/Turnstile'
-import { getMfaChallengeFactor, isValidTotpCode, normalizeTotpCode } from '@/lib/mfa'
 
 // Un compte secrétariat se connecte avec un identifiant généré (ex.
 // CAB4X9QZ), pas avec un email — doit rester synchronisé avec
@@ -28,90 +27,12 @@ export default function LoginPage() {
   const [captchaToken, setCaptchaToken] = useState('')
   const [turnstileKey, setTurnstileKey] = useState(0)
   const [loading, setLoading] = useState(false)
-  // Identifiant du facteur 2FA à défier : non nul = écran "code à 6 chiffres"
-  // affiché à la place du formulaire (mot de passe déjà accepté, session aal1).
-  const [mfaFactorId, setMfaFactorId] = useState<string | null>(null)
-  const [mfaCode, setMfaCode] = useState('')
   const suspendedReason = searchParams.get('suspended') ? searchParams.get('reason') : null
   const [error, setError] = useState(
     searchParams.get('suspended')
       ? `Ce compte a été suspendu.${suspendedReason ? ` Motif : ${suspendedReason}.` : ''} Contactez-nous si vous pensez qu'il s'agit d'une erreur.`
       : ''
   )
-
-  async function completeLogin(authUser: { id: string; email?: string }) {
-      const fallbackUser: User = { id: authUser.id, email: authUser.email!, role: 'patient', is_admin: false, created_at: '' }
-      let finalUser: User = fallbackUser
-
-      const userData = await getMyUserDataWithRetry()
-      if (userData?.is_suspended) {
-        await supabase.auth.signOut()
-        setError(`Ce compte a été suspendu.${userData.suspended_reason ? ` Motif : ${userData.suspended_reason}.` : ''} Contactez-nous si vous pensez qu'il s'agit d'une erreur.`)
-        setCaptchaToken('')
-        setTurnstileKey(k => k + 1)
-        setLoading(false)
-        return
-      }
-      if (userData) {
-        finalUser = { ...fallbackUser, role: userData.role ?? 'patient', is_admin: userData.is_admin ?? false }
-        setUser(finalUser)
-        setProfile(userData.profile ?? null)
-      } else {
-        setUser(fallbackUser)
-        setProfile(null)
-      }
-
-      await new Promise(r => setTimeout(r, 100))
-
-      // Un lien vers une page protégée (ex. "Voir mes rendez-vous" dans un
-      // email) ouvert sans session active repasse par ici avec ?redirect=...
-      // (voir ProtectedRoute.tsx) : on y renvoie plutôt que vers le
-      // dashboard par défaut. Le "/" en tête exclut toute URL absolue
-      // (//evil.com, https://...) glissée dans le paramètre.
-      const redirect = searchParams.get('redirect')
-      if (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) {
-        navigate(redirect, { replace: true })
-      } else if (finalUser.is_admin) {
-        // Un compte is_admin sans usage praticien/patient réel (ex.
-        // contact.animeaux@gmail.com, dédié à l'administration) va
-        // directement sur le tableau de bord admin plutôt que sur le
-        // dashboard associé à son role technique ('patient' par défaut).
-        navigate('/dashboard/admin', { replace: true })
-      } else if (finalUser.role === 'doctor') {
-        navigate('/dashboard/doctor', { replace: true })
-      } else if (finalUser.role === 'secretary') {
-        navigate('/dashboard/secretariat', { replace: true })
-      } else {
-        navigate('/dashboard/patient', { replace: true })
-      }
-    setLoading(false)
-  }
-
-  async function handleMfaSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!mfaFactorId || !isValidTotpCode(mfaCode)) { setError('Saisissez le code à 6 chiffres de votre application.'); return }
-    setError('')
-    setLoading(true)
-    const { error: mfaError } = await supabase.auth.mfa.challengeAndVerify({ factorId: mfaFactorId, code: normalizeTotpCode(mfaCode) })
-    if (mfaError) {
-      setError('Code incorrect ou expiré. Vérifiez l\'heure de votre téléphone et réessayez.')
-      setMfaCode('')
-      setLoading(false)
-      return
-    }
-    const { data: { user: authUser } } = await supabase.auth.getUser()
-    if (!authUser) { setError('Session introuvable, merci de vous reconnecter.'); setMfaFactorId(null); setLoading(false); return }
-    await completeLogin(authUser)
-  }
-
-  async function cancelMfa() {
-    await supabase.auth.signOut()
-    setMfaFactorId(null)
-    setMfaCode('')
-    setError('')
-    setCaptchaToken('')
-    setTurnstileKey(k => k + 1)
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -167,16 +88,50 @@ export default function LoginPage() {
     }
 
     if (data.user) {
-      // Compte avec double authentification : le mot de passe seul ne suffit
-      // pas, on demande le code avant d'entrer (voir src/lib/mfa.ts).
-      const factor = await getMfaChallengeFactor()
-      if (factor) {
-        setMfaFactorId(factor.id)
+      const fallbackUser: User = { id: data.user.id, email: data.user.email!, role: 'patient', is_admin: false, created_at: '' }
+      let finalUser: User = fallbackUser
+
+      const userData = await getMyUserDataWithRetry()
+      if (userData?.is_suspended) {
+        await supabase.auth.signOut()
+        setError(`Ce compte a été suspendu.${userData.suspended_reason ? ` Motif : ${userData.suspended_reason}.` : ''} Contactez-nous si vous pensez qu'il s'agit d'une erreur.`)
+        setCaptchaToken('')
+        setTurnstileKey(k => k + 1)
         setLoading(false)
         return
       }
-      await completeLogin(data.user)
-      return
+      if (userData) {
+        finalUser = { ...fallbackUser, role: userData.role ?? 'patient', is_admin: userData.is_admin ?? false }
+        setUser(finalUser)
+        setProfile(userData.profile ?? null)
+      } else {
+        setUser(fallbackUser)
+        setProfile(null)
+      }
+
+      await new Promise(r => setTimeout(r, 100))
+
+      // Un lien vers une page protégée (ex. "Voir mes rendez-vous" dans un
+      // email) ouvert sans session active repasse par ici avec ?redirect=...
+      // (voir ProtectedRoute.tsx) : on y renvoie plutôt que vers le
+      // dashboard par défaut. Le "/" en tête exclut toute URL absolue
+      // (//evil.com, https://...) glissée dans le paramètre.
+      const redirect = searchParams.get('redirect')
+      if (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) {
+        navigate(redirect, { replace: true })
+      } else if (finalUser.is_admin) {
+        // Un compte is_admin sans usage praticien/patient réel (ex.
+        // contact.animeaux@gmail.com, dédié à l'administration) va
+        // directement sur le tableau de bord admin plutôt que sur le
+        // dashboard associé à son role technique ('patient' par défaut).
+        navigate('/dashboard/admin', { replace: true })
+      } else if (finalUser.role === 'doctor') {
+        navigate('/dashboard/doctor', { replace: true })
+      } else if (finalUser.role === 'secretary') {
+        navigate('/dashboard/secretariat', { replace: true })
+      } else {
+        navigate('/dashboard/patient', { replace: true })
+      }
     } else {
       // Ni authError ni data.user : cas normalement jamais renvoyé par
       // Supabase, mais laissait jusqu'ici l'utilisateur bloqué sur le
@@ -197,25 +152,6 @@ export default function LoginPage() {
           <h1 className="text-xl font-bold text-gray-900 mt-4">Connexion</h1>
         </div>
         <div className="card p-8">
-          {mfaFactorId ? (
-            <form onSubmit={handleMfaSubmit} className="space-y-4">
-              <p className="text-sm text-gray-600">
-                Ouvrez votre application d'authentification (Google Authenticator, Authy…) et saisissez le code à 6 chiffres affiché pour Animéaux.
-              </p>
-              <input type="text" inputMode="numeric" autoComplete="one-time-code" autoFocus maxLength={7}
-                value={mfaCode} onChange={e => setMfaCode(e.target.value)}
-                className="input text-center text-xl tracking-[0.4em]" placeholder="000000" />
-              {error && (
-                <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">{error}</div>
-              )}
-              <button type="submit" disabled={loading} className="btn-primary w-full">
-                {loading ? 'Vérification...' : 'Valider'}
-              </button>
-              <button type="button" onClick={cancelMfa} className="w-full text-sm text-gray-400 hover:text-gray-600">
-                Annuler et revenir à la connexion
-              </button>
-            </form>
-          ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Email ou identifiant</label>
@@ -242,7 +178,6 @@ export default function LoginPage() {
               {loading ? 'Connexion...' : 'Se connecter'}
             </button>
           </form>
-          )}
           <p className="text-center text-sm text-gray-500 mt-6">
             Pas encore de compte ?{' '}
             <Link to="/register" className="text-sage-600 font-medium hover:underline">S'inscrire</Link>

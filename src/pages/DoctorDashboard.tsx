@@ -20,7 +20,6 @@ import PractitionerTypePicker from '@/components/doctor/PractitionerTypePicker'
 import { SPECIES_EMOJI, PRACTICE_SPECIES_OPTIONS } from '@/lib/animalSpecies'
 import { type DoctorTab as Tab, ALL_DOCTOR_TAB_IDS as ALL_TAB_IDS } from '@/lib/doctorDashboardTabs'
 import { computeDoctorStats } from '@/lib/doctorStats'
-import TwoFactorSettings from '@/components/auth/TwoFactorSettings'
 import DoctorStatsPanel from '@/components/doctor/DoctorStatsPanel'
 import AnimatedBar from '@/components/ui/AnimatedBar'
 import AnimatedCounter from '@/components/ui/AnimatedCounter'
@@ -2115,8 +2114,6 @@ export default function DoctorDashboard() {
                 </span>
               </Link>
             )}
-
-            <TwoFactorSettings />
 
             {/* Profil personnel */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
