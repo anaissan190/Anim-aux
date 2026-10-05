@@ -4,6 +4,7 @@ import { supabase, getMyUserDataWithRetry } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/authStore'
 import SplashScreen from '@/components/ui/SplashScreen'
 import ToastContainer from '@/components/ui/ToastContainer'
+import { sessionNeedsMfa } from '@/lib/mfa'
 import OnboardingTour from '@/components/onboarding/OnboardingTour'
 
 // Chaque page est chargée à la demande (React.lazy) plutôt qu'incluse dans le
@@ -121,6 +122,18 @@ export default function App() {
         if (event !== 'SIGNED_IN' && event !== 'SIGNED_OUT' && event !== 'INITIAL_SESSION') return
 
         if (session?.user) {
+          // Session issue du seul mot de passe pour un compte avec double
+          // authentification : tant que le code n'est pas validé (écran de
+          // LoginPage), on ne la traite PAS comme une connexion — sinon un
+          // rechargement de page pendant l'étape du code (ou le simple
+          // SIGNED_IN émis juste après le mot de passe) laissait entrer
+          // sans code.
+          if (sessionNeedsMfa(session as any)) {
+            setUser(null)
+            setProfile(null)
+            setLoading(false)
+            return
+          }
           const fallbackUser = { id: session.user.id, email: session.user.email!, role: 'patient' as const, is_admin: false, created_at: '' }
           const data = await getMyUserDataWithRetry()
           if (data?.is_suspended) {

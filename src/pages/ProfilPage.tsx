@@ -9,6 +9,7 @@ import MobileHeader from '@/components/mobile/MobileHeader'
 import MobileTabBar from '@/components/mobile/MobileTabBar'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 import { PRACTITIONER_TYPES, getPractitionerType } from '@/lib/practitionerTypes'
+import TwoFactorSettings from '@/components/auth/TwoFactorSettings'
 import PractitionerTypePicker from '@/components/doctor/PractitionerTypePicker'
 import { PRACTICE_SPECIES_OPTIONS } from '@/lib/animalSpecies'
 import { showToast } from '@/lib/toast'
@@ -321,6 +322,8 @@ export default function ProfilPage() {
               </span>
             </Link>
           )}
+
+          {(isDoctor || user?.is_admin) && <TwoFactorSettings />}
 
           {/* INFOS PRO (praticiens uniquement) */}
           {isDoctor && (
