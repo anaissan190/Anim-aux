@@ -105,14 +105,34 @@ async function sendOvhSms(message: string, receiver: string) {
   }
 }
 
+// Appel autorisé : secret dédié PUSH_TRIGGER_SECRET (même secret que send-push,
+// migration 099 — le trigger SQL le lit dans Vault sous 'push_trigger_secret')
+// OU clé service_role. Le secret dédié est indispensable : depuis la bascule de
+// Supabase vers ses nouvelles clés (sb_secret_...), la copie JWT de 219
+// caractères stockée dans Vault ne correspond plus à la valeur injectée dans les
+// fonctions (41 caractères), si bien que les emails/SMS déclenchés par trigger
+// étaient rejetés en 401 sans aucune erreur visible (audit du 05/10/2026 ;
+// même cause que le push avant son correctif du 22/09).
+function isAuthorizedTrigger(req: Request, fnName: string): boolean {
+  const received = (req.headers.get('Authorization') ?? '').trim()
+  const accepted = [Deno.env.get('PUSH_TRIGGER_SECRET'), Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')]
+    .filter((s): s is string => !!s && s.trim().length > 0)
+    .map(s => `Bearer ${s.trim()}`)
+  if (accepted.includes(received)) return true
+  console.error(`${fnName}: Authorization refusée`, {
+    receivedLength: received.length,
+    acceptedLengths: accepted.map(a => a.length),
+  })
+  return false
+}
+
 Deno.serve(async (req) => {
   // N'accepte que l'appel du trigger SQL (migration 075), qui envoie déjà
   // Authorization: Bearer <service_role_key> (voir vault.decrypted_secrets).
   // Sans cette vérification, n'importe qui muni de la clé anon publique
   // (embarquée dans le JS client) pouvait appeler cette fonction pour un
   // notification_id qu'il peut lire, et déclencher email/SMS à volonté.
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-  if (!serviceRoleKey || req.headers.get('Authorization') !== `Bearer ${serviceRoleKey}`) {
+  if (!isAuthorizedTrigger(req, 'send-appointment-cancellation')) {
     return new Response('Unauthorized', { status: 401 })
   }
 
