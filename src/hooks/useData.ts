@@ -1784,9 +1784,10 @@ export function useCreateAnimalReferral() {
 // Demandes en attente sur un animal, côté propriétaire — jointes aux
 // profils des deux médecins pour l'affichage (nom du référent + du
 // destinataire dans le bandeau d'accord).
-// pending (à accepter/refuser) ET accepted (déjà partagé, révocable) —
-// declined/revoked ne sont plus actionnables, pas la peine d'encombrer le
-// bandeau avec un historique.
+// Tous les statuts : pending (à accepter/refuser) et accepted (révocable) sont
+// actionnables ; declined/revoked s'affichent en simple historique (le
+// propriétaire voit ainsi ce qu'il a refusé ou révoqué, au lieu que ça
+// disparaisse sans trace — ajouté le 05/10/2026).
 export function useOwnerReferralsForAnimal(animalId: string) {
   return useQuery({
     queryKey: ['animal-referrals', animalId, 'owner'],
@@ -1799,7 +1800,6 @@ export function useOwnerReferralsForAnimal(animalId: string) {
           target_doctor:doctors!target_doctor_id(id, profiles!doctors_user_id_profiles_fkey(first_name, last_name))
         `)
         .eq('animal_id', animalId)
-        .in('status', ['pending', 'accepted'])
         .order('created_at', { ascending: false })
       if (error) throw error
       return data ?? []
@@ -2020,6 +2020,20 @@ export function useInviteClinicSecretary() {
 
 // Liste des secrétaires déjà invitées (onglet Secrétariat du tableau de
 // bord praticien) — RPC réservée au propriétaire du cabinet.
+// Retire un compte secrétariat du cabinet — réservé au créateur, vérifié côté
+// RPC (migration 115). Le compte est supprimé s'il n'appartient à aucun autre
+// cabinet, sinon seul son lien avec celui-ci est retiré.
+export function useRemoveClinicSecretary() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ clinicId, userId }: { clinicId: string; userId: string }) => {
+      const { error } = await supabase.rpc('remove_clinic_secretary', { p_clinic_id: clinicId, p_user_id: userId })
+      if (error) throw new Error(error.message)
+    },
+    onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['clinic_staff_list', vars.clinicId] }),
+  })
+}
+
 export function useClinicStaffList(clinicId?: string) {
   return useQuery({
     queryKey: ['clinic_staff_list', clinicId],

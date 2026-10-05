@@ -37,7 +37,7 @@ import {
 import { useAuthStore } from '@/lib/authStore'
 import { supabase } from '@/lib/supabase'
 import { SPECIES_EMOJI, BREED_PLACEHOLDER } from '@/lib/animalSpecies'
-import { referralSenderStatusLabel, referralBadgeClass } from '@/lib/animalReferrals'
+import { referralSenderStatusLabel, referralStatusLabel, referralBadgeClass } from '@/lib/animalReferrals'
 import { getPractitionerTypesBySpecialties } from '@/lib/practitionerTypes'
 import SpeciesSelect from '@/components/ui/SpeciesSelect'
 import { showToast } from '@/lib/toast'
@@ -479,7 +479,7 @@ export default function AnimalHealthPage() {
           </div>
         </div>
 
-        {!isDoctor && ownerReferrals.map((r: any) => (
+        {!isDoctor && ownerReferrals.filter((r: any) => r.status === 'pending' || r.status === 'accepted').map((r: any) => (
           <div key={r.id} className={`card p-4 mb-4 border-2 ${r.status === 'pending' ? 'border-amber-200 bg-amber-50' : 'border-sage-200 bg-sage-50'}`}>
             <p className="text-sm text-gray-800">
               {r.status === 'pending' ? (
@@ -510,6 +510,20 @@ export default function AnimalHealthPage() {
             </div>
           </div>
         ))}
+
+        {!isDoctor && ownerReferrals.some((r: any) => r.status === 'declined' || r.status === 'revoked') && (
+          <div className="mb-4 px-1">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Partages terminés</p>
+            <ul className="space-y-1">
+              {ownerReferrals.filter((r: any) => r.status === 'declined' || r.status === 'revoked').map((r: any) => (
+                <li key={r.id} className="flex items-center gap-2 flex-wrap text-xs text-gray-500">
+                  <span>{r.target_doctor?.profiles?.first_name} {r.target_doctor?.profiles?.last_name}</span>
+                  <span className={referralBadgeClass(r.status)}>{referralStatusLabel(r.status)}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {!isDoctor && showEditForm && (
           <div className="card p-5 mb-6 border-2 border-sage-200">

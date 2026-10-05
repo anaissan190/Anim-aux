@@ -1,5 +1,7 @@
 // src/pages/SearchPage.tsx
+import { Suspense, lazy } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { buildMapPoints } from '@/lib/searchMap'
 import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
 import SearchBar from '@/components/search/SearchBar'
@@ -12,6 +14,9 @@ import { useDoctors, useClinicsSearch, useNextAvailableSlots } from '@/hooks/use
 import type { SearchFilters } from '@/types'
 import { haversineKm } from '@/lib/geo'
 import { PRACTICE_SPECIES_OPTIONS } from '@/lib/animalSpecies'
+
+// Carte en lazy : leaflet n'est chargé que si l'utilisateur ouvre la vue Carte.
+const SearchResultsMap = lazy(() => import('@/components/search/SearchResultsMap'))
 
 export default function SearchPage() {
   // Page publique (accessible sans connexion) — seul le rôle patient
@@ -112,6 +117,14 @@ export default function SearchPage() {
     if (next === 'next_slot') p.set('sort', 'next_slot'); else p.delete('sort')
     setParams(p, { replace: true })
   }
+  // Vue Liste (défaut) ou Carte, dans l'URL comme les autres filtres.
+  const view = params.get('view') === 'map' ? 'map' : 'list'
+  function setView(next: 'list' | 'map') {
+    const p = new URLSearchParams(params)
+    if (next === 'map') p.set('view', 'map'); else p.delete('view')
+    setParams(p, { replace: true })
+  }
+
   const { data: nextSlots = {} } = useNextAvailableSlots(
     sort === 'next_slot' ? doctorsWithDistance.map(d => d.id) : []
   )
@@ -250,7 +263,17 @@ export default function SearchPage() {
                   <p className="text-sm text-gray-500">
                     {!hasCriteria ? '' : loading ? 'Recherche...' : `${total} résultat${total > 1 ? 's' : ''} trouvé${total > 1 ? 's' : ''}`}
                   </p>
-                  {hasCriteria && doctors.length > 0 && (
+                  {hasCriteria && total > 0 && (
+                    <div className="inline-flex rounded-full border border-sand-200 bg-white p-0.5 text-sm" role="group" aria-label="Affichage des résultats">
+                      {(['list', 'map'] as const).map(v => (
+                        <button key={v} onClick={() => setView(v)} aria-pressed={view === v}
+                          className={`px-3 py-1 rounded-full transition-colors ${view === v ? 'bg-sage-500 text-white' : 'text-gray-500 hover:text-gray-700'}`}>
+                          {v === 'list' ? 'Liste' : 'Carte'}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {hasCriteria && doctors.length > 0 && view === 'list' && (
                     <label className="flex items-center gap-2 text-sm text-gray-500">
                       Trier par
                       <select value={sort} onChange={e => setSort(e.target.value)}
@@ -287,6 +310,28 @@ export default function SearchPage() {
                     <h3 className="font-semibold text-gray-900 mb-2">Aucun résultat</h3>
                     <p className="text-sm text-gray-500">Essayez de modifier vos critères de recherche.</p>
                   </div>
+                ) : view === 'map' ? (
+                  (() => {
+                    const { points, withoutCoordinates } = buildMapPoints(doctors as any[], clinics as any[])
+                    return points.length === 0 ? (
+                      <div className="card p-12 text-center">
+                        <div className="text-4xl mb-4">🗺️</div>
+                        <h3 className="font-semibold text-gray-900 mb-2">Aucun résultat à placer sur la carte</h3>
+                        <p className="text-sm text-gray-500">Les adresses de ces résultats ne sont pas encore localisables. Repassez en vue Liste.</p>
+                      </div>
+                    ) : (
+                      <>
+                        <Suspense fallback={<div className="h-[28rem] rounded-2xl bg-gray-100 animate-pulse" />}>
+                          <SearchResultsMap points={points} />
+                        </Suspense>
+                        <div className="flex items-center gap-4 text-xs text-gray-500 mt-3 flex-wrap">
+                          <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-sage-500" />Praticien</span>
+                          <span className="inline-flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ background: '#4d7c0f' }} />Cabinet</span>
+                          {withoutCoordinates > 0 && <span>{withoutCoordinates} résultat{withoutCoordinates > 1 ? 's' : ''} non localisable{withoutCoordinates > 1 ? 's' : ''} — visible{withoutCoordinates > 1 ? 's' : ''} en vue Liste</span>}
+                        </div>
+                      </>
+                    )
+                  })()
                 ) : (
                   <>
                     {clinics.length > 0 && (

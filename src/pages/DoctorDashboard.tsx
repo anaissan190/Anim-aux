@@ -10,7 +10,7 @@ import DoctorMobileTabBar from '@/components/mobile/DoctorMobileTabBar'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 import { supabase } from '@/lib/supabase'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
-import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useReplyToReview, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useDoctorServices, useAddDoctorService, useDeleteDoctorService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments, useInviteClinicSecretary, useClinicStaffList, useExportMyData, useMyWaitlistCount, useDeleteClinic,
+import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useReplyToReview, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useDoctorServices, useAddDoctorService, useDeleteDoctorService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments, useInviteClinicSecretary, useClinicStaffList, useExportMyData, useMyWaitlistCount, useDeleteClinic, useRemoveClinicSecretary,
   useDoctorVerificationDocuments, useUploadVerificationDocument, useDeleteVerificationDocument, useMyVerificationRejectedReason, useAcceptEthicsCharter,
   usePushSubscriptionStatus, useEnablePushNotifications, useDisablePushNotifications, useMessagingRealtime,
   useCalendarFeedToken, useRegenerateCalendarFeedToken, useReceivedReferrals } from '@/hooks/useData'
@@ -155,6 +155,9 @@ export default function DoctorDashboard() {
   const [confirmDeleteClinic, setConfirmDeleteClinic] = useState(false)
   const [deleteClinicError, setDeleteClinicError] = useState('')
   const deleteClinic = useDeleteClinic()
+  const removeSecretary = useRemoveClinicSecretary()
+  const [confirmRemoveSecretaryId, setConfirmRemoveSecretaryId] = useState<string | null>(null)
+  const [removeSecretaryError, setRemoveSecretaryError] = useState('')
   const [confirmDeleteServiceId, setConfirmDeleteServiceId] = useState<string | null>(null)
   const [confirmDeleteBlockedSlotId, setConfirmDeleteBlockedSlotId] = useState<string | null>(null)
   const inviteSecretary = useInviteClinicSecretary()
@@ -1911,6 +1914,7 @@ export default function DoctorDashboard() {
 
                 {clinicStaff.length > 0 && (
                   <div className="space-y-3 pt-3 border-t border-gray-100">
+                    {removeSecretaryError && <p className="text-red-500 text-sm">{removeSecretaryError}</p>}
                     {clinicStaff.map((s: any) => (
                       <div key={s.user_id} className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-sage-100 flex items-center justify-center text-sage-700 font-bold text-sm">
@@ -1922,6 +1926,32 @@ export default function DoctorDashboard() {
                           </p>
                           <p className="text-xs text-gray-400">{s.email}</p>
                         </div>
+                        {confirmRemoveSecretaryId === s.user_id ? (
+                          <span className="ml-auto flex flex-col items-end gap-0.5 text-xs">
+                            <button
+                              onClick={async () => {
+                                setRemoveSecretaryError('')
+                                try {
+                                  await removeSecretary.mutateAsync({ clinicId: clinic.id, userId: s.user_id })
+                                  setConfirmRemoveSecretaryId(null)
+                                  showToast('✓ Accès secrétariat retiré.')
+                                } catch (e: any) {
+                                  setRemoveSecretaryError(e.message ?? 'Erreur lors du retrait.')
+                                }
+                              }}
+                              disabled={removeSecretary.isPending}
+                              className="text-red-500 hover:underline font-semibold">
+                              Confirmer le retrait
+                            </button>
+                            <button onClick={() => setConfirmRemoveSecretaryId(null)} className="text-gray-400 hover:underline">Annuler</button>
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => { setRemoveSecretaryError(''); setConfirmRemoveSecretaryId(s.user_id) }}
+                            className="ml-auto text-xs text-red-500 hover:underline">
+                            Retirer
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>

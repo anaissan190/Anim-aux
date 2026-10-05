@@ -18,7 +18,7 @@ import { useAuthStore } from '@/lib/authStore'
 import {
   useAvailabilities, useMyWaitlistEntry, useJoinWaitlist, useConversationPartners,
   useLeaveWaitlist, useSendMessage, useUpdateAppointmentStatus, useCreateReview,
-  useReplyToReview, useCompleteOnboarding, useSentReferralsForAnimal, useMyWaitlistCount, useDeleteClinic,
+  useReplyToReview, useCompleteOnboarding, useSentReferralsForAnimal, useMyWaitlistCount, useDeleteClinic, useRemoveClinicSecretary,
 } from './useData'
 
 const FAKE_PATIENT = { id: 'patient-1', email: 'a@a.fr', role: 'patient' as const, is_admin: false, created_at: '' }
@@ -322,5 +322,21 @@ describe('useDeleteClinic', () => {
     const { result } = renderHook(() => useDeleteClinic(), { wrapper })
     await expect(result.current.mutateAsync({ clinicId: 'clinic-1', doctorId: 'doc-1' }))
       .rejects.toThrow("Retirez d'abord les autres praticiens du cabinet avant de pouvoir le supprimer.")
+  })
+})
+
+describe('useRemoveClinicSecretary', () => {
+  it('appelle la RPC remove_clinic_secretary avec le cabinet et le compte', async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: null } as any)
+    const { result } = renderHook(() => useRemoveClinicSecretary(), { wrapper })
+    await result.current.mutateAsync({ clinicId: 'clinic-1', userId: 'user-9' })
+    expect(supabase.rpc).toHaveBeenCalledWith('remove_clinic_secretary', { p_clinic_id: 'clinic-1', p_user_id: 'user-9' })
+  })
+
+  it("propage le message de la RPC (ex. pas le créateur)", async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: { message: 'Seul le créateur du cabinet peut retirer un compte secrétariat' } } as any)
+    const { result } = renderHook(() => useRemoveClinicSecretary(), { wrapper })
+    await expect(result.current.mutateAsync({ clinicId: 'clinic-1', userId: 'user-9' }))
+      .rejects.toThrow('Seul le créateur du cabinet')
   })
 })
