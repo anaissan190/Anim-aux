@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/lib/authStore'
-import { useCurrentDoctor, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useExportMyData, usePushSubscriptionStatus, useEnablePushNotifications, useDisablePushNotifications } from '@/hooks/useData'
+import { useCurrentDoctor, useMyClinic, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useExportMyData, usePushSubscriptionStatus, useEnablePushNotifications, useDisablePushNotifications } from '@/hooks/useData'
 import { supabase } from '@/lib/supabase'
 import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
@@ -18,6 +18,7 @@ export default function ProfilPage() {
   const { user, profile, signOut } = useAuthStore()
   const navigate = useNavigate()
   const { data: doctor } = useCurrentDoctor()
+  const { data: clinic, isLoading: clinicLoading } = useMyClinic(doctor?.id)
   const updateProfile = useUpdateProfile()
   const updateDoctor = useUpdateDoctor()
   const deleteAccount = useDeleteAccount()
@@ -307,6 +308,19 @@ export default function ProfilPage() {
               </div>
             </div>
           </div>
+
+          {/* Pas de cabinet : accès direct à la création/adhésion, comme sur
+              l'onglet Profil du tableau de bord (deux pages profil séparées). */}
+          {isDoctor && !clinic && !clinicLoading && (
+            <Link to="/dashboard/doctor?tab=disponibilites&view=shared"
+              className="card p-4 flex items-center gap-3 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+              <span className="text-xl">🏥</span>
+              <span>
+                <span className="block font-medium text-gray-800">Créer ou rejoindre un cabinet</span>
+                <span className="block text-xs text-gray-400">Partagez agenda, tarifs et patientèle avec vos confrères</span>
+              </span>
+            </Link>
+          )}
 
           {/* INFOS PRO (praticiens uniquement) */}
           {isDoctor && (

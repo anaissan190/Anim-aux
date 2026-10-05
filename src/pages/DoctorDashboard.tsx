@@ -398,6 +398,9 @@ export default function DoctorDashboard() {
   useEffect(() => {
     const t = searchParams.get('tab')
     if (ALL_TAB_IDS.includes(t as Tab)) setTab(t as Tab)
+    // ?view=shared : ouvre directement l'agenda partagé (créer/rejoindre un
+    // cabinet), utilisé par le lien de la page profil.
+    if (t === 'disponibilites' && searchParams.get('view') === 'shared') setDispoTab('shared')
   }, [searchParams])
   const [apptTab, setApptTab] = useState<'today' | 'week' | 'all'>('today')
   // Décalage en semaines par rapport à la semaine courante (ancrée sur
@@ -408,7 +411,9 @@ export default function DoctorDashboard() {
   // un praticien en voyage.
   const [agendaWeekOffset, setAgendaWeekOffset] = useState(0)
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
-  const [dispoTab, setDispoTab] = useState<'personal' | 'shared'>('personal')
+  const [dispoTab, setDispoTab] = useState<'personal' | 'shared'>(
+    initialTab === 'disponibilites' && searchParams.get('view') === 'shared' ? 'shared' : 'personal'
+  )
   const [clinicForm, setClinicForm] = useState({ name: '', city: '' })
   const [inviteCode, setInviteCode] = useState('')
   const [clinicMode, setClinicMode] = useState<'none' | 'create' | 'join'>('none')
@@ -2092,6 +2097,19 @@ export default function DoctorDashboard() {
                 <span className="block text-xs text-gray-400">Se connecter avec les identifiants dédiés du cabinet</span>
               </span>
             </Link>
+
+            {/* Pas de cabinet : accès direct à la création/adhésion, sinon
+                enfoui dans RDV > Agenda partagé (demande d'Anaïs, 05/10/2026). */}
+            {!clinic && !clinicLoading && (
+              <Link to="/dashboard/doctor?tab=disponibilites&view=shared"
+                className="flex items-center gap-3 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+                <span className="text-xl">🏥</span>
+                <span>
+                  <span className="block font-medium text-gray-800">Créer ou rejoindre un cabinet</span>
+                  <span className="block text-xs text-gray-400">Partagez agenda, tarifs et patientèle avec vos confrères</span>
+                </span>
+              </Link>
+            )}
 
             {/* Profil personnel */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
