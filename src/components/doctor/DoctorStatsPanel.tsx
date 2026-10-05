@@ -4,6 +4,7 @@
 // cet onglet) pour garder le fichier principal lisible. Toute la logique de
 // calcul est pure et testée dans src/lib/doctorStats.ts ; ce composant ne
 // fait que mettre en forme ses résultats.
+import { useState } from 'react'
 import AnimatedBar from '@/components/ui/AnimatedBar'
 import AnimatedCounter from '@/components/ui/AnimatedCounter'
 import { SPECIES_EMOJI } from '@/lib/animalSpecies'
@@ -14,12 +15,16 @@ import {
   type DoctorAvailabilityRule, type ExtendedStatsAppointment, type ReviewForStats,
 } from '@/lib/doctorStats'
 
+import { parisMonthKey, shiftMonthKey } from '@/lib/parisTime'
+import { buildAccountingCsv, buildAccountingRows } from '@/lib/accountingExport'
+
 // Mêmes libellés que l'onglet "RDV" (DoctorDashboard.tsx, DAYS), mais indexés
 // comme parisDayOfWeek (0 = dimanche ... 6 = samedi) plutôt que lundi-premier.
 const WEEKDAY_LABELS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
 
 interface AppointmentWithPatient extends ExtendedStatsAppointment {
   profiles?: { first_name?: string; last_name?: string } | null
+  animals?: { species: string; name?: string }[]
 }
 
 interface Props {
@@ -54,6 +59,22 @@ export default function DoctorStatsPanel({
   const nameByPatient = new Map<string, string>()
   for (const a of appointments) {
     if (a.profiles?.first_name) nameByPatient.set(a.patient_id, `${a.profiles.first_name} ${a.profiles.last_name ?? ''}`.trim())
+  }
+
+  const [exportMonth, setExportMonth] = useState(parisMonthKey(now))
+  const exportMonths = Array.from({ length: 12 }, (_, i) => shiftMonthKey(parisMonthKey(now), -i))
+  const monthLabel = (key: string) =>
+    new Date(`${key}-01T12:00:00Z`).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
+  const exportCount = buildAccountingRows(appointments, exportMonth, consultationPrice).length
+
+  function downloadExport() {
+    const csv = buildAccountingCsv(appointments, exportMonth, consultationPrice)
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `animeaux-consultations-${exportMonth}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   const maxMonthTotal = Math.max(1, ...months.map(m => m.completed + m.cancelled + m.noShow))
@@ -263,6 +284,23 @@ export default function DoctorStatsPanel({
         <SmallStat label="Annulations tardives (< 24h)" value={lateCancelRate !== null ? `${lateCancelRate}%` : '—'} />
         <SmallStat label="Présence confirmée par le patient" value={confirmationRate !== null ? `${confirmationRate}%` : '—'} />
         <SmallStat label="En liste d'attente" value={waitlistCount !== undefined ? String(waitlistCount) : '—'} />
+      </div>
+
+      {/* Export comptable */}
+      <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+        <h3 className="font-semibold text-sm text-gray-900 mb-1">Export comptable</h3>
+        <p className="text-xs text-gray-400 mb-3">
+          Téléchargez la liste de vos consultations terminées d'un mois (lisible par Excel), avec le total.
+          Le montant est votre tarif de consultation : une estimation, pas un justificatif comptable.
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <select className="input text-sm w-auto" value={exportMonth} onChange={e => setExportMonth(e.target.value)}>
+            {exportMonths.map(m => <option key={m} value={m}>{monthLabel(m)}</option>)}
+          </select>
+          <button onClick={downloadExport} disabled={exportCount === 0} className="btn-primary text-sm px-4 py-2 disabled:opacity-40">
+            Télécharger ({exportCount} consultation{exportCount > 1 ? 's' : ''})
+          </button>
+        </div>
       </div>
 
       {byHour.length > 0 && busiestHour && quietestHour && (
