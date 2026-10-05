@@ -41,7 +41,7 @@ npm run dev       # http://localhost:3000
 | `npm run preview` | Prévisualise le build |
 
 ## Base de données (Supabase)
-Le schéma est dans `supabase/migrations/` (001 → 116), à appliquer **dans l'ordre**.
+Le schéma est dans `supabase/migrations/` (001 → 125), à appliquer **dans l'ordre**.
 **Les migrations ne sont pas appliquées automatiquement** : on les colle dans le SQL Editor de Supabase.
 La base de production a déjà divergé des fichiers par le passé (règles RLS présentes dans les fichiers mais absentes en base, et inversement) :
 après toute migration touchant des règles d'accès, **vérifier l'état réel avec `pg_policies`** plutôt que de supposer qu'elle est passée.
