@@ -832,9 +832,11 @@ export default function DoctorDashboard() {
                       propres identifiants — ce lien renvoie vers la page
                       de connexion, pas vers un dashboard partagé avec
                       cette session (voir invite-clinic-secretary). */}
-                  <Link to="/login" className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
-                    <span>🏥</span> Espace secrétariat
-                  </Link>
+                  {clinic && (
+                    <Link to="/login" className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+                      <span>🏥</span> Espace secrétariat
+                    </Link>
+                  )}
                 </div>
               </div>
             </div>
@@ -2089,14 +2091,16 @@ export default function DoctorDashboard() {
                 identifiants — ce lien renvoie vers la page de connexion,
                 pas vers un dashboard partagé avec cette session (voir
                 invite-clinic-secretary). */}
-            <Link to="/login"
-              className="flex items-center gap-3 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
-              <span className="text-xl">🏥</span>
-              <span>
-                <span className="block font-medium text-gray-800">Espace secrétariat</span>
-                <span className="block text-xs text-gray-400">Se connecter avec les identifiants dédiés du cabinet</span>
-              </span>
-            </Link>
+            {clinic && (
+              <Link to="/login"
+                className="flex items-center gap-3 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+                <span className="text-xl">🏥</span>
+                <span>
+                  <span className="block font-medium text-gray-800">Espace secrétariat</span>
+                  <span className="block text-xs text-gray-400">Se connecter avec les identifiants dédiés du cabinet</span>
+                </span>
+              </Link>
+            )}
 
             {/* Pas de cabinet : accès direct à la création/adhésion, sinon
                 enfoui dans RDV > Agenda partagé (demande d'Anaïs, 05/10/2026). */}
