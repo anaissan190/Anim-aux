@@ -4,6 +4,7 @@ import { supabase, getMyUserDataWithRetry } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/authStore'
 import SplashScreen from '@/components/ui/SplashScreen'
 import ToastContainer from '@/components/ui/ToastContainer'
+import UpdateBanner from '@/components/ui/UpdateBanner'
 import OnboardingTour from '@/components/onboarding/OnboardingTour'
 
 // Chaque page est chargée à la demande (React.lazy) plutôt qu'incluse dans le
@@ -296,6 +297,7 @@ export default function App() {
       </Suspense>
       <ToastContainer />
       <OnboardingTour />
+      <UpdateBanner />
     </BrowserRouter>
   )
 }
