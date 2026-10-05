@@ -16,6 +16,12 @@
 // retomber sur la plus récente, qui n'est pas toujours celle notifiée
 // (plusieurs conversations avec des messages non lus en même temps).
 export function urlForNotificationType(type?: string, relatedId?: string): string {
+  // Nouvelle réservation / annulation par le patient (migration 121) : ces deux
+  // types ne sont envoyés qu'à un PRATICIEN, la destination est donc sûre
+  // malgré l'absence de rôle connu du service worker.
+  if (type === 'appointment_booked' || type === 'appointment_cancelled_by_patient') {
+    return '/dashboard/doctor?tab=disponibilites'
+  }
   if (type !== 'new_message') return '/'
   return relatedId ? `/messages?with=${relatedId}` : '/messages'
 }

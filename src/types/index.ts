@@ -8,6 +8,8 @@ export type NotificationType =
   | 'appointment_cancelled'
   | 'appointment_rescheduled'
   | 'appointment_reminder'
+  | 'appointment_booked'
+  | 'appointment_cancelled_by_patient'
   | 'new_message'
   | 'new_review'
   | 'doctor_verified'

@@ -19,7 +19,7 @@ import { fr } from 'date-fns/locale'
 // (voir migrations 077 et 083_patient_reschedule.sql). Fonction pure
 // extraite (même principe que urlForNotificationType) pour être testable
 // sans monter le composant.
-const APPOINTMENT_TYPES = ['appointment_confirmed', 'appointment_cancelled', 'appointment_rescheduled', 'appointment_reminder']
+const APPOINTMENT_TYPES = ['appointment_confirmed', 'appointment_cancelled', 'appointment_rescheduled', 'appointment_reminder', 'appointment_booked', 'appointment_cancelled_by_patient']
 
 export function destinationForNotification(type: string, relatedId: string | null, isDoctor: boolean): string | null {
   if (APPOINTMENT_TYPES.includes(type)) {

@@ -21,6 +21,11 @@ describe('urlForNotificationType', () => {
     expect(urlForNotificationType('vaccine_reminder')).toBe('/')
   })
 
+  it("renvoie l'agenda du praticien pour une nouvelle réservation ou une annulation par le patient", () => {
+    expect(urlForNotificationType('appointment_booked')).toBe('/dashboard/doctor?tab=disponibilites')
+    expect(urlForNotificationType('appointment_cancelled_by_patient', 'appt-1')).toBe('/dashboard/doctor?tab=disponibilites')
+  })
+
   it('renvoie / si le type est absent', () => {
     expect(urlForNotificationType(undefined)).toBe('/')
   })

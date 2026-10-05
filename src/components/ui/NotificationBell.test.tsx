@@ -122,6 +122,11 @@ describe('destinationForNotification', () => {
     expect(destinationForNotification('appointment_cancelled', null, true)).toBe('/dashboard/doctor?tab=disponibilites')
   })
 
+  it("envoie le praticien vers l'onglet RDV pour une nouvelle réservation ou une annulation par le patient (migration 121)", () => {
+    expect(destinationForNotification('appointment_booked', 'appt-1', true)).toBe('/dashboard/doctor?tab=disponibilites')
+    expect(destinationForNotification('appointment_cancelled_by_patient', 'appt-1', true)).toBe('/dashboard/doctor?tab=disponibilites')
+  })
+
   it('renvoie vers la fiche du praticien pour un rappel d\'avis ou une place de liste d\'attente libérée', () => {
     expect(destinationForNotification('review_reminder', 'doc1', false)).toBe('/doctor/doc1')
     expect(destinationForNotification('waitlist_slot_available', 'doc1', false)).toBe('/doctor/doc1')
