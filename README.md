@@ -1,183 +1,66 @@
-# 🌿 PawCare — Guide de démarrage complet
+# 🐾 Animéaux
 
-## Ce que vous allez avoir
-Une application de prise de rendez-vous médicaux complète avec :
-- Recherche de praticiens par spécialité et ville
-- Prise de RDV en 3 étapes
-- Dashboard patient et médecin
-- Messagerie en temps réel
-- Notifications
+Application web (installable, PWA) de prise de rendez-vous avec des praticiens du secteur animalier :
+vétérinaires, ostéopathes, comportementalistes, toiletteurs, etc. Trois espaces : propriétaire d'animal,
+praticien (avec cabinets et secrétariat) et administrateur.
 
----
+Documentation fonctionnelle et technique complète : **`cahier_des_charges_animeaux.docx`** (tenu à jour à chaque évolution).
+Consignes pour travailler dans le code : **`CLAUDE.md`**.
 
-## ÉTAPE 1 — Installer les outils (une seule fois)
+## Stack
+React 18 · Vite · TypeScript · Tailwind · TanStack Query · Zustand · Supabase (Postgres + RLS, Auth, Storage, Edge Functions) ·
+Resend (emails) · OVH (SMS) · Cloudflare Turnstile (anti-robot) · Sentry · Vercel (hébergement) · GitHub Actions.
 
-### Sur Mac
-1. Ouvrez le **Terminal** (cherchez "Terminal" dans Spotlight avec Cmd+Espace)
-2. Installez Node.js : allez sur https://nodejs.org et cliquez sur le bouton vert "LTS"
-3. Vérifiez : tapez `node --version` dans le Terminal → vous devez voir un numéro
+## Démarrer en local
+Prérequis : **Node 24 ou plus**.
 
-### Sur Windows
-1. Ouvrez le **PowerShell** (cherchez "PowerShell" dans le menu Démarrer)
-2. Installez Node.js : allez sur https://nodejs.org et cliquez sur le bouton vert "LTS"
-3. Redémarrez PowerShell après l'installation
-4. Vérifiez : tapez `node --version` → vous devez voir un numéro
-
----
-
-## ÉTAPE 2 — Créer votre projet Supabase (gratuit)
-
-1. Allez sur **https://supabase.com** et créez un compte (bouton "Start for free")
-2. Cliquez "New project"
-3. Remplissez :
-   - **Name** : pawcare
-   - **Database Password** : choisissez un mot de passe fort et **notez-le**
-   - **Region** : West EU (Ireland) — le plus proche de la France
-4. Cliquez "Create new project" et attendez ~2 minutes
-
-### Configurer la base de données
-1. Dans Supabase, cliquez sur **SQL Editor** dans le menu gauche
-2. Cliquez "New query"
-3. Ouvrez le fichier `supabase/migrations/001_schema.sql` de ce projet
-4. Copiez TOUT son contenu et collez-le dans l'éditeur Supabase
-5. Cliquez le bouton **Run** (ou Ctrl+Entrée)
-6. Vous devez voir "Success. No rows returned" → c'est bon !
-
-### Récupérer vos clés API
-1. Dans Supabase, allez dans **Settings** (icône engrenage en bas à gauche)
-2. Cliquez **API**
-3. Notez ces deux valeurs (vous en aurez besoin juste après) :
-   - **Project URL** : quelque chose comme `https://abcdefgh.supabase.co`
-   - **anon public** key : une longue chaîne commençant par `eyJ...`
-
-### Désactiver la confirmation email (pour tester facilement)
-1. Dans Supabase → **Authentication** → **Settings**
-2. Décochez "Enable email confirmations"
-3. Cliquez Save — vous pourrez vous inscrire sans avoir besoin de confirmer votre email
-
----
-
-## ÉTAPE 3 — Configurer le projet sur votre ordinateur
-
-### Télécharger le code
-Si vous avez Git installé, dans votre Terminal/PowerShell :
-```bash
-git clone https://github.com/VOTRE-USERNAME/pawcare.git
-cd pawcare
-```
-
-Sinon, téléchargez le ZIP depuis GitHub et décompressez-le.
-
-### Créer le fichier de configuration
-1. Dans le dossier du projet, **copiez** le fichier `.env.example` et **renommez la copie** en `.env.local`
-2. Ouvrez `.env.local` avec un éditeur de texte (Bloc-notes sur Windows, TextEdit sur Mac)
-3. Remplacez les valeurs par vos vraies clés Supabase :
-```
-VITE_SUPABASE_URL=https://VOTRE-PROJET.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6...
-```
-4. Sauvegardez le fichier
-
-### Installer les dépendances
-Dans le Terminal, dans le dossier du projet :
 ```bash
 npm install
 ```
-→ Attendez quelques minutes, c'est normal
 
----
+Créez `.env.local` à la racine (ce fichier n'est jamais committé) :
 
-## ÉTAPE 4 — Lancer l'application
+```
+VITE_SUPABASE_URL=https://VOTRE-PROJET.supabase.co
+VITE_SUPABASE_ANON_KEY=...            # clé "anon / publishable", jamais la clé service_role
+VITE_TURNSTILE_SITE_KEY=...           # CAPTCHA de connexion/inscription
+VITE_VAPID_PUBLIC_KEY=...             # notifications push
+VITE_SENTRY_DSN=...                   # facultatif en local
+```
 
 ```bash
-npm run dev
+npm run dev       # http://localhost:3000
 ```
-
-Vous devriez voir :
-```
-  VITE v5.x.x  ready in xxx ms
-  ➜  Local:   http://localhost:3000/
-  ➜  Network: http://192.168.x.x:3000/
-```
-
-**Sur votre ordinateur** : ouvrez http://localhost:3000 dans votre navigateur
-
-**Sur votre téléphone** :
-1. Votre téléphone doit être sur le même Wi-Fi que votre ordinateur
-2. Utilisez l'adresse "Network" affichée (ex: http://192.168.1.42:3000)
-
----
-
-## ÉTAPE 5 — Tester l'application
-
-### Créer un compte patient
-1. Cliquez "S'inscrire"
-2. Choisissez "Patient"
-3. Remplissez vos informations
-4. Cliquez "Créer mon compte"
-→ Vous êtes connecté !
-
-### Créer un compte médecin
-1. Ouvrez un onglet privé/incognito dans votre navigateur
-2. Allez sur http://localhost:3000
-3. Cliquez "S'inscrire"
-4. Choisissez "Praticien"
-5. Remplissez la spécialité, ex: "Médecine générale"
-
-### Compléter le profil médecin (important pour apparaître dans la recherche)
-Après vous être connecté en tant que médecin :
-1. Allez dans Supabase → **Table Editor** → table `doctors`
-2. Cliquez sur la ligne correspondant au médecin
-3. Remplissez : `city`, `address`, `bio`, `consultation_price`
-4. Cliquez Save
-
-### Ajouter des disponibilités (pour que les créneaux apparaissent)
-Dans Supabase → **Table Editor** → table `availabilities`, ajoutez une ligne :
-- `doctor_id` : l'ID du médecin (copiez-le depuis la table `doctors`)
-- `day_of_week` : 1 (= Lundi), 2 (= Mardi), etc.
-- `start_time` : 09:00
-- `end_time` : 17:00
-- `slot_duration_minutes` : 30
-- `is_active` : true
-
-### Prendre un rendez-vous
-1. Reconnectez-vous en tant que patient
-2. Cliquez "Trouver un praticien"
-3. Cherchez par spécialité ou ville
-4. Cliquez sur un médecin → "Voir les disponibilités"
-5. Choisissez un jour, un créneau, un motif
-6. Confirmez !
-
----
-
-## ÉTAPE 6 — Sauvegarder sur GitHub
-
-```bash
-git add .
-git commit -m "PawCare - application complète"
-git push origin main
-```
-
----
-
-## Commandes utiles
 
 | Commande | Action |
 |---|---|
-| `npm run dev` | Lance l'app en local |
-| `npm run build` | Compile pour la production |
-| Ctrl+C | Arrête le serveur |
+| `npm run dev` | Serveur de développement |
+| `npm test` | Tests unitaires (Vitest) |
+| `npm run lint` | Vérification TypeScript stricte (variables et imports inutilisés compris) |
+| `npm run build` | Contrôle TypeScript, **tests**, puis build de production — un test qui échoue bloque le déploiement |
+| `npm run preview` | Prévisualise le build |
 
----
+## Base de données (Supabase)
+Le schéma est dans `supabase/migrations/` (001 → 116), à appliquer **dans l'ordre**.
+**Les migrations ne sont pas appliquées automatiquement** : on les colle dans le SQL Editor de Supabase.
+La base de production a déjà divergé des fichiers par le passé (règles RLS présentes dans les fichiers mais absentes en base, et inversement) :
+après toute migration touchant des règles d'accès, **vérifier l'état réel avec `pg_policies`** plutôt que de supposer qu'elle est passée.
 
-## En cas de problème
+## Déploiement
+- **Site** : Vercel, à chaque push sur `main`. L'étape de build exécute les tests : un test qui échoue empêche la mise en ligne.
+- **Fonctions Edge** (`supabase/functions/`) : déployées automatiquement par GitHub Actions
+  (`.github/workflows/deploy-functions.yml`) quand elles changent sur `main`, après réussite des tests.
+  Le réglage `verify_jwt` de chaque fonction est dans `supabase/config.toml` — ne jamais le laisser au dashboard,
+  il se réinitialise à chaque redéploiement manuel.
+- **Modèles d'emails d'authentification** (`supabase/email-templates/`) : à coller à la main dans
+  Supabase → Authentication → Emails → Templates. Ils ne se déploient pas avec le code ; le fichier du dépôt n'en est que la référence.
+- Après une mise en ligne, l'application installée affiche un bandeau « nouvelle version disponible » ; un clic sur Recharger suffit.
 
-**"node n'est pas reconnu"** → Redémarrez votre Terminal après avoir installé Node.js
-
-**Page blanche** → Vérifiez que `.env.local` existe et que les clés sont correctes
-
-**"Cannot find module"** → Relancez `npm install`
-
-**Aucun médecin dans la recherche** → Vérifiez que la table `doctors` a `city` rempli et que la table `availabilities` a au moins une ligne pour ce médecin
-
-**Le téléphone ne peut pas accéder** → Vérifiez que le téléphone est sur le même Wi-Fi. Désactivez temporairement votre pare-feu Windows si besoin.
+## Points d'attention
+- **Fuseau horaire** : tout regroupement ou affichage de date passe par `src/lib/parisTime.ts` (Europe/Paris),
+  jamais par `getHours()`/`getDay()` natifs — les tests tournent dans un autre fuseau et ont déjà révélé plusieurs bugs.
+- **Deux pages profil séparées** : `/profil` (propriétaire, admin) et l'onglet Profil de `DoctorDashboard.tsx` (praticien)
+  ne partagent aucun code ; toute fonctionnalité de compte doit être ajoutée aux deux.
+- **Accès d'un praticien au dossier d'un animal** : rendez-vous maintenu (confirmé ou terminé) de moins d'un an —
+  règle SQL `doctor_has_care_link` (migration 116), miroir client `src/lib/careLink.ts`.
+- **Secrets** : jamais dans le dépôt. La clé `service_role` ne doit pas être mise dans `.env.local`.
