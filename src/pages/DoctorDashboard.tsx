@@ -2030,7 +2030,7 @@ export default function DoctorDashboard() {
                 <p className="text-xs text-gray-500 mb-4">
                   Fermez ce cabinet si vous changez d'activité (reprise en solo ou en tant que salarié).
                   Vos rendez-vous et vos patients restent intacts : seuls le cabinet, ses tarifs communs et
-                  l'accès de son éventuel secrétariat disparaissent.
+                  les comptes secrétariat de ce cabinet (supprimés, leurs titulaires ne pourront plus se connecter) disparaissent.
                   {clinicMembers.length > 1 && ' Retirez d\'abord vos confrères ci-dessus : un cabinet avec d\'autres membres ne peut pas être supprimé.'}
                 </p>
                 {deleteClinicError && <p className="text-red-500 text-sm mb-3">{deleteClinicError}</p>}
