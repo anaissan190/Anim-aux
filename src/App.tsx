@@ -246,6 +246,7 @@ export default function App() {
         <Route path="/cgu" element={<LegalPage />} />
         <Route path="/confidentialite" element={<LegalPage />} />
         <Route path="/engagement" element={<LegalPage />} />
+        <Route path="/mentions-legales" element={<LegalPage />} />
         <Route path="/book/:doctorId" element={
           <ProtectedRoute role="patient"><BookPage /></ProtectedRoute>
         } />

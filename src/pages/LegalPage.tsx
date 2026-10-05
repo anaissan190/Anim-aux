@@ -15,6 +15,7 @@ export default function LegalPage() {
   useEffect(() => {
     const id = location.pathname === '/confidentialite' ? 'confidentialite'
       : location.pathname === '/engagement' ? 'engagement'
+      : location.pathname === '/mentions-legales' ? 'mentions'
       : 'cgu'
     document.getElementById(id)?.scrollIntoView({ block: 'start' })
   }, [location.pathname])
@@ -38,10 +39,39 @@ export default function LegalPage() {
           Document renseigné avec les informations de l'entreprise — en attente de relecture par un professionnel du droit avant validation définitive.
         </div>
 
+        <h1 id="mentions" className="text-2xl font-bold text-gray-900 mb-1 scroll-mt-24">
+          Mentions légales
+        </h1>
+        <p className="text-sm text-gray-400 mb-8">Conformément à la loi pour la confiance dans l'économie numérique (LCEN).</p>
+
+        <div className="card p-6 space-y-4 mb-10 text-sm text-gray-600 leading-relaxed">
+          <p>
+            <strong className="text-gray-900">Éditeur du site</strong><br />
+            Anaïs SAN BIAGIO, entrepreneur individuelle — SIRET 107 512 907 00018<br />
+            169 avenue Vauban, 93190 Livry-Gargan<br />
+            Contact : <a href="mailto:contact@monanimeaux.fr" className="text-sage-600 hover:underline">contact@monanimeaux.fr</a>
+          </p>
+          <p>
+            <strong className="text-gray-900">Directrice de la publication</strong><br />
+            Anaïs SAN BIAGIO
+          </p>
+          <p>
+            <strong className="text-gray-900">Hébergement du site</strong><br />
+            Vercel Inc., 440 N Barranca Ave #4133, Covina, CA 91723, États-Unis — vercel.com
+          </p>
+          <p>
+            <strong className="text-gray-900">Hébergement des données</strong><br />
+            Supabase Inc. — base de données hébergée dans l'Union européenne (Francfort, Allemagne) — supabase.com
+          </p>
+          <p>
+            Animéaux est une plateforme de mise en relation : les praticiens inscrits exercent sous leur propre responsabilité, voir les Conditions Générales d'Utilisation ci-dessous.
+          </p>
+        </div>
+
         <h1 id="cgu" className="text-2xl font-bold text-gray-900 mb-1 scroll-mt-24">
           Conditions Générales d'Utilisation
         </h1>
-        <p className="text-sm text-gray-400 mb-8">Dernière mise à jour : 30 juillet 2026</p>
+        <p className="text-sm text-gray-400 mb-8">Dernière mise à jour : 5 octobre 2026</p>
 
         <div className="card p-6 space-y-6 mb-10">
           <section>
@@ -197,7 +227,7 @@ export default function LegalPage() {
           <section>
             <h2 className="font-semibold text-gray-900 mb-2">4. Destinataires des données</h2>
             <p className="text-sm text-gray-600 leading-relaxed">
-              Les données d'un utilisateur ne sont accessibles qu'à : l'utilisateur lui-même ; le ou les praticiens avec lesquels un rendez-vous confirmé ou passé existe, pour le dossier de l'animal concerné ; les membres d'un même cabinet, pour le suivi partagé de la patientèle ; le personnel d'Animéaux en cas de nécessité.
+              Les données d'un utilisateur ne sont accessibles qu'à : l'utilisateur lui-même ; le ou les praticiens avec lesquels un rendez-vous maintenu (confirmé ou terminé) existe, pour le dossier de l'animal concerné, tant que ce rendez-vous date de moins d'un an — l'accès est retiré en cas d'annulation d'un premier rendez-vous, ou après un an sans nouveau rendez-vous ; un praticien à qui le propriétaire a accepté de transmettre le dossier, pour cet animal uniquement ; les membres d'un même cabinet, pour le suivi partagé de la patientèle ; le personnel d'Animéaux en cas de nécessité.
             </p>
             <p className="text-sm text-gray-600 leading-relaxed mt-2">
               Les données ne sont ni vendues, ni louées, ni utilisées à des fins publicitaires par des tiers.
@@ -207,7 +237,7 @@ export default function LegalPage() {
           <section>
             <h2 className="font-semibold text-gray-900 mb-2">5. Sous-traitants techniques</h2>
             <p className="text-sm text-gray-600 leading-relaxed">
-              Animéaux fait appel à <strong>Supabase</strong> (base de données, authentification — hébergé dans l'Union européenne, région Frankfurt), <strong>Vercel</strong> (hébergement du site — hébergé aux États-Unis) et <strong>Resend</strong> (emails transactionnels — société américaine). Ces prestataires agissent en tant que sous-traitants au sens du RGPD ; les transferts hors UE s'appuient sur les garanties proposées par ces prestataires (clauses contractuelles types ou équivalent), à faire confirmer précisément lors de la relecture juridique.
+              Animéaux fait appel à : <strong>Supabase</strong> (base de données, authentification, stockage des fichiers — hébergé dans l'Union européenne, région Frankfurt) ; <strong>Vercel</strong> (hébergement du site — États-Unis) ; <strong>Resend</strong> (envoi des emails — société américaine) ; <strong>OVH</strong> (envoi des SMS de rendez-vous — société française, reçoit le numéro de téléphone et le texte du message) ; <strong>Cloudflare</strong> (protection anti-robots « Turnstile » aux formulaires de connexion et d'inscription — reçoit des informations techniques du navigateur dont l'adresse IP) ; <strong>Sentry</strong> (suivi des erreurs techniques — société américaine, reçoit des informations techniques sur l'erreur et l'appareil) ; <strong>CARTO</strong> et <strong>OpenStreetMap</strong> (fonds de carte — reçoivent l'adresse IP du visiteur lors de l'affichage d'une carte) ; et l'<strong>API Adresse</strong> du service public français (localisation des adresses de cabinets, qui ne reçoit que l'adresse saisie). Ces prestataires agissent comme sous-traitants au sens du RGPD ; les transferts hors Union européenne s'appuient sur les garanties prévues par le RGPD (clauses contractuelles types ou décision d'adéquation).
             </p>
           </section>
 
@@ -242,7 +272,7 @@ export default function LegalPage() {
           <section>
             <h2 className="font-semibold text-gray-900 mb-2">9. Cookies et traceurs</h2>
             <p className="text-sm text-gray-600 leading-relaxed">
-              La Plateforme utilise uniquement un stockage technique nécessaire au fonctionnement du service (maintien de la session). Aucun outil de mesure d'audience ou traceur publicitaire n'est utilisé à ce jour.
+              La Plateforme utilise uniquement un stockage technique nécessaire au fonctionnement du service : maintien de la session de connexion, préférences d'affichage, et services techniques de sécurité et de fiabilité (protection anti-robots, suivi des erreurs, fonds de carte). Aucun outil de mesure d'audience ni traceur publicitaire n'est utilisé à ce jour ; aucun consentement n'est donc requis pour ces usages strictement nécessaires.
             </p>
           </section>
 

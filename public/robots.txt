@@ -1,4 +1,18 @@
 User-agent: *
 Allow: /
+# Espaces connectés : inutiles à indexer (et sans contenu public)
+Disallow: /dashboard/
+Disallow: /profil
+Disallow: /messages
+Disallow: /animaux
+Disallow: /animal/
+Disallow: /rendez-vous
+Disallow: /documents
+Disallow: /rappels
+Disallow: /book/
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
 
 Sitemap: https://monanimeaux.fr/sitemap.xml

@@ -25,6 +25,7 @@ export default function Footer() {
           <div>
             <h3 className="text-sm font-semibold text-gray-900 mb-3">Informations légales</h3>
             <ul className="space-y-2 text-sm text-gray-500">
+              <li><Link to="/mentions-legales" className="hover:text-sage-600 transition-colors">Mentions légales</Link></li>
               <li><Link to="/cgu" className="hover:text-sage-600 transition-colors">Conditions Générales d'Utilisation</Link></li>
               <li><Link to="/confidentialite" className="hover:text-sage-600 transition-colors">Politique de confidentialité</Link></li>
             </ul>
