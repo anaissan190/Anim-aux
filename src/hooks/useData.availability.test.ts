@@ -88,9 +88,13 @@ describe('useDeleteBlockedSlot', () => {
 
 describe('useDoctorPatientAnimals', () => {
   it('sans cabinet : cherche les patients du seul praticien donné', async () => {
+    // Dates relatives à aujourd'hui : un lien de soin ne vaut qu'un an
+    // (src/lib/careLink.ts), des dates figées finiraient par expirer.
+    const first = new Date(Date.now() - 60 * 86_400_000).toISOString()
+    const last = new Date(Date.now() - 20 * 86_400_000).toISOString()
     const appts = [
-      { patient_id: 'p1', doctor_id: 'doc-1', start_at: '2026-01-10T09:00:00Z' },
-      { patient_id: 'p1', doctor_id: 'doc-1', start_at: '2026-03-15T09:00:00Z' },
+      { patient_id: 'p1', doctor_id: 'doc-1', start_at: first, status: 'completed' },
+      { patient_id: 'p1', doctor_id: 'doc-1', start_at: last, status: 'completed' },
     ]
     const profiles = [{ user_id: 'p1', first_name: 'Anaïs', last_name: 'S' }]
     const animals = [{ id: 'a1', name: 'Rex', owner_id: 'p1' }]
@@ -110,15 +114,34 @@ describe('useDoctorPatientAnimals', () => {
         id: 'a1', name: 'Rex', owner_id: 'p1', ownerName: 'Anaïs S', referentDoctorId: 'doc-1',
         // Deux RDV pour ce patient, le plus récent (tri croissant côté
         // requête, donc dernier itéré) doit ressortir comme "dernier RDV".
-        ownerAppointmentCount: 2, ownerLastAppointmentAt: '2026-03-15T09:00:00Z',
+        ownerAppointmentCount: 2, ownerLastAppointmentAt: last,
       },
     ])
     expect(supabase.from).not.toHaveBeenCalledWith('clinic_members')
   })
 
+  it("n'affiche pas un patient dont le dernier rendez-vous maintenu date de plus d'un an ou a été annulé", async () => {
+    const old = new Date(Date.now() - 400 * 86_400_000).toISOString()
+    const recent = new Date(Date.now() - 5 * 86_400_000).toISOString()
+    const appts = [
+      { patient_id: 'p-expire', doctor_id: 'doc-1', start_at: old, status: 'completed' },
+      { patient_id: 'p-annule', doctor_id: 'doc-1', start_at: recent, status: 'cancelled' },
+    ]
+    vi.mocked(supabase.from).mockImplementation((table: string) => {
+      if (table === 'appointments') return createQueryBuilderMock({ data: appts, error: null })
+      return createQueryBuilderMock({ data: [], error: null })
+    })
+
+    const { result } = renderHook(() => useDoctorPatientAnimals('doc-1'), { wrapper })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(result.current.data).toEqual([])
+    expect(supabase.from).not.toHaveBeenCalledWith('animals')
+  })
+
   it('avec cabinet : élargit aux patients de tous les membres', async () => {
     const members = [{ doctor_id: 'doc-1' }, { doctor_id: 'doc-2' }]
-    const appts = [{ patient_id: 'p1', doctor_id: 'doc-2' }]
+    const appts = [{ patient_id: 'p1', doctor_id: 'doc-2', start_at: new Date(Date.now() - 5 * 86_400_000).toISOString(), status: 'completed' }]
     vi.mocked(supabase.from).mockImplementation((table: string) => {
       if (table === 'clinic_members') return createQueryBuilderMock({ data: members, error: null })
       if (table === 'appointments') return createQueryBuilderMock({ data: appts, error: null })

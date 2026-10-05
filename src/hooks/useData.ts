@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/authStore'
+import { isCareLinkAppointment } from '@/lib/careLink'
 import type { SearchFilters, AppointmentStatus } from '@/types'
 import { addMinutes } from 'date-fns'
 import { geocodeAddress } from '@/lib/geo'
@@ -812,7 +813,11 @@ export function useDoctorPatientAnimals(doctorId?: string, clinicId?: string, cl
         })
       })
 
-      const patientIds = [...new Set((appts ?? []).map((a: any) => a.patient_id))]
+      // Seuls les patients avec un lien de soin valide (rendez-vous maintenu de
+      // moins d'un an, voir src/lib/careLink.ts / migration 116) : au-delà, la
+      // base masque de toute façon leurs animaux — inutile de lister des
+      // patients qui apparaîtraient sans aucun animal.
+      const patientIds = [...new Set((appts ?? []).filter((a: any) => isCareLinkAppointment(a)).map((a: any) => a.patient_id))]
       if (patientIds.length === 0) return []
 
       // Requête directe sur `profiles` (policy RLS "médecin voit ses
