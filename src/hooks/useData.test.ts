@@ -295,7 +295,7 @@ describe('useMyWaitlistCount', () => {
 
 describe('useDeleteClinic', () => {
   it('supprime le cabinet et invalide le cache du praticien', async () => {
-    const builder = createQueryBuilderMock({ data: null, error: null })
+    const builder = createQueryBuilderMock({ data: [{ id: 'clinic-1' }], error: null })
     vi.mocked(supabase.from).mockReturnValue(builder)
 
     const { result } = renderHook(() => useDeleteClinic(), { wrapper })
@@ -304,6 +304,14 @@ describe('useDeleteClinic', () => {
     expect(supabase.from).toHaveBeenCalledWith('clinics')
     expect(builder.delete).toHaveBeenCalled()
     expect(builder.eq).toHaveBeenCalledWith('id', 'clinic-1')
+  })
+
+  it("signale un échec si aucune ligne n'a été supprimée (refus RLS silencieux)", async () => {
+    vi.mocked(supabase.from).mockReturnValue(createQueryBuilderMock({ data: [], error: null }))
+
+    const { result } = renderHook(() => useDeleteClinic(), { wrapper })
+    await expect(result.current.mutateAsync({ clinicId: 'clinic-1', doctorId: 'doc-1' }))
+      .rejects.toThrow("Le cabinet n'a pas pu être supprimé")
   })
 
   it("propage le message du trigger s'il reste d'autres praticiens membres", async () => {

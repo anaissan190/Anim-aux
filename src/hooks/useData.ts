@@ -2178,12 +2178,21 @@ export function useDeleteClinic() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: async ({ clinicId }: { clinicId: string; doctorId: string }) => {
-      const { error } = await supabase.from('clinics').delete().eq('id', clinicId)
+      // .select() pour récupérer les lignes réellement supprimées : une
+      // policy RLS qui refuse un delete ne renvoie AUCUNE erreur, juste 0
+      // ligne — sans ce contrôle, l'écran annonçait "cabinet fermé" alors
+      // que rien n'avait été supprimé (même piège que PGRST116 sur les
+      // updates, voir useUpdateAppointmentStatus).
+      const { data, error } = await supabase.from('clinics').delete().eq('id', clinicId).select('id')
       if (error) throw new Error(error.message)
+      if (!data || data.length === 0) {
+        throw new Error("Le cabinet n'a pas pu être supprimé (droits insuffisants ou déjà supprimé).")
+      }
     },
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ['clinic', vars.doctorId] })
       qc.invalidateQueries({ queryKey: ['clinic_members', vars.clinicId] })
+      qc.invalidateQueries({ queryKey: ['clinic_staff_list', vars.clinicId] })
     },
   })
 }

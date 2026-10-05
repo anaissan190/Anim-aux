@@ -2044,6 +2044,9 @@ export default function DoctorDashboard() {
                           await deleteClinic.mutateAsync({ clinicId: clinic.id, doctorId: doctor!.id })
                           showToast('✓ Cabinet fermé.')
                           setConfirmDeleteClinic(false)
+                          // L'onglet Cabinet n'existe plus : retour sur Statistiques
+                          // (qui reprend sa place dans la barre sans cabinet).
+                          navigate('/dashboard/doctor?tab=stats')
                         } catch (e: any) {
                           setDeleteClinicError(e.message ?? 'Erreur lors de la fermeture du cabinet.')
                         }
