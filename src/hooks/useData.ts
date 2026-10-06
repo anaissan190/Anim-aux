@@ -745,9 +745,11 @@ export function useLeaveWaitlist() {
 // Liens temporaires (1 h) pour les documents du bucket "documents", qui n'est
 // plus public (migration 122) : une URL publique stockée en base ne sert plus à
 // rien, on en retrouve le chemin et on demande un lien signé. Renvoie une
-// fonction `resolve(fileUrl)` à utiliser dans le rendu ; tant que le lien signé
-// n'est pas prêt — ou s'il échoue — elle renvoie l'URL d'origine, ce qui garde
-// l'affichage fonctionnel pendant la transition (bucket encore public).
+// fonction `resolve(fileUrl)` à utiliser dans le rendu. Tant que le lien signé
+// n'est pas prêt — ou s'il échoue — elle renvoie `undefined` : un lien sans
+// `href` est inerte, alors que l'URL publique d'origine ouvrirait une page
+// « Bucket not found » (constaté le 06/10/2026 en cliquant trop vite). Une URL
+// qui ne vient pas de ce bucket est renvoyée telle quelle.
 export function useSignedDocumentUrls(fileUrls: (string | null | undefined)[]) {
   const paths = [...new Set(fileUrls.map(documentStoragePath).filter((p): p is string => !!p))].sort()
   const { data: signedByPath = {} } = useQuery({
@@ -765,9 +767,10 @@ export function useSignedDocumentUrls(fileUrls: (string | null | undefined)[]) {
     // Renouvelé bien avant l'expiration d'1 h des liens.
     staleTime: 1000 * 60 * 45,
   })
-  return (fileUrl: string | null | undefined): string => {
+  return (fileUrl: string | null | undefined): string | undefined => {
     const path = documentStoragePath(fileUrl)
-    return (path && signedByPath[path]) || fileUrl || ''
+    if (!path) return fileUrl || undefined
+    return signedByPath[path] || undefined
   }
 }
 

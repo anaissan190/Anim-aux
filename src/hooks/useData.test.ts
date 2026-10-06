@@ -353,16 +353,23 @@ describe('useSignedDocumentUrls', () => {
     expect(createSignedUrls).toHaveBeenCalledWith(['animals/a1.pdf'], 3600)
   })
 
-  it("garde l'URL d'origine tant que le lien n'est pas prêt ou s'il échoue", async () => {
+  it("ne renvoie aucun lien tant que le lien signé n'est pas prêt, ni s'il échoue (jamais l'URL publique)", async () => {
     const createSignedUrls = vi.fn().mockResolvedValue({ data: null, error: { message: 'denied' } })
     vi.mocked(supabase.storage.from).mockReturnValue({ createSignedUrls } as any)
 
     const publicUrl = 'https://x.supabase.co/storage/v1/object/public/documents/animals/a1.pdf'
     const { result } = renderHook(() => useSignedDocumentUrls([publicUrl]), { wrapper })
 
-    expect(result.current(publicUrl)).toBe(publicUrl)
+    expect(result.current(publicUrl)).toBeUndefined()
     await waitFor(() => expect(createSignedUrls).toHaveBeenCalled())
-    expect(result.current(publicUrl)).toBe(publicUrl)
+    expect(result.current(publicUrl)).toBeUndefined()
+  })
+
+  it("laisse passer telle quelle une URL qui ne vient pas du bucket documents", () => {
+    vi.mocked(supabase.storage.from).mockReturnValue({ createSignedUrls: vi.fn() } as any)
+    const { result } = renderHook(() => useSignedDocumentUrls([]), { wrapper })
+    expect(result.current('https://exemple.fr/fichier.pdf')).toBe('https://exemple.fr/fichier.pdf')
+    expect(result.current(null)).toBeUndefined()
   })
 
   it("n'appelle pas Storage s'il n'y a aucun document", () => {
