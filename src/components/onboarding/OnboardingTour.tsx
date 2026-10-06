@@ -13,7 +13,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { createPortal } from 'react-dom'
 import { useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/lib/authStore'
-import { useCompleteOnboarding } from '@/hooks/useData'
+import { useCompleteOnboarding, useCurrentDoctor } from '@/hooks/useData'
 import {
   getTourSteps, shouldShowTour, pickVisibleSteps, computeTourGeometry,
   arrowPath, headPath, scribblePath, type Rect, type TourStep,
@@ -34,12 +34,16 @@ export default function OnboardingTour() {
   const { user, profile } = useAuthStore()
   const location = useLocation()
   const complete = useCompleteOnboarding()
+  // Même requête (même clé de cache) que le tableau de bord praticien ; elle
+  // ne part que pour un praticien.
+  const { data: doctor } = useCurrentDoctor()
 
   const role = shouldShowTour({
     role: user?.role,
     isAdmin: user?.is_admin,
     onboardingCompletedAt: profile?.onboarding_completed_at,
     pathname: location.pathname,
+    doctorVerified: doctor?.verification_status === 'verified',
   })
 
   const [steps, setSteps] = useState<TourStep[] | null>(null)

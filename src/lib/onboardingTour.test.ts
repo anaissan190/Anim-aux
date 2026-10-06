@@ -43,8 +43,19 @@ describe('shouldShowTour', () => {
     expect(shouldShowTour({ ...base })).toBe('patient')
   })
 
-  it('affiche le tuto praticien sur le tableau de bord praticien', () => {
-    expect(shouldShowTour({ ...base, role: 'doctor', pathname: '/dashboard/doctor' })).toBe('doctor')
+  it('affiche le tuto praticien sur le tableau de bord praticien, une fois vérifié', () => {
+    expect(shouldShowTour({ ...base, role: 'doctor', pathname: '/dashboard/doctor', doctorVerified: true })).toBe('doctor')
+  })
+
+  it("n'affiche pas le tuto praticien tant que la vérification n'est pas validée ou inconnue", () => {
+    const doctorBase = { ...base, role: 'doctor', pathname: '/dashboard/doctor' } as const
+    expect(shouldShowTour({ ...doctorBase, doctorVerified: false })).toBeNull()
+    expect(shouldShowTour({ ...doctorBase, doctorVerified: undefined })).toBeNull()
+    expect(shouldShowTour({ ...doctorBase })).toBeNull()
+  })
+
+  it('la vérification du praticien ne change rien pour un patient', () => {
+    expect(shouldShowTour({ ...base, doctorVerified: false })).toBe('patient')
   })
 
   it('ne l\'affiche pas si déjà terminé', () => {

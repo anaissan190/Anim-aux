@@ -58,12 +58,19 @@ interface ShouldShowInput {
   // (colonne connue, jamais renseignée) déclenche le tuto.
   onboardingCompletedAt: string | null | undefined
   pathname: string
+  // Praticien : `true` seulement une fois sa vérification validée par l'admin.
+  // Tant qu'il est sur l'écran de dépôt de documents (ou que son profil n'est
+  // pas encore chargé), le tuto ne se lance pas : les boutons qu'il montre
+  // n'existent pas encore, et la barre du haut suffisait à le déclencher à tort
+  // (constaté le 06/10/2026).
+  doctorVerified?: boolean
 }
 
-export function shouldShowTour({ role, isAdmin, onboardingCompletedAt, pathname }: ShouldShowInput): TourRole | null {
+export function shouldShowTour({ role, isAdmin, onboardingCompletedAt, pathname, doctorVerified }: ShouldShowInput): TourRole | null {
   if (isAdmin) return null
   if (role !== 'patient' && role !== 'doctor') return null
   if (onboardingCompletedAt !== null) return null
+  if (role === 'doctor' && doctorVerified !== true) return null
   return pathname === TOUR_PATHS[role] ? role : null
 }
 
