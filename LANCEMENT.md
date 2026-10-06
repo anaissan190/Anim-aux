@@ -10,9 +10,10 @@ Ce qui reste à faire **en dehors du code** pour ouvrir l'application au public,
 
 ## 2. Réglages Supabase (Authentication)
 Dans le menu de gauche : **Authentication**.
-- [ ] **Attack Protection → CAPTCHA protection** : activer, fournisseur **Cloudflare Turnstile**, coller la **clé secrète** Turnstile (Cloudflare → Turnstile → ton site → « Secret key »). Sans cela, le captcha affiché dans l'application peut être contourné en appelant directement l'API.
-- [ ] **URL Configuration** : *Site URL* = `https://monanimeaux.fr` ; *Redirect URLs* = uniquement `https://monanimeaux.fr/**` (ajouter `http://localhost:3000/**` seulement si tu développes encore en local).
-- [ ] **Sign In / Providers → Email** : *Minimum password length* = 8 ou plus ; *Confirm email* activé.
+- [x] **Attack Protection → CAPTCHA protection** : activé (vérifié le 07/10/2026). — à l'origine : activer, fournisseur **Cloudflare Turnstile**, coller la **clé secrète** Turnstile (Cloudflare → Turnstile → ton site → « Secret key »). Sans cela, le captcha affiché dans l'application peut être contourné en appelant directement l'API.
+- [x] **URL Configuration** (corrigée le 07/10/2026) : *Site URL* = `https://monanimeaux.fr` ; *Redirect URLs* = uniquement `https://monanimeaux.fr/**` (ajouter `http://localhost:3000/**` seulement si tu développes encore en local).
+- [x] **Sign In / Providers → Email** : mot de passe minimum 8, confirmation d'email activée (07/10/2026).
+- [ ] **Après avoir testé le bouton « Renvoyer l'email de confirmation »** : remettre *Email OTP expiration* à **3600** (1 h) pour faire disparaître l'alerte de Supabase.
 - [ ] **Emails → Templates** : vérifier que « Confirm signup » et « Reset password » contiennent bien les modèles de `supabase/email-templates/`.
 
 ## 3. Surveillance

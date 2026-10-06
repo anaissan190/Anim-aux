@@ -202,6 +202,9 @@ export default function RegisterPage() {
           Un lien de confirmation a été envoyé à <strong>{form.email}</strong>.
           Cliquez dessus pour activer votre compte.
         </p>
+        <p className="text-gray-400 text-xs mb-6">
+          Pas reçu, ou le lien a expiré ? Pensez à vérifier vos spams, puis rendez-vous sur la page de connexion : vous pourrez y demander un nouvel email.
+        </p>
         <Link to="/login" className="btn-primary inline-block">Aller à la connexion</Link>
       </div>
     </div>

@@ -43,6 +43,8 @@ export function createSupabaseMock() {
       getUser: vi.fn(() => Promise.resolve({ data: { user: null }, error: null })),
       onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
       signOut: vi.fn(() => Promise.resolve({ error: null })),
+      signInWithPassword: vi.fn(() => Promise.resolve({ data: { user: null }, error: null })),
+      resend: vi.fn(() => Promise.resolve({ data: {}, error: null })),
     },
     storage: {
       from: vi.fn(() => ({

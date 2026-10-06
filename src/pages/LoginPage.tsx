@@ -6,6 +6,7 @@ import type { User } from '@/types'
 import logoNavbar from '@/assets/logo-navbar.webp'
 import PasswordInput from '@/components/ui/PasswordInput'
 import Turnstile from '@/components/ui/Turnstile'
+import { classifyAuthError } from '@/lib/authErrors'
 
 // Un compte secrétariat se connecte avec un identifiant généré (ex.
 // CAB4X9QZ), pas avec un email — doit rester synchronisé avec
@@ -27,6 +28,11 @@ export default function LoginPage() {
   const [captchaToken, setCaptchaToken] = useState('')
   const [turnstileKey, setTurnstileKey] = useState(0)
   const [loading, setLoading] = useState(false)
+  // Adresse du compte dont l'email n'est pas confirmé : affiche le bouton « Renvoyer
+  // l'email de confirmation » (le lien expire, et l'application n'avait aucun moyen d'en
+  // redemander un — l'utilisateur restait bloqué).
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null)
+  const [info, setInfo] = useState('')
   const suspendedReason = searchParams.get('suspended') ? searchParams.get('reason') : null
   const [error, setError] = useState(
     searchParams.get('suspended')
@@ -34,9 +40,38 @@ export default function LoginPage() {
       : ''
   )
 
+  async function resendConfirmation() {
+    if (!unconfirmedEmail) return
+    setError('')
+    setInfo('')
+    setLoading(true)
+    const { error: resendError } = await supabase.auth.resend({
+      type: 'signup',
+      email: unconfirmedEmail,
+      options: { captchaToken },
+    })
+    // Le jeton Turnstile est à usage unique : toujours en redemander un.
+    setCaptchaToken('')
+    setTurnstileKey(k => k + 1)
+    setLoading(false)
+    if (resendError) {
+      const kind = classifyAuthError(resendError)
+      setError(
+        kind === 'captcha' ? 'Vérification anti-robot expirée, merci de réessayer.'
+        : kind === 'rate_limit' ? 'Un email vient d\'être envoyé : patientez une minute avant d\'en redemander un.'
+        : "Impossible de renvoyer l'email pour le moment. Merci de réessayer."
+      )
+      return
+    }
+    setInfo(`Un nouvel email de confirmation vient d'être envoyé à ${unconfirmedEmail}. Pensez à vérifier vos spams.`)
+    setUnconfirmedEmail(null)
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+    setInfo('')
+    setUnconfirmedEmail(null)
     setLoading(true)
 
     let data: any, authError: any
@@ -65,14 +100,13 @@ export default function LoginPage() {
       // rejeté par Supabase avec une erreur captcha — sans ce cas séparé,
       // le message générique ci-dessous affichait à tort "mot de passe
       // incorrect" alors que le mot de passe n'était jamais vérifié.
-      const msg = authError.message?.toLowerCase() ?? ''
-      const emailNotConfirmed = authError.code === 'email_not_confirmed' || msg.includes('email not confirmed')
-      const captchaFailed = authError.code === 'captcha_failed' || msg.includes('captcha')
-      if (emailNotConfirmed) {
+      const kind = classifyAuthError(authError)
+      if (kind === 'email_not_confirmed') {
         setError('Veuillez confirmer votre adresse email en cliquant sur le lien reçu par email avant de vous connecter.')
-      } else if (captchaFailed) {
+        setUnconfirmedEmail(resolveLoginEmail(email))
+      } else if (kind === 'captcha') {
         setError('Vérification anti-robot expirée, merci de réessayer.')
-      } else if (msg.includes('rate limit') || msg.includes('too many requests')) {
+      } else if (kind === 'rate_limit') {
         setError('Trop de tentatives, merci de patienter quelques minutes avant de réessayer.')
       } else {
         setError('Email ou mot de passe incorrect')
@@ -172,6 +206,22 @@ export default function LoginPage() {
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-600 text-sm px-4 py-3 rounded-xl">
                 {error}
+              </div>
+            )}
+            {info && (
+              <div className="bg-sage-50 border border-sage-200 text-sage-800 text-sm px-4 py-3 rounded-xl">
+                {info}
+              </div>
+            )}
+            {unconfirmedEmail && (
+              <div className="space-y-2">
+                <button type="button" onClick={resendConfirmation} disabled={loading || !captchaToken}
+                  className="btn-secondary w-full text-sm">
+                  Renvoyer l'email de confirmation
+                </button>
+                {!captchaToken && (
+                  <p className="text-xs text-gray-400 text-center">Validez d'abord la vérification anti-robot ci-dessus.</p>
+                )}
               </div>
             )}
             <button type="submit" disabled={loading} className="btn-primary w-full">
