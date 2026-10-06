@@ -35,7 +35,7 @@ const DOCTOR_STEPS: TourStep[] = [
   { key: 'doctor-tab:stats', title: 'Vos statistiques', body: 'Votre activité en chiffres, mois après mois, avec un export comptable à télécharger.' },
   { key: 'doctor-tab:cabinet', title: 'Votre cabinet', body: 'L\u2019agenda partagé, l\u2019équipe, le secrétariat et les statistiques de votre cabinet.' },
   { key: 'notifications', title: 'Notifications', body: 'Nouvelles demandes de rendez-vous, messages et partages de dossiers.' },
-  { key: 'messages', title: 'Vos messages', body: 'Échangez avec vos patients, sans quitter l’application.' },
+  { key: 'messages', title: 'Vos messages', body: 'Si vous le souhaitez, échangez avec vos patients sans quitter l’application. C’est facultatif : vous pouvez désactiver la messagerie dans votre profil.' },
   { key: 'profile', title: 'Votre profil', body: 'Vos métiers, votre photo, vos tarifs et l’activation de la messagerie.' },
 ]
 
