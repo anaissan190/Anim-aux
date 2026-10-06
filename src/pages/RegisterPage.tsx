@@ -200,7 +200,7 @@ export default function RegisterPage() {
         <h2 className="text-xl font-bold text-gray-900 mb-2">Vérifiez votre email</h2>
         <p className="text-gray-500 text-sm mb-6">
           Un lien de confirmation a été envoyé à <strong>{form.email}</strong>.
-          Cliquez dessus pour activer votre compte.
+          Cliquez dessus pour activer votre compte. L'email peut mettre quelques minutes à arriver.
         </p>
         <p className="text-gray-400 text-xs mb-6">
           Pas reçu, ou le lien a expiré ? Pensez à vérifier vos spams, puis rendez-vous sur la page de connexion : vous pourrez y demander un nouvel email.
