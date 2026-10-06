@@ -17,8 +17,8 @@ Dans le menu de gauche : **Authentication**.
 - [ ] **Emails → Templates** : vérifier que « Confirm signup » et « Reset password » contiennent bien les modèles de `supabase/email-templates/`.
 
 ## 3. Surveillance
-- [ ] **Sentry** : projet → Alerts → créer une alerte « nouvelle erreur » avec notification par email.
-- [ ] **UptimeRobot** (gratuit) : surveiller `https://monanimeaux.fr` toutes les 5 minutes, alerte par email.
+- [x] **Sentry** : règle par défaut « Send a notification for high priority issues » (email), vérifiée active le 06/10/2026 (déclenchée 18 h avant).
+- [x] **UptimeRobot** (gratuit) : moniteur HTTP sur `monanimeaux.fr`, toutes les 5 minutes, alerte par email du compte (créé le 06/10/2026 ; vérifier qu'il passe à « Up »).
 
 ## 4. Juridique
 - [ ] Faire relire **CGU, politique de confidentialité et mentions légales** par un professionnel du droit (ou un service juridique en ligne).
