@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import App from './App'
 import './index.css'
+import { installChunkErrorReload } from './lib/chunkReload'
 
 if (import.meta.env.VITE_SENTRY_DSN) {
   Sentry.init({
@@ -13,6 +14,9 @@ if (import.meta.env.VITE_SENTRY_DSN) {
     environment: import.meta.env.MODE,
   })
 }
+
+// Recharge la page une fois si un fichier chargé à la demande a disparu après une mise en ligne.
+installChunkErrorReload()
 
 const queryClient = new QueryClient({
   defaultOptions: {
