@@ -21,7 +21,7 @@ Dans le menu de gauche : **Authentication**.
 - [x] **UptimeRobot** (gratuit) : moniteur HTTP sur `monanimeaux.fr`, toutes les 5 minutes, alerte par email du compte (créé le 06/10/2026 ; vérifier qu'il passe à « Up »).
 
 ## 3 bis. Domaine (OVH)
-- [x] **Accès au compte OVH retrouvé** le 06/10/2026. Reste à vérifier la date d'expiration du domaine et l'activation du renouvellement automatique. Indispensable : OVH gère le renouvellement du domaine `monanimeaux.fr` et le DNS. Vérifier la date d'expiration et l'activation du renouvellement automatique.
+- [x] **Accès au compte OVH retrouvé** le 06/10/2026. Domaine `monanimeaux.fr` : renouvellement annuel automatique, expire le **20/07/2027** (vérifié le 06/10/2026) ; garder un moyen de paiement valide chez OVH. Indispensable : OVH gère le renouvellement du domaine `monanimeaux.fr` et le DNS. Vérifier la date d'expiration et l'activation du renouvellement automatique.
 - [x] **`www.monanimeaux.fr`** : CNAME vers `cname.vercel-dns.com.` créé chez OVH (en remplacement du A et du TXT `3|welcome`), `www` redirige en 308 vers `monanimeaux.fr` (vérifié le 06/10/2026).
 
 ## 4. Juridique
