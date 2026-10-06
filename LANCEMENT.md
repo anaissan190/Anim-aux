@@ -34,7 +34,9 @@ Dans le menu de gauche : **Authentication**.
 À faire sur téléphone **et** sur ordinateur. Utiliser de **vraies** adresses (`toi+essai1@gmail.com`, jamais une adresse inventée).
 
 **Propriétaire**
-1. Inscription → email de confirmation reçu (vérifier les spams) → clic sur le lien → connexion.
+1. Inscription → email de confirmation reçu (vérifier les spams).
+   **Test du bouton de renvoi :** *ne pas cliquer* sur ce premier lien, essayer de se connecter → le bouton « Renvoyer l'email de confirmation » doit apparaître (valider d'abord la vérification anti-robot) → le second email arrive. Seulement après, cliquer sur le lien → connexion.
+   *Une fois ce test réussi :* remettre dans Supabase « Email OTP expiration » à **3600** (1 h).
 2. La visite guidée s'affiche une seule fois.
 3. Ajouter un animal avec photo ; changer la photo (l'ancienne ne doit plus apparaître).
 4. Réserver un rendez-vous chez un praticien de test, avec un document joint.
