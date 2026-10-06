@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
     // invitée ne reçoit jamais son lien de connexion, sans aucune trace.
     if (!resendKey) console.error('invite-clinic-secretary: RESEND_API_KEY manquant')
     let emailSent = false
-    const loginUrl = (Deno.env.get('APP_URL') || 'https://anim-aux-a2qn.vercel.app') + '/login'
+    const loginUrl = (Deno.env.get('APP_URL') || 'https://monanimeaux.fr') + '/login'
 
     if (resendKey) {
       const safeClinicName = escapeHtml(clinic.name)
