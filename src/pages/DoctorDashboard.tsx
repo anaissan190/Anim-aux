@@ -39,7 +39,7 @@ import { compressImage } from '@/lib/compressImage'
 // pour ajouter un type de document (ex: Extrait Kbis, absent jusqu'ici
 // alors que c'est le justificatif le plus courant pour une entreprise).
 const VERIFICATION_DOC_TYPES = [
-  'Diplôme', "Carte professionnelle / Numéro d'ordre", 'Extrait Kbis', "Pièce d'identité", 'Autre',
+  'Diplôme', 'Attestation de formation / certification', "Carte professionnelle / Numéro d'ordre", 'Extrait Kbis', "Pièce d'identité", 'Autre',
 ]
 
 
@@ -221,15 +221,18 @@ export default function DoctorDashboard() {
   const [verificationPendingFile, setVerificationPendingFile] = useState<File | null>(null)
   const [verificationUploading, setVerificationUploading] = useState(false)
   const [verificationError, setVerificationError] = useState('')
+  const [verificationSent, setVerificationSent] = useState(false)
 
   async function handleUploadVerificationDocument() {
     if (!doctor || !verificationPendingFile) return
     setVerificationUploading(true)
     setVerificationError('')
+    setVerificationSent(false)
     try {
       await uploadVerificationDocument.mutateAsync({ doctorId: doctor.id, file: verificationPendingFile, documentType: verificationDocType, label: verificationDocLabel })
       setVerificationDocLabel('')
       setVerificationPendingFile(null)
+      setVerificationSent(true)
     } catch (e: any) {
       setVerificationError(e.message ?? "Erreur lors de l'envoi du document.")
     } finally {
@@ -672,14 +675,15 @@ export default function DoctorDashboard() {
                 <p className="text-sm text-gray-500">
                   {doctor.verification_status === 'rejected'
                     ? (verificationRejectedReason || "Vos documents n'ont pas pu être validés.") + ' Merci de déposer de nouveaux documents ci-dessous.'
-                    : "Déposez au moins un document attestant de votre formation ou de votre activité (diplôme, carte professionnelle, extrait Kbis...) pour activer votre espace praticien. Votre dossier sera examiné rapidement."}
+                    : "Déposez au moins un document attestant de votre formation ou de votre activité (diplôme, carte professionnelle, extrait Kbis...) pour activer votre espace praticien. Vous pouvez en ajouter plusieurs. Votre dossier sera examiné rapidement."}
                 </p>
               </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mt-6">
                 <h2 className="font-semibold text-gray-900 mb-1">Mes documents justificatifs</h2>
                 <p className="text-xs text-gray-500 mb-4">
-                  Diplôme, carte professionnelle, numéro d&apos;ordre, extrait Kbis...
+                  Vous pouvez déposer <strong>plusieurs documents</strong>, un par envoi : diplôme, attestation de certification,
+                  carte professionnelle, numéro d&apos;ordre, extrait Kbis du cabinet...
                 </p>
                 <div className="flex flex-wrap items-center gap-2 mb-1">
                   <select className="input text-sm w-auto" value={verificationDocType}
@@ -691,7 +695,7 @@ export default function DoctorDashboard() {
                   <label className="btn-secondary text-sm cursor-pointer">
                     Choisir un fichier
                     <input type="file" accept="image/*,.pdf" className="hidden" disabled={verificationUploading}
-                      onChange={e => { const f = e.target.files?.[0]; if (f) setVerificationPendingFile(f); e.target.value = '' }} />
+                      onChange={e => { const f = e.target.files?.[0]; if (f) { setVerificationPendingFile(f); setVerificationSent(false) } e.target.value = '' }} />
                   </label>
                 </div>
                 {verificationPendingFile && (
@@ -707,6 +711,7 @@ export default function DoctorDashboard() {
                 )}
                 {!verificationPendingFile && <div className="mb-4" />}
                 {verificationError && <p className="text-red-500 text-xs mb-3">{verificationError}</p>}
+                {verificationSent && <p className="text-sage-700 text-xs mb-3">✓ Document envoyé. Vous pouvez en ajouter d&apos;autres : un document par envoi.</p>}
 
                 {verificationDocuments.length === 0 ? (
                   <p className="text-xs text-gray-400">Aucun document déposé pour l&apos;instant.</p>
@@ -2292,8 +2297,9 @@ export default function DoctorDashboard() {
                 )}
               </div>
               <p className="text-xs text-gray-500 mb-4">
-                Déposez vos documents justificatifs (diplôme, carte professionnelle, numéro d&apos;ordre...) pour
-                que votre profil soit vérifié et visible dans les résultats de recherche.
+                Déposez vos documents justificatifs, autant que nécessaire, un par envoi (diplôme, attestation de
+                certification, carte professionnelle, extrait Kbis du cabinet...) pour que votre profil soit vérifié
+                et visible dans les résultats de recherche.
               </p>
 
               <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -2306,7 +2312,7 @@ export default function DoctorDashboard() {
                 <label className="btn-secondary text-sm cursor-pointer">
                   Choisir un fichier
                   <input type="file" accept="image/*,.pdf" className="hidden" disabled={verificationUploading}
-                    onChange={e => { const f = e.target.files?.[0]; if (f) setVerificationPendingFile(f); e.target.value = '' }} />
+                    onChange={e => { const f = e.target.files?.[0]; if (f) { setVerificationPendingFile(f); setVerificationSent(false) } e.target.value = '' }} />
                 </label>
               </div>
               {verificationPendingFile && (
@@ -2322,6 +2328,7 @@ export default function DoctorDashboard() {
               )}
               {!verificationPendingFile && <div className="mb-4" />}
               {verificationError && <p className="text-red-500 text-xs mb-3">{verificationError}</p>}
+                {verificationSent && <p className="text-sage-700 text-xs mb-3">✓ Document envoyé. Vous pouvez en ajouter d&apos;autres : un document par envoi.</p>}
 
               {verificationDocuments.length === 0 ? (
                 <p className="text-xs text-gray-400">Aucun document déposé pour l&apos;instant.</p>
