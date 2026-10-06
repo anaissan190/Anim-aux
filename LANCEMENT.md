@@ -20,6 +20,10 @@ Dans le menu de gauche : **Authentication**.
 - [x] **Sentry** : règle par défaut « Send a notification for high priority issues » (email), vérifiée active le 06/10/2026 (déclenchée 18 h avant).
 - [x] **UptimeRobot** (gratuit) : moniteur HTTP sur `monanimeaux.fr`, toutes les 5 minutes, alerte par email du compte (créé le 06/10/2026 ; vérifier qu'il passe à « Up »).
 
+## 3 bis. Domaine (OVH)
+- [ ] **Retrouver l'accès au compte OVH** (mot de passe oublié, mail de réinitialisation jamais reçu depuis la Malaisie le 06/10/2026). Indispensable : OVH gère le renouvellement du domaine `monanimeaux.fr` et le DNS. Vérifier la date d'expiration et l'activation du renouvellement automatique.
+- [ ] **Faire marcher `www.monanimeaux.fr`** : dans la zone DNS OVH, remplacer l'enregistrement A de `www` (213.186.33.5) par un CNAME vers `cname.vercel-dns.com.`. Côté Vercel, c'est déjà fait (`www` redirige vers `monanimeaux.fr`, code 308). Ne pas toucher aux lignes MX/TXT/DKIM. Non urgent : le site fonctionne sans `www`.
+
 ## 4. Juridique
 - [ ] Faire relire **CGU, politique de confidentialité et mentions légales** par un professionnel du droit (ou un service juridique en ligne).
 - [ ] Vérifier les coordonnées des hébergeurs dans les mentions légales (Vercel, Supabase).
