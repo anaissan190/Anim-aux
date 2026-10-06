@@ -14,7 +14,7 @@ Dans le menu de gauche : **Authentication**.
 - [x] **URL Configuration** (corrigée le 07/10/2026) : *Site URL* = `https://monanimeaux.fr` ; *Redirect URLs* = uniquement `https://monanimeaux.fr/**` (ajouter `http://localhost:3000/**` seulement si tu développes encore en local).
 - [x] **Sign In / Providers → Email** : mot de passe minimum 8, confirmation d'email activée (07/10/2026).
 - [x] Bouton « Renvoyer l'email de confirmation » testé en vrai le 06/10/2026 (fonctionne).
-- [ ] **Maintenant que le bouton est testé** : remettre *Email OTP expiration* à **3600** (1 h) pour faire disparaître l'alerte de Supabase.
+- [x] *Email OTP expiration* remis à **3600** (1 h) le 06/10/2026.
 - [ ] **Emails → Templates** : vérifier que « Confirm signup » et « Reset password » contiennent bien les modèles de `supabase/email-templates/`.
 
 ## 3. Surveillance
@@ -65,8 +65,9 @@ Dans le menu de gauche : **Authentication**.
 - [x] Animal + photo, rendez-vous avec document joint, ouverture du document (défaut de « lien cliqué trop tôt » corrigé), messagerie dans les deux sens, annulation par le patient + perte d'accès du praticien, téléchargement des données.
 - [x] Inscription praticien, dépôt de plusieurs justificatifs, validation admin, visite guidée (corrigée : ne se lance qu'une fois vérifié).
 - [x] Suppression d'un compte praticien : 0 ligne orpheline (profils, animaux, rendez-vous).
-- [ ] Non testé en vrai : suivi/poids côté praticien, annulation côté praticien (email au propriétaire), statistiques et export comptable, création/fermeture de cabinet, suppression d'un compte propriétaire avec des données.
-- [ ] Comptes de test encore présents : `+essai1`, `+essai3` (à supprimer via Profil → zone dangereuse).
+- [x] Suppression d'un compte propriétaire avec animal, rendez-vous, document et messages : 0 ligne orpheline (vérifié le 06/10/2026 après suppression de `+essai1` et `+essai3`).
+- [ ] Non testé en vrai : suivi/poids côté praticien, annulation côté praticien (email au propriétaire), statistiques et export comptable, création/fermeture de cabinet.
+- [x] Comptes `+essai1`, `+essai2`, `+essai3` supprimés.
 
 ## 7. Nettoyage automatique des fichiers
 Une fonction (`purge-orphan-files`) supprime chaque dimanche les fichiers de stockage que plus rien ne référence. À activer une fois (voir la migration 125).
