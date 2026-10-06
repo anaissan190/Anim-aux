@@ -13,7 +13,8 @@ Dans le menu de gauche : **Authentication**.
 - [x] **Attack Protection → CAPTCHA protection** : activé (vérifié le 07/10/2026). — à l'origine : activer, fournisseur **Cloudflare Turnstile**, coller la **clé secrète** Turnstile (Cloudflare → Turnstile → ton site → « Secret key »). Sans cela, le captcha affiché dans l'application peut être contourné en appelant directement l'API.
 - [x] **URL Configuration** (corrigée le 07/10/2026) : *Site URL* = `https://monanimeaux.fr` ; *Redirect URLs* = uniquement `https://monanimeaux.fr/**` (ajouter `http://localhost:3000/**` seulement si tu développes encore en local).
 - [x] **Sign In / Providers → Email** : mot de passe minimum 8, confirmation d'email activée (07/10/2026).
-- [ ] **Après avoir testé le bouton « Renvoyer l'email de confirmation »** : remettre *Email OTP expiration* à **3600** (1 h) pour faire disparaître l'alerte de Supabase.
+- [x] Bouton « Renvoyer l'email de confirmation » testé en vrai le 06/10/2026 (fonctionne).
+- [ ] **Maintenant que le bouton est testé** : remettre *Email OTP expiration* à **3600** (1 h) pour faire disparaître l'alerte de Supabase.
 - [ ] **Emails → Templates** : vérifier que « Confirm signup » et « Reset password » contiennent bien les modèles de `supabase/email-templates/`.
 
 ## 3. Surveillance
@@ -58,6 +59,14 @@ Dans le menu de gauche : **Authentication**.
 6. Créer un cabinet, le fermer.
 
 **Suppression de compte** : Profil → zone dangereuse → supprimer. Vérifier ensuite dans Supabase qu'il ne reste plus rien (compte, animaux).
+
+## 6 bis. Résultats du test du 06/10/2026 (vraiment fait, comptes `+essai1/2/3`)
+- [x] Inscription propriétaire, email de confirmation (arrive en 3-4 min chez Gmail : retard côté Gmail, SPF/DKIM/DMARC tous PASS, envoi en 1 s), visite guidée.
+- [x] Animal + photo, rendez-vous avec document joint, ouverture du document (défaut de « lien cliqué trop tôt » corrigé), messagerie dans les deux sens, annulation par le patient + perte d'accès du praticien, téléchargement des données.
+- [x] Inscription praticien, dépôt de plusieurs justificatifs, validation admin, visite guidée (corrigée : ne se lance qu'une fois vérifié).
+- [x] Suppression d'un compte praticien : 0 ligne orpheline (profils, animaux, rendez-vous).
+- [ ] Non testé en vrai : suivi/poids côté praticien, annulation côté praticien (email au propriétaire), statistiques et export comptable, création/fermeture de cabinet, suppression d'un compte propriétaire avec des données.
+- [ ] Comptes de test encore présents : `+essai1`, `+essai3` (à supprimer via Profil → zone dangereuse).
 
 ## 7. Nettoyage automatique des fichiers
 Une fonction (`purge-orphan-files`) supprime chaque dimanche les fichiers de stockage que plus rien ne référence. À activer une fois (voir la migration 125).
