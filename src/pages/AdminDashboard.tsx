@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import Navbar from '@/components/ui/Navbar'
 import {
-  useAdminPendingDoctors, useAdminReviewDoctor, useAdminPlatformStats, useAdminDoctorsByStatus,
+  useAdminPendingDoctors, useAdminReviewDoctor, useAdminDoctorPlan, useAdminSetDoctorPlan, useAdminPlatformStats, useAdminDoctorsByStatus,
   useAdminDoctorDetail, useAdminReviews, useAdminPatients, useAdminPatientDetail,
   useAdminClinics, useAdminClinicDetail, useAdminSecretaries, useAdminAppointments,
   useAdminReports, useAdminResolveReport, useAdminDeleteReview, useAdminSuspendUser,
@@ -12,6 +12,7 @@ import {
 import { fr } from 'date-fns/locale'
 import { formatInTimeZone } from 'date-fns-tz'
 import { PARIS_TZ } from '@/lib/parisTime'
+import { PLAN_LABEL, otherPlan } from '@/lib/doctorPlan'
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   PieChart, Pie, Cell, BarChart, Bar, Legend,
@@ -1014,6 +1015,8 @@ function AdminAppointmentsView({ onBack, initialFilter }: { onBack: () => void; 
 
 function AdminDoctorDetail({ doctorId, onBack }: { doctorId: string; onBack: () => void }) {
   const { data: d, isLoading } = useAdminDoctorDetail(doctorId)
+  const { data: plan } = useAdminDoctorPlan(doctorId)
+  const setPlan = useAdminSetDoctorPlan()
   const reviewDoctor = useAdminReviewDoctor()
   const suspendUser = useAdminSuspendUser()
   const unsuspendUser = useAdminUnsuspendUser()
@@ -1040,6 +1043,16 @@ function AdminDoctorDetail({ doctorId, onBack }: { doctorId: string; onBack: () 
       await unsuspendUser.mutateAsync(d.user_id)
     } catch (e: any) {
       setError(e.message ?? 'Erreur lors de la réactivation.')
+    }
+  }
+
+  async function handleTogglePlan() {
+    if (!plan) return
+    setError('')
+    try {
+      await setPlan.mutateAsync({ doctorId, plan: otherPlan(plan) })
+    } catch (e: any) {
+      setError(e.message ?? "Erreur lors du changement d'offre.")
     }
   }
 
@@ -1088,6 +1101,7 @@ function AdminDoctorDetail({ doctorId, onBack }: { doctorId: string; onBack: () 
                 </div>
                 <div className="flex flex-col items-end gap-1">
                   <span className={STATUS_BADGE[d.verification_status]}>{STATUS_LABEL[d.verification_status]}</span>
+                  {plan && <span className={plan === 'pro' ? 'badge bg-sage-100 text-sage-700' : 'badge bg-gray-100 text-gray-600'}>{PLAN_LABEL[plan]}</span>}
                   {d.is_suspended && <span className="badge bg-red-100 text-red-700">⛔ Suspendu</span>}
                 </div>
               </div>
@@ -1212,6 +1226,11 @@ function AdminDoctorDetail({ doctorId, onBack }: { doctorId: string; onBack: () 
                     <button onClick={() => setRejecting(true)} disabled={reviewDoctor.isPending}
                       className="btn-secondary text-sm px-4 py-2 text-red-500">
                       ✕ Rejeter
+                    </button>
+                  )}
+                  {plan && (
+                    <button onClick={handleTogglePlan} disabled={setPlan.isPending} className="btn-secondary text-sm px-4 py-2">
+                      {plan === 'pro' ? 'Repasser en offre gratuite' : "Passer en abonnement"}
                     </button>
                   )}
                   <a href={`mailto:${d.email}`} className="btn-secondary text-sm px-4 py-2">

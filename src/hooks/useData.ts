@@ -2787,6 +2787,36 @@ export function useAdminReviewDoctor() {
   })
 }
 
+// Offre d'un praticien (gratuite / abonnement), lue directement sur `doctors` :
+// l'admin y a accès par la RLS (is_admin()), et on évite de réécrire la grosse
+// RPC admin_doctor_detail pour un seul champ.
+export function useAdminDoctorPlan(doctorId?: string) {
+  return useQuery({
+    queryKey: ['admin_doctor_plan', doctorId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('doctors').select('plan').eq('id', doctorId!).single()
+      if (error) throw error
+      return (data?.plan ?? 'pro') as 'free' | 'pro'
+    },
+    enabled: !!doctorId,
+  })
+}
+
+export function useAdminSetDoctorPlan() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ doctorId, plan }: { doctorId: string; plan: 'free' | 'pro' }) => {
+      const { error } = await supabase.rpc('admin_set_doctor_plan', { p_doctor_id: doctorId, p_plan: plan })
+      if (error) throw error
+    },
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['admin_doctor_plan', vars.doctorId] })
+      qc.invalidateQueries({ queryKey: ['doctor', vars.doctorId] })
+      qc.invalidateQueries({ queryKey: ['doctors'] })
+    },
+  })
+}
+
 // Vue d'ensemble de la plateforme (compteurs + séries pour les graphiques)
 // — migration 056, complétée en migration 057 (signups_weekly,
 // appointments_by_status).
