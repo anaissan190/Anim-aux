@@ -90,6 +90,23 @@ describe('useEnablePushNotifications', () => {
     expect(supabase.from).not.toHaveBeenCalled()
   })
 
+  it('explique que la navigation privée bloque les notifications quand la permission est refusée', async () => {
+    vi.stubEnv('VITE_VAPID_PUBLIC_KEY', 'AAAAAAAA')
+    vi.stubGlobal('Notification', { requestPermission: vi.fn(() => Promise.resolve('denied')) })
+
+    const { result } = renderHook(() => useEnablePushNotifications(), { wrapper })
+    await expect(result.current.mutateAsync()).rejects.toThrow('navigation privée')
+  })
+
+  it("distingue une fenêtre de permission fermée sans réponse d'un refus", async () => {
+    vi.stubEnv('VITE_VAPID_PUBLIC_KEY', 'AAAAAAAA')
+    vi.stubGlobal('Notification', { requestPermission: vi.fn(() => Promise.resolve('default')) })
+
+    const { result } = renderHook(() => useEnablePushNotifications(), { wrapper })
+    await expect(result.current.mutateAsync()).rejects.toThrow('Notifications non autorisées')
+    expect(supabase.from).not.toHaveBeenCalled()
+  })
+
   it("s'abonne et enregistre l'abonnement dans push_subscriptions si la permission est accordée", async () => {
     vi.stubEnv('VITE_VAPID_PUBLIC_KEY', 'AAAAAAAA')
     vi.stubGlobal('Notification', { requestPermission: vi.fn(() => Promise.resolve('granted')) })

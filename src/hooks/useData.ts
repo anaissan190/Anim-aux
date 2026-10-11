@@ -2589,7 +2589,13 @@ export function useEnablePushNotifications() {
       }
 
       const permission = await Notification.requestPermission()
-      if (permission !== 'granted') throw new Error('Permission refusée pour les notifications.')
+      // « denied » arrive aussi tout seul, sans question posée, en navigation
+      // privée (Safari) : le message le dit, sinon « refusée » laisse croire à une
+      // panne de l'application (constaté le 11/10/2026).
+      if (permission === 'denied') {
+        throw new Error("Permission refusée : les notifications sont bloquées par le navigateur (c'est toujours le cas en navigation privée). Autorisez-les dans ses réglages, ou utilisez une fenêtre normale.")
+      }
+      if (permission !== 'granted') throw new Error("Notifications non autorisées : cliquez sur Activer, puis sur Autoriser quand le navigateur vous le demande.")
 
       const registration = await navigator.serviceWorker.ready
       const subscription = await registration.pushManager.subscribe({
