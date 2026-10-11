@@ -2817,6 +2817,33 @@ export function useAdminSetDoctorPlan() {
   })
 }
 
+// Même chose pour l'offre d'un cabinet (gratuit = non activé / abonnement cabinet).
+export function useAdminClinicPlan(clinicId?: string | null) {
+  return useQuery({
+    queryKey: ['admin_clinic_plan', clinicId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('clinics').select('plan').eq('id', clinicId!).single()
+      if (error) throw error
+      return (data?.plan ?? 'cabinet') as 'free' | 'cabinet'
+    },
+    enabled: !!clinicId,
+  })
+}
+
+export function useAdminSetClinicPlan() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ clinicId, plan }: { clinicId: string; plan: 'free' | 'cabinet' }) => {
+      const { error } = await supabase.rpc('admin_set_clinic_plan', { p_clinic_id: clinicId, p_plan: plan })
+      if (error) throw error
+    },
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['admin_clinic_plan', vars.clinicId] })
+      qc.invalidateQueries({ queryKey: ['clinic'] })
+    },
+  })
+}
+
 // Vue d'ensemble de la plateforme (compteurs + séries pour les graphiques)
 // — migration 056, complétée en migration 057 (signups_weekly,
 // appointments_by_status).

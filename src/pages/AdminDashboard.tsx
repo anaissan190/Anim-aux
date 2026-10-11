@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import Navbar from '@/components/ui/Navbar'
 import {
-  useAdminPendingDoctors, useAdminReviewDoctor, useAdminDoctorPlan, useAdminSetDoctorPlan, useAdminPlatformStats, useAdminDoctorsByStatus,
+  useAdminPendingDoctors, useAdminReviewDoctor, useAdminDoctorPlan, useAdminSetDoctorPlan, useAdminClinicPlan, useAdminSetClinicPlan, useAdminPlatformStats, useAdminDoctorsByStatus,
   useAdminDoctorDetail, useAdminReviews, useAdminPatients, useAdminPatientDetail,
   useAdminClinics, useAdminClinicDetail, useAdminSecretaries, useAdminAppointments,
   useAdminReports, useAdminResolveReport, useAdminDeleteReview, useAdminSuspendUser,
@@ -12,7 +12,7 @@ import {
 import { fr } from 'date-fns/locale'
 import { formatInTimeZone } from 'date-fns-tz'
 import { PARIS_TZ } from '@/lib/parisTime'
-import { PLAN_LABEL, otherPlan } from '@/lib/doctorPlan'
+import { PLAN_LABEL, CLINIC_PLAN_LABEL, otherPlan, otherClinicPlan } from '@/lib/doctorPlan'
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   PieChart, Pie, Cell, BarChart, Bar, Legend,
@@ -782,6 +782,19 @@ function AdminClinicDetail({ clinicId, onBack, onSelectDoctor }: {
   clinicId: string; onBack: () => void; onSelectDoctor: (id: string) => void
 }) {
   const { data: c, isLoading } = useAdminClinicDetail(clinicId)
+  const { data: clinicPlan } = useAdminClinicPlan(clinicId)
+  const setClinicPlan = useAdminSetClinicPlan()
+  const [planError, setPlanError] = useState('')
+
+  async function handleToggleClinicPlan() {
+    if (!clinicPlan) return
+    setPlanError('')
+    try {
+      await setClinicPlan.mutateAsync({ clinicId, plan: otherClinicPlan(clinicPlan) })
+    } catch (e: any) {
+      setPlanError(e.message ?? "Erreur lors du changement d'offre.")
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#FFFAF0]">
@@ -799,11 +812,20 @@ function AdminClinicDetail({ clinicId, onBack, onSelectDoctor }: {
               <div className="w-14 h-14 rounded-2xl bg-sage-100 flex items-center justify-center text-2xl overflow-hidden flex-shrink-0">
                 {c.logo_url ? <img src={c.logo_url} className="w-full h-full object-cover" alt="" loading="lazy" /> : '🏥'}
               </div>
-              <div>
+              <div className="flex-1">
                 <h1 className="text-lg font-bold text-gray-900">{c.name}</h1>
                 <p className="text-sm text-gray-500">{c.city}</p>
               </div>
+              {clinicPlan && (
+                <div className="flex flex-col items-end gap-2">
+                  <span className={clinicPlan === 'cabinet' ? 'badge bg-sage-100 text-sage-700' : 'badge bg-gray-100 text-gray-600'}>{CLINIC_PLAN_LABEL[clinicPlan]}</span>
+                  <button onClick={handleToggleClinicPlan} disabled={setClinicPlan.isPending} className="btn-secondary text-xs px-3 py-1.5">
+                    {clinicPlan === 'cabinet' ? 'Désactiver le cabinet' : "Activer l'abonnement cabinet"}
+                  </button>
+                </div>
+              )}
             </div>
+            {planError && <p className="text-red-500 text-xs mb-3">{planError}</p>}
 
             {/* Coordonnées */}
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Coordonnées</h3>
