@@ -40,6 +40,10 @@ export function useDoctors(filters: SearchFilters = {}, enabled: boolean = true)
         // même s'il peut déjà utiliser son tableau de bord — voir
         // DoctorPage.tsx pour la même règle appliquée à la fiche directe.
         .eq('verification_status', 'verified')
+        // Interrupteur « Apparaître dans la recherche » (migration 126). Filtré
+        // explicitement : la RLS laisse encore passer un praticien masqué à un
+        // patient qui a un rendez-vous avec lui.
+        .eq('is_listed', true)
       if (filters.city)      q = q.ilike('city', `%${filters.city}%`)
       if (filters.maxPrice !== undefined) q = q.lte('consultation_price', filters.maxPrice)
       if (filters.minRating) q = q.gte('average_rating', filters.minRating)
@@ -269,7 +273,7 @@ export function useDoctor(id: string) {
       const { data, error } = await supabase
         .from('doctors')
         // Voir useDoctors : même exclusion de verification_rejected_reason.
-        .select('id, user_id, specialties, rpps_number, bio, consultation_price, address, city, lat, lng, is_verified, average_rating, review_count, created_at, updated_at, accepted_species, home_visit, verification_status, ethics_charter_accepted_at, profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url, phone)')
+        .select('id, user_id, specialties, rpps_number, bio, consultation_price, address, city, lat, lng, is_verified, average_rating, review_count, created_at, updated_at, accepted_species, home_visit, verification_status, is_listed, ethics_charter_accepted_at, profiles!doctors_user_id_profiles_fkey(first_name, last_name, avatar_url, phone)')
         .eq('id', id)
         .single()
       if (error) throw error
@@ -289,7 +293,7 @@ export function useCurrentDoctor() {
         // Même exclusion de verification_rejected_reason que useDoctor/
         // useDoctors — le praticien lit son propre motif de rejet via
         // useMyVerificationRejectedReason (RPC dédiée) sur DoctorDashboard.
-        .select('id, user_id, specialties, rpps_number, bio, consultation_price, address, city, lat, lng, is_verified, average_rating, review_count, created_at, updated_at, accepted_species, home_visit, verification_status, ethics_charter_accepted_at, messaging_enabled')
+        .select('id, user_id, specialties, rpps_number, bio, consultation_price, address, city, lat, lng, is_verified, average_rating, review_count, created_at, updated_at, accepted_species, home_visit, verification_status, ethics_charter_accepted_at, messaging_enabled, is_listed')
         .eq('user_id', user!.id)
         .single()
       if (error) throw error
@@ -2501,6 +2505,7 @@ export function useUpdateDoctor() {
       accepted_species?: string[]
       home_visit?: boolean
       messaging_enabled?: boolean
+      is_listed?: boolean
     }) => {
       if (!user) throw new Error('Utilisateur non connecté')
       const payload: typeof updates & { lat?: number; lng?: number } = { ...updates }

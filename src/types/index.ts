@@ -83,6 +83,8 @@ export interface Doctor {
   is_verified: boolean
   verification_status: DoctorVerificationStatus
   verification_rejected_reason?: string | null
+  // false = le praticien s'est retiré de la recherche (migration 126) ; absent = visible.
+  is_listed?: boolean
   average_rating: number
   review_count: number
   created_at: string

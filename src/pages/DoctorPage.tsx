@@ -10,6 +10,7 @@ import { sanitizeHtml } from '@/lib/sanitizeHtml'
 import { fr } from 'date-fns/locale'
 import { formatInTimeZone } from 'date-fns-tz'
 import { PARIS_TZ } from '@/lib/parisTime'
+import { isPubliclyListed } from '@/lib/doctorVisibility'
 
 // leaflet + react-leaflet sont chargés en lazy : ~50 Ko compressés, le plus
 // gros bloc de ce chunk, pour une carte qui n'apparaît qu'en bas de page
@@ -75,7 +76,7 @@ export default function DoctorPage() {
   // (cohérent avec son absence des résultats de recherche, voir useDoctors) —
   // sauf pour le praticien lui-même, qui doit pouvoir se prévisualiser.
   const isOwnProfile = user?.id === doctor.user_id
-  if (doctor.verification_status !== 'verified' && !isOwnProfile) return (
+  if (!isPubliclyListed(doctor) && !isOwnProfile) return (
     <div className="min-h-screen bg-[#FFFAF0]">
       <Navbar />
       <div className="max-w-4xl mx-auto px-4 py-16 text-center">

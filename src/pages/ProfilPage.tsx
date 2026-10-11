@@ -120,6 +120,7 @@ export default function ProfilPage() {
   const [acceptedSpecies, setAcceptedSpecies] = useState<string[]>([])
   const [homeVisit, setHomeVisit]   = useState(false)
   const [messagingEnabled, setMessagingEnabled] = useState(true)
+  const [isListed, setIsListed] = useState(true)
 
   const [loading, setLoading] = useState(false)
 
@@ -162,6 +163,7 @@ export default function ProfilPage() {
       setAcceptedSpecies(doctor.accepted_species || [])
       setHomeVisit(doctor.home_visit || false)
       setMessagingEnabled(doctor.messaging_enabled ?? true)
+      setIsListed(doctor.is_listed ?? true)
     }
   }, [doctor])
 
@@ -194,6 +196,7 @@ export default function ProfilPage() {
           accepted_species: acceptedSpecies,
           home_visit: homeVisit,
           messaging_enabled: messagingEnabled,
+          is_listed: isListed,
         })
       }
       showToast('✓ Profil mis à jour avec succès !')
@@ -386,6 +389,16 @@ export default function ProfilPage() {
               {!messagingEnabled && (
                 <p className="text-xs text-gray-400 mt-1">
                   Les patients ne pourront plus vous envoyer de nouveaux messages. Vos conversations déjà en cours restent visibles.
+                </p>
+              )}
+              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer mt-2">
+                <input type="checkbox" checked={isListed} onChange={e => setIsListed(e.target.checked)}
+                  className="accent-sage-500 w-4 h-4" />
+                🔎 Apparaître dans la recherche
+              </label>
+              {!isListed && (
+                <p className="text-xs text-gray-400 mt-1">
+                  Votre fiche n&apos;apparaît plus dans les résultats et ne peut plus être ouverte par un lien. Les patients qui ont déjà un rendez-vous avec vous continuent de vous voir, et vous gardez l&apos;accès complet à votre espace.
                 </p>
               )}
             </div>

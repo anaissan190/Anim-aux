@@ -106,7 +106,7 @@ export default function DoctorDashboard() {
   const updateDoctorInfo = useUpdateDoctor()
   const [profileForm, setProfileForm] = useState({
     first_name: '', last_name: '', specialties: [] as string[], city: '', address: '', bio: '', phone: '',
-    accepted_species: [] as string[], home_visit: false, messaging_enabled: true,
+    accepted_species: [] as string[], home_visit: false, messaging_enabled: true, is_listed: true,
     // Adresse personnelle (table profiles, distincte de l'adresse du
     // cabinet ci-dessus) — présente sur /profil (patient) mais jusqu'ici
     // jamais exposée ici, alors qu'un médecin y a accès en naviguant
@@ -305,6 +305,7 @@ export default function DoctorDashboard() {
       accepted_species: doctor.accepted_species ?? [],
       home_visit: doctor.home_visit ?? false,
       messaging_enabled: doctor.messaging_enabled ?? true,
+      is_listed: doctor.is_listed ?? true,
       home_address: profile.address ?? '',
     })
     setOtherProfession(otherText)
@@ -341,6 +342,7 @@ export default function DoctorDashboard() {
           accepted_species: profileForm.accepted_species,
           home_visit: profileForm.home_visit,
           messaging_enabled: profileForm.messaging_enabled,
+          is_listed: profileForm.is_listed,
         }),
       ])
       setProfileSaved(true)
@@ -2252,6 +2254,17 @@ export default function DoctorDashboard() {
                 {!profileForm.messaging_enabled && (
                   <p className="text-xs text-gray-400 mt-1">
                     Les patients ne pourront plus vous envoyer de nouveaux messages. Vos conversations déjà en cours restent visibles.
+                  </p>
+                )}
+                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer mt-2">
+                  <input type="checkbox" checked={profileForm.is_listed}
+                    onChange={e => setProfileForm(f => ({ ...f, is_listed: e.target.checked }))}
+                    className="accent-sage-500 w-4 h-4" />
+                  🔎 Apparaître dans la recherche
+                </label>
+                {!profileForm.is_listed && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    Votre fiche n&apos;apparaît plus dans les résultats et ne peut plus être ouverte par un lien. Les patients qui ont déjà un rendez-vous avec vous continuent de vous voir, et vous gardez l&apos;accès complet à votre espace.
                   </p>
                 )}
                 {/* La bio reste éditable même pour un membre de cabinet — seules

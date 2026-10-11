@@ -33,7 +33,7 @@ Dans le menu de gauche : **Authentication**.
 
 ## 5. Données de test
 - [x] Comptes de test supprimés (reste 4 comptes : toi, l'admin, Gary, Lina).
-- [ ] Les deux praticiens de démonstration (Gary, Lina) sont-ils visibles dans la recherche publique ? Si oui, les masquer avant l'ouverture, ou les supprimer.
+- [ ] Masquer les deux praticiens de démonstration (Gary, Lina) de la recherche publique : décidé le 11/10/2026, via l'interrupteur « Apparaître dans la recherche » (migration 126, puis `update doctors set is_listed = false` sur les deux). Un retour à « pending » est impossible depuis le SQL Editor (verrou `prevent_self_verification`).
 
 ## 6. Scénario de test complet (avec des comptes tout neufs)
 À faire sur téléphone **et** sur ordinateur. Utiliser de **vraies** adresses (`toi+essai1@gmail.com`, jamais une adresse inventée).
