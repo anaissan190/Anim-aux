@@ -1,7 +1,7 @@
 // src/pages/DoctorPage.tsx
 import { useState, Suspense, lazy } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { useDoctor, useDoctorReviews, useCreateReview, useDoctorPublicClinic, useCreateReport, useIsFavorite, useToggleFavorite, useMyHistoryWithDoctor } from '@/hooks/useData'
+import { useDoctor, useDoctorReviews, useCreateReview, useDoctorPublicClinic, useCreateReport, useIsFavorite, useToggleFavorite, useMyHistoryWithDoctor, useDoctorHasPro } from '@/hooks/useData'
 import { useAuthStore } from '@/lib/authStore'
 import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
@@ -21,6 +21,7 @@ export default function DoctorPage() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuthStore()
   const { data: doctor, isLoading } = useDoctor(id!)
+  const { data: hasPro } = useDoctorHasPro(id)
   const { data: reviews = [] } = useDoctorReviews(id!)
   const { data: clinic } = useDoctorPublicClinic(id)
   const createReview = useCreateReview()
@@ -176,12 +177,16 @@ export default function DoctorPage() {
               de droite comme avant cette restructuration. */}
           <div className="md:col-span-1 md:row-span-2">
             <div className="card p-5 sticky top-24">
-              <h2 className="font-semibold text-gray-900 mb-1">Prendre rendez-vous</h2>
+              <h2 className="font-semibold text-gray-900 mb-1">{hasPro === false ? 'Contact' : 'Prendre rendez-vous'}</h2>
               <p className="text-2xl font-bold text-sage-600 mb-4">
                 {doctor.consultation_price}€
                 <span className="text-sm font-normal text-gray-400 ml-1">/ consultation</span>
               </p>
-              {user && user.role === 'patient' ? (
+              {hasPro === false ? (
+                <p className="text-sm text-sage-800 bg-sage-50 rounded-xl p-3 leading-relaxed">
+                  La réservation en ligne n&apos;est pas proposée par ce praticien. Contactez-le directement.
+                </p>
+              ) : user && user.role === 'patient' ? (
                 <Link to={`/book/${doctor.id}`} className="btn-primary block text-center">
                   Voir les disponibilités
                 </Link>

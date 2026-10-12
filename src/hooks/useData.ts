@@ -152,6 +152,38 @@ async function hasAvailabilityInRange(doctorId: string, from: Date, to: Date): P
 // hasAvailabilityInRange (disponibilités + RDV pris + congés), mais
 // renvoie la date exacte du premier créneau plutôt qu'un simple booléen,
 // sur une fenêtre de 30 jours.
+// Ce praticien a-t-il toutes les fonctionnalités (abonné, ou membre d'un cabinet
+// abonné) ? Source de vérité unique : la même fonction que celle qui verrouille
+// la base (migration 127/128). Tant que la réponse n'est pas là, `undefined` :
+// l'écran garde le comportement habituel, la base refuse de toute façon une
+// réservation chez un praticien gratuit.
+export function useDoctorHasPro(doctorId?: string) {
+  return useQuery({
+    queryKey: ['doctor-has-pro', doctorId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('doctor_has_pro', { p_doctor_id: doctorId })
+      if (error) throw error
+      return data === true
+    },
+    enabled: !!doctorId,
+  })
+}
+
+// Parmi une liste de praticiens, l'ensemble de ceux qui ont toutes les
+// fonctionnalités (une seule requête pour toute la liste de résultats).
+export function useProDoctorIds(doctorIds: string[]) {
+  const sortedIds = [...doctorIds].sort()
+  return useQuery({
+    queryKey: ['pro-doctor-ids', sortedIds],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_pro_doctor_ids', { p_ids: sortedIds })
+      if (error) throw error
+      return new Set<string>((data ?? []) as string[])
+    },
+    enabled: sortedIds.length > 0,
+  })
+}
+
 export function useNextAvailableSlots(doctorIds: string[]) {
   const sortedIds = [...doctorIds].sort()
   return useQuery({

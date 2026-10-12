@@ -19,6 +19,7 @@ import {
   useAvailabilities, useMyWaitlistEntry, useJoinWaitlist, useConversationPartners,
   useLeaveWaitlist, useSendMessage, useUpdateAppointmentStatus, useCreateReview,
   useReplyToReview, useCompleteOnboarding, useSentReferralsForAnimal, useMyWaitlistCount, useDeleteClinic, useRemoveClinicSecretary, useSignedDocumentUrls,
+  useDoctorHasPro, useProDoctorIds,
 } from './useData'
 
 const FAKE_PATIENT = { id: 'patient-1', email: 'a@a.fr', role: 'patient' as const, is_admin: false, created_at: '' }
@@ -289,6 +290,41 @@ describe('useMyWaitlistCount', () => {
 
   it('n\'exécute pas la requête sans praticien connu', () => {
     const { result } = renderHook(() => useMyWaitlistCount(undefined), { wrapper })
+    expect(result.current.fetchStatus).toBe('idle')
+  })
+})
+
+describe('useDoctorHasPro', () => {
+  it("interroge la fonction doctor_has_pro de la base et renvoie son résultat", async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: false, error: null } as any)
+
+    const { result } = renderHook(() => useDoctorHasPro('doc-1'), { wrapper })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(supabase.rpc).toHaveBeenCalledWith('doctor_has_pro', { p_doctor_id: 'doc-1' })
+    expect(result.current.data).toBe(false)
+  })
+
+  it("n'exécute pas la requête sans praticien connu", () => {
+    const { result } = renderHook(() => useDoctorHasPro(undefined), { wrapper })
+    expect(result.current.fetchStatus).toBe('idle')
+  })
+})
+
+describe('useProDoctorIds', () => {
+  it("renvoie l'ensemble des praticiens abonnés parmi la liste, en une seule requête", async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: ['b', 'a'], error: null } as any)
+
+    const { result } = renderHook(() => useProDoctorIds(['c', 'b', 'a']), { wrapper })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(supabase.rpc).toHaveBeenCalledTimes(1)
+    expect(supabase.rpc).toHaveBeenCalledWith('get_pro_doctor_ids', { p_ids: ['a', 'b', 'c'] })
+    expect([...result.current.data!].sort()).toEqual(['a', 'b'])
+  })
+
+  it("n'interroge rien pour une liste vide", () => {
+    const { result } = renderHook(() => useProDoctorIds([]), { wrapper })
     expect(result.current.fetchStatus).toBe('idle')
   })
 })

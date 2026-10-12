@@ -1,7 +1,7 @@
 // src/pages/BookPage.tsx
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { useDoctor, useAnimals, useAvailabilities } from '@/hooks/useData'
+import { useDoctor, useAnimals, useAvailabilities, useDoctorHasPro } from '@/hooks/useData'
 import { useCreateAppointment, useMyWaitlistEntry, useJoinWaitlist, useLeaveWaitlist } from '@/hooks/useData'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/authStore'
@@ -21,6 +21,7 @@ type Step = 1 | 2 | 3
 export default function BookPage() {
   const { doctorId } = useParams<{ doctorId: string }>()
   const { data: doctor } = useDoctor(doctorId!)
+  const { data: hasPro } = useDoctorHasPro(doctorId)
   const { user } = useAuthStore()
   const { data: animals = [] } = useAnimals()
   const { data: availabilities = [] } = useAvailabilities(doctorId!)
@@ -142,7 +143,7 @@ export default function BookPage() {
   // Un praticien masqué (ou non vérifié) n'accepte pas de nouvelles réservations,
   // même par lien direct : la RLS laisse encore sa fiche visible à un patient qui
   // a déjà un rendez-vous avec lui (migration 126).
-  if (doctor && !isPubliclyListed(doctor) && doctor.user_id !== user?.id) return (
+  if (doctor && (!isPubliclyListed(doctor) || hasPro === false) && doctor.user_id !== user?.id) return (
     <div className="min-h-screen bg-[#FFFAF0]">
       <Navbar />
       <div className="max-w-2xl mx-auto px-4 py-16 text-center">

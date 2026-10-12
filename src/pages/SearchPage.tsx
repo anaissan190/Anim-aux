@@ -10,7 +10,7 @@ import ClinicCard from '@/components/doctor/ClinicCard'
 import MobileHeader from '@/components/mobile/MobileHeader'
 import MobileTabBar from '@/components/mobile/MobileTabBar'
 import { useAuthStore } from '@/lib/authStore'
-import { useDoctors, useClinicsSearch, useNextAvailableSlots } from '@/hooks/useData'
+import { useDoctors, useClinicsSearch, useNextAvailableSlots, useProDoctorIds } from '@/hooks/useData'
 import type { SearchFilters } from '@/types'
 import { haversineKm } from '@/lib/geo'
 import { PRACTICE_SPECIES_OPTIONS } from '@/lib/animalSpecies'
@@ -125,8 +125,13 @@ export default function SearchPage() {
     setParams(p, { replace: true })
   }
 
-  const { data: nextSlots = {} } = useNextAvailableSlots(
+  // Un praticien en offre gratuite n'a pas de réservation en ligne : pas de
+  // « prochaine disponibilité » pour lui (et il passe après les autres au tri).
+  const { data: proDoctorIds } = useProDoctorIds(
     sort === 'next_slot' ? doctorsWithDistance.map(d => d.id) : []
+  )
+  const { data: nextSlots = {} } = useNextAvailableSlots(
+    sort === 'next_slot' ? doctorsWithDistance.map(d => d.id).filter(id => proDoctorIds?.has(id)) : []
   )
   const doctors = sort === 'next_slot'
     ? [...doctorsWithDistance].sort((a, b) => {
