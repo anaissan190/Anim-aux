@@ -131,7 +131,9 @@ describe('Mutations admin (écriture)', () => {
     vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: null } as any)
     vi.mocked(supabase.functions.invoke).mockResolvedValue({ data: { ok: true, skipped: 'not_review' }, error: null } as any)
     const { result } = renderHook(() => useAdminResolveReport(), { wrapper })
-    expect((await result.current.mutateAsync({ reportId: 'rep-2', status: 'dismissed' })).feedback).toBe('skipped')
+    const out = await result.current.mutateAsync({ reportId: 'rep-2', status: 'dismissed' })
+    expect(out.feedback).toBe('skipped')
+    expect(out.reason).toBe('not_review')
   })
 
   it("useAdminResolveReport ne bloque pas la clôture si l'email échoue, et le signale", async () => {

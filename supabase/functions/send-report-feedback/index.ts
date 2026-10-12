@@ -55,22 +55,41 @@ Deno.serve(async (req) => {
     if (report.status === 'pending') return json({ ok: false, error: 'Signalement pas encore traité' }, 400)
     if (report.feedback_sent_at) return json({ ok: true, skipped: 'already_sent' })
 
-    const { data: reporter } = await supabaseAdmin
+    // Deux requêtes simples plutôt qu'une jointure : une erreur de relation
+    // aurait fait croire à « pas d'adresse » sans rien dire (premier essai du
+    // 12/10/2026). Chaque échec est journalisé.
+    const { data: reporter, error: reporterErr } = await supabaseAdmin
       .from('users')
-      .select('email, profiles!user_id(first_name)')
+      .select('email')
       .eq('id', report.reporter_id)
-      .single()
+      .maybeSingle()
+    if (reporterErr) console.error('send-report-feedback: lecture du praticien', reporterErr)
     const reporterEmail = reporter?.email
-    if (!reporterEmail) return json({ ok: true, skipped: 'no_email' })
-    const firstName = (reporter?.profiles as any)?.first_name ?? null
+    if (!reporterEmail) {
+      console.error('send-report-feedback: aucune adresse pour', report.reporter_id)
+      return json({ ok: true, skipped: 'no_email' })
+    }
+    const { data: reporterProfile, error: profileErr } = await supabaseAdmin
+      .from('profiles')
+      .select('first_name')
+      .eq('user_id', report.reporter_id)
+      .maybeSingle()
+    if (profileErr) console.error('send-report-feedback: lecture du profil', profileErr)
+    const firstName = reporterProfile?.first_name ?? null
 
     // L'avis a-t-il été supprimé ? Son contenu vient alors de la copie prise au
     // moment du signalement (reports.target_snapshot, migration 131).
-    const { data: liveReview } = await supabaseAdmin
+    const { data: liveReview, error: reviewErr } = await supabaseAdmin
       .from('reviews')
       .select('rating, comment')
       .eq('id', report.target_id)
       .maybeSingle()
+    // Sur une erreur de lecture on ne sait pas si l'avis existe : on arrête plutôt
+    // que d'annoncer à tort « avis supprimé ».
+    if (reviewErr) {
+      console.error('send-report-feedback: lecture de l\'avis', reviewErr)
+      return json({ ok: true, skipped: 'review_lookup_failed' })
+    }
     const review = liveReview ?? (report.target_snapshot as any) ?? null
 
     const outcome = feedbackOutcome(report.status as 'resolved' | 'dismissed', !!liveReview)
@@ -100,7 +119,11 @@ Deno.serve(async (req) => {
       return json({ ok: true, emailSent: false })
     }
 
-    await supabaseAdmin.from('reports').update({ feedback_sent_at: new Date().toISOString() }).eq('id', report.id)
+    const { error: markErr } = await supabaseAdmin
+      .from('reports')
+      .update({ feedback_sent_at: new Date().toISOString() })
+      .eq('id', report.id)
+    if (markErr) console.error('send-report-feedback: enregistrement de l\'envoi', markErr)
     return json({ ok: true, emailSent: true })
   } catch (e) {
     console.error(e)

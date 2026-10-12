@@ -8,7 +8,7 @@ import {
   useAdminClinics, useAdminClinicDetail, useAdminSecretaries, useAdminAppointments,
   useAdminReports, useAdminResolveReport, useAdminDeleteReview, useAdminSuspendUser,
   useAdminUnsuspendUser, useAdminActionsLog,
-  type ReportFeedbackResult,
+  type ReportFeedbackOutcome,
 } from '@/hooks/useData'
 import { fr } from 'date-fns/locale'
 import { formatInTimeZone } from 'date-fns-tz'
@@ -1302,18 +1302,27 @@ function AdminReportsView({ onBack, onSelectDoctor }: { onBack: () => void; onSe
 
   // Retour affiché en haut de la vue après la clôture d'un signalement d'avis :
   // le praticien reçoit un email avec ton commentaire (fonction send-report-feedback).
-  function announceFeedback(report: any, feedback: ReportFeedbackResult) {
-    if (report.target_type !== 'review' || feedback === 'skipped') { setFeedbackNotice(null); return }
-    setFeedbackNotice(feedback === 'sent'
-      ? { ok: true, text: '✓ Signalement clos. Le retour a été envoyé au praticien par email.' }
-      : { ok: false, text: "Signalement clos, mais l'email de retour n'a pas pu être envoyé au praticien." })
+  function announceFeedback(report: any, outcome: ReportFeedbackOutcome) {
+    if (report.target_type !== 'review') { setFeedbackNotice(null); return }
+    const { feedback, reason } = outcome
+    if (feedback === 'sent') {
+      setFeedbackNotice({ ok: true, text: '✓ Signalement clos. Le retour a été envoyé au praticien par email.' })
+    } else if (feedback === 'skipped' && reason === 'already_sent') {
+      setFeedbackNotice({ ok: true, text: 'Signalement clos. Le retour avait déjà été envoyé à ce praticien.' })
+    } else {
+      // Pour un avis, un email non envoyé n'est jamais « normal » : on le dit, avec la raison.
+      const why = reason === 'no_email' ? " (adresse du praticien introuvable)"
+        : reason === 'review_lookup_failed' ? " (lecture de l'avis impossible)"
+        : ''
+      setFeedbackNotice({ ok: false, text: `Signalement clos, mais l'email de retour n'a pas pu être envoyé au praticien${why}.` })
+    }
   }
 
   async function handleResolve(report: any, status: 'resolved' | 'dismissed') {
     setResolveErrors(v => ({ ...v, [report.id]: '' }))
     try {
-      const { feedback } = await resolveReport.mutateAsync({ reportId: report.id, status, note: noteDraft[report.id]?.trim() || undefined })
-      announceFeedback(report, feedback)
+      const outcome = await resolveReport.mutateAsync({ reportId: report.id, status, note: noteDraft[report.id]?.trim() || undefined })
+      announceFeedback(report, outcome)
     } catch (e: any) {
       setResolveErrors(v => ({ ...v, [report.id]: e.message ?? 'Erreur, réessaie.' }))
     }
@@ -1329,10 +1338,10 @@ function AdminReportsView({ onBack, onSelectDoctor }: { onBack: () => void; onSe
       await deleteReview.mutateAsync(report.target_id)
       // 'Avis supprimé' = note par défaut, reconnue (et non présentée comme un
       // message de l'équipe) par supabase/functions/send-report-feedback/feedback.ts.
-      const { feedback } = await resolveReport.mutateAsync({
+      const outcome = await resolveReport.mutateAsync({
         reportId: report.id, status: 'resolved', note: noteDraft[report.id]?.trim() || 'Avis supprimé',
       })
-      announceFeedback(report, feedback)
+      announceFeedback(report, outcome)
       setConfirmingDeleteId(null)
     } catch (e: any) {
       setResolveErrors(v => ({ ...v, [report.id]: e.message ?? 'Erreur, réessaie.' }))
