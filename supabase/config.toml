@@ -447,3 +447,5 @@ verify_jwt = false
 verify_jwt = false
 [functions.send-waitlist-email]
 verify_jwt = false
+[functions.send-report-feedback]
+verify_jwt = false

@@ -8,6 +8,7 @@ import {
   useAdminClinics, useAdminClinicDetail, useAdminSecretaries, useAdminAppointments,
   useAdminReports, useAdminResolveReport, useAdminDeleteReview, useAdminSuspendUser,
   useAdminUnsuspendUser, useAdminActionsLog,
+  type ReportFeedbackResult,
 } from '@/hooks/useData'
 import { fr } from 'date-fns/locale'
 import { formatInTimeZone } from 'date-fns-tz'
@@ -1291,6 +1292,7 @@ function AdminReportsView({ onBack, onSelectDoctor }: { onBack: () => void; onSe
   const resolveReport = useAdminResolveReport()
   const deleteReview = useAdminDeleteReview()
   const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null)
+  const [feedbackNotice, setFeedbackNotice] = useState<{ ok: boolean; text: string } | null>(null)
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'resolved' | 'dismissed'>('pending')
   const [noteDraft, setNoteDraft] = useState<Record<string, string>>({})
   const [resolveErrors, setResolveErrors] = useState<Record<string, string>>({})
@@ -1298,12 +1300,22 @@ function AdminReportsView({ onBack, onSelectDoctor }: { onBack: () => void; onSe
   const list = statusFilter === 'all' ? reports : reports.filter((r: any) => r.status === statusFilter)
   const pendingCount = reports.filter((r: any) => r.status === 'pending').length
 
-  async function handleResolve(id: string, status: 'resolved' | 'dismissed') {
-    setResolveErrors(v => ({ ...v, [id]: '' }))
+  // Retour affiché en haut de la vue après la clôture d'un signalement d'avis :
+  // le praticien reçoit un email avec ton commentaire (fonction send-report-feedback).
+  function announceFeedback(report: any, feedback: ReportFeedbackResult) {
+    if (report.target_type !== 'review' || feedback === 'skipped') { setFeedbackNotice(null); return }
+    setFeedbackNotice(feedback === 'sent'
+      ? { ok: true, text: '✓ Signalement clos. Le retour a été envoyé au praticien par email.' }
+      : { ok: false, text: "Signalement clos, mais l'email de retour n'a pas pu être envoyé au praticien." })
+  }
+
+  async function handleResolve(report: any, status: 'resolved' | 'dismissed') {
+    setResolveErrors(v => ({ ...v, [report.id]: '' }))
     try {
-      await resolveReport.mutateAsync({ reportId: id, status, note: noteDraft[id]?.trim() || undefined })
+      const { feedback } = await resolveReport.mutateAsync({ reportId: report.id, status, note: noteDraft[report.id]?.trim() || undefined })
+      announceFeedback(report, feedback)
     } catch (e: any) {
-      setResolveErrors(v => ({ ...v, [id]: e.message ?? 'Erreur, réessaie.' }))
+      setResolveErrors(v => ({ ...v, [report.id]: e.message ?? 'Erreur, réessaie.' }))
     }
   }
 
@@ -1315,9 +1327,12 @@ function AdminReportsView({ onBack, onSelectDoctor }: { onBack: () => void; onSe
     setResolveErrors(v => ({ ...v, [report.id]: '' }))
     try {
       await deleteReview.mutateAsync(report.target_id)
-      await resolveReport.mutateAsync({
+      // 'Avis supprimé' = note par défaut, reconnue (et non présentée comme un
+      // message de l'équipe) par supabase/functions/send-report-feedback/feedback.ts.
+      const { feedback } = await resolveReport.mutateAsync({
         reportId: report.id, status: 'resolved', note: noteDraft[report.id]?.trim() || 'Avis supprimé',
       })
+      announceFeedback(report, feedback)
       setConfirmingDeleteId(null)
     } catch (e: any) {
       setResolveErrors(v => ({ ...v, [report.id]: e.message ?? 'Erreur, réessaie.' }))
@@ -1337,6 +1352,12 @@ function AdminReportsView({ onBack, onSelectDoctor }: { onBack: () => void; onSe
           {reports.length} signalement{reports.length > 1 ? 's' : ''} au total
           {pendingCount > 0 && <span className="text-amber-600"> · {pendingCount} en attente</span>}
         </p>
+
+        {feedbackNotice && (
+          <p className={`text-sm rounded-xl px-4 py-3 mb-4 ${feedbackNotice.ok ? 'bg-moss-100 text-moss-800' : 'bg-red-50 text-red-700'}`}>
+            {feedbackNotice.text}
+          </p>
+        )}
 
         <div className="flex gap-1.5 flex-wrap mb-4">
           {(['pending', 'all', 'resolved', 'dismissed'] as const).map(f => (
@@ -1399,7 +1420,10 @@ function AdminReportsView({ onBack, onSelectDoctor }: { onBack: () => void; onSe
 
                 {r.status === 'pending' ? (
                   <div className="space-y-2">
-                    <input className="input text-xs" placeholder="Note admin (optionnel, non visible par les utilisateurs)"
+                    <input className="input text-xs"
+                      placeholder={r.target_type === 'review'
+                        ? "Commentaire envoyé au praticien par email (optionnel)"
+                        : 'Note admin (optionnel, non visible par les utilisateurs)'}
                       value={noteDraft[r.id] ?? ''} onChange={e => setNoteDraft(v => ({ ...v, [r.id]: e.target.value }))} />
                     {resolveErrors[r.id] && <p className="text-xs text-red-600">{resolveErrors[r.id]}</p>}
                     {confirmingDeleteId === r.id ? (
@@ -1421,11 +1445,11 @@ function AdminReportsView({ onBack, onSelectDoctor }: { onBack: () => void; onSe
                             🗑️ Supprimer l&apos;avis
                           </button>
                         )}
-                        <button onClick={() => handleResolve(r.id, 'resolved')} disabled={resolveReport.isPending}
+                        <button onClick={() => handleResolve(r, 'resolved')} disabled={resolveReport.isPending}
                           className={r.target_type === 'review' && r.target_preview ? 'btn-secondary text-xs px-3 py-1.5' : 'btn-primary text-xs px-3 py-1.5'}>
                           {r.target_type === 'review' && r.target_preview ? '✓ Traité sans supprimer' : '✓ Traité'}
                         </button>
-                        <button onClick={() => handleResolve(r.id, 'dismissed')} disabled={resolveReport.isPending}
+                        <button onClick={() => handleResolve(r, 'dismissed')} disabled={resolveReport.isPending}
                           className="btn-secondary text-xs px-3 py-1.5">
                           Rejeter le signalement
                         </button>

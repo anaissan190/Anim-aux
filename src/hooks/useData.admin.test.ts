@@ -116,6 +116,41 @@ describe('Mutations admin (écriture)', () => {
       'admin_resolve_report', { p_report_id: 'rep-1', p_status: 'resolved', p_note: 'Vérifié' }
     ))
 
+  it("useAdminResolveReport déclenche l'email de retour au praticien après la clôture", async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: null } as any)
+    vi.mocked(supabase.functions.invoke).mockResolvedValue({ data: { ok: true, emailSent: true }, error: null } as any)
+    const { result } = renderHook(() => useAdminResolveReport(), { wrapper })
+
+    const out = await result.current.mutateAsync({ reportId: 'rep-1', status: 'resolved', note: 'Merci' })
+
+    expect(supabase.functions.invoke).toHaveBeenCalledWith('send-report-feedback', { body: { reportId: 'rep-1' } })
+    expect(out.feedback).toBe('sent')
+  })
+
+  it("useAdminResolveReport signale « skipped » quand il n'y a rien à envoyer (signalement d'un praticien)", async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: null } as any)
+    vi.mocked(supabase.functions.invoke).mockResolvedValue({ data: { ok: true, skipped: 'not_review' }, error: null } as any)
+    const { result } = renderHook(() => useAdminResolveReport(), { wrapper })
+    expect((await result.current.mutateAsync({ reportId: 'rep-2', status: 'dismissed' })).feedback).toBe('skipped')
+  })
+
+  it("useAdminResolveReport ne bloque pas la clôture si l'email échoue, et le signale", async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: null } as any)
+    vi.mocked(supabase.functions.invoke).mockResolvedValue({ data: null, error: { message: 'boom' } } as any)
+    const { result } = renderHook(() => useAdminResolveReport(), { wrapper })
+    expect((await result.current.mutateAsync({ reportId: 'rep-3', status: 'resolved' })).feedback).toBe('failed')
+
+    vi.mocked(supabase.functions.invoke).mockRejectedValue(new Error('réseau'))
+    expect((await result.current.mutateAsync({ reportId: 'rep-3', status: 'resolved' })).feedback).toBe('failed')
+  })
+
+  it("useAdminResolveReport n'envoie aucun email si la clôture elle-même échoue", async () => {
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: null, error: { message: 'Accès réservé aux administrateurs' } } as any)
+    const { result } = renderHook(() => useAdminResolveReport(), { wrapper })
+    await expect(result.current.mutateAsync({ reportId: 'rep-4', status: 'resolved' })).rejects.toThrow()
+    expect(supabase.functions.invoke).not.toHaveBeenCalled()
+  })
+
   it('useAdminDeleteReview → admin_delete_review avec l\'id de l\'avis', () =>
     expectMutationCallsRpc(() => useAdminDeleteReview(), 'r1', 'admin_delete_review', { p_review_id: 'r1' }))
 

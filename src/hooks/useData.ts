@@ -3050,14 +3050,32 @@ export function useAdminReports() {
   })
 }
 
+// Résultat de l'email de retour envoyé au praticien qui a signalé un avis :
+//   sent    : email parti ;
+//   skipped : rien à envoyer (signalement d'un praticien, ou déjà envoyé) ;
+//   failed  : la clôture a réussi mais l'email n'est pas parti — l'écran admin le
+//             dit, pour que ça ne passe pas pour un succès silencieux.
+export type ReportFeedbackResult = 'sent' | 'skipped' | 'failed'
+
 export function useAdminResolveReport() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async ({ reportId, status, note }: { reportId: string; status: 'resolved' | 'dismissed'; note?: string }) => {
+    mutationFn: async ({ reportId, status, note }: { reportId: string; status: 'resolved' | 'dismissed'; note?: string }): Promise<{ feedback: ReportFeedbackResult }> => {
       const { error } = await supabase.rpc('admin_resolve_report', {
         p_report_id: reportId, p_status: status, p_note: note ?? null,
       })
       if (error) throw error
+
+      // Best-effort : la clôture du signalement ne dépend jamais de cet email.
+      let feedback: ReportFeedbackResult = 'failed'
+      try {
+        const { data, error: fnError } = await supabase.functions.invoke('send-report-feedback', { body: { reportId } })
+        if (!fnError && data?.emailSent) feedback = 'sent'
+        else if (!fnError && data?.skipped) feedback = 'skipped'
+      } catch (e) {
+        console.error('Email de retour au praticien non envoyé :', e)
+      }
+      return { feedback }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin_reports'] })
