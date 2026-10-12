@@ -125,11 +125,11 @@ export default function SearchPage() {
     setParams(p, { replace: true })
   }
 
-  // Un praticien en offre gratuite n'a pas de réservation en ligne : pas de
-  // « prochaine disponibilité » pour lui (et il passe après les autres au tri).
-  const { data: proDoctorIds } = useProDoctorIds(
-    sort === 'next_slot' ? doctorsWithDistance.map(d => d.id) : []
-  )
+  // Un praticien en offre gratuite n'a pas de réservation en ligne : bouton
+  // « Voir la fiche » au lieu de « Réserver », pas de « prochaine disponibilité »
+  // (et il passe après les autres au tri). Tant que la liste n'est pas connue,
+  // on garde l'affichage habituel.
+  const { data: proDoctorIds } = useProDoctorIds(doctorsWithDistance.map(d => d.id))
   const { data: nextSlots = {} } = useNextAvailableSlots(
     sort === 'next_slot' ? doctorsWithDistance.map(d => d.id).filter(id => proDoctorIds?.has(id)) : []
   )
@@ -356,7 +356,7 @@ export default function SearchPage() {
                         )}
                         {doctors.map((d, i) => (
                           <div key={d.id} className="animate-rise-in" style={{ animationDelay: `${i * 60}ms` }}>
-                            <DoctorCard doctor={d} distanceKm={d.distanceKm} nextSlotAt={nextSlots[d.id]} />
+                            <DoctorCard doctor={d} distanceKm={d.distanceKm} nextSlotAt={nextSlots[d.id]} canBook={proDoctorIds ? proDoctorIds.has(d.id) : true} />
                           </div>
                         ))}
                       </div>

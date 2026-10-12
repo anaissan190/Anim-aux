@@ -61,4 +61,24 @@ describe('DoctorCard', () => {
     renderCard({ doctor: baseDoctor(), nextSlotAt: null })
     expect(screen.queryByText(/🕐/)).not.toBeInTheDocument()
   })
+
+  // Offre gratuite (migration 127/128) : pas de réservation en ligne.
+  it('propose « Réserver » par défaut, y compris tant que l\'offre n\'est pas connue', () => {
+    renderCard({ doctor: baseDoctor() })
+    expect(screen.getByText('Réserver')).toBeInTheDocument()
+    expect(screen.queryByText('Voir la fiche')).not.toBeInTheDocument()
+  })
+
+  it('remplace « Réserver » par « Voir la fiche » pour un praticien gratuit', () => {
+    renderCard({ doctor: baseDoctor(), canBook: false })
+    expect(screen.getByText('Voir la fiche')).toBeInTheDocument()
+    expect(screen.queryByText('Réserver')).not.toBeInTheDocument()
+  })
+
+  it('masque le prochain créneau pour un praticien gratuit', () => {
+    const tomorrowDate = new Date(); tomorrowDate.setDate(tomorrowDate.getDate() + 1)
+    const tomorrow = parisTimeToUtc(parisDateKey(tomorrowDate), '09:00')
+    renderCard({ doctor: baseDoctor(), nextSlotAt: tomorrow.toISOString(), canBook: false })
+    expect(screen.queryByText(/Demain à 09:00/)).not.toBeInTheDocument()
+  })
 })

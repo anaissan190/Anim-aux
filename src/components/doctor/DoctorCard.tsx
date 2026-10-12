@@ -4,7 +4,9 @@ import StarRating from '@/components/ui/StarRating'
 import { formatNextSlotLabel } from '@/lib/nextSlot'
 import type { Doctor } from '@/types'
 
-interface Props { doctor: Doctor & { profiles?: any }; distanceKm?: number; nextSlotAt?: string | null }
+// canBook = false : praticien en offre gratuite, pas de réservation en ligne (la
+// carte mène à sa fiche, qui affiche ses coordonnées).
+interface Props { doctor: Doctor & { profiles?: any }; distanceKm?: number; nextSlotAt?: string | null; canBook?: boolean }
 
 // Alterne le duo de couleurs de l'avatar (initiales) entre l'orange et le
 // vert de la palette, dérivé de façon stable depuis l'id — pas d'ordre
@@ -16,7 +18,7 @@ function colorPairFromId(id: string) {
     : { bg: 'bg-moss-100', text: 'text-moss-700' }
 }
 
-export default function DoctorCard({ doctor, distanceKm, nextSlotAt }: Props) {
+export default function DoctorCard({ doctor, distanceKm, nextSlotAt, canBook = true }: Props) {
   const name = doctor.profiles
     ? `${doctor.profiles.first_name} ${doctor.profiles.last_name}`
     : 'Praticien'
@@ -64,14 +66,20 @@ export default function DoctorCard({ doctor, distanceKm, nextSlotAt }: Props) {
 
       {/* Disponibilité + action — pastille + bouton pilule (maquette Main.dc.html) */}
       <div className="flex-shrink-0 flex items-center gap-3">
-        {nextSlotAt && (
+        {canBook && nextSlotAt && (
           <span className="hidden sm:inline-block bg-moss-100 text-moss-700 text-xs font-bold px-4 py-2 rounded-full whitespace-nowrap">
             {formatNextSlotLabel(new Date(nextSlotAt))}
           </span>
         )}
-        <span className="bg-sage-600 group-hover:bg-sage-700 text-white text-[13px] font-bold px-5 py-2.5 rounded-full whitespace-nowrap transition-colors">
-          Réserver
-        </span>
+        {canBook ? (
+          <span className="bg-sage-600 group-hover:bg-sage-700 text-white text-[13px] font-bold px-5 py-2.5 rounded-full whitespace-nowrap transition-colors">
+            Réserver
+          </span>
+        ) : (
+          <span className="bg-white group-hover:bg-sage-50 text-sage-700 border border-sand-200 text-[13px] font-bold px-5 py-2.5 rounded-full whitespace-nowrap transition-colors">
+            Voir la fiche
+          </span>
+        )}
       </div>
     </Link>
   )
