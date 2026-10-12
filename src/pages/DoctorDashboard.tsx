@@ -27,6 +27,7 @@ import AnimatedCounter from '@/components/ui/AnimatedCounter'
 import { showToast } from '@/lib/toast'
 import { ETHICS_CHARTER_CLAUSES } from '@/lib/ethicsCharter'
 import { compressImage } from '@/lib/compressImage'
+import ReportButton from '@/components/ui/ReportButton'
 
 // La barre d'onglets (Accueil, Mes patients, Tarifs, Disponibilités, Avis)
 // est désormais affichée dans la Navbar, à la suite du logo, pour être
@@ -2741,6 +2742,10 @@ export default function DoctorDashboard() {
                         Répondre à cet avis
                       </button>
                     )}
+                    <div className="mt-2">
+                      <ReportButton targetType="review" targetId={r.id} label="Signaler cet avis"
+                        placeholder="Pourquoi cet avis est-il abusif ? (propos injurieux, avis sans rapport avec une consultation...)" />
+                    </div>
                   </div>
                 ))}
               </div>
