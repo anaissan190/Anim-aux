@@ -1289,6 +1289,8 @@ const REPORT_TARGET_LABEL: Record<string, string> = { review: 'Avis', doctor: 'P
 function AdminReportsView({ onBack, onSelectDoctor }: { onBack: () => void; onSelectDoctor: (id: string) => void }) {
   const { data: reports = [], isLoading } = useAdminReports()
   const resolveReport = useAdminResolveReport()
+  const deleteReview = useAdminDeleteReview()
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'resolved' | 'dismissed'>('pending')
   const [noteDraft, setNoteDraft] = useState<Record<string, string>>({})
   const [resolveErrors, setResolveErrors] = useState<Record<string, string>>({})
@@ -1302,6 +1304,23 @@ function AdminReportsView({ onBack, onSelectDoctor }: { onBack: () => void; onSe
       await resolveReport.mutateAsync({ reportId: id, status, note: noteDraft[id]?.trim() || undefined })
     } catch (e: any) {
       setResolveErrors(v => ({ ...v, [id]: e.message ?? 'Erreur, réessaie.' }))
+    }
+  }
+
+  // Signalement d'un avis accepté : on supprime l'avis puis on clôture le
+  // signalement en « traité », en une seule action. Si la suppression réussit
+  // mais pas la clôture, le signalement reste en attente et un clic sur « Traité »
+  // suffit (l'avis n'existe plus, son aperçu disparaît).
+  async function handleDeleteReview(report: any) {
+    setResolveErrors(v => ({ ...v, [report.id]: '' }))
+    try {
+      await deleteReview.mutateAsync(report.target_id)
+      await resolveReport.mutateAsync({
+        reportId: report.id, status: 'resolved', note: noteDraft[report.id]?.trim() || 'Avis supprimé',
+      })
+      setConfirmingDeleteId(null)
+    } catch (e: any) {
+      setResolveErrors(v => ({ ...v, [report.id]: e.message ?? 'Erreur, réessaie.' }))
     }
   }
 
@@ -1383,16 +1402,35 @@ function AdminReportsView({ onBack, onSelectDoctor }: { onBack: () => void; onSe
                     <input className="input text-xs" placeholder="Note admin (optionnel, non visible par les utilisateurs)"
                       value={noteDraft[r.id] ?? ''} onChange={e => setNoteDraft(v => ({ ...v, [r.id]: e.target.value }))} />
                     {resolveErrors[r.id] && <p className="text-xs text-red-600">{resolveErrors[r.id]}</p>}
-                    <div className="flex gap-2">
-                      <button onClick={() => handleResolve(r.id, 'resolved')} disabled={resolveReport.isPending}
-                        className="btn-primary text-xs px-3 py-1.5">
-                        ✓ Traité
-                      </button>
-                      <button onClick={() => handleResolve(r.id, 'dismissed')} disabled={resolveReport.isPending}
-                        className="btn-secondary text-xs px-3 py-1.5">
-                        Rejeter le signalement
-                      </button>
-                    </div>
+                    {confirmingDeleteId === r.id ? (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs text-red-600">Supprimer définitivement cet avis et clôturer le signalement ?</span>
+                        <button onClick={() => handleDeleteReview(r)} disabled={deleteReview.isPending || resolveReport.isPending}
+                          className="text-xs font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg px-3 py-1.5">
+                          Confirmer
+                        </button>
+                        <button onClick={() => setConfirmingDeleteId(null)} className="text-xs text-gray-500 hover:text-gray-700">
+                          Annuler
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2 flex-wrap">
+                        {r.target_type === 'review' && r.target_preview && (
+                          <button onClick={() => setConfirmingDeleteId(r.id)} disabled={resolveReport.isPending}
+                            className="btn-primary text-xs px-3 py-1.5 bg-red-500 hover:bg-red-600">
+                            🗑️ Supprimer l&apos;avis
+                          </button>
+                        )}
+                        <button onClick={() => handleResolve(r.id, 'resolved')} disabled={resolveReport.isPending}
+                          className={r.target_type === 'review' && r.target_preview ? 'btn-secondary text-xs px-3 py-1.5' : 'btn-primary text-xs px-3 py-1.5'}>
+                          {r.target_type === 'review' && r.target_preview ? '✓ Traité sans supprimer' : '✓ Traité'}
+                        </button>
+                        <button onClick={() => handleResolve(r.id, 'dismissed')} disabled={resolveReport.isPending}
+                          className="btn-secondary text-xs px-3 py-1.5">
+                          Rejeter le signalement
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ) : r.admin_note && (
                   <p className="text-xs text-gray-400 italic">Note : {r.admin_note}</p>
