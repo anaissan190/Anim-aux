@@ -117,7 +117,7 @@ Si un futur job cron+Edge Function silencieusement "ne fait rien", vérifier ces
 - **Connexion automatisée impossible** (Cloudflare Turnstile) : les parcours connectés se vérifient avec Anaïs ou par tests ; le dire clairement plutôt que de laisser croire à une vérification réelle.
 
 ### Bugs connus
-- `npm audit` signale 2 vulnérabilités modérées dans `react-router` (désérialisation à l'hydratation SSR) : non exploitables ici, l'app est un SPA sans rendu serveur ; le correctif impose un saut de version majeure (7) à planifier à part.
+- `npm audit --omit=dev` (ce qui est livré) signale 2 vulnérabilités modérées dans `react-router` (désérialisation à l'hydratation SSR) : non exploitables ici, l'app est un SPA sans rendu serveur ; le correctif impose un saut de version majeure (7) à planifier à part. Le `npm audit` complet en liste davantage (vite, tailwindcss, braces… : outils de build/dev, jamais livrés) ; les 2 critiques (`solid-js`, `seroval`) viennent de `@tanstack/react-query-devtools`, rangé en devDependencies depuis le 13/10/2026 et absent du build livré (vérifié : aucune trace dans `dist/`).
 
 ### À continuer avec l'utilisatrice
 - Modifications à définir sur l'appli (dashboard patient, recherche, page praticien...)
