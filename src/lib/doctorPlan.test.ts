@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   hasProFeatures, otherPlan, otherClinicPlan, clinicSeatsLeft, PLAN_LABEL, CLINIC_PLAN_LABEL,
-  MAX_CLINIC_PRACTITIONERS, doctorFlagLabels, clinicStatusText,
+  MAX_CLINIC_PRACTITIONERS, doctorFlagLabels, clinicStatusText, upgradeMailto, UPGRADE_CONTACT_EMAIL,
 } from './doctorPlan'
 
 describe('hasProFeatures', () => {
@@ -100,5 +100,23 @@ describe('clinicStatusText', () => {
   it("traite un cabinet sans offre connue comme abonné (cache d'avant la migration)", () => {
     expect(clinicStatusText(undefined, 2).active).toBe(true)
     expect(clinicStatusText(null, 2).active).toBe(true)
+  })
+})
+
+describe('upgradeMailto', () => {
+  it("pointe vers l'adresse de l'équipe avec un objet et un message encodés", () => {
+    const url = upgradeMailto('Gary Test')
+    expect(url.startsWith(`mailto:${UPGRADE_CONTACT_EMAIL}?`)).toBe(true)
+    const params = new URLSearchParams(url.split('?')[1])
+    expect(params.get('subject')).toBe("Demande d'abonnement Animéaux")
+    expect(params.get('body')).toContain("passer à l'abonnement Animéaux (Gary Test)")
+  })
+
+  it("reste valide sans nom ou avec un nom vide", () => {
+    for (const name of [undefined, null, '', '   ']) {
+      const params = new URLSearchParams(upgradeMailto(name as any).split('?')[1])
+      expect(params.get('body')).toContain("passer à l'abonnement Animéaux.")
+      expect(params.get('body')).not.toContain('()')
+    }
   })
 })

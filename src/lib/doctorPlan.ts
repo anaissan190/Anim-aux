@@ -74,3 +74,15 @@ export function clinicStatusText(plan: string | null | undefined, memberCount: n
       + (left === 0 ? ' : le cabinet est complet.' : '.'),
   }
 }
+
+// Tant que le paiement en ligne n'est pas branché, l'abonnement s'active à la
+// demande : le bouton « Passer à l'abonnement » ouvre un email pré-rempli vers
+// l'équipe, qui active l'offre depuis l'administration (admin_set_doctor_plan).
+export const UPGRADE_CONTACT_EMAIL = 'contact.animeaux@gmail.com'
+
+export function upgradeMailto(doctorName?: string | null): string {
+  const name = doctorName?.trim()
+  const subject = "Demande d'abonnement Animéaux"
+  const body = `Bonjour,\n\nJe souhaite passer à l'abonnement Animéaux${name ? ` (${name})` : ''}.\n\nMerci de me recontacter.`
+  return `mailto:${UPGRADE_CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+}

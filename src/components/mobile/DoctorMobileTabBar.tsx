@@ -6,8 +6,8 @@
 // Libellés raccourcis par rapport à DOCTOR_TABS (pensés pour le "hidden
 // lg:inline" de la Navbar desktop, trop longs pour 6 colonnes étroites).
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
-import type { DoctorTab } from '@/lib/doctorDashboardTabs'
-import { useCurrentDoctor, useMyClinic } from '@/hooks/useData'
+import { isTabLocked, type DoctorTab } from '@/lib/doctorDashboardTabs'
+import { useCurrentDoctor, useMyClinic, useDoctorHasPro } from '@/hooks/useData'
 
 const TABS: { id: DoctorTab; label: string; icon: string }[] = [
   { id: 'home',           label: 'Espace',   icon: '🏠' },
@@ -28,6 +28,7 @@ export default function DoctorMobileTabBar() {
   // desktop, pas listé dans TABS ci-dessus car conditionnel.
   const { data: currentDoctor } = useCurrentDoctor()
   const { data: clinic } = useMyClinic(currentDoctor?.id)
+  const { data: hasPro } = useDoctorHasPro(currentDoctor?.id)
   // "Stats" masqué avec un cabinet : ses statistiques déménagent dans
   // l'onglet Cabinet (retour d'Anaïs du 07/09/2026).
   const tabs = clinic
@@ -41,12 +42,14 @@ export default function DoctorMobileTabBar() {
           const active = onDashboard && activeTab === tab.id
           return (
             <Link key={tab.id} to={`/dashboard/doctor?tab=${tab.id}`} data-tour={`doctor-tab:${tab.id}`}
-              className={`relative flex-1 flex flex-col items-center gap-[3px] ${active ? 'text-sage-600' : 'text-gray-400'}`}>
+              className={`relative flex-1 flex flex-col items-center gap-[3px] ${active ? 'text-sage-600' : isTabLocked(tab.id, hasPro) ? 'text-gray-300' : 'text-gray-400'}`}>
               {active && (
                 <span className="absolute -top-[10px] left-1/2 -translate-x-1/2 w-4 h-[3px] rounded-full bg-sage-500" />
               )}
               <span className={`text-xl leading-none transition-transform ${active ? 'scale-110' : ''}`}>{tab.icon}</span>
-              <span className="text-[9.5px] font-bold leading-tight">{tab.label}</span>
+              <span className="text-[9.5px] font-bold leading-tight">
+                {tab.label}{isTabLocked(tab.id, hasPro) && <span aria-label="réservé à l'abonnement"> 🔒</span>}
+              </span>
             </Link>
           )
         })}

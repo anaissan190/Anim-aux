@@ -31,3 +31,38 @@ export const DOCTOR_TABS: { id: DoctorTab; label: string; icon: string }[] = [
 export const CABINET_TAB = { id: 'cabinet' as const, label: 'Mon cabinet', icon: '🏥' }
 
 export const ALL_DOCTOR_TAB_IDS: DoctorTab[] = ['home', 'patients', 'tarifs', 'disponibilites', 'cabinet', 'profil', 'avis', 'messages', 'stats']
+
+// ── Offre gratuite (migration 127/128) ───────────────────────────────────────
+// Un praticien en offre gratuite n'a qu'une fiche visible : ces onglets lui sont
+// fermés (réservation, agenda, statistiques, tarifs réservables, dossiers de ses
+// patients). Restent ouverts : Mon espace, Avis, Profil, Messages (il peut
+// répondre aux conversations déjà ouvertes) et Cabinet (il y voit l'état
+// d'activation de son cabinet). Un onglet verrouillé reste cliquable : il affiche
+// une page qui explique ce que l'abonnement apporte, plutôt qu'un lien mort.
+export const FREE_PLAN_LOCKED_TABS: DoctorTab[] = ['patients', 'tarifs', 'disponibilites', 'stats']
+
+// `hasPro` vient de la base (useDoctorHasPro) : `undefined` tant que la réponse
+// n'est pas là → rien n'est verrouillé (pas de cadenas qui clignote pour un
+// abonné). Seul un `false` explicite verrouille.
+export function isTabLocked(tab: string, hasPro: boolean | undefined): boolean {
+  return hasPro === false && (FREE_PLAN_LOCKED_TABS as string[]).includes(tab)
+}
+
+export const LOCKED_TAB_PITCH: Partial<Record<DoctorTab, { title: string; body: string }>> = {
+  patients: {
+    title: 'Les dossiers de vos patients',
+    body: "Avec l'abonnement, retrouvez les animaux que vous suivez, leur historique, et ajoutez vos suivis et pesées.",
+  },
+  tarifs: {
+    title: 'Vos tarifs et prestations',
+    body: "Avec l'abonnement, présentez vos prestations, leur prix et leur durée tels que vos patients les voient à la réservation.",
+  },
+  disponibilites: {
+    title: 'Votre agenda et les réservations en ligne',
+    body: "Avec l'abonnement, vos patients réservent directement dans vos créneaux, et vous gérez vos rendez-vous, vos disponibilités et vos rappels.",
+  },
+  stats: {
+    title: 'Vos statistiques',
+    body: "Avec l'abonnement, suivez votre activité mois après mois et téléchargez votre export comptable.",
+  },
+}

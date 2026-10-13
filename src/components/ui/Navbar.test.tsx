@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createQueryBuilderMock, createSupabaseMock } from '@/test/supabaseMock'
@@ -96,6 +96,46 @@ describe('Navbar — praticien', () => {
     expect(tarifsLink?.className).toContain('bg-sage-500')
     const homeLink = screen.getByText('Mon espace').closest('a')
     expect(homeLink?.className).not.toContain('bg-sage-500')
+  })
+})
+
+describe('Navbar — praticien et offre gratuite', () => {
+  // Le praticien est lu dans `doctors`, son offre via la RPC doctor_has_pro.
+  function renderDoctorNavbar(hasPro: boolean) {
+    useAuthStore.setState({ user: fakeUser({ role: 'doctor' }) })
+    vi.mocked(supabase.rpc).mockImplementation(((name: string) =>
+      Promise.resolve({ data: name === 'doctor_has_pro' ? hasPro : [], error: null })) as any)
+    vi.mocked(supabase.from).mockImplementation(((table: string) =>
+      table === 'doctors'
+        ? createQueryBuilderMock({ data: { id: 'doc-1', user_id: 'u1' }, error: null })
+        : createQueryBuilderMock({ data: [], error: null })) as any)
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    return render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/dashboard/doctor']}><Navbar /></MemoryRouter>
+      </QueryClientProvider>
+    )
+  }
+
+  const lockOf = (label: string) => screen.getByText(label).closest('a')!.querySelector('[title="Réservé à l\'abonnement"]')
+
+  it('met un cadenas sur Mes patients, Tarifs, RDV et Statistiques, pas sur Mon espace ni Avis', async () => {
+    renderDoctorNavbar(false)
+    await waitFor(() => expect(lockOf('Mes patients')).not.toBeNull())
+    expect(lockOf('Tarifs')).not.toBeNull()
+    expect(lockOf('RDV')).not.toBeNull()
+    expect(lockOf('Statistiques')).not.toBeNull()
+    expect(lockOf('Mon espace')).toBeNull()
+    expect(lockOf('Avis')).toBeNull()
+    // Les onglets restent cliquables : la page explique l'abonnement.
+    expect(screen.getByText('Mes patients').closest('a')).toHaveAttribute('href', '/dashboard/doctor?tab=patients')
+  })
+
+  it('ne met aucun cadenas à un praticien abonné', async () => {
+    renderDoctorNavbar(true)
+    await waitFor(() => expect(vi.mocked(supabase.rpc).mock.calls.some(c => c[0] === 'doctor_has_pro')).toBe(true))
+    expect(lockOf('Mes patients')).toBeNull()
+    expect(lockOf('Statistiques')).toBeNull()
   })
 })
 

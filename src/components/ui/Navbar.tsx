@@ -2,9 +2,9 @@
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '@/lib/authStore'
 import NotificationBell from './NotificationBell'
-import { DOCTOR_TABS, CABINET_TAB } from '@/lib/doctorDashboardTabs'
+import { DOCTOR_TABS, CABINET_TAB, isTabLocked } from '@/lib/doctorDashboardTabs'
 import { PATIENT_TABS } from '@/lib/patientNavTabs'
-import { useConversationPartners, useMyClinicStaffInfo, useCurrentDoctor, useMyClinic } from '@/hooks/useData'
+import { useConversationPartners, useMyClinicStaffInfo, useCurrentDoctor, useMyClinic, useDoctorHasPro } from '@/hooks/useData'
 import logoNavbar from '@/assets/logo-navbar.webp'
 
 export default function Navbar() {
@@ -25,6 +25,9 @@ export default function Navbar() {
   // superflue pour les autres rôles.
   const { data: currentDoctor } = useCurrentDoctor()
   const { data: clinic } = useMyClinic(currentDoctor?.id)
+  // Offre gratuite : certains onglets portent un cadenas (ils restent cliquables
+  // et expliquent l'abonnement). `undefined` tant que la base n'a pas répondu.
+  const { data: hasPro } = useDoctorHasPro(currentDoctor?.id)
 
   // Onglet actif du dashboard praticien, dérivé directement de l'URL — pour
   // pouvoir surligner le bon onglet ici, dans la Navbar.
@@ -62,9 +65,12 @@ export default function Navbar() {
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors
                   ${onDoctorDashboard && activeDoctorTab === t.id
                     ? 'bg-sage-500 text-white'
-                    : 'bg-sage-50 text-sage-600 hover:bg-sage-100'}`}>
+                    : isTabLocked(t.id, hasPro)
+                      ? 'bg-sand-100 text-gray-400 hover:bg-sage-50'
+                      : 'bg-sage-50 text-sage-600 hover:bg-sage-100'}`}>
                 <span>{t.icon}</span>
                 <span className="hidden lg:inline">{t.label}</span>
+                {isTabLocked(t.id, hasPro) && <span aria-label="réservé à l'abonnement" title="Réservé à l'abonnement">🔒</span>}
               </Link>
             ))}
             {clinic && (

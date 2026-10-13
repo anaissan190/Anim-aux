@@ -10,7 +10,7 @@ import DoctorMobileTabBar from '@/components/mobile/DoctorMobileTabBar'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 import { supabase } from '@/lib/supabase'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
-import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useReplyToReview, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useDoctorServices, useAddDoctorService, useDeleteDoctorService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments, useInviteClinicSecretary, useClinicStaffList, useExportMyData, useMyWaitlistCount, useDeleteClinic, useRemoveClinicSecretary, useSignedDocumentUrls,
+import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useReplyToReview, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useDoctorServices, useAddDoctorService, useDeleteDoctorService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments, useInviteClinicSecretary, useClinicStaffList, useExportMyData, useMyWaitlistCount, useDeleteClinic, useRemoveClinicSecretary, useSignedDocumentUrls, useDoctorHasPro,
   useDoctorVerificationDocuments, useUploadVerificationDocument, useDeleteVerificationDocument, useMyVerificationRejectedReason, useAcceptEthicsCharter,
   usePushSubscriptionStatus, useEnablePushNotifications, useDisablePushNotifications, useMessagingRealtime,
   useCalendarFeedToken, useRegenerateCalendarFeedToken, useReceivedReferrals } from '@/hooks/useData'
@@ -29,6 +29,8 @@ import { ETHICS_CHARTER_CLAUSES } from '@/lib/ethicsCharter'
 import { compressImage } from '@/lib/compressImage'
 import ReportButton from '@/components/ui/ReportButton'
 import { clinicStatusText } from '@/lib/doctorPlan'
+import UpgradePanel from '@/components/doctor/UpgradePanel'
+import { isTabLocked, LOCKED_TAB_PITCH } from '@/lib/doctorDashboardTabs'
 
 // La barre d'onglets (Accueil, Mes patients, Tarifs, Disponibilités, Avis)
 // est désormais affichée dans la Navbar, à la suite du logo, pour être
@@ -50,6 +52,8 @@ const DAYS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dima
 export default function DoctorDashboard() {
   const { profile } = useAuthStore()
   const { data: doctor, isLoading: doctorLoading } = useCurrentDoctor()
+  // Offre : `false` = offre gratuite (fiche seulement) ; `undefined` tant que la base n'a pas répondu.
+  const { data: hasPro } = useDoctorHasPro(doctor?.id)
   // Exemple de placeholder pour "Nom de prestation" adapté au métier réel
   // plutôt que systématiquement "Vaccination" — sans rapport pour un
   // comportementaliste, toiletteur, éducateur canin... (repéré en
@@ -776,9 +780,20 @@ export default function DoctorDashboard() {
           </div>
         )}
 
+        {/* Onglet fermé par l'offre gratuite : page qui explique l'abonnement. */}
+        {isTabLocked(tab, hasPro) && LOCKED_TAB_PITCH[tab] && (
+          <UpgradePanel variant="page" title={LOCKED_TAB_PITCH[tab]!.title} body={LOCKED_TAB_PITCH[tab]!.body}
+            doctorName={profile ? `${profile.first_name} ${profile.last_name}` : null} />
+        )}
+
         {/* ── ACCUEIL ── */}
         {tab === 'home' && (
           <>
+            {hasPro === false && (
+              <UpgradePanel title="Ouvrez votre agenda aux réservations"
+                body="Vos patients voient déjà votre fiche. Avec l'abonnement, ils réservent en ligne, vous écrivent, et vous suivez votre activité."
+                doctorName={profile ? `${profile.first_name} ${profile.last_name}` : null} />
+            )}
             <div className="flex items-start justify-between mb-8">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
@@ -863,7 +878,7 @@ export default function DoctorDashboard() {
         )}
 
         {/* ── MES PATIENTS ── */}
-        {tab === 'patients' && (
+        {tab === 'patients' && !isTabLocked('patients', hasPro) && (
           <div className="animate-rise-in">
             <Link to="/dashboard/doctor?tab=home"
               className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors mb-4">
@@ -979,7 +994,7 @@ export default function DoctorDashboard() {
         )}
 
         {/* ── TARIFS ── */}
-        {tab === 'tarifs' && (
+        {tab === 'tarifs' && !isTabLocked('tarifs', hasPro) && (
           <div className="max-w-2xl animate-rise-in">
             <Link to="/dashboard/doctor?tab=home"
               className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors mb-4">
@@ -1175,7 +1190,7 @@ export default function DoctorDashboard() {
         )}
 
         {/* ── RDV (+ disponibilités en bas de page) ── */}
-        {tab === 'disponibilites' && (
+        {tab === 'disponibilites' && !isTabLocked('disponibilites', hasPro) && (
           <div className="max-w-3xl animate-rise-in">
             <Link to="/dashboard/doctor?tab=home"
               className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors mb-4">
@@ -2769,7 +2784,7 @@ export default function DoctorDashboard() {
           </div>
         )}
 
-        {tab === 'stats' && (
+        {tab === 'stats' && !isTabLocked('stats', hasPro) && (
           <div className="max-w-3xl animate-rise-in">
             <Link to="/dashboard/doctor?tab=home"
               className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors mb-4">
