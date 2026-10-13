@@ -35,11 +35,11 @@ export const ALL_DOCTOR_TAB_IDS: DoctorTab[] = ['home', 'patients', 'tarifs', 'd
 // ── Offre gratuite (migration 127/128) ───────────────────────────────────────
 // Un praticien en offre gratuite n'a qu'une fiche visible : ces onglets lui sont
 // fermés (réservation, agenda, statistiques, tarifs réservables, dossiers de ses
-// patients). Restent ouverts : Mon espace, Avis, Profil, Messages (il peut
-// répondre aux conversations déjà ouvertes) et Cabinet (il y voit l'état
+// patients) et la messagerie, dans les deux sens (migration 128/133 côté base).
+// Restent ouverts : Mon espace, Avis, Profil et Cabinet (il y voit l'état
 // d'activation de son cabinet). Un onglet verrouillé reste cliquable : il affiche
 // une page qui explique ce que l'abonnement apporte, plutôt qu'un lien mort.
-export const FREE_PLAN_LOCKED_TABS: DoctorTab[] = ['patients', 'tarifs', 'disponibilites', 'stats']
+export const FREE_PLAN_LOCKED_TABS: DoctorTab[] = ['patients', 'tarifs', 'disponibilites', 'stats', 'messages']
 
 // `hasPro` vient de la base (useDoctorHasPro) : `undefined` tant que la réponse
 // n'est pas là → rien n'est verrouillé (pas de cadenas qui clignote pour un
@@ -60,6 +60,10 @@ export const LOCKED_TAB_PITCH: Partial<Record<DoctorTab, { title: string; body: 
   disponibilites: {
     title: 'Votre agenda et les réservations en ligne',
     body: "Avec l'abonnement, vos patients réservent directement dans vos créneaux, et vous gérez vos rendez-vous, vos disponibilités et vos rappels.",
+  },
+  messages: {
+    title: 'La messagerie avec vos patients',
+    body: "Avec l'abonnement, vos patients peuvent vous écrire et vous leur répondez sans quitter l'application.",
   },
   stats: {
     title: 'Vos statistiques',

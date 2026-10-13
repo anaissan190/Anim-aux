@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/lib/authStore'
-import { useCurrentDoctor, useMyClinic, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useExportMyData, usePushSubscriptionStatus, useEnablePushNotifications, useDisablePushNotifications } from '@/hooks/useData'
+import { useCurrentDoctor, useMyClinic, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useExportMyData, usePushSubscriptionStatus, useEnablePushNotifications, useDisablePushNotifications, useDoctorHasPro } from '@/hooks/useData'
 import { supabase } from '@/lib/supabase'
 import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
@@ -19,6 +19,7 @@ export default function ProfilPage() {
   const { user, profile, signOut } = useAuthStore()
   const navigate = useNavigate()
   const { data: doctor } = useCurrentDoctor()
+  const { data: hasPro } = useDoctorHasPro(doctor?.id)
   const { data: clinic, isLoading: clinicLoading } = useMyClinic(doctor?.id)
   const updateProfile = useUpdateProfile()
   const updateDoctor = useUpdateDoctor()
@@ -386,6 +387,11 @@ export default function ProfilPage() {
                   className="accent-sage-500 w-4 h-4" />
                 💬 Recevoir des messages des patients
               </label>
+              {hasPro === false && (
+                <p className="text-xs text-gray-400 mt-1">
+                  La messagerie est réservée à l&apos;abonnement : ce réglage s&apos;appliquera dès que vous y passerez.
+                </p>
+              )}
               {!messagingEnabled && (
                 <p className="text-xs text-gray-400 mt-1">
                   Les patients ne pourront plus vous envoyer de nouveaux messages. Vos conversations déjà en cours restent visibles.

@@ -146,9 +146,13 @@ export default function Navbar() {
               {/* Accès rapide Messages à côté de la cloche, pour tous les
                   rôles — même traitement que le praticien. Pastille rouge
                   dès qu'il y a un message non lu. */}
-              <Link to={user.role === 'doctor' ? '/dashboard/doctor?tab=messages' : '/messages'} title="Messages" data-tour="messages"
+              <Link to={user.role === 'doctor' ? '/dashboard/doctor?tab=messages' : '/messages'}
+                title={user.role === 'doctor' && hasPro === false ? "Messages (réservé à l'abonnement)" : 'Messages'} data-tour="messages"
                 className="relative p-2 rounded-xl hover:bg-gray-50 transition-colors text-lg leading-none">
                 ✉️
+                {user.role === 'doctor' && hasPro === false && (
+                  <span className="absolute -bottom-0.5 -right-0.5 text-[10px]" aria-label="réservé à l'abonnement">🔒</span>
+                )}
                 {unreadMessages > 0 && (
                   <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium animate-badge-pulse">
                     {unreadMessages > 9 ? '9+' : unreadMessages}

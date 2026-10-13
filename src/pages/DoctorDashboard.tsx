@@ -2283,6 +2283,11 @@ export default function DoctorDashboard() {
                     className="accent-sage-500 w-4 h-4" />
                   💬 Recevoir des messages des patients
                 </label>
+                {hasPro === false && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    La messagerie est réservée à l&apos;abonnement : ce réglage s&apos;appliquera dès que vous y passerez.
+                  </p>
+                )}
                 {!profileForm.messaging_enabled && (
                   <p className="text-xs text-gray-400 mt-1">
                     Les patients ne pourront plus vous envoyer de nouveaux messages. Vos conversations déjà en cours restent visibles.
@@ -2531,7 +2536,7 @@ export default function DoctorDashboard() {
         )}
 
         {/* ── MESSAGES ── */}
-        {tab === 'messages' && (
+        {tab === 'messages' && !isTabLocked('messages', hasPro) && (
           <div className="animate-rise-in">
             <Link to="/dashboard/doctor?tab=home"
               className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors mb-4">

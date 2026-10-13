@@ -131,11 +131,19 @@ describe('Navbar — praticien et offre gratuite', () => {
     expect(screen.getByText('Mes patients').closest('a')).toHaveAttribute('href', '/dashboard/doctor?tab=patients')
   })
 
+  it("marque l'enveloppe des messages comme réservée à l'abonnement pour un praticien gratuit", async () => {
+    renderDoctorNavbar(false)
+    await waitFor(() => expect(screen.getByTitle("Messages (réservé à l'abonnement)")).toBeInTheDocument())
+    // L'enveloppe reste cliquable : elle mène à la page qui explique l'abonnement.
+    expect(screen.getByTitle("Messages (réservé à l'abonnement)")).toHaveAttribute('href', '/dashboard/doctor?tab=messages')
+  })
+
   it('ne met aucun cadenas à un praticien abonné', async () => {
     renderDoctorNavbar(true)
     await waitFor(() => expect(vi.mocked(supabase.rpc).mock.calls.some(c => c[0] === 'doctor_has_pro')).toBe(true))
     expect(lockOf('Mes patients')).toBeNull()
     expect(lockOf('Statistiques')).toBeNull()
+    expect(screen.getByTitle('Messages')).toBeInTheDocument()
   })
 })
 

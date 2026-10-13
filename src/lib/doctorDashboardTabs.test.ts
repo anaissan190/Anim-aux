@@ -27,14 +27,14 @@ describe('doctorDashboardTabs — intégrité des données', () => {
 })
 
 describe('doctorDashboardTabs — offre gratuite', () => {
-  it('verrouille réservation, agenda, patients, tarifs et statistiques', () => {
-    for (const tab of ['patients', 'tarifs', 'disponibilites', 'stats']) {
+  it('verrouille réservation, agenda, patients, tarifs, statistiques et messagerie', () => {
+    for (const tab of ['patients', 'tarifs', 'disponibilites', 'stats', 'messages']) {
       expect(isTabLocked(tab, false)).toBe(true)
     }
   })
 
-  it('laisse ouverts Mon espace, Avis, Profil, Messages et Cabinet', () => {
-    for (const tab of ['home', 'avis', 'profil', 'messages', 'cabinet']) {
+  it('laisse ouverts Mon espace, Avis, Profil et Cabinet', () => {
+    for (const tab of ['home', 'avis', 'profil', 'cabinet']) {
       expect(isTabLocked(tab, false)).toBe(false)
     }
   })
