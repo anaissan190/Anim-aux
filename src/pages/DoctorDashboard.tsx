@@ -805,7 +805,10 @@ export default function DoctorDashboard() {
               </div>
             </div>
 
-            <PushNotificationBanner />
+            {/* Les alertes promises (rendez-vous, messages) n'existent pas en offre
+                gratuite : la bannière ne lui est pas proposée. La cloche reste, elle
+                porte le résultat de la vérification du dossier et les nouveaux avis. */}
+            {hasPro !== false && <PushNotificationBanner />}
 
             {nextAppt && (
               <div className="bg-sage-500 text-white rounded-2xl p-5 mb-6 flex items-center justify-between">
