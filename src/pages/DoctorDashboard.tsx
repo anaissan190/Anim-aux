@@ -10,7 +10,7 @@ import DoctorMobileTabBar from '@/components/mobile/DoctorMobileTabBar'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 import { supabase } from '@/lib/supabase'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
-import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useReplyToReview, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useDoctorServices, useAddDoctorService, useDeleteDoctorService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments, useInviteClinicSecretary, useClinicStaffList, useExportMyData, useMyWaitlistCount, useDeleteClinic, useRemoveClinicSecretary, useSignedDocumentUrls, useDoctorHasPro,
+import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useReplyToReview, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useDoctorServices, useAddDoctorService, useDeleteDoctorService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments, useInviteClinicSecretary, useClinicStaffList, useExportMyData, useMyWaitlistCount, useDeleteClinic, useRemoveClinicSecretary, useSignedDocumentUrls, useDoctorHasPro, useMySubscriptions,
   useDoctorVerificationDocuments, useUploadVerificationDocument, useDeleteVerificationDocument, useMyVerificationRejectedReason, useAcceptEthicsCharter,
   usePushSubscriptionStatus, useEnablePushNotifications, useDisablePushNotifications, useMessagingRealtime,
   useCalendarFeedToken, useRegenerateCalendarFeedToken, useReceivedReferrals } from '@/hooks/useData'
@@ -30,6 +30,7 @@ import { compressImage } from '@/lib/compressImage'
 import ReportButton from '@/components/ui/ReportButton'
 import { clinicStatusText } from '@/lib/doctorPlan'
 import UpgradePanel from '@/components/doctor/UpgradePanel'
+import { blocksAccountDeletion } from '@/lib/subscription'
 import { isTabLocked, LOCKED_TAB_PITCH } from '@/lib/doctorDashboardTabs'
 
 // La barre d'onglets (Accueil, Mes patients, Tarifs, Disponibilités, Avis)
@@ -54,6 +55,7 @@ export default function DoctorDashboard() {
   const { data: doctor, isLoading: doctorLoading } = useCurrentDoctor()
   // Offre : `false` = offre gratuite (fiche seulement) ; `undefined` tant que la base n'a pas répondu.
   const { data: hasPro } = useDoctorHasPro(doctor?.id)
+  const { data: mySubscriptions = [] } = useMySubscriptions()
   // Exemple de placeholder pour "Nom de prestation" adapté au métier réel
   // plutôt que systématiquement "Vaccination" — sans rapport pour un
   // comportementaliste, toiletteur, éducateur canin... (repéré en
@@ -782,8 +784,7 @@ export default function DoctorDashboard() {
 
         {/* Onglet fermé par l'offre gratuite : page qui explique l'abonnement. */}
         {isTabLocked(tab, hasPro) && LOCKED_TAB_PITCH[tab] && (
-          <UpgradePanel variant="page" title={LOCKED_TAB_PITCH[tab]!.title} body={LOCKED_TAB_PITCH[tab]!.body}
-            doctorName={profile ? `${profile.first_name} ${profile.last_name}` : null} />
+          <UpgradePanel variant="page" title={LOCKED_TAB_PITCH[tab]!.title} body={LOCKED_TAB_PITCH[tab]!.body} />
         )}
 
         {/* ── ACCUEIL ── */}
@@ -791,8 +792,7 @@ export default function DoctorDashboard() {
           <>
             {hasPro === false && (
               <UpgradePanel title="Ouvrez votre agenda aux réservations"
-                body="Vos patients voient déjà votre fiche. Avec l'abonnement, ils réservent en ligne, vous écrivent, et vous suivez votre activité."
-                doctorName={profile ? `${profile.first_name} ${profile.last_name}` : null} />
+                body="Vos patients voient déjà votre fiche. Avec l'abonnement, ils réservent en ligne, vous écrivent, et vous suivez votre activité." />
             )}
             <div className="flex items-start justify-between mb-8">
               <div>
@@ -2335,6 +2335,23 @@ export default function DoctorDashboard() {
               </div>
             </div>
 
+            {/* ABONNEMENT — offre, paiement et résiliation (voir /abonnement) */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="font-semibold text-gray-900">Mon abonnement</h2>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {hasPro === false
+                      ? "Vous êtes en offre gratuite : votre fiche est visible, sans réservation en ligne."
+                      : "Consultez votre offre, vos factures et gérez votre abonnement."}
+                  </p>
+                </div>
+                <Link to="/abonnement" className="btn-secondary text-sm">
+                  {hasPro === false ? 'Voir les offres' : 'Gérer mon abonnement'}
+                </Link>
+              </div>
+            </div>
+
             {/* VÉRIFICATION DU PROFIL — dépôt des documents justificatifs */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
               <div className="flex items-center justify-between mb-1">
@@ -2493,10 +2510,16 @@ export default function DoctorDashboard() {
                 La suppression de votre compte est définitive : profil, rendez-vous, disponibilités,
                 messages, avis{clinic ? (isClinicAdmin ? ', votre cabinet (les autres membres perdront l\'accès à l\'agenda partagé)' : ', votre adhésion au cabinet') : ''} — tout sera effacé sans possibilité de retour en arrière.
               </p>
+              {blocksAccountDeletion(mySubscriptions) && (
+                    <p className="text-sm text-amber-800 bg-amber-50 rounded-xl p-3 mb-4">
+                      Vous avez un abonnement en cours : résiliez-le d&apos;abord, puis vous pourrez supprimer votre compte.{' '}
+                      <Link to="/abonnement" className="font-medium underline">Gérer mon abonnement</Link>
+                    </p>
+                  )}
               {deleteAccountError && <p className="text-red-500 text-sm mb-3">{deleteAccountError}</p>}
               {!confirmDeleteAccount ? (
-                <button onClick={() => setConfirmDeleteAccount(true)}
-                  className="text-sm text-red-500 hover:underline font-medium">
+                <button onClick={() => setConfirmDeleteAccount(true)} disabled={blocksAccountDeletion(mySubscriptions)}
+                  className="text-sm text-red-500 hover:underline font-medium disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed">
                   Supprimer mon compte
                 </button>
               ) : (

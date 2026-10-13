@@ -33,6 +33,7 @@ const RemindersPage = lazy(() => import('@/pages/RemindersPage'))
 const AnimalsPage = lazy(() => import('@/pages/AnimalsPage'))
 const RendezVousPage = lazy(() => import('@/pages/RendezVousPage'))
 const ProfilPage = lazy(() => import('@/pages/ProfilPage'))
+const SubscriptionPage = lazy(() => import('@/pages/SubscriptionPage'))
 const LegalPage = lazy(() => import('@/pages/LegalPage'))
 const ConfirmPresencePage = lazy(() => import('@/pages/ConfirmPresencePage'))
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
@@ -255,6 +256,9 @@ export default function App() {
         } />
         <Route path="/dashboard/doctor" element={
           <ProtectedRoute role="doctor"><DoctorDashboard /></ProtectedRoute>
+        } />
+        <Route path="/abonnement" element={
+          <ProtectedRoute role="doctor"><SubscriptionPage /></ProtectedRoute>
         } />
         <Route path="/dashboard/admin" element={
           <ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>

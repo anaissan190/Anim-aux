@@ -1,0 +1,120 @@
+// src/lib/subscription.ts
+// Contenu et règles de l'écran « Mon abonnement » (/abonnement) : offres et prix
+// affichés, libellé d'état d'un abonnement, traduction des erreurs du paiement,
+// lecture du retour de la page de paiement Stripe.
+//
+// Les prix sont ceux décidés le 11-12/10/2026, affichés HORS TAXE. Ce ne sont que des
+// textes : le prix réellement facturé est celui du « prix » créé dans Stripe
+// (STRIPE_PRICE_PRO / STRIPE_PRICE_CABINET) — les deux doivent rester identiques.
+
+export interface PlanOffer {
+  id: 'free' | 'pro' | 'cabinet'
+  name: string
+  tagline: string
+  priceHt: string | null // null = gratuit
+  features: { label: string; included: boolean }[]
+}
+
+export const PLAN_OFFERS: Record<PlanOffer['id'], PlanOffer> = {
+  free: {
+    id: 'free', name: 'Gratuite', tagline: 'Pour être trouvé', priceHt: null,
+    features: [
+      { label: 'Fiche dans la recherche', included: true },
+      { label: 'Avis et coordonnées', included: true },
+      { label: 'Réservation en ligne', included: false },
+      { label: 'Agenda et rappels', included: false },
+      { label: 'Messagerie patients', included: false },
+      { label: 'Dossiers et statistiques', included: false },
+    ],
+  },
+  pro: {
+    id: 'pro', name: 'Abonnement', tagline: 'Pour recevoir des rendez-vous', priceHt: '39,90',
+    features: [
+      { label: 'Fiche dans la recherche, avis et coordonnées', included: true },
+      { label: 'Réservation en ligne', included: true },
+      { label: 'Agenda, rappels par email et SMS', included: true },
+      { label: 'Messagerie avec vos patients', included: true },
+      { label: 'Dossiers des animaux, statistiques et export comptable', included: true },
+    ],
+  },
+  cabinet: {
+    id: 'cabinet', name: 'Abonnement cabinet', tagline: "Pour une équipe jusqu'à 5 praticiens", priceHt: '95,90',
+    features: [
+      { label: "Toutes les fonctions de l'abonnement, pour chaque praticien", included: true },
+      { label: "Jusqu'à 5 praticiens dans le cabinet", included: true },
+      { label: 'Agenda partagé et statistiques du cabinet', included: true },
+      { label: 'Accès dédié pour votre secrétariat', included: true },
+    ],
+  },
+}
+
+export const PRICE_FOOTNOTE = 'Prix mensuels hors taxes. Paiement sécurisé par Stripe. Résiliable à tout moment : l’abonnement reste actif jusqu’à la fin de la période payée.'
+
+// Codes d'erreur renvoyés par les fonctions de paiement, en français.
+export const BILLING_ERRORS: Record<string, string> = {
+  billing_not_configured: "Le paiement en ligne n'est pas encore ouvert. Réessayez bientôt.",
+  not_verified: "L'abonnement est proposé dès que votre dossier est validé par notre équipe.",
+  not_a_doctor: "L'abonnement est réservé aux praticiens.",
+  already_subscribed: 'Vous avez déjà un abonnement actif.',
+  clinic_name_required: 'Indiquez le nom de votre cabinet.',
+  no_customer: "Aucun abonnement à gérer pour l'instant.",
+  stripe_error: "Le service de paiement n'a pas répondu. Réessayez dans un instant.",
+  unauthorized: 'Votre session a expiré : reconnectez-vous.',
+  invalid_plan: "Cette offre n'existe pas.",
+  internal: 'Une erreur est survenue. Réessayez dans un instant.',
+}
+
+export function billingErrorMessage(code: string | null | undefined): string {
+  return (code && BILLING_ERRORS[code]) || BILLING_ERRORS.internal
+}
+
+// Retour de la page de paiement : /abonnement?paiement=succes | annule
+export type PaymentReturn = 'success' | 'cancelled' | null
+
+export function paymentReturnFromSearch(search: string): PaymentReturn {
+  const v = new URLSearchParams(search).get('paiement')
+  return v === 'succes' ? 'success' : v === 'annule' ? 'cancelled' : null
+}
+
+export interface SubscriptionRow {
+  status: string
+  current_period_end: string | null
+  cancel_at_period_end: boolean
+  created_at?: string
+}
+
+const PAID = ['active', 'trialing', 'past_due']
+
+// L'abonnement à présenter parmi toutes les lignes d'un titulaire : un abonnement payant
+// (le plus récent d'abord), sinon le plus récent.
+export function currentSubscription(rows: SubscriptionRow[] | null | undefined): SubscriptionRow | null {
+  if (!rows || rows.length === 0) return null
+  const byRecent = [...rows].sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''))
+  return byRecent.find(r => PAID.includes(r.status)) ?? byRecent[0]
+}
+
+function frDate(iso: string): string {
+  return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Paris' }).format(new Date(iso))
+}
+
+// Phrase d'état affichée sur la carte « Votre abonnement ».
+export function describeSubscription(sub: SubscriptionRow | null): { tone: 'ok' | 'warning' | 'neutral'; text: string } {
+  if (!sub) return { tone: 'neutral', text: 'Abonnement offert par Animéaux.' }
+  const end = sub.current_period_end ? frDate(sub.current_period_end) : null
+  if (sub.status === 'past_due') {
+    return { tone: 'warning', text: "Le dernier paiement n'a pas abouti : mettez à jour votre carte depuis « Gérer mon abonnement » pour éviter la coupure." }
+  }
+  if (PAID.includes(sub.status)) {
+    if (sub.cancel_at_period_end) {
+      return { tone: 'warning', text: end ? `Résilié : l’abonnement reste actif jusqu’au ${end}.` : 'Résilié : actif jusqu’à la fin de la période payée.' }
+    }
+    return { tone: 'ok', text: end ? `Actif, prochain renouvellement le ${end}.` : 'Actif.' }
+  }
+  return { tone: 'neutral', text: 'Abonnement terminé.' }
+}
+
+// Un abonnement dont la résiliation est programmée ne bloque plus la suppression du
+// compte (miroir de delete_my_account, migration 134).
+export function blocksAccountDeletion(rows: SubscriptionRow[] | null | undefined): boolean {
+  return (rows ?? []).some(r => PAID.includes(r.status) && !r.cancel_at_period_end)
+}

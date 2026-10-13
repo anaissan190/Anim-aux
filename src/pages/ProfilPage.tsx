@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { blocksAccountDeletion } from '@/lib/subscription'
 import { useAuthStore } from '@/lib/authStore'
-import { useCurrentDoctor, useMyClinic, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useExportMyData, usePushSubscriptionStatus, useEnablePushNotifications, useDisablePushNotifications, useDoctorHasPro } from '@/hooks/useData'
+import { useCurrentDoctor, useMyClinic, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useExportMyData, usePushSubscriptionStatus, useEnablePushNotifications, useDisablePushNotifications, useDoctorHasPro, useMySubscriptions } from '@/hooks/useData'
 import { supabase } from '@/lib/supabase'
 import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
@@ -20,6 +21,7 @@ export default function ProfilPage() {
   const navigate = useNavigate()
   const { data: doctor } = useCurrentDoctor()
   const { data: hasPro } = useDoctorHasPro(doctor?.id)
+  const { data: mySubscriptions = [] } = useMySubscriptions()
   const { data: clinic, isLoading: clinicLoading } = useMyClinic(doctor?.id)
   const updateProfile = useUpdateProfile()
   const updateDoctor = useUpdateDoctor()
@@ -392,6 +394,11 @@ export default function ProfilPage() {
                   La messagerie est réservée à l&apos;abonnement : ce réglage s&apos;appliquera dès que vous y passerez.
                 </p>
               )}
+              <p className="mt-4 text-sm text-gray-500">
+                <Link to="/abonnement" className="text-sage-600 font-medium hover:underline">
+                  {hasPro === false ? 'Voir les offres et passer à l’abonnement' : 'Mon abonnement'}
+                </Link>
+              </p>
               {!messagingEnabled && (
                 <p className="text-xs text-gray-400 mt-1">
                   Les patients ne pourront plus vous envoyer de nouveaux messages. Vos conversations déjà en cours restent visibles.
@@ -469,8 +476,14 @@ export default function ProfilPage() {
             La suppression de votre compte est définitive : profil, rendez-vous, animaux et dossiers de santé,
             messages, avis{isDoctor ? ', cabinet dont vous êtes le créateur' : ''} — tout sera effacé sans possibilité de retour en arrière.
           </p>
-          <button onClick={() => setConfirmDelete(true)}
-            className="text-sm text-red-500 hover:underline font-medium">
+          {blocksAccountDeletion(mySubscriptions) && (
+            <p className="text-sm text-amber-800 bg-amber-50 rounded-xl p-3 mb-4">
+              Vous avez un abonnement en cours : résiliez-le d&apos;abord, puis vous pourrez supprimer votre compte.{' '}
+              <Link to="/abonnement" className="font-medium underline">Gérer mon abonnement</Link>
+            </p>
+          )}
+          <button onClick={() => setConfirmDelete(true)} disabled={blocksAccountDeletion(mySubscriptions)}
+            className="text-sm text-red-500 hover:underline font-medium disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed">
             Supprimer mon compte
           </button>
         </div>

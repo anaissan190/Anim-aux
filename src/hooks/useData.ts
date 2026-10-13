@@ -13,6 +13,7 @@ import { generateAvailableSlots } from '@/lib/slots'
 import { findNextAvailableSlot } from '@/lib/nextSlot'
 import { urlBase64ToUint8Array } from '@/lib/pushNotifications'
 import { matchesAnySpecialty } from '@/lib/doctorSearch'
+import { billingErrorMessage, type SubscriptionRow } from '@/lib/subscription'
 import { parisDateKey, parisDayOfWeek, parisTimeToUtc } from '@/lib/parisTime'
 
 export function useDoctors(filters: SearchFilters = {}, enabled: boolean = true) {
@@ -163,7 +164,9 @@ async function hasAvailabilityInRange(doctorId: string, from: Date, to: Date): P
 // la base (migration 127/128). Tant que la réponse n'est pas là, `undefined` :
 // l'écran garde le comportement habituel, la base refuse de toute façon une
 // réservation chez un praticien gratuit.
-export function useDoctorHasPro(doctorId?: string) {
+// `pollMs` : relire régulièrement (page « Mon abonnement » juste après un paiement, le
+// temps que la confirmation de Stripe active l'offre) ; `false` = pas de relecture.
+export function useDoctorHasPro(doctorId?: string, pollMs: number | false = false) {
   return useQuery({
     queryKey: ['doctor-has-pro', doctorId],
     queryFn: async () => {
@@ -172,6 +175,7 @@ export function useDoctorHasPro(doctorId?: string) {
       return data === true
     },
     enabled: !!doctorId,
+    refetchInterval: pollMs,
   })
 }
 
@@ -347,7 +351,7 @@ export function useCurrentDoctor() {
         // Même exclusion de verification_rejected_reason que useDoctor/
         // useDoctors — le praticien lit son propre motif de rejet via
         // useMyVerificationRejectedReason (RPC dédiée) sur DoctorDashboard.
-        .select('id, user_id, specialties, rpps_number, bio, consultation_price, address, city, lat, lng, is_verified, average_rating, review_count, created_at, updated_at, accepted_species, home_visit, verification_status, ethics_charter_accepted_at, messaging_enabled, is_listed')
+        .select('id, user_id, specialties, rpps_number, bio, consultation_price, address, city, lat, lng, is_verified, average_rating, review_count, created_at, updated_at, accepted_species, home_visit, verification_status, ethics_charter_accepted_at, messaging_enabled, is_listed, plan')
         .eq('user_id', user!.id)
         .single()
       if (error) throw error
@@ -3209,5 +3213,53 @@ export function useAdminActionsLog() {
       if (error) throw error
       return (data ?? []) as any[]
     },
+  })
+}
+
+// ── ABONNEMENT (Stripe) ──────────────────────────────────────────────────────
+// Les fonctions Edge de paiement renvoient `{ ok, url }` ou `{ ok: false, error: <code> }`.
+// Sur une réponse non-2xx, supabase-js met le corps dans `error.context` : on en
+// extrait le code pour afficher un message précis en français (billingErrorMessage).
+async function billingFunctionUrl(name: string, body: Record<string, unknown>): Promise<string> {
+  const { data, error } = await supabase.functions.invoke(name, { body })
+  if (error) {
+    let code: string | undefined
+    try { code = (await (error as any).context?.json())?.error } catch { /* corps illisible */ }
+    throw new Error(billingErrorMessage(code))
+  }
+  if (!data?.ok || !data.url) throw new Error(billingErrorMessage(data?.error))
+  return data.url as string
+}
+
+// Démarre le paiement : renvoie l'adresse de la page Stripe, vers laquelle l'appelant
+// redirige. L'offre n'est activée que plus tard, par la confirmation signée de Stripe.
+export function useStartCheckout() {
+  return useMutation({
+    mutationFn: ({ plan, clinicName, clinicCity }: { plan: 'pro' | 'cabinet'; clinicName?: string; clinicCity?: string }) =>
+      billingFunctionUrl('create-checkout-session', { plan, clinicName, clinicCity }),
+  })
+}
+
+// Portail client Stripe : changer de carte, voir les factures, résilier.
+export function useOpenBillingPortal() {
+  return useMutation({
+    mutationFn: () => billingFunctionUrl('create-portal-session', {}),
+  })
+}
+
+// Abonnements du titulaire connecté (RLS : les siens, ou ceux de son cabinet).
+export function useMySubscriptions() {
+  const { user } = useAuthStore()
+  return useQuery({
+    queryKey: ['my-subscriptions', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .select('kind, status, current_period_end, cancel_at_period_end, created_at')
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return (data ?? []) as (SubscriptionRow & { kind: 'doctor' | 'clinic' })[]
+    },
+    enabled: !!user && user.role === 'doctor',
   })
 }
