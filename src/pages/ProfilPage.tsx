@@ -270,12 +270,12 @@ export default function ProfilPage() {
               <div>
                 <label className="text-xs text-gray-500">Prénom</label>
                 <input className="input text-sm mt-1" value={firstName}
-                  onChange={e => setFirstName(e.target.value)} placeholder="Ton prénom" required />
+                  onChange={e => setFirstName(e.target.value)} placeholder="Votre prénom" required />
               </div>
               <div>
                 <label className="text-xs text-gray-500">Nom</label>
                 <input className="input text-sm mt-1" value={lastName}
-                  onChange={e => setLastName(e.target.value)} placeholder="Ton nom" required />
+                  onChange={e => setLastName(e.target.value)} placeholder="Votre nom" required />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3 mb-3">
@@ -421,7 +421,7 @@ export default function ProfilPage() {
           <div className="card p-6 mt-8">
             <h2 className="font-semibold text-gray-900 mb-1">🔔 Notifications</h2>
             <p className="text-xs text-gray-500 mb-4">
-              Reçois une notification sur cet appareil même quand Animéaux n'est pas ouvert
+              Recevez une notification sur cet appareil même quand Animéaux n'est pas ouvert
               (nouveau message, RDV confirmé, avis...).
             </p>
             {pushError && <p className="text-red-500 text-xs mb-3">{pushError}</p>}

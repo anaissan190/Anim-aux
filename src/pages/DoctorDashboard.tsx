@@ -2368,7 +2368,7 @@ export default function DoctorDashboard() {
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                 <h2 className="font-semibold text-gray-900 mb-1">🔔 Notifications</h2>
                 <p className="text-xs text-gray-500 mb-4">
-                  Reçois une notification sur cet appareil même quand Animéaux n'est pas ouvert
+                  Recevez une notification sur cet appareil même quand Animéaux n'est pas ouvert
                   (nouveau message, RDV, avis...).
                 </p>
                 {pushError && <p className="text-red-500 text-xs mb-3">{pushError}</p>}

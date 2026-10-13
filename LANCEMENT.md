@@ -1,7 +1,7 @@
 # Lancement d'Animéaux — liste à suivre
 
 Ce qui reste à faire **en dehors du code** pour ouvrir l'application au public, puis un scénario de test complet.
-À cocher au fur et à mesure. Dernière mise à jour : 06/10/2026.
+À cocher au fur et à mesure. Dernière mise à jour : 13/10/2026.
 
 ## 1. Abonnements (les deux sont indispensables dès que de vrais utilisateurs arrivent)
 - [ ] **Supabase → offre Pro** (~25 $/mois) : Organisation → Billing. Sans elle, le projet est **mis en pause après 7 jours sans activité** et il n'y a pas de sauvegardes automatiques.
@@ -24,6 +24,15 @@ Dans le menu de gauche : **Authentication**.
 ## 3 bis. Domaine (OVH)
 - [x] **Accès au compte OVH retrouvé** le 06/10/2026. Domaine `monanimeaux.fr` : renouvellement annuel automatique, expire le **20/07/2027** (vérifié le 06/10/2026) ; garder un moyen de paiement valide chez OVH. Indispensable : OVH gère le renouvellement du domaine `monanimeaux.fr` et le DNS. Vérifier la date d'expiration et l'activation du renouvellement automatique.
 - [x] **`www.monanimeaux.fr`** : CNAME vers `cname.vercel-dns.com.` créé chez OVH (en remplacement du A et du TXT `3|welcome`), `www` redirige en 308 vers `monanimeaux.fr` (vérifié le 06/10/2026).
+
+## 3 ter. Offres et paiement (décidé le 11-12/10/2026)
+- Prix : individuel **39,90 € HT/mois** ; cabinet **95,90 € HT/mois**, jusqu'à 5 praticiens (secrétariats non comptés). Affichage en **HT**.
+- [ ] **Confirmer la TVA avec le comptable** (franchise en base ou TVA à 20 %) avant de publier un prix.
+- [ ] **Étape 3** : espace du praticien en offre gratuite (onglets verrouillés, bandeau pour passer à l'abonnement) + gestion de la création de cabinet / secrétariat pour une offre gratuite.
+- [ ] **Étape 4** : écran « Choisissez votre formule » à l'inscription praticien (maquette validée le 11/10).
+- [ ] **Stripe** : créer le compte Stripe (identifiants et coordonnées bancaires saisis par Anaïs, jamais par Claude), puis brancher le paiement **après** la validation des documents. Décider du supplément au-delà de 5 praticiens, d'un tarif annuel et d'un prix « fondateur » gelé.
+- [ ] **Mettre à jour les CGU / ajouter des conditions de vente** (abonnement, TVA, résiliation, droit de rétractation) et les faire relire avec le reste (section 4). Faire souscrire sur le **site web** seulement (règles Apple/Google pour l'appli mobile).
+- [x] Gary et Lina : abonnement fondateur, masqués de la recherche (interrupteur « Apparaître dans la recherche »).
 
 ## 4. Juridique
 - [ ] Faire relire **CGU, politique de confidentialité et mentions légales** par un professionnel du droit (ou un service juridique en ligne).

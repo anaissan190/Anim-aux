@@ -41,7 +41,7 @@ npm run dev       # http://localhost:3000
 | `npm run preview` | Prévisualise le build |
 
 ## Base de données (Supabase)
-Le schéma est dans `supabase/migrations/` (001 → 125), à appliquer **dans l'ordre**.
+Le schéma est dans `supabase/migrations/` (001 → 131), à appliquer **dans l'ordre**.
 **Les migrations ne sont pas appliquées automatiquement** : on les colle dans le SQL Editor de Supabase.
 La base de production a déjà divergé des fichiers par le passé (règles RLS présentes dans les fichiers mais absentes en base, et inversement) :
 après toute migration touchant des règles d'accès, **vérifier l'état réel avec `pg_policies`** plutôt que de supposer qu'elle est passée.
@@ -63,4 +63,6 @@ après toute migration touchant des règles d'accès, **vérifier l'état réel 
   ne partagent aucun code ; toute fonctionnalité de compte doit être ajoutée aux deux.
 - **Accès d'un praticien au dossier d'un animal** : rendez-vous maintenu (confirmé ou terminé) de moins d'un an —
   règle SQL `doctor_has_care_link` (migration 116), miroir client `src/lib/careLink.ts`.
+- **Offres des praticiens** : gratuite (fiche seulement), abonnement individuel, abonnement cabinet (5 praticiens) — champs `doctors.plan` / `clinics.plan` verrouillés, restrictions imposées par la base (voir `CLAUDE.md`). Le paiement (Stripe) n'est pas encore branché : les offres se changent depuis l'administration.
+- **Ordre de mise en ligne** : migration en base **d'abord**, puis `git push` du code qui l'utilise.
 - **Secrets** : jamais dans le dépôt. La clé `service_role` ne doit pas être mise dans `.env.local`.

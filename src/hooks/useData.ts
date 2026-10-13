@@ -78,8 +78,14 @@ export function useDoctors(filters: SearchFilters = {}, enabled: boolean = true)
       const to = filters.availability === 'today'
         ? parisTimeToUtc(parisDateKey(from), '23:59:59.999')
         : new Date(from.getTime() + 7 * 24 * 60 * 60 * 1000)
+      // Un praticien en offre gratuite n'a pas de réservation en ligne (migration
+      // 128) : il ne peut pas être « disponible », même avec un agenda enregistré.
+      const { data: proIds, error: proErr } = await supabase.rpc('get_pro_doctor_ids', { p_ids: filtered.map((d: any) => d.id) })
+      if (proErr) console.error('get_pro_doctor_ids error', proErr)
+      const proSet = new Set<string>((proIds ?? []) as string[])
+      const bookable = proErr ? [] : filtered.filter((d: any) => proSet.has(d.id))
       const results = await Promise.all(
-        filtered.map(async (d: any) => ({ d, ok: await hasAvailabilityInRange(d.id, from, to) }))
+        bookable.map(async (d: any) => ({ d, ok: await hasAvailabilityInRange(d.id, from, to) }))
       )
       return results.filter(r => r.ok).map(r => r.d)
     },
@@ -1257,11 +1263,12 @@ export function useSendMessage() {
         appointment_id: appointmentId,
       })
       if (error) {
-        // 42501 = RLS a bloqué l'insert — ici la policy restrictive
-        // "messages: bloque l'envoi si le praticien a désactivé la
-        // messagerie" (migration 109), pas une vraie erreur serveur.
+        // 42501 = RLS a bloqué l'insert, pas une vraie erreur serveur. Trois
+        // policies restrictives peuvent en être la cause : messagerie désactivée
+        // par le praticien (109), pas de relation avec lui (118), praticien en offre
+        // gratuite (128) — d'où un message qui n'en désigne aucune en particulier.
         if (error.code === '42501') {
-          throw new Error('Ce praticien a désactivé la messagerie pour le moment.')
+          throw new Error("Ce praticien ne peut pas recevoir de messages pour le moment.")
         }
         throw error
       }

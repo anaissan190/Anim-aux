@@ -80,6 +80,48 @@ describe('useDoctors', () => {
     renderHook(() => useDoctors({}, false), { wrapper })
     expect(supabase.from).not.toHaveBeenCalled()
   })
+
+  // Offres (migration 127/128) : « Disponible aujourd'hui / cette semaine » ne doit
+  // retenir que les praticiens qui ont la réservation en ligne.
+  describe('filtre de disponibilité et offre gratuite', () => {
+    function mockSearch(proIds: string[] | null, proError: any = null) {
+      const dayOfWeek = new Date().getDay()
+      vi.mocked(supabase.rpc).mockImplementation(((name: string) => {
+        if (name === 'get_pro_doctor_ids') return Promise.resolve({ data: proIds, error: proError })
+        if (name === 'get_clinic_member_doctor_ids') return Promise.resolve({ data: [], error: null })
+        return Promise.resolve({ data: [], error: null }) // get_booked_slots
+      }) as any)
+      vi.mocked(supabase.from).mockImplementation(((table: any) => {
+        if (table === 'doctors') return createQueryBuilderMock({ data: [makeDoctor({ id: 'pro-1' }), makeDoctor({ id: 'free-1' })], error: null })
+        if (table === 'availabilities') return createQueryBuilderMock({
+          data: [{ day_of_week: dayOfWeek, start_time: '00:00', end_time: '23:59', slot_duration_minutes: 30 }], error: null,
+        })
+        return createQueryBuilderMock({ data: [], error: null }) // blocked_slots
+      }) as any)
+    }
+
+    it('écarte un praticien gratuit du filtre « disponible » même s\'il a un agenda', async () => {
+      mockSearch(['pro-1'])
+      const { result } = renderHook(() => useDoctors({ availability: 'week' }), { wrapper })
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+      expect(result.current.data?.map((d: any) => d.id)).toEqual(['pro-1'])
+    })
+
+    it('ne renvoie aucun praticien « disponible » si l\'offre ne peut pas être vérifiée (fail closed)', async () => {
+      mockSearch(null, { message: 'boom' })
+      const { result } = renderHook(() => useDoctors({ availability: 'week' }), { wrapper })
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+      expect(result.current.data).toEqual([])
+    })
+
+    it('ne regarde pas l\'offre quand aucun filtre de disponibilité n\'est demandé', async () => {
+      mockSearch(['pro-1'])
+      const { result } = renderHook(() => useDoctors(), { wrapper })
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+      expect(result.current.data?.map((d: any) => d.id)).toEqual(['pro-1', 'free-1'])
+      expect(vi.mocked(supabase.rpc).mock.calls.some(c => c[0] === 'get_pro_doctor_ids')).toBe(false)
+    })
+  })
 })
 
 describe('useNextAvailableSlots', () => {

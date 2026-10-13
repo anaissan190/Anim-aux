@@ -37,9 +37,9 @@ export default function PushNotificationBanner() {
     <div className="rounded-2xl p-4 mb-6 bg-sage-50 border border-sage-100 text-sm flex items-start gap-3">
       <span className="text-lg">🔔</span>
       <div className="flex-1">
-        <p className="font-medium text-gray-900">Active les notifications</p>
+        <p className="font-medium text-gray-900">Activez les notifications</p>
         <p className="text-gray-600 mt-0.5">
-          Reçois une alerte dès qu'un rendez-vous est confirmé, annulé, ou qu'un message arrive — même quand l'appli est fermée.
+          Recevez une alerte dès qu'un rendez-vous est confirmé, annulé, ou qu'un message arrive — même quand l'appli est fermée.
         </p>
         {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
         <div className="flex gap-2 mt-2">
