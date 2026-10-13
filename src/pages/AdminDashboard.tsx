@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import Navbar from '@/components/ui/Navbar'
 import {
-  useAdminPendingDoctors, useAdminReviewDoctor, useAdminDoctorPlan, useAdminSetDoctorPlan, useAdminClinicPlan, useAdminSetClinicPlan, useAdminPlatformStats, useAdminDoctorsByStatus,
+  useAdminPendingDoctors, useAdminReviewDoctor, useAdminDoctorPlan, useAdminSetDoctorPlan, useAdminClinicPlan, useAdminSetClinicPlan, useAdminDoctorFlags, useAdminClinicFlags, useAdminPlatformStats, useAdminDoctorsByStatus,
   useAdminDoctorDetail, useAdminReviews, useAdminPatients, useAdminPatientDetail,
   useAdminClinics, useAdminClinicDetail, useAdminSecretaries, useAdminAppointments,
   useAdminReports, useAdminResolveReport, useAdminDeleteReview, useAdminSuspendUser,
@@ -13,7 +13,7 @@ import {
 import { fr } from 'date-fns/locale'
 import { formatInTimeZone } from 'date-fns-tz'
 import { PARIS_TZ } from '@/lib/parisTime'
-import { PLAN_LABEL, CLINIC_PLAN_LABEL, otherPlan, otherClinicPlan } from '@/lib/doctorPlan'
+import { PLAN_LABEL, CLINIC_PLAN_LABEL, otherPlan, otherClinicPlan, doctorFlagLabels } from '@/lib/doctorPlan'
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   PieChart, Pie, Cell, BarChart, Bar, Legend,
@@ -99,12 +99,26 @@ export default function AdminDashboard() {
   )
 }
 
+// Pastilles « Offre gratuite » / « Masqué » d'un praticien dans les listes admin.
+function DoctorFlagBadges({ flags }: { flags?: { plan?: string; is_listed?: boolean } }) {
+  return (
+    <>
+      {doctorFlagLabels(flags).map(label => (
+        <span key={label} className={label === 'Masqué' ? 'badge bg-amber-100 text-amber-700' : 'badge bg-gray-100 text-gray-600'}>
+          {label}
+        </span>
+      ))}
+    </>
+  )
+}
+
 function AdminOverview({ onSelectDoctor, onViewReviews, onViewPatients, onViewClinics, onViewSecretaries, onViewAppointments, onViewReports, onViewLog }: {
   onSelectDoctor: (id: string) => void; onViewReviews: () => void; onViewPatients: () => void; onViewClinics: () => void
   onViewSecretaries: () => void; onViewAppointments: (filter: 'upcoming' | 'all') => void
   onViewReports: () => void; onViewLog: () => void
 }) {
   const { data: stats } = useAdminPlatformStats()
+  const { data: doctorFlags = {} } = useAdminDoctorFlags()
   const [tab, setTab] = useState<Tab>('pending')
 
   const { data: pendingDoctors = [], isLoading: pendingLoading } = useAdminPendingDoctors()
@@ -313,6 +327,7 @@ function AdminOverview({ onSelectDoctor, onViewReviews, onViewPatients, onViewCl
                         {d.verification_status && d.verification_status !== 'pending' && (
                           <span className={STATUS_BADGE[d.verification_status]}>{STATUS_LABEL[d.verification_status]}</span>
                         )}
+                        <DoctorFlagBadges flags={doctorFlags[d.doctor_id]} />
                       </div>
                       <p className="text-xs text-gray-500">
                         {d.specialties?.join(' · ')} · {d.email}{d.city ? ` · ${d.city}` : ''}
@@ -723,6 +738,7 @@ function AdminPatientDetail({ userId, onBack }: { userId: string; onBack: () => 
 
 function AdminClinicsView({ onBack, onSelectClinic }: { onBack: () => void; onSelectClinic: (id: string) => void }) {
   const { data: clinics = [], isLoading } = useAdminClinics()
+  const { data: clinicFlags = {} } = useAdminClinicFlags()
   const [search, setSearch] = useState('')
 
   const list = search.trim()
@@ -762,7 +778,10 @@ function AdminClinicsView({ onBack, onSelectClinic }: { onBack: () => void; onSe
                   {c.logo_url ? <img src={c.logo_url} className="w-full h-full object-cover" alt="" loading="lazy" /> : '🏥'}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-800 truncate">{c.name}</p>
+                  <p className="text-sm font-medium text-gray-800 truncate">
+                    {c.name}
+                    {clinicFlags[c.clinic_id] === 'free' && <span className="badge bg-gray-100 text-gray-600 ml-2">Non activé</span>}
+                  </p>
                   <p className="text-xs text-gray-400 truncate">{c.city || '—'} · {c.owner_name || c.owner_email}</p>
                 </div>
                 <div className="text-right text-xs text-gray-400 flex-shrink-0">
@@ -783,6 +802,7 @@ function AdminClinicDetail({ clinicId, onBack, onSelectDoctor }: {
   clinicId: string; onBack: () => void; onSelectDoctor: (id: string) => void
 }) {
   const { data: c, isLoading } = useAdminClinicDetail(clinicId)
+  const { data: doctorFlags = {} } = useAdminDoctorFlags()
   const { data: clinicPlan } = useAdminClinicPlan(clinicId)
   const setClinicPlan = useAdminSetClinicPlan()
   const [planError, setPlanError] = useState('')
@@ -868,6 +888,7 @@ function AdminClinicDetail({ clinicId, onBack, onSelectDoctor }: {
                       {m.is_owner && <span className="text-xs text-sage-600 ml-1">(propriétaire)</span>}
                     </span>
                     <span className={STATUS_BADGE[m.verification_status]}>{STATUS_LABEL[m.verification_status]}</span>
+                    <DoctorFlagBadges flags={doctorFlags[m.doctor_id]} />
                     <span className="text-gray-300">›</span>
                   </button>
                 ))}
@@ -1039,6 +1060,7 @@ function AdminAppointmentsView({ onBack, initialFilter }: { onBack: () => void; 
 function AdminDoctorDetail({ doctorId, onBack }: { doctorId: string; onBack: () => void }) {
   const { data: d, isLoading } = useAdminDoctorDetail(doctorId)
   const { data: plan } = useAdminDoctorPlan(doctorId)
+  const { data: doctorFlags = {} } = useAdminDoctorFlags()
   const setPlan = useAdminSetDoctorPlan()
   const reviewDoctor = useAdminReviewDoctor()
   const suspendUser = useAdminSuspendUser()
@@ -1125,6 +1147,7 @@ function AdminDoctorDetail({ doctorId, onBack }: { doctorId: string; onBack: () 
                 <div className="flex flex-col items-end gap-1">
                   <span className={STATUS_BADGE[d.verification_status]}>{STATUS_LABEL[d.verification_status]}</span>
                   {plan && <span className={plan === 'pro' ? 'badge bg-sage-100 text-sage-700' : 'badge bg-gray-100 text-gray-600'}>{PLAN_LABEL[plan]}</span>}
+                  {doctorFlags[doctorId]?.is_listed === false && <span className="badge bg-amber-100 text-amber-700">Masqué de la recherche</span>}
                   {d.is_suspended && <span className="badge bg-red-100 text-red-700">⛔ Suspendu</span>}
                 </div>
               </div>

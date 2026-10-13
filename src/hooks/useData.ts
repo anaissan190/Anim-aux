@@ -272,7 +272,23 @@ export function useClinicInfo(clinicId?: string) {
   })
 }
 
-// Équipe complète d'un cabinet (tous les praticiens membres)
+// Équipe PUBLIQUE d'un cabinet : seulement les praticiens vérifiés ET visibles
+// (migration 132). La page publique du cabinet n'affiche donc plus un membre
+// masqué ou en attente de vérification.
+export function useClinicPublicTeam(clinicId?: string) {
+  return useQuery({
+    queryKey: ['clinic-public-team', clinicId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_clinic_public_team', { p_clinic_id: clinicId })
+      if (error) throw error
+      return data ?? []
+    },
+    enabled: !!clinicId,
+  })
+}
+
+// Équipe complète d'un cabinet (tous les praticiens membres) — pour le
+// secrétariat et l'espace du cabinet, pas pour la page publique.
 export function useClinicTeam(clinicId?: string) {
   return useQuery({
     queryKey: ['clinic-team', clinicId],
@@ -2007,7 +2023,7 @@ export function useMyClinic(doctorId?: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('clinic_members')
-        .select('clinic_id, clinics(id, name, address, city, phone, logo_url, invite_code, owner_id)')
+        .select('clinic_id, clinics(id, name, address, city, phone, logo_url, invite_code, owner_id, plan)')
         .eq('doctor_id', doctorId!)
         .single()
       // PGRST116 = aucune ligne ("single()" sur 0 résultat) : cas légitime
@@ -2085,6 +2101,11 @@ export function useClinicMembers(clinicId?: string) {
 // Contrairement à l'email de confirmation de RDV, l'appel n'est pas
 // best-effort : c'est l'action elle-même, ses erreurs doivent remonter à
 // l'écran (email déjà utilisé, etc.).
+// Codes d'erreur renvoyés par la fonction invite-clinic-secretary, en français.
+const CLINIC_INVITE_ERRORS: Record<string, string> = {
+  cabinet_not_active: "Le secrétariat est réservé aux cabinets abonnés. Activez l'abonnement cabinet pour inviter un secrétariat.",
+}
+
 export function useInviteClinicSecretary() {
   const qc = useQueryClient()
   return useMutation({
@@ -2103,9 +2124,9 @@ export function useInviteClinicSecretary() {
           const body = await (error as any).context?.json()
           if (body?.error) message = body.error
         } catch {}
-        throw new Error(message)
+        throw new Error(CLINIC_INVITE_ERRORS[message] ?? message)
       }
-      if (data?.ok === false) throw new Error(data.error ?? "Erreur lors de l'invitation")
+      if (data?.ok === false) throw new Error(CLINIC_INVITE_ERRORS[data.error] ?? data.error ?? "Erreur lors de l'invitation")
       return data
     },
     onSuccess: (_, vars) => qc.invalidateQueries({ queryKey: ['clinic_staff_list', vars.clinicId] }),
@@ -2850,8 +2871,40 @@ export function useAdminSetDoctorPlan() {
     },
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ['admin_doctor_plan', vars.doctorId] })
+      qc.invalidateQueries({ queryKey: ['admin_doctor_flags'] })
       qc.invalidateQueries({ queryKey: ['doctor', vars.doctorId] })
       qc.invalidateQueries({ queryKey: ['doctors'] })
+    },
+  })
+}
+
+// Offre et visibilité de TOUS les praticiens, pour les pastilles des listes de
+// l'administration (l'admin lit `doctors` en entier grâce à is_admin() dans la
+// policy de lecture). Évite de réécrire chaque RPC de liste pour deux champs.
+export type AdminDoctorFlags = Record<string, { plan: 'free' | 'pro'; is_listed: boolean }>
+
+export function useAdminDoctorFlags() {
+  return useQuery({
+    queryKey: ['admin_doctor_flags'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('doctors').select('id, plan, is_listed')
+      if (error) throw error
+      const flags: AdminDoctorFlags = {}
+      for (const d of data ?? []) flags[d.id] = { plan: (d.plan ?? 'pro') as 'free' | 'pro', is_listed: d.is_listed !== false }
+      return flags
+    },
+  })
+}
+
+export function useAdminClinicFlags() {
+  return useQuery({
+    queryKey: ['admin_clinic_flags'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('clinics').select('id, plan')
+      if (error) throw error
+      const flags: Record<string, 'free' | 'cabinet'> = {}
+      for (const c of data ?? []) flags[c.id] = (c.plan ?? 'cabinet') as 'free' | 'cabinet'
+      return flags
     },
   })
 }
@@ -2878,6 +2931,7 @@ export function useAdminSetClinicPlan() {
     },
     onSuccess: (_, vars) => {
       qc.invalidateQueries({ queryKey: ['admin_clinic_plan', vars.clinicId] })
+      qc.invalidateQueries({ queryKey: ['admin_clinic_flags'] })
       qc.invalidateQueries({ queryKey: ['clinic'] })
     },
   })

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   hasProFeatures, otherPlan, otherClinicPlan, clinicSeatsLeft, PLAN_LABEL, CLINIC_PLAN_LABEL,
-  MAX_CLINIC_PRACTITIONERS,
+  MAX_CLINIC_PRACTITIONERS, doctorFlagLabels, clinicStatusText,
 } from './doctorPlan'
 
 describe('hasProFeatures', () => {
@@ -64,5 +64,41 @@ describe('libellés', () => {
     expect(PLAN_LABEL.pro).toBe('Abonnement')
     expect(CLINIC_PLAN_LABEL.free).toBe('Cabinet non activé')
     expect(CLINIC_PLAN_LABEL.cabinet).toBe('Abonnement cabinet')
+  })
+})
+
+describe('doctorFlagLabels', () => {
+  it("signale une offre gratuite et une fiche masquée, et rien pour un abonné visible", () => {
+    expect(doctorFlagLabels({ plan: 'free', is_listed: false })).toEqual(['Offre gratuite', 'Masqué'])
+    expect(doctorFlagLabels({ plan: 'free', is_listed: true })).toEqual(['Offre gratuite'])
+    expect(doctorFlagLabels({ plan: 'pro', is_listed: false })).toEqual(['Masqué'])
+    expect(doctorFlagLabels({ plan: 'pro', is_listed: true })).toEqual([])
+  })
+
+  it("ne signale rien sur une valeur absente (cache d'avant les migrations)", () => {
+    expect(doctorFlagLabels({})).toEqual([])
+    expect(doctorFlagLabels({ plan: null, is_listed: null })).toEqual([])
+    expect(doctorFlagLabels(undefined)).toEqual([])
+  })
+})
+
+describe('clinicStatusText', () => {
+  it("explique ce qu'interdit un cabinet non activé", () => {
+    const s = clinicStatusText('free', 1)
+    expect(s.active).toBe(false)
+    expect(s.text).toMatch(/pas encore activé/)
+    expect(s.text).toMatch(/5 praticiens/)
+    expect(s.text).toMatch(/secrétariat/)
+  })
+
+  it("compte les praticiens d'un cabinet abonné et signale quand il est complet", () => {
+    expect(clinicStatusText('cabinet', 1)).toEqual({ active: true, text: '1 praticien sur 5.' })
+    expect(clinicStatusText('cabinet', 3).text).toBe('3 praticiens sur 5.')
+    expect(clinicStatusText('cabinet', 5).text).toBe('5 praticiens sur 5 : le cabinet est complet.')
+  })
+
+  it("traite un cabinet sans offre connue comme abonné (cache d'avant la migration)", () => {
+    expect(clinicStatusText(undefined, 2).active).toBe(true)
+    expect(clinicStatusText(null, 2).active).toBe(true)
   })
 })

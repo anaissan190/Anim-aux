@@ -6,14 +6,14 @@ import { useParams, Link } from 'react-router-dom'
 import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
 import StarRating from '@/components/ui/StarRating'
-import { useClinicInfo, useClinicTeam, useDoctorsAvailabilities } from '@/hooks/useData'
+import { useClinicInfo, useClinicPublicTeam, useDoctorsAvailabilities } from '@/hooks/useData'
 
 const DAYS_SHORT = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
 
 export default function ClinicPage() {
   const { id } = useParams<{ id: string }>()
   const { data: clinic, isLoading: clinicLoading } = useClinicInfo(id)
-  const { data: team = [], isLoading: teamLoading } = useClinicTeam(id)
+  const { data: team = [], isLoading: teamLoading } = useClinicPublicTeam(id)
   const doctorIds = team.map((m: any) => m.doctor_id)
   const { data: availabilities = [] } = useDoctorsAvailabilities(doctorIds)
 

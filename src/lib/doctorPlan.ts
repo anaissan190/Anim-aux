@@ -45,3 +45,32 @@ export function clinicSeatsLeft(plan: ClinicPlan | null | undefined, memberCount
   const max = plan === 'cabinet' ? MAX_CLINIC_PRACTITIONERS : 1
   return Math.max(0, max - memberCount)
 }
+
+// Pastilles d'état d'un praticien dans l'administration : offre gratuite et/ou
+// fiche masquée de la recherche. L'abonnement est l'état normal, il n'a pas de
+// pastille. Les valeurs absentes (cache d'avant les migrations 126/127) ne
+// produisent rien : seul un 'free' ou un `false` explicite est signalé.
+export function doctorFlagLabels(flags: { plan?: string | null; is_listed?: boolean | null } | null | undefined): string[] {
+  const labels: string[] = []
+  if (flags?.plan === 'free') labels.push('Offre gratuite')
+  if (flags?.is_listed === false) labels.push('Masqué')
+  return labels
+}
+
+// Texte d'état du cabinet dans l'espace du créateur : activé (places restantes)
+// ou non activé (ce que cela interdit).
+export function clinicStatusText(plan: string | null | undefined, memberCount: number): { active: boolean; text: string } {
+  if (plan === 'free') {
+    return {
+      active: false,
+      text: "Ce cabinet n'est pas encore activé : l'abonnement cabinet permet d'accueillir jusqu'à "
+        + `${MAX_CLINIC_PRACTITIONERS} praticiens et d'inviter un secrétariat.`,
+    }
+  }
+  const left = clinicSeatsLeft('cabinet', memberCount)
+  return {
+    active: true,
+    text: `${memberCount} praticien${memberCount > 1 ? 's' : ''} sur ${MAX_CLINIC_PRACTITIONERS}`
+      + (left === 0 ? ' : le cabinet est complet.' : '.'),
+  }
+}

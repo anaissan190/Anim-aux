@@ -9,7 +9,7 @@ import { createQueryBuilderMock, createSupabaseMock } from '@/test/supabaseMock'
 vi.mock('@/lib/supabase', () => ({ supabase: createSupabaseMock() }))
 
 import { supabase } from '@/lib/supabase'
-import { useDoctors, useClinicsSearch, useClinicInfo, useClinicTeam, useDoctorsAvailabilities, useDoctor, useCurrentDoctor, useNextAvailableSlots } from './useData'
+import { useDoctors, useClinicsSearch, useClinicInfo, useClinicTeam, useClinicPublicTeam, useDoctorsAvailabilities, useDoctor, useCurrentDoctor, useNextAvailableSlots } from './useData'
 import { useAuthStore } from '@/lib/authStore'
 
 function wrapper({ children }: { children: ReactNode }) {
@@ -167,6 +167,25 @@ describe('useClinicsSearch', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
     expect(supabase.rpc).toHaveBeenCalledWith('search_clinics', { p_city: 'Paris', p_specialty: null })
     expect(result.current.data).toEqual(clinics)
+  })
+})
+
+describe('useClinicPublicTeam', () => {
+  it("interroge la RPC de l'équipe publique (praticiens vérifiés et visibles), pas celle de l'équipe complète", async () => {
+    const team = [{ doctor_id: 'doc-1', first_name: 'Jean', last_name: 'Dupont' }]
+    vi.mocked(supabase.rpc).mockResolvedValue({ data: team, error: null } as any)
+
+    const { result } = renderHook(() => useClinicPublicTeam('clinic-1'), { wrapper })
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(supabase.rpc).toHaveBeenCalledWith('get_clinic_public_team', { p_clinic_id: 'clinic-1' })
+    expect(supabase.rpc).not.toHaveBeenCalledWith('get_clinic_team', expect.anything())
+    expect(result.current.data).toEqual(team)
+  })
+
+  it("n'interroge rien sans identifiant de cabinet", () => {
+    const { result } = renderHook(() => useClinicPublicTeam(undefined), { wrapper })
+    expect(result.current.fetchStatus).toBe('idle')
   })
 })
 

@@ -7,7 +7,7 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 import { createElement } from 'react'
-import { createSupabaseMock } from '@/test/supabaseMock'
+import { createQueryBuilderMock, createSupabaseMock } from '@/test/supabaseMock'
 
 vi.mock('@/lib/supabase', () => ({ supabase: createSupabaseMock() }))
 
@@ -18,6 +18,7 @@ import {
   useAdminClinics, useAdminClinicDetail, useAdminSecretaries, useAdminAppointments,
   useCreateReport, useAdminReports, useAdminResolveReport, useAdminDeleteReview,
   useAdminSuspendUser, useAdminUnsuspendUser, useAdminActionsLog,
+  useAdminDoctorFlags, useAdminClinicFlags,
 } from './useData'
 
 function wrapper({ children }: { children: ReactNode }) {
@@ -151,6 +152,31 @@ describe('Mutations admin (écriture)', () => {
     const { result } = renderHook(() => useAdminResolveReport(), { wrapper })
     await expect(result.current.mutateAsync({ reportId: 'rep-4', status: 'resolved' })).rejects.toThrow()
     expect(supabase.functions.invoke).not.toHaveBeenCalled()
+  })
+
+  it("useAdminDoctorFlags indexe l'offre et la visibilité de chaque praticien par identifiant", async () => {
+    vi.mocked(supabase.from).mockReturnValue(createQueryBuilderMock({
+      data: [{ id: 'd1', plan: 'free', is_listed: false }, { id: 'd2', plan: 'pro', is_listed: true }, { id: 'd3', plan: null, is_listed: null }],
+      error: null,
+    }))
+    const { result } = renderHook(() => useAdminDoctorFlags(), { wrapper })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(supabase.from).toHaveBeenCalledWith('doctors')
+    expect(result.current.data).toEqual({
+      d1: { plan: 'free', is_listed: false },
+      d2: { plan: 'pro', is_listed: true },
+      d3: { plan: 'pro', is_listed: true }, // valeurs absentes = abonné visible
+    })
+  })
+
+  it("useAdminClinicFlags indexe l'offre de chaque cabinet", async () => {
+    vi.mocked(supabase.from).mockReturnValue(createQueryBuilderMock({
+      data: [{ id: 'c1', plan: 'free' }, { id: 'c2', plan: 'cabinet' }], error: null,
+    }))
+    const { result } = renderHook(() => useAdminClinicFlags(), { wrapper })
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
+    expect(supabase.from).toHaveBeenCalledWith('clinics')
+    expect(result.current.data).toEqual({ c1: 'free', c2: 'cabinet' })
   })
 
   it('useAdminDeleteReview → admin_delete_review avec l\'id de l\'avis', () =>

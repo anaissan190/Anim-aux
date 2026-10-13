@@ -110,6 +110,20 @@ describe('useInviteClinicSecretary', () => {
     await expect(result.current.mutateAsync({ clinicId: 'clinic-1', email: 'sec@a.fr' })).rejects.toThrow('Email déjà utilisé')
   })
 
+  it("traduit en français le refus « cabinet_not_active » (offre cabinet non activée), quelle que soit la forme de la réponse", async () => {
+    vi.mocked(supabase.functions.invoke).mockResolvedValue({
+      data: null,
+      error: { message: 'non-2xx', context: { json: () => Promise.resolve({ ok: false, error: 'cabinet_not_active' }) } },
+    } as any)
+    const { result } = renderHook(() => useInviteClinicSecretary(), { wrapper })
+    await expect(result.current.mutateAsync({ clinicId: 'clinic-1', email: 'sec@a.fr' }))
+      .rejects.toThrow(/réservé aux cabinets abonnés/)
+
+    vi.mocked(supabase.functions.invoke).mockResolvedValue({ data: { ok: false, error: 'cabinet_not_active' }, error: null } as any)
+    await expect(result.current.mutateAsync({ clinicId: 'clinic-1', email: 'sec@a.fr' }))
+      .rejects.toThrow(/Activez l'abonnement cabinet/)
+  })
+
   it('retombe sur le message générique si error.context ne peut pas être parsé', async () => {
     vi.mocked(supabase.functions.invoke).mockResolvedValue({
       data: null,

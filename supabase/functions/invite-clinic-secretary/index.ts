@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
 
     const { data: clinic, error: clinicErr } = await supabaseAdmin
       .from('clinics')
-      .select('id, name, owner_id')
+      .select('id, name, owner_id, plan')
       .eq('id', clinicId)
       .single()
     if (clinicErr || !clinic) {
@@ -103,6 +103,16 @@ Deno.serve(async (req) => {
     }
     if (clinic.owner_id !== user.id) {
       return new Response('Interdit', { status: 403, headers: corsHeaders })
+    }
+    // Secretariat reserve aux cabinets abonnes (migration 127/132). Controle fait
+    // ICI, avant la creation du compte : un refus tardif par le trigger de
+    // clinic_staff aurait laisse un compte d'authentification orphelin. Le code
+    // est traduit en francais cote client (useInviteClinicSecretary).
+    if (clinic.plan !== 'cabinet') {
+      return new Response(JSON.stringify({ ok: false, error: 'cabinet_not_active' }), {
+        status: 403,
+        headers: Object.assign({}, corsHeaders, { 'Content-Type': 'application/json' }),
+      })
     }
 
     // L'espace secretariat doit toujours etre un compte a part entiere,

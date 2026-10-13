@@ -28,7 +28,8 @@ Dans le menu de gauche : **Authentication**.
 ## 3 ter. Offres et paiement (décidé le 11-12/10/2026)
 - Prix : individuel **39,90 € HT/mois** ; cabinet **95,90 € HT/mois**, jusqu'à 5 praticiens (secrétariats non comptés). Affichage en **HT**.
 - [ ] **Confirmer la TVA avec le comptable** (franchise en base ou TVA à 20 %) avant de publier un prix.
-- [ ] **Étape 3** : espace du praticien en offre gratuite (onglets verrouillés, bandeau pour passer à l'abonnement) + gestion de la création de cabinet / secrétariat pour une offre gratuite.
+- [x] Cabinets (13/10/2026) : secrétariat réservé aux cabinets abonnés, messages clairs (cabinet non activé / complet), bandeau d'état dans l'espace praticien, page publique sans membres masqués, pastilles dans l'administration (migration 132).
+- [ ] **Étape 3** : espace du praticien en offre gratuite (onglets verrouillés, bandeau pour passer à l'abonnement).
 - [ ] **Étape 4** : écran « Choisissez votre formule » à l'inscription praticien (maquette validée le 11/10).
 - [ ] **Stripe** : créer le compte Stripe (identifiants et coordonnées bancaires saisis par Anaïs, jamais par Claude), puis brancher le paiement **après** la validation des documents. Décider du supplément au-delà de 5 praticiens, d'un tarif annuel et d'un prix « fondateur » gelé.
 - [ ] **Mettre à jour les CGU / ajouter des conditions de vente** (abonnement, TVA, résiliation, droit de rétractation) et les faire relire avec le reste (section 4). Faire souscrire sur le **site web** seulement (règles Apple/Google pour l'appli mobile).

@@ -28,6 +28,7 @@ import { showToast } from '@/lib/toast'
 import { ETHICS_CHARTER_CLAUSES } from '@/lib/ethicsCharter'
 import { compressImage } from '@/lib/compressImage'
 import ReportButton from '@/components/ui/ReportButton'
+import { clinicStatusText } from '@/lib/doctorPlan'
 
 // La barre d'onglets (Accueil, Mes patients, Tarifs, Disponibilités, Avis)
 // est désormais affichée dans la Navbar, à la suite du logo, pour être
@@ -125,6 +126,8 @@ export default function DoctorDashboard() {
   const [clinicLogoUploading, setClinicLogoUploading] = useState(false)
   const [clinicLogoError, setClinicLogoError] = useState('')
   const { data: clinicMembers = [] }  = useClinicMembers(clinic?.id)
+  // Offre du cabinet : non activé (1 seul praticien, pas de secrétariat) ou abonné (5 praticiens).
+  const clinicStatus = clinic ? clinicStatusText(clinic.plan, clinicMembers.length) : null
   const { data: clinicStaff = [] }    = useClinicStaffList(clinic?.id)
   const { data: clinicAppts = [], error: clinicApptsError } = useClinicAppointments(clinic?.id)
   const { data: clinicServices = [] } = useClinicServices(clinic?.id)
@@ -1819,6 +1822,14 @@ export default function DoctorDashboard() {
               </div>
             )}
 
+            {/* Offre du cabinet */}
+            {clinicStatus && (
+              <div className={`rounded-2xl p-4 text-sm border ${clinicStatus.active ? 'bg-moss-50 border-moss-100 text-moss-800' : 'bg-sage-50 border-sage-100 text-sage-800'}`}>
+                <p className="font-medium">{clinicStatus.active ? 'Abonnement cabinet' : 'Cabinet non activé'}</p>
+                <p className="mt-0.5">{clinicStatus.text}</p>
+              </div>
+            )}
+
             {/* Membres */}
             <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
               <h3 className="font-semibold text-gray-900 mb-4">
@@ -1885,8 +1896,13 @@ export default function DoctorDashboard() {
                   pas avec cette adresse.
                 </p>
 
+                {clinicStatus && !clinicStatus.active && (
+                  <p className="text-sm text-sage-800 bg-sage-50 rounded-xl p-3 mb-4">
+                    Le secrétariat est réservé aux cabinets abonnés : activez l&apos;abonnement cabinet pour inviter un accès dédié.
+                  </p>
+                )}
                 <div className="flex gap-2 mb-4">
-                  <input type="email" className="input text-sm flex-1"
+                  <input type="email" className="input text-sm flex-1" disabled={clinicStatus ? !clinicStatus.active : false}
                     placeholder="email@secretaire.fr"
                     value={secretaryEmail}
                     onChange={e => { setSecretaryEmail(e.target.value); setSecretaryInviteSuccess(false); setSecretaryPassword('') }} />
@@ -1905,7 +1921,7 @@ export default function DoctorDashboard() {
                         setSecretaryInviteError(e.message ?? "Erreur lors de l'envoi des identifiants.")
                       }
                     }}
-                    disabled={inviteSecretary.isPending}
+                    disabled={inviteSecretary.isPending || (clinicStatus ? !clinicStatus.active : false)}
                     className="btn-primary text-sm px-4 py-2 whitespace-nowrap">
                     {inviteSecretary.isPending ? 'Envoi...' : 'Envoyer les identifiants'}
                   </button>
