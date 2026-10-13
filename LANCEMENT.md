@@ -31,7 +31,9 @@ Dans le menu de gauche : **Authentication**.
 - [x] Cabinets (13/10/2026) : secrétariat réservé aux cabinets abonnés, messages clairs (cabinet non activé / complet), bandeau d'état dans l'espace praticien, page publique sans membres masqués, pastilles dans l'administration (migration 132).
 - [x] **Étape 3** (13/10/2026) : espace du praticien en offre gratuite (onglets verrouillés par un cadenas, page d'explication, bandeau sur Mon espace). Le bouton « Passer à l'abonnement » ouvre un email pré-rempli vers l'équipe tant que Stripe n'est pas branché.
 - [ ] **Étape 4** : écran « Choisissez votre formule » à l'inscription praticien (maquette validée le 11/10).
-- [ ] **Stripe** : créer le compte Stripe (identifiants et coordonnées bancaires saisis par Anaïs, jamais par Claude), puis brancher le paiement **après** la validation des documents. Décider du supplément au-delà de 5 praticiens, d'un tarif annuel et d'un prix « fondateur » gelé.
+- [x] **Paiement Stripe, code livré le 13/10/2026** : écran `/abonnement`, paiement sécurisé, activation par la confirmation signée de Stripe, portail de gestion, garde-fous (suppression de compte, fermeture de cabinet). Migration 134 + fonctions `create-checkout-session`, `create-portal-session`, `stripe-webhook`.
+- [ ] **Brancher Stripe** en suivant `STRIPE.md` (compte, 2 produits, portail, webhook, 4 secrets dans Supabase), tester en mode test, puis passer en réel. Identifiants et coordonnées bancaires saisis par Anaïs, jamais par Claude.
+- [ ] Décider du supplément au-delà de 5 praticiens, d'un tarif annuel et d'un prix « fondateur » gelé.
 - [ ] **Mettre à jour les CGU / ajouter des conditions de vente** (abonnement, TVA, résiliation, droit de rétractation) et les faire relire avec le reste (section 4). Faire souscrire sur le **site web** seulement (règles Apple/Google pour l'appli mobile).
 - [x] Gary et Lina : abonnement fondateur, masqués de la recherche (interrupteur « Apparaître dans la recherche »).
 

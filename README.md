@@ -64,5 +64,6 @@ après toute migration touchant des règles d'accès, **vérifier l'état réel 
 - **Accès d'un praticien au dossier d'un animal** : rendez-vous maintenu (confirmé ou terminé) de moins d'un an —
   règle SQL `doctor_has_care_link` (migration 116), miroir client `src/lib/careLink.ts`.
 - **Offres des praticiens** : gratuite (fiche seulement), abonnement individuel, abonnement cabinet (5 praticiens) — champs `doctors.plan` / `clinics.plan` verrouillés, restrictions imposées par la base (voir `CLAUDE.md`). Le paiement (Stripe) n'est pas encore branché : les offres se changent depuis l'administration.
+- **Paiement des abonnements** : Stripe (Checkout + portail client + webhook signé), fonctions Edge `create-checkout-session`, `create-portal-session`, `stripe-webhook`. Mise en place pas à pas dans `STRIPE.md`.
 - **Ordre de mise en ligne** : migration en base **d'abord**, puis `git push` du code qui l'utilise.
 - **Secrets** : jamais dans le dépôt. La clé `service_role` ne doit pas être mise dans `.env.local`.
