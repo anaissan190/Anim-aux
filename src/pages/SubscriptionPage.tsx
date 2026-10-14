@@ -13,7 +13,7 @@ import {
   useCurrentDoctor, useMyClinic, useDoctorHasPro, useMySubscriptions, useStartCheckout, useOpenBillingPortal,
 } from '@/hooks/useData'
 import {
-  PLAN_OFFERS, PRICE_FOOTNOTE, currentSubscription, describeSubscription, paymentReturnFromSearch, type PlanOffer,
+  PLAN_OFFERS, PRICE_FOOTNOTE, TERMS_REQUIRED_MESSAGE, currentSubscription, describeSubscription, paymentReturnFromSearch, type PlanOffer,
 } from '@/lib/subscription'
 
 // Attente maximale de la confirmation de Stripe après un paiement réussi.
@@ -85,6 +85,9 @@ export default function SubscriptionPage() {
   const startCheckout = useStartCheckout()
   const openPortal = useOpenBillingPortal()
   const [accepted, setAccepted] = useState(false)
+  // Clic sur « Choisir… » sans avoir coché les conditions : on l'explique à côté de la case.
+  const [termsError, setTermsError] = useState(false)
+  const termsRef = useRef<HTMLInputElement>(null)
   // Offre payante survolée / sélectionnée : seule celle-là passe en orange.
   const [active, setActive] = useState<'pro' | 'cabinet' | null>(null)
   const [showCabinetForm, setShowCabinetForm] = useState(false)
@@ -96,9 +99,20 @@ export default function SubscriptionPage() {
   const isClinicOwner = !!clinic && clinic.owner_id === user?.id
   const individualActive = doctor?.plan === 'pro'
   const clinicActive = clinic?.plan === 'cabinet'
-  const canPay = verified && accepted && !startCheckout.isPending
+  const canStart = verified && !startCheckout.isPending
+
+  // Les boutons restent cliquables sans acceptation : au lieu d'être grisés sans explication,
+  // ils renvoient vers la case des conditions avec un message.
+  function requireTerms(): boolean {
+    if (accepted) return true
+    setTermsError(true)
+    termsRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+    termsRef.current?.focus()
+    return false
+  }
 
   function goToPayment(plan: 'pro' | 'cabinet') {
+    if (!requireTerms()) return
     startCheckout.mutate(
       { plan, clinicName: clinicName.trim() || undefined, clinicCity: clinicCity.trim() || undefined },
       { onSuccess: url => { window.location.assign(url) } },
@@ -166,7 +180,7 @@ export default function SubscriptionPage() {
               <p className="text-center text-sm font-medium text-moss-700 py-2.5">✓ Votre offre actuelle</p>
             ) : (
               <button className={`${active === 'pro' ? 'btn-primary' : 'btn-secondary'} w-full disabled:opacity-50 disabled:cursor-not-allowed`}
-                disabled={!canPay || clinicActive}
+                disabled={!canStart || clinicActive}
                 onClick={() => goToPayment('pro')}>
                 {startCheckout.isPending ? 'Redirection…' : "Choisir l'abonnement"}
               </button>
@@ -187,14 +201,18 @@ export default function SubscriptionPage() {
                   onChange={e => setClinicName(e.target.value)} />
                 <input className="input text-sm" placeholder="Ville (facultatif)" value={clinicCity}
                   onChange={e => setClinicCity(e.target.value)} />
-                <button className="btn-primary w-full" disabled={!canPay || !clinicName.trim()}
+                <button className="btn-primary w-full" disabled={!canStart || !clinicName.trim()}
                   onClick={() => goToPayment('cabinet')}>
                   {startCheckout.isPending ? 'Redirection…' : 'Continuer vers le paiement'}
                 </button>
               </div>
             ) : (
-              <button className={`${active === 'cabinet' ? 'btn-primary' : 'btn-secondary'} w-full disabled:opacity-50 disabled:cursor-not-allowed`} disabled={!canPay}
-                onClick={() => (clinic ? goToPayment('cabinet') : setShowCabinetForm(true))}>
+              <button className={`${active === 'cabinet' ? 'btn-primary' : 'btn-secondary'} w-full disabled:opacity-50 disabled:cursor-not-allowed`} disabled={!canStart}
+                onClick={() => {
+                  if (!requireTerms()) return
+                  if (!clinic) { setShowCabinetForm(true); return }
+                  goToPayment('cabinet')
+                }}>
                 {startCheckout.isPending ? 'Redirection…' : "Choisir l'abonnement cabinet"}
               </button>
             )}
@@ -203,14 +221,19 @@ export default function SubscriptionPage() {
 
         <div className="max-w-xl mx-auto mt-6">
           <label className="flex items-start gap-2 text-sm text-gray-600 cursor-pointer">
-            <input type="checkbox" checked={accepted} onChange={e => setAccepted(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-sage-600 focus:ring-sage-500" />
+            <input ref={termsRef} type="checkbox" checked={accepted}
+              onChange={e => { setAccepted(e.target.checked); if (e.target.checked) setTermsError(false) }}
+              aria-invalid={termsError && !accepted} aria-describedby={termsError && !accepted ? 'terms-error' : undefined}
+              className={`mt-0.5 h-4 w-4 rounded text-sage-600 focus:ring-sage-500 ${termsError && !accepted ? 'border-red-500 ring-2 ring-red-200' : 'border-gray-300'}`} />
             <span>
               J&apos;ai lu et j&apos;accepte les{' '}
               <Link to="/cgu" target="_blank" className="text-sage-600 font-medium hover:underline">conditions générales</Link>{' '}
               applicables à l&apos;abonnement.
             </span>
           </label>
+          {termsError && !accepted && (
+            <p id="terms-error" role="alert" className="text-sm text-red-600 mt-2">{TERMS_REQUIRED_MESSAGE}</p>
+          )}
           {startCheckout.error && <p className="text-sm text-red-600 mt-3">{(startCheckout.error as Error).message}</p>}
           <p className="text-xs text-gray-400 mt-4 text-center">{PRICE_FOOTNOTE}</p>
         </div>

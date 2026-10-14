@@ -56,15 +56,27 @@ describe('SubscriptionPage', () => {
     expect(screen.getByText(/Prix mensuels hors taxes/)).toBeInTheDocument()
   })
 
-  it("n'envoie vers le paiement qu'après acceptation des conditions", () => {
+  it("sans avoir coché les conditions, un clic sur « Choisir l'abonnement » explique quoi faire au lieu de partir payer", () => {
     renderPage()
     const choose = screen.getByRole('button', { name: "Choisir l'abonnement" })
-    expect(choose).toBeDisabled()
+    expect(choose).toBeEnabled() // pas de bouton grisé sans explication
+
+    fireEvent.click(choose)
+    expect(screen.getByRole('alert')).toHaveTextContent(/Cochez la case/)
+    expect(screen.getByRole('alert')).toHaveTextContent(/choisir un abonnement/)
+    expect(mutateCheckout).not.toHaveBeenCalled()
+    expect(screen.getByRole('checkbox')).toHaveAttribute('aria-invalid', 'true')
+  })
+
+  it("une fois les conditions cochées, le message disparaît et le paiement démarre", () => {
+    renderPage()
+    fireEvent.click(screen.getByRole('button', { name: "Choisir l'abonnement" }))
+    expect(screen.getByRole('alert')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('checkbox'))
-    expect(choose).toBeEnabled()
-    fireEvent.click(choose)
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
 
+    fireEvent.click(screen.getByRole('button', { name: "Choisir l'abonnement" }))
     expect(mutateCheckout).toHaveBeenCalledTimes(1)
     expect(mutateCheckout.mock.calls[0][0]).toMatchObject({ plan: 'pro' })
   })
@@ -136,11 +148,12 @@ describe('SubscriptionPage', () => {
     expect(container.querySelector('[data-plan="pro"]')!.getAttribute('data-highlighted')).toBe('false')
   })
 
-  it("le bouton cabinet est grisé comme celui de l'abonnement tant que les conditions ne sont pas acceptées", () => {
+  it("pour le cabinet aussi : sans conditions cochées, un message s'affiche et rien ne s'ouvre", () => {
     renderPage()
-    expect(screen.getByRole('button', { name: "Choisir l'abonnement cabinet" })).toBeDisabled()
-    fireEvent.click(screen.getByRole('checkbox'))
-    expect(screen.getByRole('button', { name: "Choisir l'abonnement cabinet" })).toBeEnabled()
+    fireEvent.click(screen.getByRole('button', { name: "Choisir l'abonnement cabinet" }))
+    expect(screen.getByRole('alert')).toHaveTextContent(/Cochez la case/)
+    expect(screen.queryByPlaceholderText('Nom du cabinet')).not.toBeInTheDocument()
+    expect(mutateCheckout).not.toHaveBeenCalled()
   })
 
   it("cabinet sans cabinet existant : demande le nom avant d'aller payer", () => {

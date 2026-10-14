@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   PLAN_OFFERS, billingErrorMessage, BILLING_ERRORS, paymentReturnFromSearch, currentSubscription,
-  describeSubscription, blocksAccountDeletion,
+  describeSubscription, blocksAccountDeletion, TERMS_REQUIRED_MESSAGE,
 } from './subscription'
 
 describe('PLAN_OFFERS', () => {
@@ -21,6 +21,14 @@ describe('PLAN_OFFERS', () => {
       expect(PLAN_OFFERS[id].features.every(f => f.included)).toBe(true)
     }
     expect(PLAN_OFFERS.cabinet.tagline).toMatch(/5 praticiens/)
+  })
+})
+
+describe('TERMS_REQUIRED_MESSAGE', () => {
+  it("dit clairement qu'il faut cocher la case des conditions pour choisir un abonnement", () => {
+    expect(TERMS_REQUIRED_MESSAGE).toMatch(/Cochez la case/)
+    expect(TERMS_REQUIRED_MESSAGE).toMatch(/conditions générales/)
+    expect(TERMS_REQUIRED_MESSAGE).toMatch(/choisir un abonnement/)
   })
 })
 

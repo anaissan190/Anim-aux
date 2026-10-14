@@ -64,6 +64,9 @@ export const BILLING_ERRORS: Record<string, string> = {
   internal: 'Une erreur est survenue. Réessayez dans un instant.',
 }
 
+// Affiché à côté de la case quand quelqu'un clique sur « Choisir l'abonnement » sans l'avoir cochée.
+export const TERMS_REQUIRED_MESSAGE = "Cochez la case ci-dessous pour accepter les conditions générales : c'est nécessaire pour choisir un abonnement."
+
 export function billingErrorMessage(code: string | null | undefined): string {
   return (code && BILLING_ERRORS[code]) || BILLING_ERRORS.internal
 }
