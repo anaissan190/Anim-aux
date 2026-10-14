@@ -21,7 +21,8 @@ const json = (body: unknown, status = 200) =>
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return json({ ok: false, error: 'method_not_allowed' }, 405)
 
-  const secret = Deno.env.get('STRIPE_WEBHOOK_SECRET')
+  // trim : un espace ou un retour à la ligne copié avec le secret suffit à faire refuser toutes les signatures
+  const secret = Deno.env.get('STRIPE_WEBHOOK_SECRET')?.trim()
   if (!secret) {
     console.error('stripe-webhook: STRIPE_WEBHOOK_SECRET manquant')
     return json({ ok: false, error: 'not_configured' }, 503)
@@ -30,7 +31,7 @@ Deno.serve(async (req) => {
   const payload = await req.text()
   const valid = await verifyStripeSignature(payload, req.headers.get('stripe-signature'), secret)
   if (!valid) {
-    console.error('stripe-webhook: signature invalide ou trop ancienne')
+    console.error('stripe-webhook: signature invalide ou trop ancienne (secret commence par', secret.slice(0, 6), ', en-tête présent :', !!req.headers.get('stripe-signature'), ')')
     return json({ ok: false, error: 'invalid_signature' }, 400)
   }
 
