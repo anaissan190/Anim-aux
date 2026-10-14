@@ -85,7 +85,6 @@ describe('useDoctors', () => {
   // retenir que les praticiens qui ont la réservation en ligne.
   describe('filtre de disponibilité et offre gratuite', () => {
     function mockSearch(proIds: string[] | null, proError: any = null) {
-      const dayOfWeek = new Date().getDay()
       vi.mocked(supabase.rpc).mockImplementation(((name: string) => {
         if (name === 'get_pro_doctor_ids') return Promise.resolve({ data: proIds, error: proError })
         if (name === 'get_clinic_member_doctor_ids') return Promise.resolve({ data: [], error: null })
@@ -94,7 +93,10 @@ describe('useDoctors', () => {
       vi.mocked(supabase.from).mockImplementation(((table: any) => {
         if (table === 'doctors') return createQueryBuilderMock({ data: [makeDoctor({ id: 'pro-1' }), makeDoctor({ id: 'free-1' })], error: null })
         if (table === 'availabilities') return createQueryBuilderMock({
-          data: [{ day_of_week: dayOfWeek, start_time: '00:00', end_time: '23:59', slot_duration_minutes: 30 }], error: null,
+          // Tous les jours de la semaine : un agenda limité à « aujourd'hui » faisait échouer le
+          // test tard le soir (plus aucun créneau restant, et le même jour de la semaine
+          // suivante tombe hors de la fenêtre de 7 jours — constaté le 14/10/2026 à 23 h 37).
+          data: [0, 1, 2, 3, 4, 5, 6].map(day_of_week => ({ day_of_week, start_time: '00:00', end_time: '23:59', slot_duration_minutes: 30 })), error: null,
         })
         return createQueryBuilderMock({ data: [], error: null }) // blocked_slots
       }) as any)

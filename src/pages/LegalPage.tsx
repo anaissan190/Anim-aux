@@ -8,6 +8,7 @@ import { useLocation } from 'react-router-dom'
 import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
 import { ETHICS_CHARTER_CLAUSES, ETHICS_CHARTER_DISCLAIMER } from '@/lib/ethicsCharter'
+import { PLAN_OFFERS } from '@/lib/subscription'
 
 export default function LegalPage() {
   const location = useLocation()
@@ -140,28 +141,57 @@ export default function LegalPage() {
           </section>
 
           <section>
-            <h2 className="font-semibold text-gray-900 mb-2">7. Suppression de compte</h2>
+            <h2 className="font-semibold text-gray-900 mb-2">7. Abonnement des praticiens</h2>
             <p className="text-sm text-gray-600 leading-relaxed">
-              Tout utilisateur peut supprimer définitivement son compte et l'ensemble des données associées directement depuis son espace, à tout moment. Cette suppression est irréversible.
+              L'inscription, la présence d'une fiche dans la recherche et la consultation des avis sont gratuites. Les fonctionnalités de gestion de l'activité (réservation en ligne, agenda et rappels, messagerie avec les patients, dossiers des animaux, statistiques) sont réservées aux praticiens abonnés. Les patients ne paient jamais Animéaux.
+            </p>
+            <ul className="text-sm text-gray-600 leading-relaxed mt-2 list-disc list-inside space-y-1">
+              <li><strong>Abonnement individuel</strong> — {PLAN_OFFERS.pro.priceHt} € hors taxes par mois.</li>
+              <li><strong>Abonnement cabinet</strong> — {PLAN_OFFERS.cabinet.priceHt} € hors taxes par mois, pour un cabinet comptant jusqu'à 5 praticiens. Les accès de secrétariat ne sont pas comptés. L'abonnement est souscrit et géré par le créateur du cabinet.</li>
+            </ul>
+            <p className="text-sm text-gray-600 leading-relaxed mt-2">
+              <strong>Prix et taxes.</strong> Les prix sont indiqués hors taxes ; la TVA, lorsqu'elle est applicable, s'ajoute au prix. Animéaux peut modifier ses tarifs ; toute modification ne s'applique qu'aux périodes suivant l'information donnée à l'abonné par email, qui peut résilier avant son application.
+            </p>
+            <p className="text-sm text-gray-600 leading-relaxed mt-2">
+              <strong>Souscription et paiement.</strong> L'abonnement n'est proposé qu'une fois le dossier du praticien validé par Animéaux : aucun paiement n'est demandé avant cette validation. Il est payé par carte bancaire, mensuellement et à l'avance, via le prestataire de paiement Stripe ; Animéaux ne voit ni ne conserve les données de carte. L'abonnement démarre à la confirmation du paiement et se renouvelle automatiquement chaque mois jusqu'à sa résiliation. Les factures sont disponibles depuis la page « Mon abonnement ».
+            </p>
+            <p className="text-sm text-gray-600 leading-relaxed mt-2">
+              <strong>Résiliation.</strong> L'abonné peut résilier à tout moment depuis la page « Mon abonnement ». La résiliation prend effet à la fin de la période déjà payée : les fonctionnalités restent accessibles jusqu'à cette date, puis le compte revient à l'offre gratuite. Aucune période commencée n'est remboursée au prorata.
+            </p>
+            <p className="text-sm text-gray-600 leading-relaxed mt-2">
+              <strong>Défaut de paiement.</strong> En cas d'échec de paiement, l'abonné est invité à mettre à jour sa carte. À défaut de régularisation, l'abonnement est interrompu et le compte revient à l'offre gratuite. Les données du praticien sont conservées.
+            </p>
+            <p className="text-sm text-gray-600 leading-relaxed mt-2">
+              <strong>Professionnels.</strong> L'abonnement est destiné à un usage strictement professionnel : le droit de rétractation prévu pour les consommateurs ne s'applique pas.
+            </p>
+            <p className="text-sm text-gray-600 leading-relaxed mt-2">
+              <strong>Offre gratuite.</strong> Pendant l'offre gratuite, la fiche du praticien reste visible avec ses avis et ses coordonnées, mais la réservation en ligne, la liste d'attente et la messagerie ne sont pas disponibles pour ses patients.
             </p>
           </section>
 
           <section>
-            <h2 className="font-semibold text-gray-900 mb-2">8. Responsabilité et disponibilité du service</h2>
+            <h2 className="font-semibold text-gray-900 mb-2">8. Suppression de compte</h2>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              Tout utilisateur peut supprimer définitivement son compte et l'ensemble des données associées directement depuis son espace, à tout moment. Cette suppression est irréversible. Un abonnement en cours doit d'abord être résilié : la suppression devient possible dès que la résiliation est enregistrée.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="font-semibold text-gray-900 mb-2">9. Responsabilité et disponibilité du service</h2>
             <p className="text-sm text-gray-600 leading-relaxed">
               Animéaux met en œuvre les moyens raisonnables pour assurer l'accès et le bon fonctionnement de la Plateforme, sans garantie de continuité absolue. Animéaux ne saurait être tenu responsable des dommages résultant de l'utilisation de la Plateforme, ni des actes ou omissions des praticiens ou des autres utilisateurs.
             </p>
           </section>
 
           <section>
-            <h2 className="font-semibold text-gray-900 mb-2">9. Évolution des CGU</h2>
+            <h2 className="font-semibold text-gray-900 mb-2">10. Évolution des CGU</h2>
             <p className="text-sm text-gray-600 leading-relaxed">
               Animéaux se réserve le droit de modifier les présentes CGU à tout moment. Les utilisateurs seront informés de toute modification substantielle par email. La poursuite de l'utilisation après modification vaut acceptation des nouvelles CGU.
             </p>
           </section>
 
           <section>
-            <h2 className="font-semibold text-gray-900 mb-2">10. Droit applicable</h2>
+            <h2 className="font-semibold text-gray-900 mb-2">11. Droit applicable</h2>
             <p className="text-sm text-gray-600 leading-relaxed">
               Les présentes CGU sont soumises au droit français. En cas de litige, une solution amiable sera recherchée en priorité ; à défaut, les tribunaux français compétents seront saisis.
             </p>
@@ -237,7 +267,7 @@ export default function LegalPage() {
           <section>
             <h2 className="font-semibold text-gray-900 mb-2">5. Sous-traitants techniques</h2>
             <p className="text-sm text-gray-600 leading-relaxed">
-              Animéaux fait appel à : <strong>Supabase</strong> (base de données, authentification, stockage des fichiers — hébergé dans l'Union européenne, région Frankfurt) ; <strong>Vercel</strong> (hébergement du site — États-Unis) ; <strong>Resend</strong> (envoi des emails — société américaine) ; <strong>OVH</strong> (envoi des SMS de rendez-vous — société française, reçoit le numéro de téléphone et le texte du message) ; <strong>Cloudflare</strong> (protection anti-robots « Turnstile » aux formulaires de connexion et d'inscription — reçoit des informations techniques du navigateur dont l'adresse IP) ; <strong>Sentry</strong> (suivi des erreurs techniques — société américaine, reçoit des informations techniques sur l'erreur et l'appareil) ; <strong>CARTO</strong> et <strong>OpenStreetMap</strong> (fonds de carte — reçoivent l'adresse IP du visiteur lors de l'affichage d'une carte) ; et l'<strong>API Adresse</strong> du service public français (localisation des adresses de cabinets, qui ne reçoit que l'adresse saisie). Ces prestataires agissent comme sous-traitants au sens du RGPD ; les transferts hors Union européenne s'appuient sur les garanties prévues par le RGPD (clauses contractuelles types ou décision d'adéquation).
+              Animéaux fait appel à : <strong>Supabase</strong> (base de données, authentification, stockage des fichiers — hébergé dans l'Union européenne, région Frankfurt) ; <strong>Vercel</strong> (hébergement du site — États-Unis) ; <strong>Stripe</strong> (paiement des abonnements des praticiens — reçoit les données de carte, le nom, l'adresse de facturation et l'email du praticien abonné ; Animéaux ne conserve que l'identifiant client Stripe et l'état de l'abonnement) ; <strong>Resend</strong> (envoi des emails — société américaine) ; <strong>OVH</strong> (envoi des SMS de rendez-vous — société française, reçoit le numéro de téléphone et le texte du message) ; <strong>Cloudflare</strong> (protection anti-robots « Turnstile » aux formulaires de connexion et d'inscription — reçoit des informations techniques du navigateur dont l'adresse IP) ; <strong>Sentry</strong> (suivi des erreurs techniques — société américaine, reçoit des informations techniques sur l'erreur et l'appareil) ; <strong>CARTO</strong> et <strong>OpenStreetMap</strong> (fonds de carte — reçoivent l'adresse IP du visiteur lors de l'affichage d'une carte) ; et l'<strong>API Adresse</strong> du service public français (localisation des adresses de cabinets, qui ne reçoit que l'adresse saisie). Ces prestataires agissent comme sous-traitants au sens du RGPD ; les transferts hors Union européenne s'appuient sur les garanties prévues par le RGPD (clauses contractuelles types ou décision d'adéquation).
             </p>
           </section>
 

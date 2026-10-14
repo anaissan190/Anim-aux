@@ -37,7 +37,8 @@ Dans le menu de gauche : **Authentication**.
 - [ ] Restreindre les moyens de paiement de Stripe à la carte (Klarna, Satispay… proposés par défaut).
 - [ ] Après le test : remettre Gary dans l'état voulu (annuler son abonnement test immédiatement dans Stripe → Abonnements, puis « Passer en abonnement » depuis l'administration) et décocher « Apparaître dans la recherche ».
 - [ ] Décider du supplément au-delà de 5 praticiens, d'un tarif annuel et d'un prix « fondateur » gelé.
-- [ ] **Mettre à jour les CGU / ajouter des conditions de vente** (abonnement, TVA, résiliation, droit de rétractation) et les faire relire avec le reste (section 4). Faire souscrire sur le **site web** seulement (règles Apple/Google pour l'appli mobile).
+- [x] **Brouillon des CGU d'abonnement rédigé le 14/10/2026** (article 7 « Abonnement des praticiens » : prix HT tirés de la même source que l'écran, résiliation, défaut de paiement, pas de remboursement au prorata, pas de rétractation pour des professionnels ; Stripe ajouté aux sous-traitants de la politique de confidentialité). **À faire relire** avec le reste (section 4), puis préciser la TVA selon la réponse du comptable. Faire souscrire sur le **site web** seulement (règles Apple/Google pour l'appli mobile).
+- [ ] **Envoyer les questions à la comptable** : `QUESTIONS_COMPTABLE.md` (franchise de TVA ou 20 %, factures Stripe, comptabilisation, clients étrangers…). Remplace la ligne « Confirmer la TVA » ci-dessus.
 - [x] Gary et Lina : abonnement fondateur, masqués de la recherche (interrupteur « Apparaître dans la recherche »).
 
 ## 4. Juridique
