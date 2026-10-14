@@ -32,10 +32,11 @@ function FeatureList({ offer }: { offer: PlanOffer }) {
   )
 }
 
-// `highlighted` : la carte est en orange. Pour les offres payantes, c'est l'offre recommandée
-// par défaut, puis celle que la personne survole / sélectionne au clavier / touche.
-function PlanCard({ offer, highlighted, recommended, onActivate, children }: {
-  offer: PlanOffer; highlighted?: boolean; recommended?: boolean; onActivate?: () => void; children?: React.ReactNode
+// `highlighted` : la carte est en orange, seulement quand la personne la survole, la sélectionne
+// au clavier ou la touche. Aucune offre n'est mise en avant par défaut et aucune n'est
+// « recommandée » : on ne connaît pas la situation du praticien (seul ou en équipe).
+function PlanCard({ offer, highlighted, onActivate, children }: {
+  offer: PlanOffer; highlighted?: boolean; onActivate?: () => void; children?: React.ReactNode
 }) {
   return (
     <div data-plan={offer.id} data-highlighted={highlighted ? 'true' : 'false'}
@@ -45,10 +46,6 @@ function PlanCard({ offer, highlighted, recommended, onActivate, children }: {
       <div className={`px-5 pt-5 pb-4 transition-colors duration-200 ${highlighted ? 'bg-sage-600 text-white' : ''}`}>
         <div className="flex items-center justify-between gap-2">
           <p className={`text-sm font-medium ${highlighted ? '' : 'text-gray-500'}`}>{offer.name}</p>
-          {recommended && (
-            <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full transition-colors duration-200
-              ${highlighted ? 'bg-white text-sage-700' : 'bg-sage-100 text-sage-700'}`}>Recommandé</span>
-          )}
         </div>
         <p className="font-serif text-3xl font-bold mt-2 leading-none">
           {offer.priceHt ? <>{offer.priceHt} €<span className="font-sans text-sm font-normal"> HT / mois</span></> : '0 €'}
@@ -88,9 +85,8 @@ export default function SubscriptionPage() {
   const startCheckout = useStartCheckout()
   const openPortal = useOpenBillingPortal()
   const [accepted, setAccepted] = useState(false)
-  // Offre payante mise en avant : l'abonnement recommandé tant qu'on n'en survole pas une autre.
-  const [hovered, setHovered] = useState<'pro' | 'cabinet' | null>(null)
-  const active = hovered ?? 'pro'
+  // Offre payante survolée / sélectionnée : seule celle-là passe en orange.
+  const [active, setActive] = useState<'pro' | 'cabinet' | null>(null)
   const [showCabinetForm, setShowCabinetForm] = useState(false)
   const [clinicName, setClinicName] = useState('')
   const [clinicCity, setClinicCity] = useState('')
@@ -165,7 +161,7 @@ export default function SubscriptionPage() {
             <p className="text-center text-sm text-gray-400 py-2.5">{hasPro ? 'Offre de départ' : 'Votre offre actuelle'}</p>
           </PlanCard>
 
-          <PlanCard offer={PLAN_OFFERS.pro} highlighted={active === 'pro'} recommended onActivate={() => setHovered('pro')}>
+          <PlanCard offer={PLAN_OFFERS.pro} highlighted={active === 'pro'} onActivate={() => setActive('pro')}>
             {individualActive ? (
               <p className="text-center text-sm font-medium text-moss-700 py-2.5">✓ Votre offre actuelle</p>
             ) : (
@@ -180,7 +176,7 @@ export default function SubscriptionPage() {
             )}
           </PlanCard>
 
-          <PlanCard offer={PLAN_OFFERS.cabinet} highlighted={active === 'cabinet'} onActivate={() => setHovered('cabinet')}>
+          <PlanCard offer={PLAN_OFFERS.cabinet} highlighted={active === 'cabinet'} onActivate={() => setActive('cabinet')}>
             {clinicActive ? (
               <p className="text-center text-sm font-medium text-moss-700 py-2.5">✓ Offre actuelle de votre cabinet</p>
             ) : clinic && !isClinicOwner ? (

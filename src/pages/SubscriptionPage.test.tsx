@@ -51,7 +51,8 @@ describe('SubscriptionPage', () => {
     expect(screen.getByText('Gratuite')).toBeInTheDocument()
     expect(screen.getByText(/39,90 €/)).toBeInTheDocument()
     expect(screen.getByText(/95,90 €/)).toBeInTheDocument()
-    expect(screen.getByText('Recommandé')).toBeInTheDocument()
+    // Aucune offre n'est « recommandée » : on ne connaît pas la situation du praticien.
+    expect(screen.queryByText(/recommand/i)).not.toBeInTheDocument()
     expect(screen.getByText(/Prix mensuels hors taxes/)).toBeInTheDocument()
   })
 
@@ -113,16 +114,14 @@ describe('SubscriptionPage', () => {
     expect(screen.getByText(/rien n'a été débité/)).toBeInTheDocument()
   })
 
-  it("met en orange l'abonnement recommandé par défaut, puis la carte survolée à sa place", () => {
+  it("ne met aucune offre en avant par défaut, puis passe en orange la carte survolée (jamais deux à la fois)", () => {
     const { container } = renderPage()
     const card = (id: string) => container.querySelector(`[data-plan="${id}"]`)!
-    expect(card('pro').getAttribute('data-highlighted')).toBe('true')
-    expect(card('cabinet').getAttribute('data-highlighted')).toBe('false')
-    expect(card('free').getAttribute('data-highlighted')).toBe('false')
+    for (const id of ['free', 'pro', 'cabinet']) expect(card(id).getAttribute('data-highlighted')).toBe('false')
 
     fireEvent.mouseEnter(card('cabinet'))
     expect(card('cabinet').getAttribute('data-highlighted')).toBe('true')
-    expect(card('pro').getAttribute('data-highlighted')).toBe('false') // jamais deux cartes orange à la fois
+    expect(card('pro').getAttribute('data-highlighted')).toBe('false')
 
     fireEvent.mouseEnter(card('pro'))
     expect(card('pro').getAttribute('data-highlighted')).toBe('true')
@@ -134,7 +133,7 @@ describe('SubscriptionPage', () => {
     const free = container.querySelector('[data-plan="free"]')!
     fireEvent.mouseEnter(free)
     expect(free.getAttribute('data-highlighted')).toBe('false')
-    expect(container.querySelector('[data-plan="pro"]')!.getAttribute('data-highlighted')).toBe('true')
+    expect(container.querySelector('[data-plan="pro"]')!.getAttribute('data-highlighted')).toBe('false')
   })
 
   it("le bouton cabinet est grisé comme celui de l'abonnement tant que les conditions ne sont pas acceptées", () => {
