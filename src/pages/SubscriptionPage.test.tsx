@@ -119,6 +119,8 @@ describe('SubscriptionPage', () => {
     state.doctor = { id: 'doc-1', verification_status: 'verified', plan: 'pro' }
     renderPage('?paiement=succes')
     expect(screen.getByText(/votre abonnement est actif/)).toBeInTheDocument()
+    // mène au tableau de bord, où la visite guidée se lance à la première arrivée
+    expect(screen.getByRole('link', { name: 'Découvrir mon espace' })).toHaveAttribute('href', '/dashboard/doctor')
   })
 
   it("au retour d'un paiement annulé, rassure : rien n'a été débité", () => {

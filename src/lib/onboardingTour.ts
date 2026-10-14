@@ -64,13 +64,19 @@ interface ShouldShowInput {
   // n'existent pas encore, et la barre du haut suffisait à le déclencher à tort
   // (constaté le 06/10/2026).
   doctorVerified?: boolean
+  // Praticien : `true` seulement s'il a toutes les fonctionnalités (abonnement actif,
+  // ou cabinet payé). En offre gratuite, la plupart des onglets sont verrouillés : la
+  // visite n'aurait rien à montrer. Elle se lance donc à l'activation de l'abonnement
+  // (décision d'Anaïs, 14/10/2026), à la première arrivée sur le tableau de bord.
+  doctorHasPro?: boolean
 }
 
-export function shouldShowTour({ role, isAdmin, onboardingCompletedAt, pathname, doctorVerified }: ShouldShowInput): TourRole | null {
+export function shouldShowTour({ role, isAdmin, onboardingCompletedAt, pathname, doctorVerified, doctorHasPro }: ShouldShowInput): TourRole | null {
   if (isAdmin) return null
   if (role !== 'patient' && role !== 'doctor') return null
   if (onboardingCompletedAt !== null) return null
   if (role === 'doctor' && doctorVerified !== true) return null
+  if (role === 'doctor' && doctorHasPro !== true) return null
   return pathname === TOUR_PATHS[role] ? role : null
 }
 

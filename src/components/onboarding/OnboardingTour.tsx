@@ -3,7 +3,8 @@
 // bouton, une flèche courbe jusqu'à une bulle qui l'explique. Monté une seule
 // fois dans App.tsx. Ne s'affiche que pour un patient ou un praticien dont le
 // profil a onboarding_completed_at = null (migration 110), sur son tableau de
-// bord, et une seule fois : terminer OU fermer la visite marque le tuto comme
+// bord, et une seule fois (un praticien en offre gratuite ne la voit qu'à l'activation de
+// son abonnement) : terminer OU fermer la visite marque le tuto comme
 // vu (pas de bouton "revoir" — décision d'Anaïs).
 //
 // Les boutons ciblés portent un attribut data-tour (voir Navbar, MobileHeader,
@@ -13,7 +14,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { createPortal } from 'react-dom'
 import { useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/lib/authStore'
-import { useCompleteOnboarding, useCurrentDoctor } from '@/hooks/useData'
+import { useCompleteOnboarding, useCurrentDoctor, useDoctorHasPro } from '@/hooks/useData'
 import {
   getTourSteps, shouldShowTour, pickVisibleSteps, computeTourGeometry,
   arrowPath, headPath, scribblePath, type Rect, type TourStep,
@@ -37,6 +38,7 @@ export default function OnboardingTour() {
   // Même requête (même clé de cache) que le tableau de bord praticien ; elle
   // ne part que pour un praticien.
   const { data: doctor } = useCurrentDoctor()
+  const { data: hasPro } = useDoctorHasPro(doctor?.id)
 
   const role = shouldShowTour({
     role: user?.role,
@@ -44,6 +46,7 @@ export default function OnboardingTour() {
     onboardingCompletedAt: profile?.onboarding_completed_at,
     pathname: location.pathname,
     doctorVerified: doctor?.verification_status === 'verified',
+    doctorHasPro: hasPro === true,
   })
 
   const [steps, setSteps] = useState<TourStep[] | null>(null)

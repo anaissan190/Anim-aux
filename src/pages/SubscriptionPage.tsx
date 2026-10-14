@@ -136,7 +136,14 @@ export default function SubscriptionPage() {
         {returned === 'success' && (
           <div className={`rounded-2xl border p-4 text-sm mb-6 ${hasPro ? 'bg-moss-50 border-moss-100 text-moss-800' : 'bg-sage-50 border-sage-100 text-sage-800'}`}>
             {hasPro
-              ? '✓ Paiement reçu : votre abonnement est actif. Toutes les fonctionnalités sont ouvertes.'
+              ? (
+                <span className="flex flex-wrap items-center justify-between gap-3">
+                  <span>✓ Paiement reçu : votre abonnement est actif. Toutes les fonctionnalités sont ouvertes.</span>
+                  <Link to="/dashboard/doctor" className="bg-moss-600 hover:bg-moss-700 text-white rounded-full px-4 py-1.5 text-sm font-medium">
+                    Découvrir mon espace
+                  </Link>
+                </span>
+              )
               : waiting
                 ? 'Paiement reçu. Activation de votre abonnement en cours, quelques secondes…'
                 : "Paiement reçu. L'activation prend plus de temps que prévu : actualisez cette page dans quelques minutes. Votre paiement est bien enregistré."}
