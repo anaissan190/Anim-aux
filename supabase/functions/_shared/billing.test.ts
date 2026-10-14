@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   isPaidStatus, kindForPlan, priceIdForPlan, extractSubscriptionState, buildCheckoutParams,
-  verifyStripeSignature, SUBSCRIPTION_EVENTS,
+  verifyStripeSignature, SUBSCRIPTION_EVENTS, checkBillingConfig,
 } from './billing'
 
 describe('isPaidStatus', () => {
@@ -156,5 +156,50 @@ describe('SUBSCRIPTION_EVENTS', () => {
     expect([...SUBSCRIPTION_EVENTS]).toEqual([
       'customer.subscription.created', 'customer.subscription.updated', 'customer.subscription.deleted',
     ])
+  })
+})
+
+describe('checkBillingConfig', () => {
+  const good = { STRIPE_SECRET_KEY: 'sk_test_abc', STRIPE_PRICE_PRO: 'price_pro', STRIPE_PRICE_CABINET: 'price_cab' }
+
+  it('accepte une configuration complète et renvoie le bon prix selon l\'offre', () => {
+    expect(checkBillingConfig('pro', good)).toEqual({ ok: true, secretKey: 'sk_test_abc', priceId: 'price_pro' })
+    expect(checkBillingConfig('cabinet', good)).toEqual({ ok: true, secretKey: 'sk_test_abc', priceId: 'price_cab' })
+  })
+
+  it('accepte une clé restreinte et une clé réelle, en ignorant les espaces autour', () => {
+    expect(checkBillingConfig('pro', { ...good, STRIPE_SECRET_KEY: ' rk_live_abc ' }).ok).toBe(true)
+    expect(checkBillingConfig('pro', { ...good, STRIPE_PRICE_PRO: ' price_pro ' })).toMatchObject({ ok: true, priceId: 'price_pro' })
+  })
+
+  it('distingue « pas encore configuré » (secret absent) de « mal configuré »', () => {
+    expect(checkBillingConfig('pro', {})).toMatchObject({ ok: false, code: 'billing_not_configured', problem: expect.stringMatching(/STRIPE_SECRET_KEY/) })
+    expect(checkBillingConfig('pro', { STRIPE_SECRET_KEY: 'sk_test_abc' })).toMatchObject({ ok: false, code: 'billing_not_configured', problem: expect.stringMatching(/STRIPE_PRICE_PRO/) })
+    expect(checkBillingConfig('cabinet', { ...good, STRIPE_PRICE_CABINET: '  ' })).toMatchObject({ ok: false, code: 'billing_not_configured', problem: expect.stringMatching(/STRIPE_PRICE_CABINET/) })
+  })
+
+  it('repère la clé publiable collée à la place de la clé secrète', () => {
+    expect(checkBillingConfig('pro', { ...good, STRIPE_SECRET_KEY: 'pk_test_abc' })).toMatchObject({
+      ok: false, code: 'billing_misconfigured', problem: expect.stringMatching(/PUBLIABLE/),
+    })
+  })
+
+  it('repère un secret qui n\'est pas une clé Stripe', () => {
+    expect(checkBillingConfig('pro', { ...good, STRIPE_SECRET_KEY: 'whsec_abc' })).toMatchObject({ ok: false, code: 'billing_misconfigured' })
+  })
+
+  it("repère un identifiant de produit (prod_) collé à la place de l'identifiant de prix (price_)", () => {
+    expect(checkBillingConfig('pro', { ...good, STRIPE_PRICE_PRO: 'prod_ABC123' })).toMatchObject({
+      ok: false, code: 'billing_misconfigured', problem: expect.stringMatching(/PRODUIT.*PRIX/),
+    })
+    expect(checkBillingConfig('pro', { ...good, STRIPE_PRICE_PRO: 'abc' })).toMatchObject({ ok: false, code: 'billing_misconfigured' })
+  })
+
+  it('ne regarde que le prix de l\'offre demandée', () => {
+    expect(checkBillingConfig('cabinet', { ...good, STRIPE_PRICE_PRO: 'prod_oops' }).ok).toBe(true)
+  })
+
+  it('refuse une offre inconnue', () => {
+    expect(checkBillingConfig('autre', good)).toMatchObject({ ok: false, code: 'billing_not_configured' })
   })
 })

@@ -53,6 +53,7 @@ export const PRICE_FOOTNOTE = 'Prix mensuels hors taxes. Paiement sécurisé par
 // Codes d'erreur renvoyés par les fonctions de paiement, en français.
 export const BILLING_ERRORS: Record<string, string> = {
   billing_not_configured: "Le paiement en ligne n'est pas encore ouvert. Réessayez bientôt.",
+  billing_misconfigured: "Le paiement en ligne n'est pas disponible pour le moment. Réessayez plus tard.",
   not_verified: "L'abonnement est proposé dès que votre dossier est validé par notre équipe.",
   not_a_doctor: "L'abonnement est réservé aux praticiens.",
   already_subscribed: 'Vous avez déjà un abonnement actif.',

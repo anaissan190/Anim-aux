@@ -33,6 +33,38 @@ export function priceIdForPlan(plan: string, env: Record<string, string | undefi
   return id && id.trim() ? id.trim() : null
 }
 
+// Contrôle de la configuration AVANT d'appeler Stripe, pour distinguer « pas encore configuré »
+// (secret absent) d'« configuré de travers » (erreur de recopie fréquente : clé publiable à la
+// place de la clé secrète, identifiant de produit `prod_` à la place de l'identifiant de prix
+// `price_`). Le détail n'est destiné qu'aux journaux, jamais au navigateur.
+export type BillingConfig =
+  | { ok: true; secretKey: string; priceId: string }
+  | { ok: false; code: 'billing_not_configured' | 'billing_misconfigured'; problem: string }
+
+export function checkBillingConfig(plan: string, env: Record<string, string | undefined>): BillingConfig {
+  const secretKey = env.STRIPE_SECRET_KEY?.trim()
+  const priceEnv = plan === 'pro' ? 'STRIPE_PRICE_PRO' : plan === 'cabinet' ? 'STRIPE_PRICE_CABINET' : null
+  const priceId = priceEnv ? env[priceEnv]?.trim() : undefined
+
+  if (!secretKey) return { ok: false, code: 'billing_not_configured', problem: 'STRIPE_SECRET_KEY est absent' }
+  if (!priceEnv || !priceId) {
+    return { ok: false, code: 'billing_not_configured', problem: `${priceEnv ?? 'identifiant de prix'} est absent` }
+  }
+  if (secretKey.startsWith('pk_')) {
+    return { ok: false, code: 'billing_misconfigured', problem: 'STRIPE_SECRET_KEY contient la clé PUBLIABLE (pk_…) : il faut la clé SECRÈTE (sk_…)' }
+  }
+  if (!/^(sk|rk)_(test|live)_/.test(secretKey)) {
+    return { ok: false, code: 'billing_misconfigured', problem: 'STRIPE_SECRET_KEY ne ressemble pas à une clé secrète Stripe (attendu : sk_test_… ou sk_live_…)' }
+  }
+  if (priceId.startsWith('prod_')) {
+    return { ok: false, code: 'billing_misconfigured', problem: `${priceEnv} contient un identifiant de PRODUIT (prod_…) : il faut l'identifiant du PRIX (price_…)` }
+  }
+  if (!priceId.startsWith('price_')) {
+    return { ok: false, code: 'billing_misconfigured', problem: `${priceEnv} ne ressemble pas à un identifiant de prix Stripe (attendu : price_…)` }
+  }
+  return { ok: true, secretKey, priceId }
+}
+
 // --- Abonnement Stripe → état à enregistrer -----------------------------------
 
 export interface StripeSubscriptionLike {

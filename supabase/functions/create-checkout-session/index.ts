@@ -13,7 +13,7 @@
 // L'offre n'est JAMAIS activée ici : seule la confirmation signée de Stripe (webhook) le fait.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { buildCheckoutParams, isPaidStatus, kindForPlan, priceIdForPlan, type PaidPlan } from '../_shared/billing.ts'
+import { buildCheckoutParams, checkBillingConfig, isPaidStatus, kindForPlan, type PaidPlan } from '../_shared/billing.ts'
 
 const supabaseAdmin = createClient(
   Deno.env.get('SUPABASE_URL')!,
@@ -58,12 +58,13 @@ Deno.serve(async (req) => {
     if (plan !== 'pro' && plan !== 'cabinet') return json({ ok: false, error: 'invalid_plan' }, 400)
     const paidPlan = plan as PaidPlan
 
-    const stripeKey = Deno.env.get('STRIPE_SECRET_KEY')
-    const priceId = priceIdForPlan(paidPlan, Deno.env.toObject())
-    if (!stripeKey || !priceId) {
-      console.error('create-checkout-session: Stripe pas configuré (clé ou prix manquant)')
-      return json({ ok: false, error: 'billing_not_configured' }, 503)
+    const config = checkBillingConfig(paidPlan, Deno.env.toObject())
+    if (!config.ok) {
+      console.error('create-checkout-session: configuration Stripe —', config.problem)
+      return json({ ok: false, error: config.code }, 503)
     }
+    const stripeKey = config.secretKey
+    const priceId = config.priceId
 
     const { data: doctor, error: doctorErr } = await supabaseAdmin
       .from('doctors').select('id, plan, verification_status').eq('user_id', user.id).maybeSingle()
