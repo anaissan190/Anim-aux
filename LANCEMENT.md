@@ -1,7 +1,7 @@
 # Lancement d'Animéaux — liste à suivre
 
 Ce qui reste à faire **en dehors du code** pour ouvrir l'application au public, puis un scénario de test complet.
-À cocher au fur et à mesure. Dernière mise à jour : 13/10/2026.
+À cocher au fur et à mesure. Dernière mise à jour : 14/10/2026.
 
 ## 1. Abonnements (les deux sont indispensables dès que de vrais utilisateurs arrivent)
 - [ ] **Supabase → offre Pro** (~25 $/mois) : Organisation → Billing. Sans elle, le projet est **mis en pause après 7 jours sans activité** et il n'y a pas de sauvegardes automatiques.
@@ -32,7 +32,10 @@ Dans le menu de gauche : **Authentication**.
 - [x] **Étape 3** (13/10/2026) : espace du praticien en offre gratuite (onglets verrouillés par un cadenas, page d'explication, bandeau sur Mon espace). Le bouton « Passer à l'abonnement » ouvre un email pré-rempli vers l'équipe tant que Stripe n'est pas branché.
 - [ ] **Étape 4** : écran « Choisissez votre formule » à l'inscription praticien (maquette validée le 11/10).
 - [x] **Paiement Stripe, code livré le 13/10/2026** : écran `/abonnement`, paiement sécurisé, activation par la confirmation signée de Stripe, portail de gestion, garde-fous (suppression de compte, fermeture de cabinet). Migration 134 + fonctions `create-checkout-session`, `create-portal-session`, `stripe-webhook`.
-- [ ] **Brancher Stripe** en suivant `STRIPE.md` (compte, 2 produits, portail, webhook, 4 secrets dans Supabase), tester en mode test, puis passer en réel. Identifiants et coordonnées bancaires saisis par Anaïs, jamais par Claude.
+- [x] **Stripe branché et testé en mode test le 14/10/2026** (compte, 2 produits, portail, webhook, 4 secrets) : paiement avec la carte de test, activation par le webhook, retour à l'offre gratuite par résiliation, visite guidée lancée à l'activation. Pièges rencontrés : identifiant de **produit** (`prod_…`) collé à la place de celui du **tarif** (`price_…`), et secret de signature du webhook (`whsec_…`) pas celui de la destination → 400 sur tous les envois.
+- [ ] **Passer Stripe en mode réel** : recréer les 2 produits/tarifs, le portail et le webhook en mode réel, puis remplacer les 4 secrets Supabase (`sk_live_…`, `whsec_…`, 2 × `price_…`). Identifiants et coordonnées bancaires saisis par Anaïs, jamais par Claude.
+- [ ] Restreindre les moyens de paiement de Stripe à la carte (Klarna, Satispay… proposés par défaut).
+- [ ] Après le test : remettre Gary dans l'état voulu (annuler son abonnement test immédiatement dans Stripe → Abonnements, puis « Passer en abonnement » depuis l'administration) et décocher « Apparaître dans la recherche ».
 - [ ] Décider du supplément au-delà de 5 praticiens, d'un tarif annuel et d'un prix « fondateur » gelé.
 - [ ] **Mettre à jour les CGU / ajouter des conditions de vente** (abonnement, TVA, résiliation, droit de rétractation) et les faire relire avec le reste (section 4). Faire souscrire sur le **site web** seulement (règles Apple/Google pour l'appli mobile).
 - [x] Gary et Lina : abonnement fondateur, masqués de la recherche (interrupteur « Apparaître dans la recherche »).
