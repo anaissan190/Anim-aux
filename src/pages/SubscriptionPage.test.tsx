@@ -113,6 +113,30 @@ describe('SubscriptionPage', () => {
     expect(screen.getByText(/rien n'a été débité/)).toBeInTheDocument()
   })
 
+  it("met en orange l'abonnement recommandé par défaut, puis la carte survolée à sa place", () => {
+    const { container } = renderPage()
+    const card = (id: string) => container.querySelector(`[data-plan="${id}"]`)!
+    expect(card('pro').getAttribute('data-highlighted')).toBe('true')
+    expect(card('cabinet').getAttribute('data-highlighted')).toBe('false')
+    expect(card('free').getAttribute('data-highlighted')).toBe('false')
+
+    fireEvent.mouseEnter(card('cabinet'))
+    expect(card('cabinet').getAttribute('data-highlighted')).toBe('true')
+    expect(card('pro').getAttribute('data-highlighted')).toBe('false') // jamais deux cartes orange à la fois
+
+    fireEvent.mouseEnter(card('pro'))
+    expect(card('pro').getAttribute('data-highlighted')).toBe('true')
+    expect(card('cabinet').getAttribute('data-highlighted')).toBe('false')
+  })
+
+  it("la formule gratuite ne passe jamais en orange, même survolée", () => {
+    const { container } = renderPage()
+    const free = container.querySelector('[data-plan="free"]')!
+    fireEvent.mouseEnter(free)
+    expect(free.getAttribute('data-highlighted')).toBe('false')
+    expect(container.querySelector('[data-plan="pro"]')!.getAttribute('data-highlighted')).toBe('true')
+  })
+
   it("le bouton cabinet est grisé comme celui de l'abonnement tant que les conditions ne sont pas acceptées", () => {
     renderPage()
     expect(screen.getByRole('button', { name: "Choisir l'abonnement cabinet" })).toBeDisabled()

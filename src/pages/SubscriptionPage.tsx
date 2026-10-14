@@ -32,13 +32,23 @@ function FeatureList({ offer }: { offer: PlanOffer }) {
   )
 }
 
-function PlanCard({ offer, highlighted, children }: { offer: PlanOffer; highlighted?: boolean; children?: React.ReactNode }) {
+// `highlighted` : la carte est en orange. Pour les offres payantes, c'est l'offre recommandée
+// par défaut, puis celle que la personne survole / sélectionne au clavier / touche.
+function PlanCard({ offer, highlighted, recommended, onActivate, children }: {
+  offer: PlanOffer; highlighted?: boolean; recommended?: boolean; onActivate?: () => void; children?: React.ReactNode
+}) {
   return (
-    <div className={`bg-white rounded-3xl overflow-hidden flex flex-col ${highlighted ? 'border-2 border-sage-600 shadow-lg' : 'border border-sand-200'}`}>
-      <div className={`px-5 pt-5 pb-4 ${highlighted ? 'bg-sage-600 text-white' : ''}`}>
+    <div data-plan={offer.id} data-highlighted={highlighted ? 'true' : 'false'}
+      onMouseEnter={onActivate} onFocus={onActivate} onClick={onActivate}
+      className={`bg-white rounded-3xl overflow-hidden flex flex-col transition-all duration-200
+        ${highlighted ? 'border-2 border-sage-600 shadow-lg' : 'border-2 border-transparent outline outline-1 outline-sand-200'}`}>
+      <div className={`px-5 pt-5 pb-4 transition-colors duration-200 ${highlighted ? 'bg-sage-600 text-white' : ''}`}>
         <div className="flex items-center justify-between gap-2">
           <p className={`text-sm font-medium ${highlighted ? '' : 'text-gray-500'}`}>{offer.name}</p>
-          {highlighted && <span className="text-[11px] font-semibold bg-white text-sage-700 px-2.5 py-0.5 rounded-full">Recommandé</span>}
+          {recommended && (
+            <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full transition-colors duration-200
+              ${highlighted ? 'bg-white text-sage-700' : 'bg-sage-100 text-sage-700'}`}>Recommandé</span>
+          )}
         </div>
         <p className="font-serif text-3xl font-bold mt-2 leading-none">
           {offer.priceHt ? <>{offer.priceHt} €<span className="font-sans text-sm font-normal"> HT / mois</span></> : '0 €'}
@@ -78,6 +88,9 @@ export default function SubscriptionPage() {
   const startCheckout = useStartCheckout()
   const openPortal = useOpenBillingPortal()
   const [accepted, setAccepted] = useState(false)
+  // Offre payante mise en avant : l'abonnement recommandé tant qu'on n'en survole pas une autre.
+  const [hovered, setHovered] = useState<'pro' | 'cabinet' | null>(null)
+  const active = hovered ?? 'pro'
   const [showCabinetForm, setShowCabinetForm] = useState(false)
   const [clinicName, setClinicName] = useState('')
   const [clinicCity, setClinicCity] = useState('')
@@ -152,11 +165,12 @@ export default function SubscriptionPage() {
             <p className="text-center text-sm text-gray-400 py-2.5">{hasPro ? 'Offre de départ' : 'Votre offre actuelle'}</p>
           </PlanCard>
 
-          <PlanCard offer={PLAN_OFFERS.pro} highlighted>
+          <PlanCard offer={PLAN_OFFERS.pro} highlighted={active === 'pro'} recommended onActivate={() => setHovered('pro')}>
             {individualActive ? (
               <p className="text-center text-sm font-medium text-moss-700 py-2.5">✓ Votre offre actuelle</p>
             ) : (
-              <button className="btn-primary w-full" disabled={!canPay || clinicActive}
+              <button className={`${active === 'pro' ? 'btn-primary' : 'btn-secondary'} w-full disabled:opacity-50 disabled:cursor-not-allowed`}
+                disabled={!canPay || clinicActive}
                 onClick={() => goToPayment('pro')}>
                 {startCheckout.isPending ? 'Redirection…' : "Choisir l'abonnement"}
               </button>
@@ -166,7 +180,7 @@ export default function SubscriptionPage() {
             )}
           </PlanCard>
 
-          <PlanCard offer={PLAN_OFFERS.cabinet}>
+          <PlanCard offer={PLAN_OFFERS.cabinet} highlighted={active === 'cabinet'} onActivate={() => setHovered('cabinet')}>
             {clinicActive ? (
               <p className="text-center text-sm font-medium text-moss-700 py-2.5">✓ Offre actuelle de votre cabinet</p>
             ) : clinic && !isClinicOwner ? (
@@ -183,7 +197,7 @@ export default function SubscriptionPage() {
                 </button>
               </div>
             ) : (
-              <button className="btn-secondary w-full disabled:opacity-50 disabled:cursor-not-allowed" disabled={!canPay}
+              <button className={`${active === 'cabinet' ? 'btn-primary' : 'btn-secondary'} w-full disabled:opacity-50 disabled:cursor-not-allowed`} disabled={!canPay}
                 onClick={() => (clinic ? goToPayment('cabinet') : setShowCabinetForm(true))}>
                 {startCheckout.isPending ? 'Redirection…' : "Choisir l'abonnement cabinet"}
               </button>
