@@ -38,7 +38,8 @@ Dans le menu de gauche : **Authentication**.
 - [ ] Après le test : remettre Gary dans l'état voulu (annuler son abonnement test immédiatement dans Stripe → Abonnements, puis « Passer en abonnement » depuis l'administration) et décocher « Apparaître dans la recherche ».
 - [ ] Décider du supplément au-delà de 5 praticiens, d'un tarif annuel et d'un prix « fondateur » gelé.
 - [x] **Brouillon des CGU d'abonnement rédigé le 14/10/2026** (article 7 « Abonnement des praticiens » : prix HT tirés de la même source que l'écran, résiliation, défaut de paiement, pas de remboursement au prorata, pas de rétractation pour des professionnels ; Stripe ajouté aux sous-traitants de la politique de confidentialité). **À faire relire** avec le reste (section 4), puis préciser la TVA selon la réponse du comptable. Faire souscrire sur le **site web** seulement (règles Apple/Google pour l'appli mobile).
-- [ ] **Envoyer les questions à la comptable** : `QUESTIONS_COMPTABLE.md` (franchise de TVA ou 20 %, factures Stripe, comptabilisation, clients étrangers…). Remplace la ligne « Confirmer la TVA » ci-dessus.
+- [ ] **Activité déclarée au Kbis** : elle décrit la mise en relation et la prise de rendez-vous, pas la vente d'abonnements aux praticiens. Voir avec la comptable s'il faut déposer une modification au guichet unique **avant le premier encaissement** (question 3 du fichier ci-dessous).
+- [ ] **Envoyer les questions à la comptable** : `QUESTIONS_COMPTABLE.md`, avec le Kbis et l'exemple de facture Stripe (dossier « Questions comptable » sur le Bureau, hors dépôt car le Kbis contient des données personnelles) (franchise de TVA ou 20 %, factures Stripe, comptabilisation, clients étrangers…). Remplace la ligne « Confirmer la TVA » ci-dessus.
 - [x] Gary et Lina : abonnement fondateur, masqués de la recherche (interrupteur « Apparaître dans la recherche »).
 
 ## 4. Juridique
