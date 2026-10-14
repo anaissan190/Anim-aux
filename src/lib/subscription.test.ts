@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   PLAN_OFFERS, billingErrorMessage, BILLING_ERRORS, paymentReturnFromSearch, currentSubscription,
-  describeSubscription, blocksAccountDeletion, TERMS_REQUIRED_MESSAGE,
+  describeSubscription, blocksAccountDeletion, TERMS_REQUIRED_MESSAGE, freePlanState,
 } from './subscription'
 
 describe('PLAN_OFFERS', () => {
@@ -107,5 +107,32 @@ describe('blocksAccountDeletion', () => {
     expect(blocksAccountDeletion([{ status: 'canceled', current_period_end: null, cancel_at_period_end: false }])).toBe(false)
     expect(blocksAccountDeletion([])).toBe(false)
     expect(blocksAccountDeletion(null)).toBe(false)
+  })
+})
+
+describe('freePlanState', () => {
+  const end = '2026-11-14T00:00:00Z'
+  const active = { status: 'active', current_period_end: end, cancel_at_period_end: false }
+
+  it("en offre gratuite : c'est l'offre actuelle", () => {
+    expect(freePlanState(false, null)).toEqual({ kind: 'current' })
+    expect(freePlanState(undefined, null)).toEqual({ kind: 'current' })
+  })
+
+  it('abonné via Stripe : peut revenir à la gratuite en résiliant', () => {
+    expect(freePlanState(true, active)).toEqual({ kind: 'downgrade' })
+    expect(freePlanState(true, { ...active, status: 'past_due' })).toEqual({ kind: 'downgrade' })
+  })
+
+  it('résiliation déjà programmée : annonce la date de retour à la gratuite', () => {
+    const state = freePlanState(true, { ...active, cancel_at_period_end: true })
+    expect(state).toMatchObject({ kind: 'scheduled' })
+    expect((state as { until: string }).until).toMatch(/2026/)
+    expect(freePlanState(true, { ...active, cancel_at_period_end: true, current_period_end: null })).toEqual({ kind: 'scheduled', until: null })
+  })
+
+  it('offre accordée sans abonnement Stripe (fondateur, cabinet payé par un autre) : pas de bouton', () => {
+    expect(freePlanState(true, null)).toEqual({ kind: 'granted' })
+    expect(freePlanState(true, { ...active, status: 'canceled' })).toEqual({ kind: 'granted' })
   })
 })

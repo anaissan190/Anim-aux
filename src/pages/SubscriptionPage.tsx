@@ -13,7 +13,7 @@ import {
   useCurrentDoctor, useMyClinic, useDoctorHasPro, useMySubscriptions, useStartCheckout, useOpenBillingPortal,
 } from '@/hooks/useData'
 import {
-  PLAN_OFFERS, PRICE_FOOTNOTE, TERMS_REQUIRED_MESSAGE, currentSubscription, describeSubscription, paymentReturnFromSearch, type PlanOffer,
+  PLAN_OFFERS, PRICE_FOOTNOTE, TERMS_REQUIRED_MESSAGE, currentSubscription, describeSubscription, freePlanState, paymentReturnFromSearch, type PlanOffer,
 } from '@/lib/subscription'
 
 // Attente maximale de la confirmation de Stripe après un paiement réussi.
@@ -119,6 +119,7 @@ export default function SubscriptionPage() {
     )
   }
 
+  const freeState = freePlanState(hasPro, sub)
   const status = hasPro ? describeSubscription(subscriptions.length ? sub : null) : null
   const statusTone = status?.tone === 'warning' ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-moss-50 border-moss-100 text-moss-800'
 
@@ -179,7 +180,24 @@ export default function SubscriptionPage() {
 
         <div className="grid md:grid-cols-3 gap-5 items-stretch">
           <PlanCard offer={PLAN_OFFERS.free}>
-            <p className="text-center text-sm text-gray-400 py-2.5">{hasPro ? 'Offre de départ' : 'Votre offre actuelle'}</p>
+            {freeState.kind === 'current' && <p className="text-center text-sm text-gray-400 py-2.5">Votre offre actuelle</p>}
+            {freeState.kind === 'granted' && <p className="text-center text-sm text-gray-400 py-2.5">Offre de départ</p>}
+            {freeState.kind === 'downgrade' && (
+              <>
+                <button className="btn-secondary w-full" disabled={openPortal.isPending}
+                  onClick={() => openPortal.mutate(undefined, { onSuccess: url => { window.location.assign(url) } })}>
+                  {openPortal.isPending ? 'Ouverture…' : "Revenir à l'offre gratuite"}
+                </button>
+                <p className="text-xs text-gray-400 text-center mt-2">
+                  Vous gardez toutes les fonctionnalités jusqu&apos;à la fin de la période déjà payée. Rien n&apos;est remboursé au prorata.
+                </p>
+              </>
+            )}
+            {freeState.kind === 'scheduled' && (
+              <p className="text-center text-sm text-amber-700 py-2.5">
+                Retour à l&apos;offre gratuite prévu{freeState.until ? ` le ${freeState.until}` : ' à la fin de la période payée'}.
+              </p>
+            )}
           </PlanCard>
 
           <PlanCard offer={PLAN_OFFERS.pro} highlighted={active === 'pro'} onActivate={() => setActive('pro')}>

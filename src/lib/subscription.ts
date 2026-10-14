@@ -117,6 +117,24 @@ export function describeSubscription(sub: SubscriptionRow | null): { tone: 'ok' 
   return { tone: 'neutral', text: 'Abonnement terminé.' }
 }
 
+// Carte « Gratuite » : que proposer selon la situation ?
+//  - current   : déjà en offre gratuite
+//  - downgrade : abonné via Stripe, peut revenir à la gratuite (en résiliant sur le portail)
+//  - scheduled : résiliation déjà programmée, retour à la gratuite à la fin de la période payée
+//  - granted   : offre accordée sans abonnement Stripe (fondateur) ou via le cabinet : pas de bouton
+export type FreePlanState =
+  | { kind: 'current' }
+  | { kind: 'downgrade' }
+  | { kind: 'scheduled'; until: string | null }
+  | { kind: 'granted' }
+
+export function freePlanState(hasPro: boolean | undefined, sub: SubscriptionRow | null): FreePlanState {
+  if (!hasPro) return { kind: 'current' }
+  if (!sub || !PAID.includes(sub.status)) return { kind: 'granted' }
+  if (sub.cancel_at_period_end) return { kind: 'scheduled', until: sub.current_period_end ? frDate(sub.current_period_end) : null }
+  return { kind: 'downgrade' }
+}
+
 // Un abonnement dont la résiliation est programmée ne bloque plus la suppression du
 // compte (miroir de delete_my_account, migration 134).
 export function blocksAccountDeletion(rows: SubscriptionRow[] | null | undefined): boolean {

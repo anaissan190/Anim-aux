@@ -101,12 +101,34 @@ describe('SubscriptionPage', () => {
     expect(mutatePortal).toHaveBeenCalledTimes(1)
   })
 
+  it("un abonné peut revenir à l'offre gratuite : le bouton ouvre le portail de résiliation", () => {
+    state.hasPro = true
+    state.doctor = { id: 'doc-1', verification_status: 'verified', plan: 'pro' }
+    state.subscriptions = [{ status: 'active', current_period_end: '2026-12-01T10:00:00Z', cancel_at_period_end: false, created_at: '2026-10-13' }]
+    renderPage()
+
+    expect(screen.getByText(/jusqu'à la fin de la période déjà payée/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: "Revenir à l'offre gratuite" }))
+    expect(mutatePortal).toHaveBeenCalledTimes(1)
+  })
+
+  it("si la résiliation est déjà programmée, annonce la date du retour à la gratuite sans proposer le bouton", () => {
+    state.hasPro = true
+    state.doctor = { id: 'doc-1', verification_status: 'verified', plan: 'pro' }
+    state.subscriptions = [{ status: 'active', current_period_end: '2026-12-01T10:00:00Z', cancel_at_period_end: true, created_at: '2026-10-13' }]
+    renderPage()
+
+    expect(screen.getByText(/Retour à l'offre gratuite prévu le 1 décembre 2026/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: "Revenir à l'offre gratuite" })).not.toBeInTheDocument()
+  })
+
   it("une offre « fondateur » (sans abonnement Stripe) est présentée comme offerte, sans bouton de gestion", () => {
     state.hasPro = true
     state.doctor = { id: 'doc-1', verification_status: 'verified', plan: 'pro' }
     renderPage()
     expect(screen.getByText(/offert par Animéaux/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Gérer mon abonnement' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: "Revenir à l'offre gratuite" })).not.toBeInTheDocument()
   })
 
   it("au retour d'un paiement réussi, annonce l'activation en cours puis l'abonnement actif", () => {
