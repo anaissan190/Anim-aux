@@ -183,7 +183,7 @@ export default function SubscriptionPage() {
                 </button>
               </div>
             ) : (
-              <button className="btn-secondary w-full" disabled={!verified || (!!clinic && !canPay)}
+              <button className="btn-secondary w-full disabled:opacity-50 disabled:cursor-not-allowed" disabled={!canPay}
                 onClick={() => (clinic ? goToPayment('cabinet') : setShowCabinetForm(true))}>
                 {startCheckout.isPending ? 'Redirection…' : "Choisir l'abonnement cabinet"}
               </button>

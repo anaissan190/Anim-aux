@@ -113,6 +113,13 @@ describe('SubscriptionPage', () => {
     expect(screen.getByText(/rien n'a été débité/)).toBeInTheDocument()
   })
 
+  it("le bouton cabinet est grisé comme celui de l'abonnement tant que les conditions ne sont pas acceptées", () => {
+    renderPage()
+    expect(screen.getByRole('button', { name: "Choisir l'abonnement cabinet" })).toBeDisabled()
+    fireEvent.click(screen.getByRole('checkbox'))
+    expect(screen.getByRole('button', { name: "Choisir l'abonnement cabinet" })).toBeEnabled()
+  })
+
   it("cabinet sans cabinet existant : demande le nom avant d'aller payer", () => {
     renderPage()
     fireEvent.click(screen.getByRole('checkbox'))
