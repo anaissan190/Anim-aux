@@ -11,7 +11,11 @@ Les clients sont des professionnels, en France surtout. Le paiement est prélev�
 ## Les 5 questions essentielles (à poser en premier)
 1. **TVA : suis-je en franchise en base (art. 293 B du CGI) ou assujettie ?** Si assujettie, le taux est-il bien de 20 % sur ces abonnements ? (Les prix actuels sont affichés hors taxes : 39,90 € HT = 47,88 € TTC et 95,90 € HT = 115,08 € TTC à 20 %.)
 2. **Si je suis en franchise : à partir de quel chiffre d'affaires je deviens redevable de la TVA, et que se passe-t-il en cours d'année si je dépasse le seuil ?** Dois-je alors facturer 20 % en plus de mes prix, ou absorber la TVA dans le prix ?
-3. **Mon activité déclarée (code APE, objet social) couvre-t-elle la vente d'abonnements à un service en ligne ?** Faut-il modifier quelque chose à l'immatriculation (SIRET / RCS Bobigny) ?
+3. **Mon activité déclarée couvre-t-elle la vente d'abonnements à un service en ligne ?** Faut-il modifier quelque chose à l'immatriculation (SIRET / RCS Bobigny) ?
+   - Statut : **entrepreneur individuel** (pas de société, donc pas d'objet social ni de capital), SIRET 107 512 907 00018, immatriculée en août 2026.
+   - **Code APE / NAF déclaré : 63.12Z — « Portails Internet »** (d'après le répertoire Sirene public).
+   - Activité exacte déclarée à l'immatriculation : *[à recopier mot pour mot depuis ton extrait Kbis ou ton avis de situation Sirene, rubrique « activité » : elle n'est pas publique]*.
+   - Ma plateforme met en relation des propriétaires d'animaux et des praticiens, et je vends aux praticiens un abonnement d'accès à des outils de gestion (agenda, réservation en ligne, messagerie, statistiques). Est-ce couvert par ce code et cette activité ?
 4. **Les factures générées par Stripe (envoyées automatiquement à chaque paiement) suffisent-elles, ou dois-je émettre mes propres factures ?** Quelles mentions obligatoires faut-il y faire figurer (SIRET, RCS, adresse, capital, numéro de TVA ou mention de franchise, numérotation) ?
 5. **Comment comptabiliser les encaissements Stripe ?** Les virements arrivent nets des frais de Stripe : comment enregistrer le chiffre d'affaires brut, les frais et le virement ? Quel compte bancaire professionnel doit recevoir les virements ?
 
