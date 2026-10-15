@@ -23,13 +23,18 @@ import { computeDoctorStats } from '@/lib/doctorStats'
 import { removeStoredFiles } from '@/lib/storageCleanup'
 import DoctorStatsPanel from '@/components/doctor/DoctorStatsPanel'
 import ClinicStatsPanel from '@/components/doctor/ClinicStatsPanel'
+import ProfileSummary from '@/components/doctor/ProfileSummary'
+import SubTabs from '@/components/ui/SubTabs'
+import Toggle from '@/components/ui/Toggle'
+import { PROFILE_SECTIONS, parseProfileSection, type ProfileSection } from '@/lib/profileSections'
+import { profileCompleteness } from '@/lib/profileCompleteness'
 import AnimatedBar from '@/components/ui/AnimatedBar'
 import AnimatedCounter from '@/components/ui/AnimatedCounter'
 import { showToast } from '@/lib/toast'
 import { ETHICS_CHARTER_CLAUSES } from '@/lib/ethicsCharter'
 import { compressImage } from '@/lib/compressImage'
 import ReportButton from '@/components/ui/ReportButton'
-import { clinicStatusText } from '@/lib/doctorPlan'
+import { clinicStatusText, PLAN_LABEL, CLINIC_PLAN_LABEL } from '@/lib/doctorPlan'
 import UpgradePanel from '@/components/doctor/UpgradePanel'
 import { blocksAccountDeletion } from '@/lib/subscription'
 import { isTabLocked, LOCKED_TAB_PITCH } from '@/lib/doctorDashboardTabs'
@@ -227,6 +232,17 @@ export default function DoctorDashboard() {
   }
 
   const { data: verificationDocuments = [] } = useDoctorVerificationDocuments(doctor?.id)
+  // En-tête de l'onglet Profil : offre en cours et jauge « Profil complété ».
+  const profilePlanLabel = hasPro === undefined ? '' : hasPro === false ? PLAN_LABEL.free : clinic?.plan === 'cabinet' ? CLINIC_PLAN_LABEL.cabinet : PLAN_LABEL.pro
+  const completeness = profileCompleteness({
+    avatarUrl: profile?.avatar_url,
+    specialties: doctor?.specialties,
+    bioHtml: doctor?.bio,
+    phone: profile?.phone,
+    acceptedSpecies: doctor?.accepted_species,
+    hasAddress: clinic ? !!(clinic.address || clinic.city) : !!(doctor?.address || doctor?.city),
+    hasVerificationDocument: doctor?.verification_status === 'verified' || verificationDocuments.length > 0,
+  })
   const uploadVerificationDocument = useUploadVerificationDocument()
   const deleteVerificationDocument = useDeleteVerificationDocument()
   const [verificationDocType, setVerificationDocType] = useState('Diplôme')
@@ -424,10 +440,13 @@ export default function DoctorDashboard() {
   useEffect(() => {
     const t = searchParams.get('tab')
     if (ALL_TAB_IDS.includes(t as Tab)) setTab(t as Tab)
+    setProfileSection(parseProfileSection(searchParams.get('section')))
     // ?view=shared : ouvre directement l'agenda partagé (créer/rejoindre un
     // cabinet), utilisé par le lien de la page profil.
     if (t === 'disponibilites' && searchParams.get('view') === 'shared') setDispoTab('shared')
   }, [searchParams])
+  // Sous-onglet de l'onglet Profil (?tab=profil&section=abonnement, par exemple).
+  const [profileSection, setProfileSection] = useState<ProfileSection>(parseProfileSection(searchParams.get('section')))
   const [apptTab, setApptTab] = useState<'today' | 'week' | 'all'>('today')
   // Décalage en semaines par rapport à la semaine courante (ancrée sur
   // Paris) plutôt qu'un objet Date muté via addDays — même précaution que
@@ -2137,6 +2156,18 @@ export default function DoctorDashboard() {
               ← Mon espace
             </Link>
 
+            <ProfileSummary
+              name={`${profile?.first_name ?? ''} ${profile?.last_name ?? ''}`.trim()}
+              avatarUrl={profile?.avatar_url}
+              specialties={doctor?.specialties ?? []}
+              verification={doctor?.verification_status as 'verified' | 'pending' | 'rejected' | undefined}
+              planLabel={profilePlanLabel}
+              listed={doctor?.is_listed}
+              completeness={completeness}
+            />
+            <SubTabs items={PROFILE_SECTIONS} value={profileSection} onChange={setProfileSection} label="Sections du profil" />
+
+            {profileSection === 'profil' && (<>
             {/* Espace secrétariat : compte à part entière avec ses propres
                 identifiants — ce lien renvoie vers la page de connexion,
                 pas vers un dashboard partagé avec cette session (voir
@@ -2165,16 +2196,13 @@ export default function DoctorDashboard() {
               </Link>
             )}
 
-            {/* Profil personnel */}
+            {/* Profil personnel — en cartes (identité, présentation, coordonnées, ce que voient les patients) ;
+                UN SEUL bouton Enregistrer, tout en bas : il enregistre tout le formulaire, interrupteurs compris. */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
               <div className="mb-5">
-                <h2 className="text-lg font-bold text-gray-900">
-                  {clinic ? 'Mon profil personnel' : 'Mon profil'}
-                </h2>
+                <h2 className="text-lg font-bold text-gray-900">Identité</h2>
                 <p className="text-sm text-gray-500 mt-0.5">
-                  {clinic
-                    ? 'Visible dans l\'agenda partagé du cabinet'
-                    : 'Ces informations sont visibles par les patients'}
+                  {clinic ? 'Visible dans l\'agenda partagé du cabinet' : 'Ces informations sont visibles par les patients'}
                 </p>
               </div>
               <div className="flex items-center gap-4 mb-5">
@@ -2215,6 +2243,26 @@ export default function DoctorDashboard() {
                   otherText={otherProfession}
                   onOtherTextChange={setOtherProfession}
                 />
+              </div>
+            </div>
+
+            {/* La bio reste éditable même pour un membre de cabinet — seules ville/adresse
+                dépendent du cabinet, pas la présentation personnelle du praticien. */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+              <h2 className="font-semibold text-gray-900 mb-3">Présentation</h2>
+              <RichTextEditor value={profileForm.bio}
+                onChange={bio => setProfileForm(f => ({ ...f, bio }))}
+                placeholder="Décrivez votre activité, votre expérience..." />
+            </div>
+
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+              <h2 className="font-semibold text-gray-900 mb-3">Coordonnées</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
+                  <input className="input" value={profileForm.phone}
+                    onChange={e => setProfileForm(f => ({ ...f, phone: e.target.value }))} />
+                </div>
                 {!clinic && (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -2229,85 +2277,75 @@ export default function DoctorDashboard() {
                     </div>
                   </div>
                 )}
-                {/* Espèces acceptées et déplacement à domicile — propres au
-                    praticien lui-même, indépendants du cabinet (contrairement
-                    à ville/adresse ci-dessus). */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Espèces acceptées</label>
-                  <div className="flex flex-wrap gap-2">
-                    {PRACTICE_SPECIES_OPTIONS.map(opt => (
-                      <button type="button" key={opt.id} onClick={() => toggleProfileSpecies(opt.id)}
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                          profileForm.accepted_species.includes(opt.id)
-                            ? 'bg-sage-500 border-sage-500 text-white'
-                            : 'bg-white border-gray-200 text-gray-600 hover:border-sage-300'
-                        }`}>
-                        {opt.icon} {opt.id}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                  <input type="checkbox" checked={profileForm.home_visit}
-                    onChange={e => setProfileForm(f => ({ ...f, home_visit: e.target.checked }))}
-                    className="accent-sage-500 w-4 h-4" />
-                  🏠 Je me déplace à domicile
-                </label>
-                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer mt-2">
-                  <input type="checkbox" checked={profileForm.messaging_enabled}
-                    onChange={e => setProfileForm(f => ({ ...f, messaging_enabled: e.target.checked }))}
-                    className="accent-sage-500 w-4 h-4" />
-                  💬 Recevoir des messages des patients
-                </label>
-                {hasPro === false && (
-                  <p className="text-xs text-gray-400 mt-1">
-                    La messagerie est réservée à l&apos;abonnement : ce réglage s&apos;appliquera dès que vous y passerez.
-                  </p>
-                )}
-                {!profileForm.messaging_enabled && (
-                  <p className="text-xs text-gray-400 mt-1">
-                    Les patients ne pourront plus vous envoyer de nouveaux messages. Vos conversations déjà en cours restent visibles.
-                  </p>
-                )}
-                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer mt-2">
-                  <input type="checkbox" checked={profileForm.is_listed}
-                    onChange={e => setProfileForm(f => ({ ...f, is_listed: e.target.checked }))}
-                    className="accent-sage-500 w-4 h-4" />
-                  🔎 Apparaître dans la recherche
-                </label>
-                {!profileForm.is_listed && (
-                  <p className="text-xs text-gray-400 mt-1">
-                    Votre fiche n&apos;apparaît plus dans les résultats et ne peut plus être ouverte par un lien. Les patients qui ont déjà un rendez-vous avec vous continuent de vous voir, et vous gardez l&apos;accès complet à votre espace.
-                  </p>
-                )}
-                {/* La bio reste éditable même pour un membre de cabinet — seules
-                    ville/adresse dépendent du cabinet, pas la présentation
-                    personnelle du praticien. */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Bio / Présentation</label>
-                  <RichTextEditor value={profileForm.bio}
-                    onChange={bio => setProfileForm(f => ({ ...f, bio }))}
-                    placeholder="Décrivez votre activité, votre expérience..." />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
-                  <input className="input" value={profileForm.phone}
-                    onChange={e => setProfileForm(f => ({ ...f, phone: e.target.value }))} />
-                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Adresse postale</label>
                   <input className="input" value={profileForm.home_address}
                     onChange={e => setProfileForm(f => ({ ...f, home_address: e.target.value }))}
                     placeholder="12 rue des Lilas, 75001 Paris" />
                 </div>
-                {profileError && <p className="text-red-500 text-sm">{profileError}</p>}
-                {profileSaved && <p className="text-sage-600 text-sm">✓ Informations enregistrées.</p>}
-                <button onClick={submitProfile} disabled={updateProfile.isPending || updateDoctorInfo.isPending} className="btn-primary w-full">
-                  {(updateProfile.isPending || updateDoctorInfo.isPending) ? 'Enregistrement...' : 'Enregistrer mes informations'}
-                </button>
               </div>
             </div>
 
+            {/* Espèces acceptées, déplacement à domicile, messagerie et visibilité : propres au
+                praticien lui-même, indépendants du cabinet (contrairement à ville/adresse). */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+              <h2 className="font-semibold text-gray-900 mb-4">Ce que voient les patients</h2>
+              <Toggle checked={profileForm.is_listed} label="🔎 Apparaître dans la recherche"
+                onChange={v => setProfileForm(f => ({ ...f, is_listed: v }))}
+                description={profileForm.is_listed
+                  ? 'Votre fiche est visible par les propriétaires dans les résultats de recherche.'
+                  : 'Votre fiche n\u2019apparaît plus dans les résultats et ne peut plus être ouverte par un lien. Les patients qui ont déjà un rendez-vous avec vous continuent de vous voir, et vous gardez l\u2019accès complet à votre espace.'} />
+              <Toggle checked={profileForm.messaging_enabled} label="💬 Recevoir des messages des patients"
+                onChange={v => setProfileForm(f => ({ ...f, messaging_enabled: v }))}
+                description={
+                  <>
+                    <span className="block">Facultatif : désactivez-la si vous préférez le téléphone.</span>
+                    {hasPro === false && (
+                      <span className="block mt-1">
+                        La messagerie est réservée à l&apos;abonnement : ce réglage s&apos;appliquera dès que vous y passerez.
+                      </span>
+                    )}
+                    {!profileForm.messaging_enabled && (
+                      <span className="block mt-1">
+                        Les patients ne pourront plus vous envoyer de nouveaux messages. Vos conversations déjà en cours restent visibles.
+                      </span>
+                    )}
+                  </>
+                } />
+              <Toggle checked={profileForm.home_visit} label="🏠 Je me déplace à domicile"
+                onChange={v => setProfileForm(f => ({ ...f, home_visit: v }))}
+                description="Affiché sur votre fiche : les patients savent que vous vous déplacez." />
+              <div className="pt-4 mt-1 border-t border-sand-100">
+                <label className="block text-sm font-medium text-gray-900 mb-2">Espèces acceptées</label>
+                <div className="flex flex-wrap gap-2">
+                  {PRACTICE_SPECIES_OPTIONS.map(opt => (
+                    <button type="button" key={opt.id} onClick={() => toggleProfileSpecies(opt.id)}
+                      aria-pressed={profileForm.accepted_species.includes(opt.id)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                        profileForm.accepted_species.includes(opt.id)
+                          ? 'bg-sage-500 border-sage-500 text-white'
+                          : 'bg-white border-gray-200 text-gray-600 hover:border-sage-300'
+                      }`}>
+                      {opt.icon} {opt.id}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* UN SEUL enregistrement, tout en bas : couvre l'identité, la présentation, les
+                coordonnées et ce que voient les patients. */}
+            <div>
+              {profileError && <p className="text-red-500 text-sm mb-2">{profileError}</p>}
+              {profileSaved && <p className="text-sage-600 text-sm mb-2">✓ Informations enregistrées.</p>}
+              <button onClick={submitProfile} disabled={updateProfile.isPending || updateDoctorInfo.isPending} className="btn-primary w-full">
+                {(updateProfile.isPending || updateDoctorInfo.isPending) ? 'Enregistrement...' : 'Enregistrer mes informations'}
+              </button>
+              <p className="text-xs text-gray-400 text-center mt-2">Enregistre tous les changements de cette page.</p>
+            </div>
+            </>)}
+
+            {profileSection === 'abonnement' && (<>
             {/* ABONNEMENT — offre, paiement et résiliation (voir /abonnement) */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -2392,6 +2430,9 @@ export default function DoctorDashboard() {
               )}
             </div>
 
+            </>)}
+
+            {profileSection === 'notifications' && (<>
             {/* NOTIFICATIONS PUSH */}
             {pushStatus?.supported && (
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -2462,6 +2503,9 @@ export default function DoctorDashboard() {
               )}
             </div>
 
+            </>)}
+
+            {profileSection === 'donnees' && (<>
             {/* EXPORT DES DONNÉES — droit à la portabilité (RGPD art. 20) */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
               <h2 className="font-semibold text-gray-900 mb-1">Mes données</h2>
@@ -2531,6 +2575,7 @@ export default function DoctorDashboard() {
               className="md:hidden w-full flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-2xl shadow-sm text-sm text-red-500 font-medium py-3.5">
               🚪 Déconnexion
             </button>
+            </>)}
           </div>
         )}
 
