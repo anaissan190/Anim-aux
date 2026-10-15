@@ -47,3 +47,29 @@ export function profileCompleteness(i: ProfileCompletenessInput): ProfileComplet
     hint: steps.find(s => !s.ok)?.hint ?? null,
   }
 }
+
+// Profil d'un propriétaire d'animaux : photo, téléphone, adresse postale et contact d'urgence
+// (nom ET téléphone). Mêmes règles d'affichage que le profil praticien.
+export interface PatientCompletenessInput {
+  avatarUrl?: string | null
+  phone?: string | null
+  homeAddress?: string | null
+  emergencyName?: string | null
+  emergencyPhone?: string | null
+}
+
+export function patientProfileCompleteness(i: PatientCompletenessInput): ProfileCompleteness {
+  const steps: { ok: boolean; hint: string }[] = [
+    { ok: !!i.avatarUrl, hint: 'Ajoutez une photo' },
+    { ok: !!i.phone?.trim(), hint: 'Ajoutez un numéro de téléphone' },
+    { ok: !!i.homeAddress?.trim(), hint: 'Indiquez votre adresse postale' },
+    { ok: !!i.emergencyName?.trim() && !!i.emergencyPhone?.trim(), hint: 'Ajoutez un contact d\'urgence' },
+  ]
+  const done = steps.filter(s => s.ok).length
+  return {
+    percent: Math.round((done / steps.length) * 100),
+    done,
+    total: steps.length,
+    hint: steps.find(s => !s.ok)?.hint ?? null,
+  }
+}

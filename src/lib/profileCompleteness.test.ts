@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { profileCompleteness, plainText, MIN_BIO_CHARS } from './profileCompleteness'
+import { profileCompleteness, plainText, MIN_BIO_CHARS, patientProfileCompleteness } from './profileCompleteness'
 
 const full = {
   avatarUrl: 'https://x/photo.jpg', specialties: ['Vétérinaire'],
@@ -38,5 +38,24 @@ describe('plainText', () => {
   it('retire les balises et les espaces insécables', () => {
     expect(plainText('<p>Un&nbsp;<b>texte</b>   riche</p>')).toBe('Un texte riche')
     expect(plainText(null)).toBe('')
+  })
+})
+
+describe('patientProfileCompleteness', () => {
+  const full = { avatarUrl: 'https://x/p.jpg', phone: '06 12 34 56 78', homeAddress: '12 rue des Lilas', emergencyName: 'Marie', emergencyPhone: '06 00 00 00 00' }
+
+  it('donne 100 % et aucune suggestion pour un profil complet', () => {
+    expect(patientProfileCompleteness(full)).toEqual({ percent: 100, done: 4, total: 4, hint: null })
+  })
+  it("suggère le premier élément manquant, dans l'ordre de la page", () => {
+    expect(patientProfileCompleteness({ ...full, avatarUrl: null })).toMatchObject({ percent: 75, hint: 'Ajoutez une photo' })
+    expect(patientProfileCompleteness({ ...full, phone: ' ', homeAddress: '' })).toMatchObject({ percent: 50, hint: 'Ajoutez un numéro de téléphone' })
+  })
+  it("un contact d'urgence ne compte que s'il a un nom ET un téléphone", () => {
+    expect(patientProfileCompleteness({ ...full, emergencyPhone: '' }).hint).toBe("Ajoutez un contact d'urgence")
+    expect(patientProfileCompleteness({ ...full, emergencyName: null }).percent).toBe(75)
+  })
+  it('part de zéro pour un profil vide, sans planter', () => {
+    expect(patientProfileCompleteness({})).toMatchObject({ percent: 0, done: 0, hint: 'Ajoutez une photo' })
   })
 })

@@ -14,3 +14,28 @@ export const PROFILE_SECTIONS: { id: ProfileSection; label: string }[] = [
 export function parseProfileSection(value: string | null | undefined): ProfileSection {
   return PROFILE_SECTIONS.some(s => s.id === value) ? (value as ProfileSection) : 'profil'
 }
+
+// Profil des propriétaires d'animaux (page /profil, aussi ouverte par l'administrateur) : trois
+// sous-onglets — pas d'abonnement ni de vérification de dossier à gérer ici.
+export type PatientProfileSection = 'profil' | 'notifications' | 'donnees'
+
+export const PATIENT_PROFILE_SECTIONS: { id: PatientProfileSection; label: string }[] = [
+  { id: 'profil', label: 'Mon profil' },
+  { id: 'notifications', label: 'Notifications' },
+  { id: 'donnees', label: 'Données et compte' },
+]
+
+export function parsePatientProfileSection(value: string | null | undefined): PatientProfileSection {
+  return PATIENT_PROFILE_SECTIONS.some(s => s.id === value) ? (value as PatientProfileSection) : 'profil'
+}
+
+// Pastille du rôle dans l'en-tête du profil.
+export function roleLabel(role: string | null | undefined, isAdmin?: boolean | null): string {
+  if (isAdmin) return 'Administrateur'
+  switch (role) {
+    case 'patient': return 'Propriétaire'
+    case 'doctor': return 'Praticien'
+    case 'secretary': return 'Secrétariat'
+    default: return ''
+  }
+}

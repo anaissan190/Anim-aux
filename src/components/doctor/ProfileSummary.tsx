@@ -6,13 +6,16 @@ import type { ProfileCompleteness } from '@/lib/profileCompleteness'
 
 interface Props {
   name: string
+  // Ligne sous le nom (l'email, sur le profil patient)
+  subtitle?: string
   avatarUrl?: string | null
   specialties: string[]
   verification?: 'verified' | 'pending' | 'rejected' | null
-  planLabel: string
+  planLabel?: string
   // undefined = pas encore chargé : on n'affiche rien plutôt que de se tromper
   listed?: boolean
-  completeness: ProfileCompleteness
+  // Absente : pas de jauge (profil praticien ouvert depuis /profil)
+  completeness?: ProfileCompleteness
 }
 
 const VERIFICATION_CHIP: Record<'verified' | 'pending' | 'rejected', { label: string; cls: string }> = {
@@ -21,7 +24,7 @@ const VERIFICATION_CHIP: Record<'verified' | 'pending' | 'rejected', { label: st
   rejected: { label: 'Profil rejeté', cls: 'bg-red-100 text-red-700' },
 }
 
-export default function ProfileSummary({ name, avatarUrl, specialties, verification, planLabel, listed, completeness }: Props) {
+export default function ProfileSummary({ name, subtitle, avatarUrl, specialties, verification, planLabel, listed, completeness }: Props) {
   const chip = 'text-xs px-2.5 py-0.5 rounded-full'
   return (
     <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
@@ -33,6 +36,7 @@ export default function ProfileSummary({ name, avatarUrl, specialties, verificat
         </div>
         <div className="flex-1 min-w-[180px]">
           <p className="font-bold text-gray-900 text-lg leading-tight">{name || 'Mon profil'}</p>
+          {subtitle && <p className="text-sm text-gray-500 mt-0.5 truncate">{subtitle}</p>}
           <div className="flex flex-wrap gap-1.5 mt-2">
             {specialties.map(s => <span key={s} className={`${chip} bg-sand-100 text-gray-600`}>{s}</span>)}
             {verification && <span className={`${chip} ${VERIFICATION_CHIP[verification].cls}`}>{VERIFICATION_CHIP[verification].label}</span>}
@@ -41,6 +45,7 @@ export default function ProfileSummary({ name, avatarUrl, specialties, verificat
             {listed === false && <span className={`${chip} bg-amber-100 text-amber-700`}>Masqué de la recherche</span>}
           </div>
         </div>
+        {completeness && (
         <div className="min-w-[170px]">
           <p className="text-xs text-gray-500 mb-1">Profil complété à {completeness.percent} %</p>
           <div className="h-1.5 rounded-full bg-sand-100 overflow-hidden" role="progressbar"
@@ -49,6 +54,7 @@ export default function ProfileSummary({ name, avatarUrl, specialties, verificat
           </div>
           {completeness.hint && <p className="text-xs text-gray-400 mt-1">{completeness.hint}</p>}
         </div>
+        )}
       </div>
     </div>
   )

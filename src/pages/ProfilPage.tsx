@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { blocksAccountDeletion } from '@/lib/subscription'
 import { useAuthStore } from '@/lib/authStore'
 import { useCurrentDoctor, useMyClinic, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useExportMyData, usePushSubscriptionStatus, useEnablePushNotifications, useDisablePushNotifications, useDoctorHasPro, useMySubscriptions } from '@/hooks/useData'
@@ -14,11 +14,19 @@ import PractitionerTypePicker from '@/components/doctor/PractitionerTypePicker'
 import { PRACTICE_SPECIES_OPTIONS } from '@/lib/animalSpecies'
 import { showToast } from '@/lib/toast'
 import { compressImage } from '@/lib/compressImage'
+import ProfileSummary from '@/components/doctor/ProfileSummary'
+import SubTabs from '@/components/ui/SubTabs'
+import Toggle from '@/components/ui/Toggle'
+import { PATIENT_PROFILE_SECTIONS, parsePatientProfileSection, roleLabel, type PatientProfileSection } from '@/lib/profileSections'
+import { patientProfileCompleteness } from '@/lib/profileCompleteness'
 import { removeStoredFiles } from '@/lib/storageCleanup'
 
 export default function ProfilPage() {
   const { user, profile, signOut } = useAuthStore()
   const navigate = useNavigate()
+  // Sous-onglet ouvert (?section=notifications, par exemple) ; « Mon profil » par défaut.
+  const [searchParams] = useSearchParams()
+  const [section, setSection] = useState<PatientProfileSection>(parsePatientProfileSection(searchParams.get('section')))
   const { data: doctor } = useCurrentDoctor()
   const { data: hasPro } = useDoctorHasPro(doctor?.id)
   const { data: mySubscriptions = [] } = useMySubscriptions()
@@ -241,61 +249,81 @@ export default function ProfilPage() {
           <BackButton fallback={isDoctor ? '/dashboard/doctor?tab=profil' : '/dashboard/patient'} />
         )}
 
-        {/* En-tête */}
-        <div className="mb-8 flex items-center gap-4">
-          <div className="relative w-16 h-16 flex-shrink-0 group">
-            <div className="w-16 h-16 rounded-full bg-sage-100 flex items-center justify-center text-2xl overflow-hidden">
-              {profile?.avatar_url
-                ? <img src={profile.avatar_url} className="w-full h-full object-cover" alt="Photo de profil" loading="lazy" />
-                : '👤'}
-            </div>
-            <label className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
-              <span className="text-white text-xs font-medium">{photoUploading ? '...' : '📷'}</span>
-              <input type="file" accept="image/*" className="hidden"
-                onChange={e => { const f = e.target.files?.[0]; if (f) handlePhotoUpload(f); e.target.value = '' }} />
-            </label>
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              {profile?.first_name ? `${profile.first_name} ${profile.last_name ?? ''}` : 'Mon profil'}
-            </h1>
-            <p className="text-gray-500 text-sm mt-1">{user?.email}</p>
-            {photoError && <p className="text-red-500 text-xs mt-1">{photoError}</p>}
-          </div>
-        </div>
+        <div className="space-y-5">
+        <ProfileSummary
+          name={`${profile?.first_name ?? ''} ${profile?.last_name ?? ''}`.trim()}
+          subtitle={user?.email}
+          avatarUrl={profile?.avatar_url}
+          specialties={isDoctor ? (doctor?.specialties ?? []) : [roleLabel(user?.role, user?.is_admin)].filter(Boolean)}
+          verification={isDoctor ? (doctor?.verification_status as 'verified' | 'pending' | 'rejected' | undefined) : undefined}
+          listed={isDoctor ? doctor?.is_listed : undefined}
+          completeness={isDoctor ? undefined : patientProfileCompleteness({
+            avatarUrl: profile?.avatar_url,
+            phone: profile?.phone,
+            homeAddress: profile?.address,
+            emergencyName: profile?.emergency_contact_name,
+            emergencyPhone: profile?.emergency_contact_phone,
+          })}
+        />
+        <SubTabs items={PATIENT_PROFILE_SECTIONS} value={section} onChange={setSection} label="Sections du profil" />
 
+        {section === 'profil' && (
         <form onSubmit={handleSubmit} className="space-y-5">
 
-          {/* INFOS PERSONNELLES */}
+          {/* IDENTITÉ — photo, prénom, nom */}
           <div className="card p-6">
-            <h2 className="font-semibold text-gray-900 mb-4">Informations personnelles</h2>
-            <div className="grid grid-cols-2 gap-3 mb-3">
+            <h2 className="font-semibold text-gray-900 mb-4">Identité</h2>
+            <div className="flex items-center gap-4 mb-4">
+              <div className="relative w-16 h-16 flex-shrink-0 group">
+                <div className="w-16 h-16 rounded-full bg-sage-100 flex items-center justify-center text-2xl overflow-hidden">
+                  {profile?.avatar_url
+                    ? <img src={profile.avatar_url} className="w-full h-full object-cover" alt="Photo de profil" loading="lazy" />
+                    : '👤'}
+                </div>
+                <label className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
+                  <span className="text-white text-xs font-medium">{photoUploading ? '...' : '📷'}</span>
+                  <input type="file" accept="image/*" className="hidden"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) handlePhotoUpload(f); e.target.value = '' }} />
+                </label>
+              </div>
               <div>
-                <label className="text-xs text-gray-500">Prénom</label>
-                <input className="input text-sm mt-1" value={firstName}
+                <p className="text-sm font-medium text-gray-700">Ma photo</p>
+                <p className="text-xs text-gray-400">Survolez la photo pour la changer</p>
+                {photoError && <p className="text-red-500 text-xs mt-1">{photoError}</p>}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label htmlFor="profil-first-name" className="text-xs text-gray-500">Prénom</label>
+                <input id="profil-first-name" className="input text-sm mt-1" value={firstName}
                   onChange={e => setFirstName(e.target.value)} placeholder="Votre prénom" required />
               </div>
               <div>
-                <label className="text-xs text-gray-500">Nom</label>
-                <input className="input text-sm mt-1" value={lastName}
+                <label htmlFor="profil-last-name" className="text-xs text-gray-500">Nom</label>
+                <input id="profil-last-name" className="input text-sm mt-1" value={lastName}
                   onChange={e => setLastName(e.target.value)} placeholder="Votre nom" required />
               </div>
             </div>
+          </div>
+
+          {/* COORDONNÉES */}
+          <div className="card p-6">
+            <h2 className="font-semibold text-gray-900 mb-4">Coordonnées</h2>
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
-                <label className="text-xs text-gray-500">Email</label>
-                <input className="input text-sm mt-1 bg-gray-50 text-gray-500" value={user?.email ?? ''}
+                <label htmlFor="profil-email" className="text-xs text-gray-500">Email</label>
+                <input id="profil-email" className="input text-sm mt-1 bg-gray-50 text-gray-500" value={user?.email ?? ''}
                   disabled readOnly />
               </div>
               <div>
-                <label className="text-xs text-gray-500">Téléphone</label>
-                <input className="input text-sm mt-1" value={phone}
+                <label htmlFor="profil-phone" className="text-xs text-gray-500">Téléphone</label>
+                <input id="profil-phone" className="input text-sm mt-1" value={phone}
                   onChange={e => setPhone(e.target.value)} placeholder="06 00 00 00 00" type="tel" />
               </div>
             </div>
             <div>
-              <label className="text-xs text-gray-500">Adresse postale</label>
-              <input className="input text-sm mt-1" value={homeAddress}
+              <label htmlFor="profil-home-address" className="text-xs text-gray-500">Adresse postale</label>
+              <input id="profil-home-address" className="input text-sm mt-1" value={homeAddress}
                 onChange={e => setHomeAddress(e.target.value)} placeholder="12 rue des Lilas, 75001 Paris" />
             </div>
           </div>
@@ -306,13 +334,13 @@ export default function ProfilPage() {
             <p className="text-xs text-gray-400 mb-4">Facultatif — une personne à prévenir en cas d'urgence.</p>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-gray-500">Nom</label>
-                <input className="input text-sm mt-1" value={emergencyName}
+                <label htmlFor="profil-emergency-name" className="text-xs text-gray-500">Nom</label>
+                <input id="profil-emergency-name" className="input text-sm mt-1" value={emergencyName}
                   onChange={e => setEmergencyName(e.target.value)} placeholder="Ex: Marie Dupont" />
               </div>
               <div>
-                <label className="text-xs text-gray-500">Téléphone</label>
-                <input className="input text-sm mt-1" value={emergencyPhone}
+                <label htmlFor="profil-emergency-phone" className="text-xs text-gray-500">Téléphone</label>
+                <input id="profil-emergency-phone" className="input text-sm mt-1" value={emergencyPhone}
                   onChange={e => setEmergencyPhone(e.target.value)} placeholder="06 00 00 00 00" type="tel" />
               </div>
             </div>
@@ -423,32 +451,36 @@ export default function ProfilPage() {
           {/* Même bouton mobile et desktop depuis le 07/09/2026 — la variante
               contour vert (btn-outline-moss) datait de la coquille "Wow /
               Aurora" et détonnait avec le reste de la refonte. */}
-          <button type="submit" disabled={loading} className="btn-primary w-full">
-            {loading ? 'Enregistrement...' : 'Enregistrer les modifications'}
-          </button>
+          <div>
+            <button type="submit" disabled={loading} className="btn-primary w-full">
+              {loading ? 'Enregistrement...' : 'Enregistrer mes informations'}
+            </button>
+            <p className="text-xs text-gray-400 text-center mt-2">Enregistre tous les changements de cette page.</p>
+          </div>
 
         </form>
+        )}
 
-        {/* NOTIFICATIONS PUSH */}
-        {pushStatus?.supported && (
-          <div className="card p-6 mt-8">
-            <h2 className="font-semibold text-gray-900 mb-1">🔔 Notifications</h2>
-            <p className="text-xs text-gray-500 mb-4">
-              Recevez une notification sur cet appareil même quand Animéaux n'est pas ouvert
-              (nouveau message, RDV confirmé, avis...).
-            </p>
-            {pushError && <p className="text-red-500 text-xs mb-3">{pushError}</p>}
-            <button onClick={handleTogglePush} disabled={enablePush.isPending || disablePush.isPending}
-              className={pushStatus.subscribed ? 'btn-secondary text-sm' : 'btn-primary text-sm'}>
-              {enablePush.isPending || disablePush.isPending
-                ? '...'
-                : pushStatus.subscribed ? 'Désactiver les notifications' : 'Activer les notifications'}
-            </button>
+        {section === 'notifications' && (
+          <div className="card p-6">
+            {pushStatus === undefined ? (
+              <p className="text-sm text-gray-400">Chargement...</p>
+            ) : pushStatus.supported ? (
+              <>
+                {pushError && <p className="text-red-500 text-xs mb-3">{pushError}</p>}
+                <Toggle checked={!!pushStatus.subscribed} disabled={enablePush.isPending || disablePush.isPending}
+                  onChange={() => handleTogglePush()} label="🔔 Notifications sur cet appareil"
+                  description="Recevez une notification même quand Animéaux n'est pas ouvert (nouveau message, RDV confirmé, avis...). S'applique tout de suite, sans bouton Enregistrer." />
+              </>
+            ) : (
+              <p className="text-sm text-gray-500">Les notifications ne sont pas disponibles sur cet appareil ou ce navigateur.</p>
+            )}
           </div>
         )}
 
+        {section === 'donnees' && (<>
         {/* EXPORT DES DONNÉES — droit à la portabilité (RGPD art. 20) */}
-        <div className="card p-6 mt-8">
+        <div className="card p-6">
           <h2 className="font-semibold text-gray-900 mb-1">Mes données</h2>
           <p className="text-xs text-gray-500 mb-4">
             Téléchargez une copie de toutes vos données personnelles (profil, animaux, rendez-vous, messages, avis…)
@@ -465,12 +497,12 @@ export default function ProfilPage() {
             existait) est masquée pour le rôle patient, remplacée par la
             coquille "Wow / Aurora" ; sans ça, aucun moyen de se déconnecter. */}
         <button onClick={() => signOut().then(() => navigate('/'))}
-          className="md:hidden w-full flex items-center justify-center gap-2 bg-white border border-sand-200 rounded-2xl shadow-sm text-sm text-red-500 font-semibold py-3.5 mt-8">
+          className="md:hidden w-full flex items-center justify-center gap-2 bg-white border border-sand-200 rounded-2xl shadow-sm text-sm text-red-500 font-semibold py-3.5">
           🚪 Déconnexion
         </button>
 
         {/* ZONE DE DANGER */}
-        <div className="card p-6 mt-8 border border-red-100">
+        <div className="card p-6 border border-red-100">
           <h2 className="font-semibold text-red-600 mb-1">Zone de danger</h2>
           <p className="text-xs text-gray-500 mb-4">
             La suppression de votre compte est définitive : profil, rendez-vous, animaux et dossiers de santé,
@@ -486,6 +518,9 @@ export default function ProfilPage() {
             className="text-sm text-red-500 hover:underline font-medium disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed">
             Supprimer mon compte
           </button>
+        </div>
+
+        </>)}
         </div>
 
         {/* ÉCRAN INTERMÉDIAIRE DE CONFIRMATION — étape de friction volontaire

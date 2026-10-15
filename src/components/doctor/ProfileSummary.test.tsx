@@ -48,4 +48,19 @@ describe('ProfileSummary', () => {
     rerender(<ProfileSummary {...base} avatarUrl="https://x/p.jpg" />)
     expect(container.querySelector('img')).toHaveAttribute('src', 'https://x/p.jpg')
   })
+
+  it("affiche l'email sous le nom, sans jauge ni offre, pour un propriétaire", () => {
+    render(<ProfileSummary name="Camille Dupont" subtitle="camille@exemple.fr" specialties={['Propriétaire']} />)
+    expect(screen.getByText('camille@exemple.fr')).toBeInTheDocument()
+    expect(screen.getByText('Propriétaire')).toBeInTheDocument()
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Abonnement|Offre gratuite/)).not.toBeInTheDocument()
+  })
+
+  it("affiche la jauge d'un propriétaire quand elle est fournie", () => {
+    render(<ProfileSummary name="Camille Dupont" specialties={['Propriétaire']}
+      completeness={{ percent: 70, done: 3, total: 4, hint: "Ajoutez un contact d'urgence" }} />)
+    expect(screen.getByText('Profil complété à 70 %')).toBeInTheDocument()
+    expect(screen.getByText("Ajoutez un contact d'urgence")).toBeInTheDocument()
+  })
 })
