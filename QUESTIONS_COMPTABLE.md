@@ -10,7 +10,8 @@ Bientôt, les professionnels qui utilisent mon site (vétérinaires, toiletteurs
 - Mon site met en relation des propriétaires d'animaux et des professionnels. **Les propriétaires ne paient rien.**
 - Les **professionnels paient un abonnement chaque mois**, par carte bancaire :
   - abonnement seul : **39,90 € HT par mois** ;
-  - abonnement pour un cabinet (jusqu'à 5 professionnels) : **95,90 € HT par mois**.
+  - abonnement pour un cabinet (jusqu'à 5 professionnels) : **95,90 € HT par mois** ;
+  - cabinet de **plus de 5 professionnels** : pas de tarif affiché pour l'instant, une **offre sur mesure** au cas par cas (le cabinet m'écrit et nous fixons un prix ensemble).
   (« HT » veut dire hors taxes, donc sans la TVA.)
 - Le paiement passe par **Stripe**, un service de paiement en ligne : il encaisse la carte, garde ses frais, puis vire le reste sur mon compte bancaire.
 - Le professionnel peut arrêter quand il veut : il garde l'accès jusqu'à la fin du mois déjà payé. Je ne rembourse pas un mois commencé.
@@ -41,7 +42,8 @@ Bientôt, les professionnels qui utilisent mon site (vétérinaires, toiletteurs
 9. **Paiement à l'avance :** le client paie le mois à l'avance. À quelle date je compte cet argent dans mon chiffre d'affaires : le mois où il est encaissé, ou le mois où il est utilisé ?
 10. **Combien de temps garder** les factures et les informations de paiement ? Sur mon site, chacun peut supprimer son compte quand il veut : comment concilier les deux ?
 11. **Démarches :** y a-t-il autre chose à déclarer quand je commence à encaisser cet argent (changement de régime, acomptes…) ?
-12. **Plus tard, si ça marche bien :** quels seuils dois-je surveiller pour savoir quand mon statut, mes impôts ou mes cotisations vont changer ?
+12. **Cabinets de plus de 5 professionnels :** pour l'instant je fixe un prix sur mesure avec chaque gros cabinet. Si plus tard je facture un petit supplément par professionnel en plus (par exemple 15 à 19 € HT par mois), est-ce que ça complique mes factures ou ma comptabilité ? Et pour un prix négocié au cas par cas, y a-t-il une démarche particulière (devis, contrat) ?
+13. **Plus tard, si ça marche bien :** quels seuils dois-je surveiller pour savoir quand mon statut, mes impôts ou mes cotisations vont changer ?
 
 ## À quoi vont servir les réponses
 - **Si je suis en franchise de TVA :** j'ajouterai « TVA non applicable » sur les factures, et les prix seront les mêmes avec ou sans taxes.
