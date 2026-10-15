@@ -5,7 +5,9 @@
 
 export const MIN_PRACTITIONERS = 6 // 5 ou moins : l'abonnement cabinet convient
 export const MAX_REQUESTS_PER_DAY = 3
-export const NOTIFY_EMAIL_DEFAULT = 'contact@monanimeaux.fr'
+// Boîte où Anaïs reçoit les demandes de devis (précisé par elle le 15/10/2026). Surchargeable par
+// le secret QUOTE_NOTIFY_EMAIL de la fonction.
+export const NOTIFY_EMAIL_DEFAULT = 'contact.animeaux@gmail.com'
 
 export interface QuoteInput {
   clinicName?: unknown

@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   validateQuoteRequest, tooManyRequests, buildAdminEmail, buildConfirmationEmail, escapeHtml,
-  MIN_PRACTITIONERS, MAX_REQUESTS_PER_DAY,
+  MIN_PRACTITIONERS, MAX_REQUESTS_PER_DAY, NOTIFY_EMAIL_DEFAULT,
 } from './quote'
 
 const valid = {
@@ -122,5 +122,11 @@ describe('emails', () => {
 
   it('escapeHtml neutralise les caractères spéciaux', () => {
     expect(escapeHtml(`<a href="x">'&'</a>`)).toBe('&lt;a href=&quot;x&quot;&gt;&#39;&amp;&#39;&lt;/a&gt;')
+  })
+})
+
+describe('adresse de réception', () => {
+  it("les demandes arrivent dans la boîte d'Animéaux indiquée par Anaïs", () => {
+    expect(NOTIFY_EMAIL_DEFAULT).toBe('contact.animeaux@gmail.com')
   })
 })
