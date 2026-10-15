@@ -9,6 +9,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
 import { useAuthStore } from '@/lib/authStore'
+import { LARGE_CABINET_MAILTO, MAX_CLINIC_PRACTITIONERS } from '@/lib/doctorPlan'
 import {
   useCurrentDoctor, useMyClinic, useDoctorHasPro, useMySubscriptions, useStartCheckout, useOpenBillingPortal,
 } from '@/hooks/useData'
@@ -241,6 +242,11 @@ export default function SubscriptionPage() {
                 {startCheckout.isPending ? 'Redirection…' : "Choisir l'abonnement cabinet"}
               </button>
             )}
+            <p className="text-xs text-gray-500 text-center mt-3">
+              Plus de {MAX_CLINIC_PRACTITIONERS} praticiens ?{' '}
+              <a href={LARGE_CABINET_MAILTO} className="text-sage-600 font-medium hover:underline">Écrivez-nous</a>
+              {' '}: nous étudions une offre sur mesure.
+            </p>
           </PlanCard>
         </div>
 

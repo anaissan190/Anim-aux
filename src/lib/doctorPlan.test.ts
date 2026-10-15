@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   hasProFeatures, otherPlan, otherClinicPlan, clinicSeatsLeft, PLAN_LABEL, CLINIC_PLAN_LABEL,
-  MAX_CLINIC_PRACTITIONERS, doctorFlagLabels, clinicStatusText,
+  MAX_CLINIC_PRACTITIONERS, doctorFlagLabels, clinicStatusText, CONTACT_EMAIL, LARGE_CABINET_MAILTO,
 } from './doctorPlan'
 
 describe('hasProFeatures', () => {
@@ -94,11 +94,23 @@ describe('clinicStatusText', () => {
   it("compte les praticiens d'un cabinet abonné et signale quand il est complet", () => {
     expect(clinicStatusText('cabinet', 1)).toEqual({ active: true, text: '1 praticien sur 5.' })
     expect(clinicStatusText('cabinet', 3).text).toBe('3 praticiens sur 5.')
-    expect(clinicStatusText('cabinet', 5).text).toBe('5 praticiens sur 5 : le cabinet est complet.')
+    const full = clinicStatusText('cabinet', 5).text
+    expect(full).toMatch(/^5 praticiens sur 5 : le cabinet est complet\./)
+    // plus de 5 praticiens : pas de tarif affiché, on renvoie vers l'adresse de contact
+    expect(full).toMatch(/offre sur mesure/)
+    expect(full).toContain(CONTACT_EMAIL)
+    expect(clinicStatusText('cabinet', 4).text).toBe('4 praticiens sur 5.')
   })
 
   it("traite un cabinet sans offre connue comme abonné (cache d'avant la migration)", () => {
     expect(clinicStatusText(undefined, 2).active).toBe(true)
     expect(clinicStatusText(null, 2).active).toBe(true)
+  })
+})
+
+describe('cabinet de plus de 5 praticiens', () => {
+  it("renvoie vers l'adresse de contact avec un objet explicite", () => {
+    expect(LARGE_CABINET_MAILTO.startsWith(`mailto:${CONTACT_EMAIL}?subject=`)).toBe(true)
+    expect(decodeURIComponent(LARGE_CABINET_MAILTO)).toMatch(/plus de 5 praticiens/)
   })
 })

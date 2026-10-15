@@ -14,6 +14,12 @@ export type ClinicPlan = 'free' | 'cabinet'
 // Même valeur que dans le trigger enforce_clinic_member_limit.
 export const MAX_CLINIC_PRACTITIONERS = 5
 
+// Au-delà de MAX_CLINIC_PRACTITIONERS, pas de tarif affiché : offre sur mesure, au cas
+// par cas (décision d'Anaïs, 15/10/2026). Un supplément par praticien viendra si la
+// demande se confirme.
+export const CONTACT_EMAIL = 'contact@monanimeaux.fr'
+export const LARGE_CABINET_MAILTO = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent('Cabinet de plus de 5 praticiens')}`
+
 export const PLAN_LABEL: Record<DoctorPlan, string> = {
   free: 'Offre gratuite',
   pro: 'Abonnement',
@@ -71,6 +77,8 @@ export function clinicStatusText(plan: string | null | undefined, memberCount: n
   return {
     active: true,
     text: `${memberCount} praticien${memberCount > 1 ? 's' : ''} sur ${MAX_CLINIC_PRACTITIONERS}`
-      + (left === 0 ? ' : le cabinet est complet.' : '.'),
+      + (left === 0
+        ? ` : le cabinet est complet. Pour accueillir plus de ${MAX_CLINIC_PRACTITIONERS} praticiens, écrivez à ${CONTACT_EMAIL} : une offre sur mesure est possible.`
+        : '.'),
   }
 }

@@ -9,6 +9,7 @@ import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
 import { ETHICS_CHARTER_CLAUSES, ETHICS_CHARTER_DISCLAIMER } from '@/lib/ethicsCharter'
 import { PLAN_OFFERS } from '@/lib/subscription'
+import { CONTACT_EMAIL } from '@/lib/doctorPlan'
 
 export default function LegalPage() {
   const location = useLocation()
@@ -147,7 +148,7 @@ export default function LegalPage() {
             </p>
             <ul className="text-sm text-gray-600 leading-relaxed mt-2 list-disc list-inside space-y-1">
               <li><strong>Abonnement individuel</strong> — {PLAN_OFFERS.pro.priceHt} € hors taxes par mois.</li>
-              <li><strong>Abonnement cabinet</strong> — {PLAN_OFFERS.cabinet.priceHt} € hors taxes par mois, pour un cabinet comptant jusqu'à 5 praticiens. Les accès de secrétariat ne sont pas comptés. L'abonnement est souscrit et géré par le créateur du cabinet.</li>
+              <li><strong>Abonnement cabinet</strong> — {PLAN_OFFERS.cabinet.priceHt} € hors taxes par mois, pour un cabinet comptant jusqu'à 5 praticiens. Les accès de secrétariat ne sont pas comptés. L'abonnement est souscrit et géré par le créateur du cabinet. Au-delà de 5 praticiens, une offre sur mesure est étudiée au cas par cas : il suffit d'écrire à {CONTACT_EMAIL}.</li>
             </ul>
             <p className="text-sm text-gray-600 leading-relaxed mt-2">
               <strong>Prix et taxes.</strong> Les prix sont indiqués hors taxes ; la TVA, lorsqu'elle est applicable, s'ajoute au prix. Animéaux peut modifier ses tarifs ; toute modification ne s'applique qu'aux périodes suivant l'information donnée à l'abonné par email, qui peut résilier avant son application.

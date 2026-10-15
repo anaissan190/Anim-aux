@@ -101,6 +101,13 @@ describe('SubscriptionPage', () => {
     expect(mutatePortal).toHaveBeenCalledTimes(1)
   })
 
+  it("propose une offre sur mesure pour plus de 5 praticiens, par email", () => {
+    renderPage()
+    const link = screen.getByRole('link', { name: 'Écrivez-nous' })
+    expect(link.getAttribute('href')).toMatch(/^mailto:contact@monanimeaux\.fr\?subject=/)
+    expect(screen.getByText(/Plus de 5 praticiens \?/)).toBeInTheDocument()
+  })
+
   it("un abonné peut revenir à l'offre gratuite : le bouton ouvre le portail de résiliation", () => {
     state.hasPro = true
     state.doctor = { id: 'doc-1', verification_status: 'verified', plan: 'pro' }

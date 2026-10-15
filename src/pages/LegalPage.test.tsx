@@ -34,6 +34,11 @@ describe('CGU — abonnement des praticiens', () => {
     expect(text).toMatch(/aucun paiement n'est demandé avant cette validation/)
   })
 
+  it("prévoit une offre sur mesure au-delà de 5 praticiens, avec l'adresse de contact", () => {
+    renderCgu()
+    expect(document.body.textContent).toMatch(/Au-delà de 5 praticiens, une offre sur mesure est étudiée au cas par cas : il suffit d'écrire à contact@monanimeaux\.fr/)
+  })
+
   it("numérote les articles des CGU sans trou ni doublon", () => {
     const { container } = renderCgu()
     const numbers = [...container.querySelectorAll('h2')]
