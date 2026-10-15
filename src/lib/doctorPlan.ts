@@ -14,11 +14,10 @@ export type ClinicPlan = 'free' | 'cabinet'
 // Même valeur que dans le trigger enforce_clinic_member_limit.
 export const MAX_CLINIC_PRACTITIONERS = 5
 
-// Au-delà de MAX_CLINIC_PRACTITIONERS, pas de tarif affiché : offre sur mesure, au cas
-// par cas (décision d'Anaïs, 15/10/2026). Un supplément par praticien viendra si la
-// demande se confirme.
+// Au-delà de MAX_CLINIC_PRACTITIONERS, pas de tarif affiché : questionnaire de devis
+// (/devis-cabinet), prix fixé au cas par cas (décision d'Anaïs, 15/10/2026). Un supplément
+// par praticien viendra si la demande se confirme.
 export const CONTACT_EMAIL = 'contact@monanimeaux.fr'
-export const LARGE_CABINET_MAILTO = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent('Cabinet de plus de 5 praticiens')}`
 
 export const PLAN_LABEL: Record<DoctorPlan, string> = {
   free: 'Offre gratuite',
@@ -47,8 +46,10 @@ export function otherClinicPlan(plan: ClinicPlan): ClinicPlan {
 }
 
 // Nombre de praticiens qu'un cabinet peut encore accueillir.
-export function clinicSeatsLeft(plan: ClinicPlan | null | undefined, memberCount: number): number {
-  const max = plan === 'cabinet' ? MAX_CLINIC_PRACTITIONERS : 1
+// `customMax` : limite propre à un cabinet « grand cabinet » (migration 135), relevée par l'admin
+// après un devis accepté ; absente = MAX_CLINIC_PRACTITIONERS.
+export function clinicSeatsLeft(plan: ClinicPlan | null | undefined, memberCount: number, customMax?: number | null): number {
+  const max = plan === 'cabinet' ? (customMax ?? MAX_CLINIC_PRACTITIONERS) : 1
   return Math.max(0, max - memberCount)
 }
 
@@ -65,7 +66,7 @@ export function doctorFlagLabels(flags: { plan?: string | null; is_listed?: bool
 
 // Texte d'état du cabinet dans l'espace du créateur : activé (places restantes)
 // ou non activé (ce que cela interdit).
-export function clinicStatusText(plan: string | null | undefined, memberCount: number): { active: boolean; text: string } {
+export function clinicStatusText(plan: string | null | undefined, memberCount: number, customMax?: number | null): { active: boolean; text: string } {
   if (plan === 'free') {
     return {
       active: false,
@@ -73,12 +74,13 @@ export function clinicStatusText(plan: string | null | undefined, memberCount: n
         + `${MAX_CLINIC_PRACTITIONERS} praticiens et d'inviter un secrétariat.`,
     }
   }
-  const left = clinicSeatsLeft('cabinet', memberCount)
+  const max = customMax ?? MAX_CLINIC_PRACTITIONERS
+  const left = clinicSeatsLeft('cabinet', memberCount, customMax)
   return {
     active: true,
-    text: `${memberCount} praticien${memberCount > 1 ? 's' : ''} sur ${MAX_CLINIC_PRACTITIONERS}`
+    text: `${memberCount} praticien${memberCount > 1 ? 's' : ''} sur ${max}`
       + (left === 0
-        ? ` : le cabinet est complet. Pour accueillir plus de ${MAX_CLINIC_PRACTITIONERS} praticiens, écrivez à ${CONTACT_EMAIL} : une offre sur mesure est possible.`
+        ? ` : le cabinet est complet. Pour accueillir plus de ${max} praticiens, écrivez à ${CONTACT_EMAIL} : une offre sur mesure est possible.`
         : '.'),
   }
 }

@@ -14,6 +14,7 @@ import { findNextAvailableSlot } from '@/lib/nextSlot'
 import { urlBase64ToUint8Array } from '@/lib/pushNotifications'
 import { matchesAnySpecialty } from '@/lib/doctorSearch'
 import { billingErrorMessage, type SubscriptionRow } from '@/lib/subscription'
+import { quoteErrorMessage, type QuoteInput, type QuoteStatus } from '@/lib/cabinetQuote'
 import { parisDateKey, parisDayOfWeek, parisTimeToUtc } from '@/lib/parisTime'
 
 export function useDoctors(filters: SearchFilters = {}, enabled: boolean = true) {
@@ -2027,7 +2028,7 @@ export function useMyClinic(doctorId?: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('clinic_members')
-        .select('clinic_id, clinics(id, name, address, city, phone, logo_url, invite_code, owner_id, plan)')
+        .select('clinic_id, clinics(id, name, address, city, phone, logo_url, invite_code, owner_id, plan, max_practitioners)')
         .eq('doctor_id', doctorId!)
         .single()
       // PGRST116 = aucune ligne ("single()" sur 0 résultat) : cas légitime
@@ -3237,6 +3238,98 @@ export function useStartCheckout() {
   return useMutation({
     mutationFn: ({ plan, clinicName, clinicCity }: { plan: 'pro' | 'cabinet'; clinicName?: string; clinicCity?: string }) =>
       billingFunctionUrl('create-checkout-session', { plan, clinicName, clinicCity }),
+  })
+}
+
+// Demande de devis « Grand cabinet » (plus de 5 praticiens) : la fonction Edge valide,
+// enregistre la demande et envoie les emails (voir request-cabinet-quote). Les messages
+// d'erreur viennent du code renvoyé (quoteErrorMessage).
+export function useRequestCabinetQuote() {
+  return useMutation({
+    mutationFn: async (input: QuoteInput) => {
+      const { data, error } = await supabase.functions.invoke('request-cabinet-quote', { body: input })
+      if (error) {
+        let code: string | undefined
+        try { code = (await (error as any).context?.json())?.error } catch { /* corps illisible */ }
+        throw new Error(quoteErrorMessage(code))
+      }
+      if (!data?.ok) throw new Error(quoteErrorMessage(data?.error))
+      return { adminNotified: data.adminNotified === true, confirmationSent: data.confirmationSent === true }
+    },
+  })
+}
+
+export interface QuoteRequestRow {
+  id: string
+  created_at: string
+  requester_name: string | null
+  requester_email: string
+  clinic_name: string
+  city: string | null
+  practitioner_count: number
+  practitioner_count_next_year: number | null
+  secretary_count: number
+  phone: string | null
+  message: string | null
+  status: QuoteStatus
+  admin_note: string | null
+  admin_notified_at: string | null
+}
+
+// Administration : toutes les demandes de devis, les plus récentes d'abord.
+export function useAdminQuoteRequests() {
+  return useQuery({
+    queryKey: ['admin_quote_requests'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('quote_requests')
+        .select('id, created_at, requester_name, requester_email, clinic_name, city, practitioner_count, practitioner_count_next_year, secretary_count, phone, message, status, admin_note, admin_notified_at')
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return (data ?? []) as QuoteRequestRow[]
+    },
+  })
+}
+
+export function useAdminUpdateQuoteRequest() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, status, adminNote }: { id: string; status?: QuoteStatus; adminNote?: string }) => {
+      const patch: Record<string, unknown> = {}
+      if (status) patch.status = status
+      if (adminNote !== undefined) patch.admin_note = adminNote.trim() || null
+      const { error } = await supabase.from('quote_requests').update(patch).eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin_quote_requests'] }),
+  })
+}
+
+// Limite de praticiens d'un cabinet abonné : NULL = défaut (5). Relevée à la main par
+// l'admin quand un devis « grand cabinet » est accepté (migration 135).
+export function useAdminClinicMax(clinicId?: string | null) {
+  return useQuery({
+    queryKey: ['admin_clinic_max', clinicId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('clinics').select('max_practitioners').eq('id', clinicId!).single()
+      if (error) throw error
+      return (data?.max_practitioners ?? null) as number | null
+    },
+    enabled: !!clinicId,
+  })
+}
+
+export function useAdminSetClinicMax() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ clinicId, max }: { clinicId: string; max: number | null }) => {
+      const { error } = await supabase.rpc('admin_set_clinic_max_practitioners', { p_clinic_id: clinicId, p_max: max })
+      if (error) throw error
+    },
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['admin_clinic_max', vars.clinicId] })
+      qc.invalidateQueries({ queryKey: ['clinic'] })
+    },
   })
 }
 

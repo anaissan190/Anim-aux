@@ -148,7 +148,7 @@ export default function LegalPage() {
             </p>
             <ul className="text-sm text-gray-600 leading-relaxed mt-2 list-disc list-inside space-y-1">
               <li><strong>Abonnement individuel</strong> — {PLAN_OFFERS.pro.priceHt} € hors taxes par mois.</li>
-              <li><strong>Abonnement cabinet</strong> — {PLAN_OFFERS.cabinet.priceHt} € hors taxes par mois, pour un cabinet comptant jusqu'à 5 praticiens. Les accès de secrétariat ne sont pas comptés. L'abonnement est souscrit et géré par le créateur du cabinet. Au-delà de 5 praticiens, une offre sur mesure est étudiée au cas par cas : il suffit d'écrire à {CONTACT_EMAIL}.</li>
+              <li><strong>Abonnement cabinet</strong> — {PLAN_OFFERS.cabinet.priceHt} € hors taxes par mois, pour un cabinet comptant jusqu'à 5 praticiens. Les accès de secrétariat ne sont pas comptés. L'abonnement est souscrit et géré par le créateur du cabinet. Au-delà de 5 praticiens, une offre sur mesure est étudiée au cas par cas : une demande de devis se fait depuis la page « Mon abonnement » ou par email à {CONTACT_EMAIL}.</li>
             </ul>
             <p className="text-sm text-gray-600 leading-relaxed mt-2">
               <strong>Prix et taxes.</strong> Les prix sont indiqués hors taxes ; la TVA, lorsqu'elle est applicable, s'ajoute au prix. Animéaux peut modifier ses tarifs ; toute modification ne s'applique qu'aux périodes suivant l'information donnée à l'abonné par email, qui peut résilier avant son application.
@@ -232,6 +232,8 @@ export default function LegalPage() {
                     ['Santé animale', 'Vaccins, poids, actes de soin, documents', 'Suivi médical, partagé avec le praticien consulté'],
                     ['Rendez-vous', 'Date, motif, statut', 'Gestion des rendez-vous'],
                     ['Échanges', 'Messages, avis', "Communication, retour d'expérience"],
+                    ['Demande de devis', "Nom du cabinet, ville, nombre de praticiens et de secrétaires, téléphone et message (facultatifs), email du compte", 'Répondre à une demande de devis « grand cabinet »'],
+                    ['Abonnement', "Identifiant client Stripe, état et dates de l'abonnement ; les données de carte restent chez Stripe", 'Gestion et facturation de l’abonnement'],
                   ].map(([cat, data, purpose]) => (
                     <tr key={cat} className="border-b border-gray-50 last:border-0 align-top">
                       <td className="py-2 pr-3 font-medium text-gray-800 whitespace-nowrap">{cat}</td>

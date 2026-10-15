@@ -105,10 +105,10 @@ describe('SubscriptionPage', () => {
     expect(mutatePortal).toHaveBeenCalledTimes(1)
   })
 
-  it("l'offre grand cabinet (plus de 5 praticiens) renvoie vers un email, sans paiement", () => {
+  it("l'offre grand cabinet (plus de 5 praticiens) mène au questionnaire de devis, sans paiement", () => {
     renderPage()
-    const link = screen.getByRole('link', { name: 'Nous contacter' })
-    expect(link.getAttribute('href')).toMatch(/^mailto:contact@monanimeaux\.fr\?subject=/)
+    const link = screen.getByRole('link', { name: 'Demander un devis' })
+    expect(link.getAttribute('href')).toBe('/devis-cabinet')
     // pas de paiement en ligne pour cette offre, même conditions cochées
     fireEvent.click(screen.getByRole('checkbox'))
     fireEvent.click(link)

@@ -2,12 +2,13 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import Navbar from '@/components/ui/Navbar'
+import AdminQuotesView from '@/components/admin/AdminQuotesView'
 import {
   useAdminPendingDoctors, useAdminReviewDoctor, useAdminDoctorPlan, useAdminSetDoctorPlan, useAdminClinicPlan, useAdminSetClinicPlan, useAdminDoctorFlags, useAdminClinicFlags, useAdminPlatformStats, useAdminDoctorsByStatus,
   useAdminDoctorDetail, useAdminReviews, useAdminPatients, useAdminPatientDetail,
   useAdminClinics, useAdminClinicDetail, useAdminSecretaries, useAdminAppointments,
   useAdminReports, useAdminResolveReport, useAdminDeleteReview, useAdminSuspendUser,
-  useAdminUnsuspendUser, useAdminActionsLog,
+  useAdminUnsuspendUser, useAdminActionsLog, useAdminQuoteRequests, useAdminClinicMax, useAdminSetClinicMax,
   type ReportFeedbackOutcome,
 } from '@/hooks/useData'
 import { fr } from 'date-fns/locale'
@@ -85,6 +86,9 @@ export default function AdminDashboard() {
   if (view === 'log') {
     return <AdminActionsLogView onBack={() => setSearchParams({})} />
   }
+  if (view === 'quotes') {
+    return <AdminQuotesView onBack={() => setSearchParams({})} />
+  }
   return (
     <AdminOverview
       onSelectDoctor={id => setSearchParams({ doctor: id })}
@@ -94,6 +98,7 @@ export default function AdminDashboard() {
       onViewSecretaries={() => setSearchParams({ view: 'secretaries' })}
       onViewAppointments={filter => setSearchParams({ view: 'appointments', filter })}
       onViewReports={() => setSearchParams({ view: 'reports' })}
+      onViewQuotes={() => setSearchParams({ view: 'quotes' })}
       onViewLog={() => setSearchParams({ view: 'log' })}
     />
   )
@@ -112,12 +117,14 @@ function DoctorFlagBadges({ flags }: { flags?: { plan?: string; is_listed?: bool
   )
 }
 
-function AdminOverview({ onSelectDoctor, onViewReviews, onViewPatients, onViewClinics, onViewSecretaries, onViewAppointments, onViewReports, onViewLog }: {
+function AdminOverview({ onSelectDoctor, onViewReviews, onViewPatients, onViewClinics, onViewSecretaries, onViewAppointments, onViewReports, onViewQuotes, onViewLog }: {
   onSelectDoctor: (id: string) => void; onViewReviews: () => void; onViewPatients: () => void; onViewClinics: () => void
   onViewSecretaries: () => void; onViewAppointments: (filter: 'upcoming' | 'all') => void
-  onViewReports: () => void; onViewLog: () => void
+  onViewReports: () => void; onViewQuotes: () => void; onViewLog: () => void
 }) {
   const { data: stats } = useAdminPlatformStats()
+  const { data: quoteRequests = [] } = useAdminQuoteRequests()
+  const newQuotes = quoteRequests.filter(q => q.status === 'new').length
   const { data: doctorFlags = {} } = useAdminDoctorFlags()
   const [tab, setTab] = useState<Tab>('pending')
 
@@ -182,6 +189,7 @@ function AdminOverview({ onSelectDoctor, onViewReviews, onViewPatients, onViewCl
     { label: 'RDV au total', value: stats.appointments_total, icon: '📋', onClick: () => onViewAppointments('all') },
     { label: 'Avis publiés', value: stats.reviews_count, icon: '⭐', onClick: onViewReviews },
     { label: 'Signalements en attente', value: stats.reports_pending, icon: '🚩', onClick: onViewReports, alert: stats.reports_pending > 0 },
+    { label: 'Demandes de devis', value: newQuotes, icon: '📨', onClick: onViewQuotes, alert: newQuotes > 0 },
   ] : []
 
   const signupsData = (stats?.signups_weekly ?? []).map(w => ({
@@ -805,7 +813,27 @@ function AdminClinicDetail({ clinicId, onBack, onSelectDoctor }: {
   const { data: doctorFlags = {} } = useAdminDoctorFlags()
   const { data: clinicPlan } = useAdminClinicPlan(clinicId)
   const setClinicPlan = useAdminSetClinicPlan()
+  const { data: clinicMax } = useAdminClinicMax(clinicId)
+  const setClinicMax = useAdminSetClinicMax()
+  const [maxDraft, setMaxDraft] = useState('')
   const [planError, setPlanError] = useState('')
+
+  // Limite de praticiens : relevée à la main quand un devis « grand cabinet » est accepté.
+  async function handleSaveMax() {
+    setPlanError('')
+    const raw = maxDraft.trim()
+    const max = raw === '' ? null : Number(raw)
+    if (max !== null && (!Number.isInteger(max) || max < 5 || max > 200)) {
+      setPlanError('La limite doit être un nombre entier entre 5 et 200 (vide = défaut, 5).')
+      return
+    }
+    try {
+      await setClinicMax.mutateAsync({ clinicId, max })
+      setMaxDraft('')
+    } catch (e: any) {
+      setPlanError(e.message ?? 'Erreur lors du changement de limite.')
+    }
+  }
 
   async function handleToggleClinicPlan() {
     if (!clinicPlan) return
@@ -847,6 +875,15 @@ function AdminClinicDetail({ clinicId, onBack, onSelectDoctor }: {
               )}
             </div>
             {planError && <p className="text-red-500 text-xs mb-3">{planError}</p>}
+            {clinicPlan === 'cabinet' && (
+              <div className="flex flex-wrap items-center gap-2 text-sm text-gray-700 bg-gray-50 rounded-xl p-3 mb-4">
+                <span>Limite de praticiens : <strong>{clinicMax ?? 5}</strong>{clinicMax ? '' : ' (défaut)'}</span>
+                <input className="input text-sm w-24 py-1" inputMode="numeric" placeholder="Nouvelle" aria-label="Nouvelle limite de praticiens"
+                  value={maxDraft} onChange={e => setMaxDraft(e.target.value)} />
+                <button onClick={handleSaveMax} disabled={setClinicMax.isPending} className="btn-secondary text-xs px-3 py-1.5">Enregistrer</button>
+                <span className="text-xs text-gray-400 w-full">À relever après un devis « grand cabinet » accepté. Vide = retour à 5.</span>
+              </div>
+            )}
 
             {/* Coordonnées */}
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Coordonnées</h3>

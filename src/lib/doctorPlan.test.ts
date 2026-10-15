@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   hasProFeatures, otherPlan, otherClinicPlan, clinicSeatsLeft, PLAN_LABEL, CLINIC_PLAN_LABEL,
-  MAX_CLINIC_PRACTITIONERS, doctorFlagLabels, clinicStatusText, CONTACT_EMAIL, LARGE_CABINET_MAILTO,
+  MAX_CLINIC_PRACTITIONERS, doctorFlagLabels, clinicStatusText, CONTACT_EMAIL,
 } from './doctorPlan'
 
 describe('hasProFeatures', () => {
@@ -109,8 +109,22 @@ describe('clinicStatusText', () => {
 })
 
 describe('cabinet de plus de 5 praticiens', () => {
-  it("renvoie vers l'adresse de contact avec un objet explicite", () => {
-    expect(LARGE_CABINET_MAILTO.startsWith(`mailto:${CONTACT_EMAIL}?subject=`)).toBe(true)
-    expect(decodeURIComponent(LARGE_CABINET_MAILTO)).toMatch(/plus de 5 praticiens/)
+  it('une limite propre au cabinet remplace le défaut de 5', () => {
+    expect(clinicSeatsLeft('cabinet', 5)).toBe(0)
+    expect(clinicSeatsLeft('cabinet', 5, 8)).toBe(3)
+    expect(clinicSeatsLeft('cabinet', 8, 8)).toBe(0)
+    expect(clinicSeatsLeft('cabinet', 5, null)).toBe(0)
+  })
+
+  it("une limite propre ne change rien pour un cabinet non activé (1 praticien)", () => {
+    expect(clinicSeatsLeft('free', 1, 8)).toBe(0)
+  })
+
+  it("l'état du cabinet affiche la limite relevée, et ne propose l'offre sur mesure qu'une fois complet", () => {
+    expect(clinicStatusText('cabinet', 6, 8).text).toBe('6 praticiens sur 8.')
+    const full = clinicStatusText('cabinet', 8, 8).text
+    expect(full).toMatch(/^8 praticiens sur 8 : le cabinet est complet\./)
+    expect(full).toContain('plus de 8 praticiens')
+    expect(full).toContain(CONTACT_EMAIL)
   })
 })

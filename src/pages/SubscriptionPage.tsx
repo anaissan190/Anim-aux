@@ -9,7 +9,6 @@ import { useQueryClient } from '@tanstack/react-query'
 import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
 import { useAuthStore } from '@/lib/authStore'
-import { LARGE_CABINET_MAILTO } from '@/lib/doctorPlan'
 import {
   useCurrentDoctor, useMyClinic, useDoctorHasPro, useMySubscriptions, useStartCheckout, useOpenBillingPortal,
 } from '@/hooks/useData'
@@ -245,11 +244,11 @@ export default function SubscriptionPage() {
           </PlanCard>
 
           <PlanCard offer={PLAN_OFFERS.custom} highlighted={active === 'custom'} onActivate={() => setActive('custom')}>
-            <a href={LARGE_CABINET_MAILTO}
+            <Link to="/devis-cabinet"
               className={`${active === 'custom' ? 'btn-primary' : 'btn-secondary'} block w-full text-center`}>
-              Nous contacter
-            </a>
-            <p className="text-xs text-gray-500 text-center mt-2">Écrivez-nous : nous fixons le prix ensemble.</p>
+              Demander un devis
+            </Link>
+            <p className="text-xs text-gray-500 text-center mt-2">Quelques questions, puis nous vous envoyons un devis par email.</p>
           </PlanCard>
         </div>
 

@@ -449,6 +449,8 @@ verify_jwt = false
 verify_jwt = false
 [functions.send-report-feedback]
 verify_jwt = false
+[functions.request-cabinet-quote]
+verify_jwt = false
 [functions.create-checkout-session]
 verify_jwt = false
 [functions.create-portal-session]

@@ -133,7 +133,7 @@ export default function DoctorDashboard() {
   const [clinicLogoError, setClinicLogoError] = useState('')
   const { data: clinicMembers = [] }  = useClinicMembers(clinic?.id)
   // Offre du cabinet : non activé (1 seul praticien, pas de secrétariat) ou abonné (5 praticiens).
-  const clinicStatus = clinic ? clinicStatusText(clinic.plan, clinicMembers.length) : null
+  const clinicStatus = clinic ? clinicStatusText(clinic.plan, clinicMembers.length, clinic.max_practitioners) : null
   const { data: clinicStaff = [] }    = useClinicStaffList(clinic?.id)
   const { data: clinicAppts = [], error: clinicApptsError } = useClinicAppointments(clinic?.id)
   const { data: clinicServices = [] } = useClinicServices(clinic?.id)
