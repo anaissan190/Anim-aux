@@ -3274,6 +3274,13 @@ export interface QuoteRequestRow {
   status: QuoteStatus
   admin_note: string | null
   admin_notified_at: string | null
+  // Offre et lien de paiement (migration 136)
+  offer_price_cents: number | null
+  offer_max_practitioners: number | null
+  payment_token: string | null
+  payment_prepared_at: string | null
+  checkout_started_at: string | null
+  paid_at: string | null
 }
 
 // Administration : toutes les demandes de devis, les plus récentes d'abord.
@@ -3283,7 +3290,7 @@ export function useAdminQuoteRequests() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('quote_requests')
-        .select('id, created_at, requester_name, requester_email, clinic_name, city, practitioner_count, practitioner_count_next_year, secretary_count, phone, message, status, admin_note, admin_notified_at')
+        .select('id, created_at, requester_name, requester_email, clinic_name, city, practitioner_count, practitioner_count_next_year, secretary_count, phone, message, status, admin_note, admin_notified_at, offer_price_cents, offer_max_practitioners, payment_token, payment_prepared_at, checkout_started_at, paid_at')
         .order('created_at', { ascending: false })
       if (error) throw error
       return (data ?? []) as QuoteRequestRow[]
@@ -3302,6 +3309,59 @@ export function useAdminUpdateQuoteRequest() {
       if (error) throw error
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin_quote_requests'] }),
+  })
+}
+
+// Lien de paiement d'un devis : l'admin fixe le prix et la limite, l'application renvoie le jeton
+// du lien (/paiement-devis/<jeton>) qu'elle joint à son devis (migration 136).
+export function useAdminPrepareQuotePayment() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ quoteId, maxPractitioners, priceCents }: { quoteId: string; maxPractitioners: number; priceCents: number }) => {
+      const { data, error } = await supabase.rpc('admin_prepare_quote_payment', {
+        p_quote_id: quoteId, p_max: maxPractitioners, p_price_cents: priceCents,
+      })
+      if (error) throw error
+      return data as string
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin_quote_requests'] }),
+  })
+}
+
+export function useAdminClearQuotePayment() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (quoteId: string) => {
+      const { error } = await supabase.rpc('admin_clear_quote_payment', { p_quote_id: quoteId })
+      if (error) throw error
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin_quote_requests'] }),
+  })
+}
+
+// Côté cabinet : l'offre associée à son lien. La base ne renvoie que SA demande (RLS) ;
+// un lien d'un autre compte donne donc « introuvable ».
+export function useQuoteOffer(token?: string) {
+  return useQuery({
+    queryKey: ['quote_offer', token],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('quote_requests')
+        .select('clinic_name, offer_price_cents, offer_max_practitioners, paid_at')
+        .eq('payment_token', token!)
+        .maybeSingle()
+      if (error) throw error
+      return data as { clinic_name: string; offer_price_cents: number | null; offer_max_practitioners: number | null; paid_at: string | null } | null
+    },
+    enabled: !!token,
+  })
+}
+
+// Ouvre la page de paiement Stripe du devis ; renvoie son adresse (même gestion d'erreur que
+// pour l'abonnement normal : messages en français).
+export function useStartQuoteCheckout() {
+  return useMutation({
+    mutationFn: ({ token }: { token: string }) => billingFunctionUrl('create-quote-checkout', { token }),
   })
 }
 

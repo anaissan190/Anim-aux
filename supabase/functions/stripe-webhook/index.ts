@@ -8,7 +8,7 @@
 // 5xx = échec de traitement, Stripe réessaie plusieurs fois.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { SUBSCRIPTION_EVENTS, extractSubscriptionState, verifyStripeSignature } from '../_shared/billing.ts'
+import { SUBSCRIPTION_EVENTS, extractSubscriptionState, isPaidStatus, verifyStripeSignature } from '../_shared/billing.ts'
 
 const supabaseAdmin = createClient(
   Deno.env.get('SUPABASE_URL')!,
@@ -76,11 +76,25 @@ Deno.serve(async (req) => {
       p_period_end: state.periodEnd,
       p_cancel_at_period_end: state.cancelAtPeriodEnd,
       p_event_at: new Date((event.created ?? Math.floor(Date.now() / 1000)) * 1000).toISOString(),
+      // Abonnement au prix d'un devis « grand cabinet » : limite de praticiens du devis (sinon null).
+      p_max_practitioners: state.maxPractitioners,
     })
     if (error) {
       console.error('stripe-webhook: apply_subscription_state', error)
       return json({ ok: false, error: 'apply_failed' }, 500)
     }
+
+    // Abonnement ouvert depuis un devis : la demande passe en « acceptée » à la première
+    // confirmation de paiement. Sans conséquence sur l'activation si cette trace échoue.
+    if (state.quoteId && isPaidStatus(state.status)) {
+      const { error: quoteErr } = await supabaseAdmin
+        .from('quote_requests')
+        .update({ status: 'accepted', paid_at: new Date().toISOString() })
+        .eq('id', state.quoteId)
+        .is('paid_at', null)
+      if (quoteErr) console.error('stripe-webhook: mise à jour de la demande de devis', state.quoteId, quoteErr)
+    }
+
     return json({ ok: true, applied: data })
   } catch (e) {
     console.error('stripe-webhook', e)

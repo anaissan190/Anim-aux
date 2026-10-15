@@ -13,7 +13,8 @@
 // L'offre n'est JAMAIS activée ici : seule la confirmation signée de Stripe (webhook) le fait.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { buildCheckoutParams, checkBillingConfig, isPaidStatus, kindForPlan, type PaidPlan } from '../_shared/billing.ts'
+import { buildCheckoutParams, checkBillingConfig, kindForPlan, type PaidPlan } from '../_shared/billing.ts'
+import { ensureOwnedClinic, ensureStripeCustomer, hasPaidSubscription, stripePost } from '../_shared/billingDb.ts'
 
 const supabaseAdmin = createClient(
   Deno.env.get('SUPABASE_URL')!,
@@ -26,25 +27,6 @@ const corsHeaders = {
 }
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
-
-async function stripePost(key: string, path: string, params: URLSearchParams) {
-  const res = await fetch(`https://api.stripe.com/v1/${path}`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: params,
-    signal: AbortSignal.timeout(15_000),
-  })
-  const body = await res.json().catch(() => ({}))
-  return { ok: res.ok, status: res.status, body }
-}
-
-// Même alphabet que le code d'invitation créé côté application (useCreateClinic).
-function inviteCode() {
-  const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
-  let out = ''
-  for (let i = 0; i < 8; i++) out += chars[Math.floor(Math.random() * chars.length)]
-  return out
-}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -80,64 +62,35 @@ Deno.serve(async (req) => {
     let targetId = doctor.id as string
 
     if (paidPlan === 'cabinet') {
-      const { data: clinic } = await supabaseAdmin
-        .from('clinics').select('id, plan').eq('owner_id', user.id).limit(1).maybeSingle()
-      if (clinic) {
-        if (clinic.plan === 'cabinet') return json({ ok: false, error: 'already_subscribed' }, 409)
-        targetId = clinic.id
-      } else {
-        const name = typeof clinicName === 'string' ? clinicName.trim() : ''
-        if (!name) return json({ ok: false, error: 'clinic_name_required' }, 400)
-        const { data: created, error: createErr } = await supabaseAdmin
-          .from('clinics')
-          .insert({ name, city: typeof clinicCity === 'string' ? clinicCity.trim() || null : null, owner_id: user.id, invite_code: inviteCode() })
-          .select('id').single()
-        if (createErr || !created) {
-          console.error('create-checkout-session: création du cabinet', createErr)
-          return json({ ok: false, error: 'internal' }, 500)
-        }
-        const { error: memberErr } = await supabaseAdmin
-          .from('clinic_members').insert({ clinic_id: created.id, doctor_id: doctor.id })
-        if (memberErr) {
-          console.error('create-checkout-session: ajout du créateur au cabinet', memberErr)
-          return json({ ok: false, error: 'internal' }, 500)
-        }
-        targetId = created.id
-      }
+      const owned = await ensureOwnedClinic(supabaseAdmin, {
+        userId: user.id, doctorId: doctor.id, log: 'create-checkout-session',
+        name: typeof clinicName === 'string' ? clinicName : '',
+        city: typeof clinicCity === 'string' ? clinicCity : null,
+      })
+      if (!owned.ok) return json({ ok: false, error: owned.code }, owned.code === 'clinic_name_required' ? 400 : 500)
+      if (!owned.created && owned.plan === 'cabinet') return json({ ok: false, error: 'already_subscribed' }, 409)
+      targetId = owned.clinicId
     }
 
     // Déjà abonné (même par une autre voie) : on ne crée pas un second abonnement.
-    const { data: existing } = await supabaseAdmin
-      .from('subscriptions').select('status, cancel_at_period_end')
-      .eq(kind === 'doctor' ? 'doctor_id' : 'clinic_id', targetId)
-    if ((existing ?? []).some((s: any) => isPaidStatus(s.status) && !s.cancel_at_period_end)) {
+    if (await hasPaidSubscription(supabaseAdmin, kind, targetId)) {
       return json({ ok: false, error: 'already_subscribed' }, 409)
     }
-    if (kind === 'doctor' && doctor.plan === 'pro' && (existing ?? []).length === 0) {
-      // Offre « fondateur » attribuée par l'administration : rien à payer pour l'instant.
-      return json({ ok: false, error: 'already_subscribed' }, 409)
+    if (kind === 'doctor' && doctor.plan === 'pro') {
+      const { count } = await supabaseAdmin
+        .from('subscriptions').select('id', { count: 'exact', head: true }).eq('doctor_id', targetId)
+      if ((count ?? 0) === 0) {
+        // Offre « fondateur » attribuée par l'administration : rien à payer pour l'instant.
+        return json({ ok: false, error: 'already_subscribed' }, 409)
+      }
     }
 
     // Client Stripe : un par compte, réutilisé aux paiements suivants.
-    let customerId: string
-    const { data: known } = await supabaseAdmin
-      .from('billing_customers').select('stripe_customer_id').eq('user_id', user.id).maybeSingle()
-    if (known) {
-      customerId = known.stripe_customer_id
-    } else {
-      const created = await stripePost(stripeKey, 'customers', new URLSearchParams({
-        ...(user.email ? { email: user.email } : {}),
-        'metadata[user_id]': user.id,
-      }))
-      if (!created.ok || !created.body.id) {
-        console.error('create-checkout-session: création du client Stripe', created.status, JSON.stringify(created.body).slice(0, 500))
-        return json({ ok: false, error: 'stripe_error' }, 502)
-      }
-      customerId = created.body.id
-      const { error: saveErr } = await supabaseAdmin
-        .from('billing_customers').insert({ user_id: user.id, stripe_customer_id: customerId })
-      if (saveErr) console.error('create-checkout-session: enregistrement du client', saveErr)
-    }
+    const customer = await ensureStripeCustomer(supabaseAdmin, stripeKey, {
+      userId: user.id, email: user.email, log: 'create-checkout-session',
+    })
+    if (!customer.ok) return json({ ok: false, error: 'stripe_error' }, 502)
+    const customerId = customer.customerId
 
     const appUrl = Deno.env.get('APP_URL') || 'https://monanimeaux.fr'
     const params = buildCheckoutParams({

@@ -35,6 +35,7 @@ const RendezVousPage = lazy(() => import('@/pages/RendezVousPage'))
 const ProfilPage = lazy(() => import('@/pages/ProfilPage'))
 const SubscriptionPage = lazy(() => import('@/pages/SubscriptionPage'))
 const CabinetQuotePage = lazy(() => import('@/pages/CabinetQuotePage'))
+const QuotePaymentPage = lazy(() => import('@/pages/QuotePaymentPage'))
 const LegalPage = lazy(() => import('@/pages/LegalPage'))
 const ConfirmPresencePage = lazy(() => import('@/pages/ConfirmPresencePage'))
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
@@ -263,6 +264,9 @@ export default function App() {
         } />
         <Route path="/devis-cabinet" element={
           <ProtectedRoute role="doctor"><CabinetQuotePage /></ProtectedRoute>
+        } />
+        <Route path="/paiement-devis/:token" element={
+          <ProtectedRoute role="doctor"><QuotePaymentPage /></ProtectedRoute>
         } />
         <Route path="/dashboard/admin" element={
           <ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>

@@ -2,7 +2,8 @@
 import { describe, it, expect } from 'vitest'
 import {
   isPaidStatus, kindForPlan, priceIdForPlan, extractSubscriptionState, buildCheckoutParams,
-  verifyStripeSignature, SUBSCRIPTION_EVENTS, checkBillingConfig,
+  verifyStripeSignature, SUBSCRIPTION_EVENTS, checkBillingConfig, checkStripeSecret, parseMaxPractitioners,
+  buildQuoteCheckoutParams, checkQuoteLink, isQuoteToken,
 } from './billing'
 
 describe('isPaidStatus', () => {
@@ -43,7 +44,17 @@ describe('extractSubscriptionState', () => {
     expect(extractSubscriptionState(base)).toEqual({
       kind: 'doctor', targetId: 'doc-1', customerId: 'cus_1', subscriptionId: 'sub_1', priceId: 'price_pro',
       status: 'active', periodEnd: new Date(1_800_000_000 * 1000).toISOString(), cancelAtPeriodEnd: false,
+      maxPractitioners: null, quoteId: null,
     })
+  })
+
+  it("lit la limite de praticiens et la demande d'un abonnement au prix d'un devis (cabinet seulement)", () => {
+    const clinic = {
+      ...base, metadata: { kind: 'clinic', target_id: 'clinic-1', max_practitioners: '8', quote_id: 'q-1', user_id: 'u-1' },
+    }
+    expect(extractSubscriptionState(clinic)).toMatchObject({ kind: 'clinic', maxPractitioners: 8, quoteId: 'q-1' })
+    // un abonnement individuel ne porte jamais de limite de cabinet
+    expect(extractSubscriptionState({ ...base, metadata: { kind: 'doctor', target_id: 'd-1', max_practitioners: '8' } })?.maxPractitioners).toBeNull()
   })
 
   it("accepte la forme récente de l'API : fin de période sur la ligne d'abonnement, client en objet", () => {
@@ -201,5 +212,96 @@ describe('checkBillingConfig', () => {
 
   it('refuse une offre inconnue', () => {
     expect(checkBillingConfig('autre', good)).toMatchObject({ ok: false, code: 'billing_not_configured' })
+  })
+})
+
+describe('parseMaxPractitioners', () => {
+  it('accepte un entier de 5 à 200 et ignore tout le reste', () => {
+    expect(parseMaxPractitioners('5')).toBe(5)
+    expect(parseMaxPractitioners('8')).toBe(8)
+    expect(parseMaxPractitioners('200')).toBe(200)
+    for (const bad of ['4', '201', '0', '-3', '8.5', 'huit', '', ' 8', null, undefined]) {
+      expect(parseMaxPractitioners(bad as any)).toBeNull()
+    }
+  })
+})
+
+describe('checkStripeSecret', () => {
+  it('accepte une clé secrète, de test ou réelle, sans se soucier des espaces', () => {
+    expect(checkStripeSecret({ STRIPE_SECRET_KEY: ' sk_test_abc ' })).toEqual({ ok: true, secretKey: 'sk_test_abc' })
+    expect(checkStripeSecret({ STRIPE_SECRET_KEY: 'rk_live_abc' }).ok).toBe(true)
+  })
+  it('distingue absente, publiable et inconnue', () => {
+    expect(checkStripeSecret({})).toMatchObject({ ok: false, code: 'billing_not_configured' })
+    expect(checkStripeSecret({ STRIPE_SECRET_KEY: 'pk_test_abc' })).toMatchObject({ ok: false, code: 'billing_misconfigured', problem: expect.stringMatching(/PUBLIABLE/) })
+    expect(checkStripeSecret({ STRIPE_SECRET_KEY: 'whsec_abc' })).toMatchObject({ ok: false, code: 'billing_misconfigured' })
+  })
+})
+
+describe('buildQuoteCheckoutParams', () => {
+  const input = {
+    customerId: 'cus_1', priceCents: 15560, maxPractitioners: 8, clinicId: 'clinic-1', userId: 'user-1', quoteId: 'quote-1',
+    successUrl: 'https://x/ok', cancelUrl: 'https://x/ko',
+  }
+  const p = buildQuoteCheckoutParams(input)
+
+  it("crée un abonnement mensuel au prix du devis, en euros hors taxes", () => {
+    expect(p.get('mode')).toBe('subscription')
+    expect(p.get('customer')).toBe('cus_1')
+    expect(p.get('line_items[0][price_data][unit_amount]')).toBe('15560')
+    expect(p.get('line_items[0][price_data][currency]')).toBe('eur')
+    expect(p.get('line_items[0][price_data][recurring][interval]')).toBe('month')
+    expect(p.get('line_items[0][price_data][tax_behavior]')).toBe('exclusive')
+    expect(p.get('line_items[0][price_data][product_data][name]')).toBe('Abonnement Animéaux — Grand cabinet (8 praticiens)')
+    expect(p.get('line_items[0][quantity]')).toBe('1')
+    expect(p.has('line_items[0][price]')).toBe(false)
+  })
+
+  it("porte cabinet, limite et demande sur la session ET sur l'abonnement (le webhook les relit)", () => {
+    for (const prefix of ['metadata', 'subscription_data[metadata]']) {
+      expect(p.get(`${prefix}[kind]`)).toBe('clinic')
+      expect(p.get(`${prefix}[target_id]`)).toBe('clinic-1')
+      expect(p.get(`${prefix}[user_id]`)).toBe('user-1')
+      expect(p.get(`${prefix}[quote_id]`)).toBe('quote-1')
+      expect(p.get(`${prefix}[max_practitioners]`)).toBe('8')
+    }
+  })
+
+  it("demande l'adresse de facturation et le numéro de TVA, comme l'abonnement normal", () => {
+    expect(p.get('billing_address_collection')).toBe('required')
+    expect(p.get('tax_id_collection[enabled]')).toBe('true')
+    expect(p.get('locale')).toBe('fr')
+    expect(p.has('automatic_tax[enabled]')).toBe(false)
+    expect(buildQuoteCheckoutParams({ ...input, automaticTax: true }).get('automatic_tax[enabled]')).toBe('true')
+  })
+
+  it("l'abonnement produit un état lisible par le webhook, avec la limite du devis", () => {
+    const sub = {
+      id: 'sub_q', status: 'active', customer: 'cus_1',
+      metadata: Object.fromEntries([...p.entries()].filter(([k]) => k.startsWith('subscription_data[metadata]')).map(([k, v]) => [k.slice('subscription_data[metadata]['.length, -1), v])),
+    }
+    expect(extractSubscriptionState(sub)).toMatchObject({ kind: 'clinic', targetId: 'clinic-1', maxPractitioners: 8, quoteId: 'quote-1' })
+  })
+})
+
+describe('checkQuoteLink', () => {
+  const row = { user_id: 'u1', offer_price_cents: 15560, offer_max_practitioners: 8, paid_at: null }
+
+  it("autorise la personne qui a fait la demande, avec le prix et la limite du devis", () => {
+    expect(checkQuoteLink(row, 'u1')).toEqual({ ok: true, priceCents: 15560, maxPractitioners: 8 })
+  })
+  it("refuse un lien inconnu, celui de quelqu'un d'autre, une demande déjà payée ou une offre incomplète", () => {
+    expect(checkQuoteLink(null, 'u1')).toEqual({ ok: false, code: 'quote_not_found' })
+    expect(checkQuoteLink(undefined, 'u1')).toEqual({ ok: false, code: 'quote_not_found' })
+    expect(checkQuoteLink(row, 'u2')).toEqual({ ok: false, code: 'not_your_quote' })
+    expect(checkQuoteLink({ ...row, paid_at: '2026-10-16T10:00:00Z' }, 'u1')).toEqual({ ok: false, code: 'already_paid' })
+    expect(checkQuoteLink({ ...row, offer_price_cents: null }, 'u1')).toEqual({ ok: false, code: 'link_disabled' })
+    expect(checkQuoteLink({ ...row, offer_max_practitioners: null }, 'u1')).toEqual({ ok: false, code: 'link_disabled' })
+  })
+  it("vérifie la forme du jeton avant toute requête", () => {
+    expect(isQuoteToken('a'.repeat(64))).toBe(true)
+    for (const bad of ['', 'a'.repeat(63), 'A'.repeat(64), 'g'.repeat(64), `${'a'.repeat(63)}'`, null, undefined, 12]) {
+      expect(isQuoteToken(bad)).toBe(false)
+    }
   })
 })
