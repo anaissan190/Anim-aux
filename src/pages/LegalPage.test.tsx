@@ -19,8 +19,11 @@ describe('CGU — abonnement des praticiens', () => {
   it("annonce les mêmes prix que l'écran d'abonnement (une seule source : PLAN_OFFERS)", () => {
     const { container } = renderCgu()
     const text = container.textContent ?? ''
-    expect(text).toContain(`${PLAN_OFFERS.pro.priceHt} € hors taxes par mois`)
-    expect(text).toContain(`${PLAN_OFFERS.cabinet.priceHt} € hors taxes par mois`)
+    expect(text).toContain(`${PLAN_OFFERS.pro.priceHt} € par mois`)
+    expect(text).toContain(`${PLAN_OFFERS.cabinet.priceHt} € par mois`)
+    // franchise en base de TVA : plus de « hors taxes », la mention légale à la place
+    expect(text).not.toMatch(/hors taxes/)
+    expect(text).toContain('TVA non applicable, art. 293 B du CGI')
   })
 
   it("couvre résiliation, défaut de paiement, absence de remboursement au prorata et rétractation", () => {

@@ -10,7 +10,7 @@ import Navbar from '@/components/ui/Navbar'
 import { useQuoteOffer, useStartQuoteCheckout } from '@/hooks/useData'
 import { CONTACT_EMAIL } from '@/lib/doctorPlan'
 import { formatCents } from '@/lib/quotePrice'
-import { PLAN_OFFERS, TERMS_REQUIRED_MESSAGE, billingErrorMessage, paymentReturnFromSearch } from '@/lib/subscription'
+import { PLAN_OFFERS, PRICE_FOOTNOTE, TERMS_REQUIRED_MESSAGE, billingErrorMessage, paymentReturnFromSearch } from '@/lib/subscription'
 
 export default function QuotePaymentPage() {
   const { token } = useParams<{ token: string }>()
@@ -63,7 +63,7 @@ export default function QuotePaymentPage() {
       <div className="card p-6">
         <p className="text-sm text-gray-500">{PLAN_OFFERS.custom.name} — {offer.clinic_name}</p>
         <p className="font-serif text-3xl font-bold mt-2 leading-none">
-          {formatCents(offer.offer_price_cents)}<span className="font-sans text-sm font-normal"> HT / mois</span>
+          {formatCents(offer.offer_price_cents)}<span className="font-sans text-sm font-normal"> / mois</span>
         </p>
         <p className="text-sm text-gray-600 mt-2">Pour un cabinet de {offer.offer_max_practitioners} praticiens au plus.</p>
 
@@ -94,7 +94,7 @@ export default function QuotePaymentPage() {
         </button>
         {start.error && <p role="alert" className="text-sm text-red-600 mt-3">{(start.error as Error).message}</p>}
         <p className="text-xs text-gray-400 mt-4 text-center">
-          Prix mensuels hors taxes. Paiement sécurisé par Stripe. Résiliable à tout moment : l&apos;abonnement reste actif jusqu&apos;à la fin de la période payée.
+          {PRICE_FOOTNOTE}
         </p>
       </div>
     )

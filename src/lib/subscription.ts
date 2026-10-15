@@ -58,7 +58,12 @@ export const PLAN_OFFERS: Record<PlanOffer['id'], PlanOffer> = {
   },
 }
 
-export const PRICE_FOOTNOTE = 'Prix mensuels hors taxes. Paiement sécurisé par Stripe. Résiliable à tout moment : l’abonnement reste actif jusqu’à la fin de la période payée.'
+// Franchise en base de TVA (micro-entreprise sous le seuil, décidé le 15/10/2026) : les prix affichés
+// sont ceux que le client paie, sans mention « HT ». Quand la TVA deviendra applicable (seuil dépassé),
+// c'est ICI et dans les textes qui utilisent VAT_NOTE qu'il faudra revenir (et activer Stripe Tax).
+export const VAT_NOTE = 'TVA non applicable, art. 293 B du CGI'
+
+export const PRICE_FOOTNOTE = `Prix mensuels, ${VAT_NOTE}. Paiement sécurisé par Stripe. Résiliable à tout moment : l’abonnement reste actif jusqu’à la fin de la période payée.`
 
 // Codes d'erreur renvoyés par les fonctions de paiement, en français.
 export const BILLING_ERRORS: Record<string, string> = {

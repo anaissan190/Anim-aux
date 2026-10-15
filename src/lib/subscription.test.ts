@@ -5,7 +5,7 @@ import {
 } from './subscription'
 
 describe('PLAN_OFFERS', () => {
-  it('reprend les prix décidés, hors taxe', () => {
+  it('reprend les prix décidés (TVA non applicable : prix nets)', () => {
     expect(PLAN_OFFERS.free.priceHt).toBeNull()
     expect(PLAN_OFFERS.pro.priceHt).toBe('39,90')
     expect(PLAN_OFFERS.cabinet.priceHt).toBe('95,90')

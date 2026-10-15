@@ -34,13 +34,14 @@ beforeEach(() => {
 })
 
 describe('QuotePaymentPage', () => {
-  it("présente le prix du devis hors taxes et le nombre de praticiens", () => {
+  it("présente le prix du devis (TVA non applicable) et le nombre de praticiens", () => {
     renderPage()
     expect(screen.getByText(/Clinique des Lilas/)).toBeInTheDocument()
     expect(screen.getByText(/155,60 €/)).toBeInTheDocument()
-    expect(screen.getByText(/HT \/ mois/)).toBeInTheDocument()
+    expect(screen.getByText(/\/ mois/)).toBeInTheDocument()
+    expect(screen.queryByText(/\bHT\b/)).not.toBeInTheDocument()
     expect(screen.getByText(/cabinet de 8 praticiens au plus/)).toBeInTheDocument()
-    expect(screen.getByText(/Prix mensuels hors taxes/)).toBeInTheDocument()
+    expect(screen.getByText(/TVA non applicable, art\. 293 B du CGI/)).toBeInTheDocument()
   })
 
   it("sans les conditions cochées, explique quoi faire au lieu de partir payer", () => {

@@ -8,7 +8,7 @@ import { useLocation } from 'react-router-dom'
 import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
 import { ETHICS_CHARTER_CLAUSES, ETHICS_CHARTER_DISCLAIMER } from '@/lib/ethicsCharter'
-import { PLAN_OFFERS } from '@/lib/subscription'
+import { PLAN_OFFERS, VAT_NOTE } from '@/lib/subscription'
 import { CONTACT_EMAIL } from '@/lib/doctorPlan'
 
 export default function LegalPage() {
@@ -147,11 +147,11 @@ export default function LegalPage() {
               L'inscription, la présence d'une fiche dans la recherche et la consultation des avis sont gratuites. Les fonctionnalités de gestion de l'activité (réservation en ligne, agenda et rappels, messagerie avec les patients, dossiers des animaux, statistiques) sont réservées aux praticiens abonnés. Les patients ne paient jamais Animéaux.
             </p>
             <ul className="text-sm text-gray-600 leading-relaxed mt-2 list-disc list-inside space-y-1">
-              <li><strong>Abonnement individuel</strong> — {PLAN_OFFERS.pro.priceHt} € hors taxes par mois.</li>
-              <li><strong>Abonnement cabinet</strong> — {PLAN_OFFERS.cabinet.priceHt} € hors taxes par mois, pour un cabinet comptant jusqu'à 5 praticiens. Les accès de secrétariat ne sont pas comptés. L'abonnement est souscrit et géré par le créateur du cabinet. Au-delà de 5 praticiens, une offre sur mesure est étudiée au cas par cas : une demande de devis se fait depuis la page « Mon abonnement » ou par email à {CONTACT_EMAIL}.</li>
+              <li><strong>Abonnement individuel</strong> — {PLAN_OFFERS.pro.priceHt} € par mois.</li>
+              <li><strong>Abonnement cabinet</strong> — {PLAN_OFFERS.cabinet.priceHt} € par mois, pour un cabinet comptant jusqu'à 5 praticiens. Les accès de secrétariat ne sont pas comptés. L'abonnement est souscrit et géré par le créateur du cabinet. Au-delà de 5 praticiens, une offre sur mesure est étudiée au cas par cas : une demande de devis se fait depuis la page « Mon abonnement » ou par email à {CONTACT_EMAIL}.</li>
             </ul>
             <p className="text-sm text-gray-600 leading-relaxed mt-2">
-              <strong>Prix et taxes.</strong> Les prix sont indiqués hors taxes ; la TVA, lorsqu'elle est applicable, s'ajoute au prix. Animéaux peut modifier ses tarifs ; toute modification ne s'applique qu'aux périodes suivant l'information donnée à l'abonné par email, qui peut résilier avant son application.
+              <strong>Prix et taxes.</strong> Les prix sont ceux payés par l'abonné : {VAT_NOTE}. Si Animéaux devient redevable de la TVA (dépassement du seuil de la franchise), elle s'ajoutera au prix à compter de la date où elle est due, après information de l'abonné par email. Animéaux peut modifier ses tarifs ; toute modification ne s'applique qu'aux périodes suivant l'information donnée à l'abonné par email, qui peut résilier avant son application.
             </p>
             <p className="text-sm text-gray-600 leading-relaxed mt-2">
               <strong>Souscription et paiement.</strong> L'abonnement n'est proposé qu'une fois le dossier du praticien validé par Animéaux : aucun paiement n'est demandé avant cette validation. Il est payé par carte bancaire, mensuellement et à l'avance, via le prestataire de paiement Stripe ; Animéaux ne voit ni ne conserve les données de carte. L'abonnement démarre à la confirmation du paiement et se renouvelle automatiquement chaque mois jusqu'à sa résiliation. Les factures sont disponibles depuis la page « Mon abonnement ».

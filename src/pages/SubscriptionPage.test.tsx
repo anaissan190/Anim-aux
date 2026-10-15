@@ -57,7 +57,8 @@ describe('SubscriptionPage', () => {
     expect(screen.getByText('Sur mesure')).toBeInTheDocument()
     // Aucune offre n'est « recommandée » : on ne connaît pas la situation du praticien.
     expect(screen.queryByText(/recommand/i)).not.toBeInTheDocument()
-    expect(screen.getByText(/Prix mensuels hors taxes/)).toBeInTheDocument()
+    expect(screen.getByText(/TVA non applicable, art\. 293 B du CGI/)).toBeInTheDocument()
+    expect(screen.queryByText(/\bHT\b/)).not.toBeInTheDocument()
   })
 
   it("sans avoir coché les conditions, un clic sur « Choisir l'abonnement » explique quoi faire au lieu de partir payer", () => {

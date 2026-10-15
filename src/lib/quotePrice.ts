@@ -1,5 +1,5 @@
 // src/lib/quotePrice.ts
-// Prix d'un devis « grand cabinet » (plus de 5 praticiens), en centimes HT par mois :
+// Prix d'un devis « grand cabinet » (plus de 5 praticiens), en centimes par mois (TVA non applicable) :
 // l'abonnement cabinet (jusqu'à 5 praticiens) + un supplément par praticien en plus.
 // Règle décidée le 15/10/2026 ; ce n'est qu'une SUGGESTION pré-remplie dans l'administration,
 // l'admin fixe le prix réel (remise possible). Le prix de base doit rester celui du cabinet
@@ -46,9 +46,9 @@ export function validateOffer(practitioners: string, price: string): OfferValida
     return { ok: false, error: `Le nombre de praticiens doit être un entier entre ${MIN_OFFER_PRACTITIONERS} et ${MAX_OFFER_PRACTITIONERS} (jusqu'à 5, l'abonnement cabinet normal convient).` }
   }
   const cents = parseEuros(price)
-  if (cents === null) return { ok: false, error: 'Indique le prix mensuel hors taxes, par exemple 155,60.' }
+  if (cents === null) return { ok: false, error: 'Indique le prix mensuel, par exemple 155,60.' }
   if (cents < MIN_OFFER_CENTS || cents > MAX_OFFER_CENTS) {
-    return { ok: false, error: 'Le prix mensuel doit être compris entre 10 et 10 000 € HT.' }
+    return { ok: false, error: 'Le prix mensuel doit être compris entre 10 et 10 000 €.' }
   }
   return { ok: true, maxPractitioners: Number(n), priceCents: cents }
 }

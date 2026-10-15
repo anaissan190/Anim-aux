@@ -98,9 +98,9 @@ describe('AdminQuotesView', () => {
     const note = screen.getByLabelText(/Note/)
     fireEvent.blur(note)
     expect(mutateAsync).not.toHaveBeenCalled()
-    fireEvent.change(note, { target: { value: 'Proposé 450 € HT' } })
+    fireEvent.change(note, { target: { value: 'Proposé 450 €' } })
     fireEvent.blur(note)
-    await waitFor(() => expect(mutateAsync).toHaveBeenCalledWith({ id: 'q1', adminNote: 'Proposé 450 € HT' }))
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledWith({ id: 'q1', adminNote: 'Proposé 450 €' }))
   })
 
   it("signale une demande dont l'email de notification n'est pas parti", () => {
@@ -128,13 +128,13 @@ describe('AdminQuotesView — lien de paiement du devis', () => {
     state.quotes = [quote()]
     render(<AdminQuotesView onBack={() => {}} />)
     expect((screen.getByLabelText(/Praticiens \(maximum\)/) as HTMLInputElement).value).toBe('8')
-    expect((screen.getByLabelText(/Prix HT par mois/) as HTMLInputElement).value).toBe('155,60')
+    expect((screen.getByLabelText(/Prix par mois/) as HTMLInputElement).value).toBe('155,60')
   })
 
   it("crée le lien avec le nombre de praticiens et le prix saisis", async () => {
     state.quotes = [quote()]
     render(<AdminQuotesView onBack={() => {}} />)
-    fireEvent.change(screen.getByLabelText(/Prix HT par mois/), { target: { value: '140' } })
+    fireEvent.change(screen.getByLabelText(/Prix par mois/), { target: { value: '140' } })
     fireEvent.click(screen.getByRole('button', { name: 'Créer le lien de paiement' }))
     await waitFor(() => expect(prepareAsync).toHaveBeenCalledWith({ quoteId: 'q1', maxPractitioners: 8, priceCents: 14000 }))
   })
@@ -142,11 +142,11 @@ describe('AdminQuotesView — lien de paiement du devis', () => {
   it("refuse une offre incorrecte et l'explique, sans rien créer", () => {
     state.quotes = [quote()]
     render(<AdminQuotesView onBack={() => {}} />)
-    fireEvent.change(screen.getByLabelText(/Prix HT par mois/), { target: { value: 'abc' } })
+    fireEvent.change(screen.getByLabelText(/Prix par mois/), { target: { value: 'abc' } })
     fireEvent.click(screen.getByRole('button', { name: 'Créer le lien de paiement' }))
     expect(screen.getByText(/Indique le prix mensuel/)).toBeInTheDocument()
     fireEvent.change(screen.getByLabelText(/Praticiens \(maximum\)/), { target: { value: '4' } })
-    fireEvent.change(screen.getByLabelText(/Prix HT par mois/), { target: { value: '100' } })
+    fireEvent.change(screen.getByLabelText(/Prix par mois/), { target: { value: '100' } })
     fireEvent.click(screen.getByRole('button', { name: 'Créer le lien de paiement' }))
     expect(screen.getByText(/entre 6 et 200/)).toBeInTheDocument()
     expect(prepareAsync).not.toHaveBeenCalled()
@@ -168,7 +168,7 @@ describe('AdminQuotesView — lien de paiement du devis', () => {
 
     const link = (screen.getByLabelText(/Lien à joindre/) as HTMLInputElement).value
     expect(link).toBe(`${window.location.origin}/paiement-devis/${TOKEN}`)
-    expect(screen.getByText(/155,60 € HT par mois, jusqu'à 8 praticiens/)).toBeInTheDocument()
+    expect(screen.getByText(/155,60 € par mois, jusqu'à 8 praticiens/)).toBeInTheDocument()
     expect(screen.getByText(/n'a pas encore ouvert la page de paiement/)).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Copier le lien' }))
@@ -191,7 +191,7 @@ describe('AdminQuotesView — lien de paiement du devis', () => {
     render(<AdminQuotesView onBack={() => {}} />)
     fireEvent.click(screen.getByRole('button', { name: 'Toutes' }))
     expect(screen.getByText(/Payé le 17 octobre 2026/)).toBeInTheDocument()
-    expect(screen.getByText(/155,60 € HT par mois, jusqu'à 8 praticiens/)).toBeInTheDocument()
+    expect(screen.getByText(/155,60 € par mois, jusqu'à 8 praticiens/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Créer le lien de paiement' })).not.toBeInTheDocument()
     expect(screen.queryByLabelText(/Lien à joindre/)).not.toBeInTheDocument()
   })

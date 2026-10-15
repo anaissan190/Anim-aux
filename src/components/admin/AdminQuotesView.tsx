@@ -40,7 +40,7 @@ function PaymentBlock({ q }: { q: QuoteRequestRow }) {
     return (
       <div className="bg-green-50 border border-green-100 text-green-800 text-sm rounded-xl px-4 py-3 mb-3">
         ✓ Payé le {formatInTimeZone(new Date(q.paid_at), PARIS_TZ, 'd MMMM yyyy', { locale: fr })}
-        {q.offer_price_cents ? ` — ${formatCents(q.offer_price_cents)} HT par mois` : ''}
+        {q.offer_price_cents ? ` — ${formatCents(q.offer_price_cents)} par mois` : ''}
         {q.offer_max_practitioners ? `, jusqu'à ${q.offer_max_practitioners} praticiens` : ''}. L&apos;abonnement du cabinet est actif.
       </div>
     )
@@ -88,7 +88,7 @@ function PaymentBlock({ q }: { q: QuoteRequestRow }) {
           <input id={`cnt-${q.id}`} className="input text-sm w-28 py-1.5" inputMode="numeric" value={count} onChange={e => { setCount(e.target.value); setCopied(false) }} />
         </div>
         <div>
-          <label className="text-xs text-gray-400 block mb-1" htmlFor={`prc-${q.id}`}>Prix HT par mois (€)</label>
+          <label className="text-xs text-gray-400 block mb-1" htmlFor={`prc-${q.id}`}>Prix par mois (€)</label>
           <input id={`prc-${q.id}`} className="input text-sm w-32 py-1.5" inputMode="decimal" value={price} onChange={e => { setPrice(e.target.value); setCopied(false) }} />
         </div>
         <button onClick={save} disabled={prepare.isPending} className="btn-primary text-xs px-3 py-2">
@@ -107,7 +107,7 @@ function PaymentBlock({ q }: { q: QuoteRequestRow }) {
             <button onClick={copy} className="btn-secondary text-xs px-3 py-1.5">{copied ? 'Copié ✓' : 'Copier le lien'}</button>
           </div>
           <p className="text-xs text-gray-400 mt-2">
-            {q.offer_price_cents ? `Le lien réclame ${formatCents(q.offer_price_cents)} HT par mois, jusqu'à ${q.offer_max_practitioners} praticiens. ` : ''}
+            {q.offer_price_cents ? `Le lien réclame ${formatCents(q.offer_price_cents)} par mois, jusqu'à ${q.offer_max_practitioners} praticiens. ` : ''}
             {q.checkout_started_at
               ? `Le cabinet a ouvert la page de paiement le ${formatInTimeZone(new Date(q.checkout_started_at), PARIS_TZ, "d MMMM 'à' HH:mm", { locale: fr })}.`
               : "Le cabinet n'a pas encore ouvert la page de paiement."}

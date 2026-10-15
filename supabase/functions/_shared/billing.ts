@@ -189,7 +189,7 @@ export function buildCheckoutParams(i: CheckoutInput): URLSearchParams {
 
 export interface QuoteCheckoutInput {
   customerId: string
-  priceCents: number // HT par mois
+  priceCents: number // par mois ; TVA non applicable (franchise en base)
   maxPractitioners: number
   clinicId: string
   userId: string
@@ -209,6 +209,8 @@ export function buildQuoteCheckoutParams(i: QuoteCheckoutInput): URLSearchParams
   p.set('line_items[0][price_data][currency]', 'eur')
   p.set('line_items[0][price_data][unit_amount]', String(i.priceCents))
   p.set('line_items[0][price_data][recurring][interval]', 'month')
+  // Sans effet tant que la TVA n'est pas appliquée (franchise en base, décidé le 15/10/2026) ; à
+  // revoir avec Stripe Tax le jour où le seuil de la franchise est dépassé.
   p.set('line_items[0][price_data][tax_behavior]', 'exclusive')
   p.set('line_items[0][price_data][product_data][name]', `Abonnement Animéaux — Grand cabinet (${i.maxPractitioners} praticiens)`)
   p.set('line_items[0][price_data][product_data][description]', "Accès de toute l'équipe du cabinet à l'ensemble des fonctionnalités d'Animéaux")

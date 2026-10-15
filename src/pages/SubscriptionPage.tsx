@@ -48,7 +48,7 @@ function PlanCard({ offer, highlighted, onActivate, children }: {
           <p className={`text-sm font-medium ${highlighted ? '' : 'text-gray-500'}`}>{offer.name}</p>
         </div>
         <p className="font-serif text-3xl font-bold mt-2 leading-none">
-          {offer.priceLabel ?? (offer.priceHt ? <>{offer.priceHt} €<span className="font-sans text-sm font-normal"> HT / mois</span></> : '0 €')}
+          {offer.priceLabel ?? (offer.priceHt ? <>{offer.priceHt} €<span className="font-sans text-sm font-normal"> / mois</span></> : '0 €')}
         </p>
         <p className={`text-xs mt-2 ${highlighted ? 'opacity-90' : 'text-gray-500'}`}>{offer.tagline}</p>
       </div>

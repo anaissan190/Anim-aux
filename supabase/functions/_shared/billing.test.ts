@@ -245,7 +245,7 @@ describe('buildQuoteCheckoutParams', () => {
   }
   const p = buildQuoteCheckoutParams(input)
 
-  it("crée un abonnement mensuel au prix du devis, en euros hors taxes", () => {
+  it("crée un abonnement mensuel au prix du devis, en euros", () => {
     expect(p.get('mode')).toBe('subscription')
     expect(p.get('customer')).toBe('cus_1')
     expect(p.get('line_items[0][price_data][unit_amount]')).toBe('15560')
