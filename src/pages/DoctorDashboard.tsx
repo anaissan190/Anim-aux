@@ -19,7 +19,10 @@ import { PRACTITIONER_TYPES, getPractitionerType, getPractitionerTypesBySpecialt
 import PractitionerTypePicker from '@/components/doctor/PractitionerTypePicker'
 import { SPECIES_EMOJI, PRACTICE_SPECIES_OPTIONS } from '@/lib/animalSpecies'
 import { type DoctorTab as Tab, ALL_DOCTOR_TAB_IDS as ALL_TAB_IDS } from '@/lib/doctorDashboardTabs'
-import { computeDoctorStats } from '@/lib/doctorStats'
+import { computeDoctorStats, patientsToReengage } from '@/lib/doctorStats'
+import { clinicStatsTable, clinicMonthlyTotals, unclosedPastCount, reviewSummary } from '@/lib/clinicStats'
+import { cabinetSections, parseCabinetSection, type CabinetSection } from '@/lib/cabinetSections'
+import ClinicOverview, { ClinicHeader } from '@/components/doctor/ClinicOverview'
 import { removeStoredFiles } from '@/lib/storageCleanup'
 import DoctorStatsPanel from '@/components/doctor/DoctorStatsPanel'
 import ClinicStatsPanel from '@/components/doctor/ClinicStatsPanel'
@@ -34,7 +37,7 @@ import { showToast } from '@/lib/toast'
 import { ETHICS_CHARTER_CLAUSES } from '@/lib/ethicsCharter'
 import { compressImage } from '@/lib/compressImage'
 import ReportButton from '@/components/ui/ReportButton'
-import { clinicStatusText, PLAN_LABEL, CLINIC_PLAN_LABEL } from '@/lib/doctorPlan'
+import { clinicStatusText, clinicSeatsLeft, MAX_CLINIC_PRACTITIONERS, PLAN_LABEL, CLINIC_PLAN_LABEL } from '@/lib/doctorPlan'
 import UpgradePanel from '@/components/doctor/UpgradePanel'
 import { blocksAccountDeletion } from '@/lib/subscription'
 import { isTabLocked, LOCKED_TAB_PITCH } from '@/lib/doctorDashboardTabs'
@@ -441,12 +444,15 @@ export default function DoctorDashboard() {
     const t = searchParams.get('tab')
     if (ALL_TAB_IDS.includes(t as Tab)) setTab(t as Tab)
     setProfileSection(parseProfileSection(searchParams.get('section')))
+    setCabinetSectionRaw(searchParams.get('section'))
     // ?view=shared : ouvre directement l'agenda partagé (créer/rejoindre un
     // cabinet), utilisé par le lien de la page profil.
     if (t === 'disponibilites' && searchParams.get('view') === 'shared') setDispoTab('shared')
   }, [searchParams])
   // Sous-onglet de l'onglet Profil (?tab=profil&section=abonnement, par exemple).
   const [profileSection, setProfileSection] = useState<ProfileSection>(parseProfileSection(searchParams.get('section')))
+  // Sous-onglet de « Mon cabinet » : la valeur brute est gardée, la section réellement ouverte dépend du rôle.
+  const [cabinetSectionRaw, setCabinetSectionRaw] = useState<string | null>(searchParams.get('section'))
   const [apptTab, setApptTab] = useState<'today' | 'week' | 'all'>('today')
   // Décalage en semaines par rapport à la semaine courante (ancrée sur
   // Paris) plutôt qu'un objet Date muté via addDays — même précaution que
@@ -630,6 +636,12 @@ export default function DoctorDashboard() {
   // "aujourd'hui", mal répartis dans le mini calendrier de la semaine.
   const todayKey    = parisDateKey()
   const now         = new Date()
+  // Onglet Mon cabinet : section ouverte et chiffres de la vue d'ensemble (créateur seulement).
+  const cabinetSection: CabinetSection = parseCabinetSection(cabinetSectionRaw, isClinicAdmin)
+  const clinicTable = isClinicAdmin ? clinicStatsTable(clinicMembers as any, clinicAppts as any, clinicAvailabilities as any, clinicReviews, now) : null
+  const clinicMonthly = isClinicAdmin ? clinicMonthlyTotals(clinicMembers as any, clinicAppts as any, now) : null
+  const clinicMaxMembers = Math.max(clinicMembers.length, clinic?.plan === 'free' ? 1 : (clinic?.max_practitioners ?? MAX_CLINIC_PRACTITIONERS))
+  const clinicSeats = clinicSeatsLeft(clinic?.plan, clinicMembers.length, clinic?.max_practitioners)
   const todayAppts  = appointments.filter(a => parisDateKey(new Date(a.start_at)) === todayKey)
   const weekStartKey = addDaysToDateKey(parisStartOfWeekKey(todayKey), agendaWeekOffset * 7)
   const weekStart   = parisTimeToUtc(weekStartKey, '00:00:00')
@@ -1767,127 +1779,66 @@ export default function DoctorDashboard() {
               className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors">
               ← Mon espace
             </Link>
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">Mon cabinet</h2>
-              <p className="text-sm text-gray-500 mt-1">{clinic.name}{clinic.city ? ` · ${clinic.city}` : ''}</p>
-            </div>
+            <ClinicHeader name={clinic.name} city={clinic.city} address={clinic.address} logoUrl={clinic.logo_url}
+              offerActive={clinicStatus?.active} />
 
-            {isClinicAdmin ? (
-              /* Profil éditable — réservé à l'admin (créateur) du cabinet.
-                 Un simple membre ne peut rien y modifier. */
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between mb-5">
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900">Profil du cabinet</h3>
-                    <p className="text-sm text-gray-500 mt-0.5">Visible par les patients sur la fiche du cabinet</p>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className="text-xs text-gray-400 mb-1">Code d'invitation</p>
-                    <span className="font-mono font-bold text-sage-600 bg-sage-50 px-3 py-1 rounded-lg text-sm tracking-widest">
-                      {clinic.invite_code}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4 mb-5">
-                  <div className="relative w-16 h-16 flex-shrink-0 group">
-                    <div className="w-16 h-16 rounded-2xl bg-sage-100 flex items-center justify-center text-2xl overflow-hidden">
-                      {clinic.logo_url
-                        ? <img src={clinic.logo_url} className="w-full h-full object-cover" alt={clinic.name} loading="lazy" />
-                        : '🏥'}
-                    </div>
-                    <label className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
-                      <span className="text-white text-xs font-medium">{clinicLogoUploading ? '...' : '📷'}</span>
-                      <input type="file" accept="image/*" className="hidden"
-                        onChange={e => { const f = e.target.files?.[0]; if (f) handleClinicLogoUpload(f); e.target.value = '' }} />
-                    </label>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Logo du cabinet</p>
-                    <p className="text-xs text-gray-400">Survolez la photo pour la changer</p>
-                    {clinicLogoError && <p className="text-red-500 text-xs mt-1">{clinicLogoError}</p>}
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Nom du cabinet</label>
-                    <input className="input" defaultValue={clinic.name} id="clinic-name" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Ville</label>
-                      <input className="input" defaultValue={clinic.city ?? ''} id="clinic-city" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
-                      <input className="input" defaultValue={clinic.address ?? ''} id="clinic-address" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone du cabinet</label>
-                    <input className="input" defaultValue={clinic.phone ?? ''} id="clinic-phone" />
-                  </div>
-                  {clinicInfoError && <p className="text-red-500 text-sm">{clinicInfoError}</p>}
-                  <button onClick={async () => {
-                    setClinicInfoError('')
-                    const name    = (document.getElementById('clinic-name') as HTMLInputElement).value
-                    const city    = (document.getElementById('clinic-city') as HTMLInputElement).value
-                    const address = (document.getElementById('clinic-address') as HTMLInputElement).value
-                    const phone   = (document.getElementById('clinic-phone') as HTMLInputElement).value
-                    try {
-                      await updateClinic.mutateAsync({ id: clinic.id, name, city, address, phone })
-                      showToast('✓ Cabinet mis à jour avec succès !')
-                    } catch (e: any) {
-                      setClinicInfoError(e?.message ?? "Erreur lors de l'enregistrement, réessaie.")
-                    }
-                  }} disabled={updateClinic.isPending} className="btn-primary w-full">
-                    {updateClinic.isPending ? 'Enregistrement...' : 'Enregistrer les modifications du cabinet'}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              /* Simple membre : infos en lecture seule, rien à modifier. */
-              <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="font-bold text-gray-900 text-lg">{clinic.name}</h3>
-                    {clinic.city && <p className="text-sm text-gray-500 mt-0.5">📍 {clinic.city}</p>}
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-gray-400 mb-1">Code d'invitation</p>
-                    <span className="font-mono font-bold text-sage-600 bg-sage-50 px-3 py-1 rounded-lg text-sm tracking-widest">
-                      {clinic.invite_code}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Offre du cabinet */}
-            {clinicStatus && (
-              <div className={`rounded-2xl p-4 text-sm border ${clinicStatus.active ? 'bg-moss-50 border-moss-100 text-moss-800' : 'bg-sage-50 border-sage-100 text-sage-800'}`}>
-                <p className="font-medium">{clinicStatus.active ? 'Abonnement cabinet' : 'Cabinet non activé'}</p>
+            {/* Cabinet non activé : ce que cela interdit, visible partout dans l'onglet. */}
+            {clinicStatus && !clinicStatus.active && (
+              <div className="rounded-2xl p-4 text-sm border bg-sage-50 border-sage-100 text-sage-800">
+                <p className="font-medium">Cabinet non activé</p>
                 <p className="mt-0.5">{clinicStatus.text}</p>
               </div>
             )}
 
-            {/* Membres */}
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
-              <h3 className="font-semibold text-gray-900 mb-4">
-                Membres du cabinet ({clinicMembers.length})
-              </h3>
-              {removeMemberError && <p className="text-red-500 text-sm mb-3">{removeMemberError}</p>}
-              <div className="space-y-3">
-                {clinicMembers.map((m: any) => (
-                  <div key={m.id} className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-sage-100 flex items-center justify-center text-sage-700 font-bold text-sm">
-                      {m.doctors?.profiles?.first_name?.[0]?.toUpperCase() ?? '?'}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-800">
-                        {m.doctors?.profiles?.first_name} {m.doctors?.profiles?.last_name}
-                      </p>
-                      <p className="text-xs text-gray-400">{m.doctors?.specialties?.join(' · ')}</p>
-                    </div>
+            <SubTabs
+              items={cabinetSections(isClinicAdmin).map(sct => ({
+                ...sct,
+                count: sct.id === 'equipe' ? clinicMembers.length : sct.id === 'secretariat' ? clinicStaff.length : undefined,
+              }))}
+              value={cabinetSection} onChange={id => setCabinetSectionRaw(id)} label="Sections du cabinet" />
+
+            {cabinetSection === 'apercu' && (
+              <ClinicOverview
+                isAdmin={isClinicAdmin}
+                memberCount={clinicMembers.length}
+                maxMembers={clinicMaxMembers}
+                seatsLeft={clinicSeats}
+                inviteCode={clinic.invite_code}
+                calendarHref="/dashboard/doctor?tab=disponibilites&view=shared"
+                monthly={clinicMonthly}
+                fillRate={clinicTable?.total.fillRate}
+                activity={clinicTable?.rows}
+                toReengage={isClinicAdmin ? patientsToReengage(clinicAppts as any, now).length : 0}
+                unclosed={isClinicAdmin ? unclosedPastCount(clinicAppts as any, now) : 0}
+                rating={isClinicAdmin ? reviewSummary(clinicReviews) : null}
+                onGoTo={id => setCabinetSectionRaw(id === 'stats' ? 'stats' : 'equipe')}
+              />
+            )}
+
+            {cabinetSection === 'equipe' && (
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <h3 className="font-semibold text-gray-900">Équipe ({clinicMembers.length})</h3>
+                  {clinicStatus?.active && <p className="text-xs text-gray-500">{clinicStatus.text}</p>}
+                </div>
+                {removeMemberError && <p className="text-red-500 text-sm">{removeMemberError}</p>}
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {clinicMembers.map((m: any) => {
+                    const stats = clinicTable?.rows.find(r => r.doctorId === m.doctor_id)
+                    return (
+                      <div key={m.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-sage-100 flex items-center justify-center text-sage-700 font-bold text-sm flex-shrink-0 overflow-hidden">
+                            {m.doctors?.profiles?.avatar_url
+                              ? <img src={m.doctors.profiles.avatar_url} className="w-full h-full object-cover" alt="" loading="lazy" />
+                              : (m.doctors?.profiles?.first_name?.[0]?.toUpperCase() ?? '?')}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-800 truncate">
+                              {m.doctors?.profiles?.first_name} {m.doctors?.profiles?.last_name}
+                            </p>
+                            <p className="text-xs text-gray-400 truncate">{m.doctors?.specialties?.join(' · ')}</p>
+                          </div>
                     {clinic.owner_id === m.doctors?.user_id ? (
                       <span className="ml-auto text-xs bg-sage-100 text-sage-700 px-2 py-0.5 rounded-full">Admin</span>
                     ) : (
@@ -1921,11 +1872,22 @@ export default function DoctorDashboard() {
                         )
                       )
                     )}
-                  </div>
-                ))}
+                        </div>
+                        {isClinicAdmin && stats && (
+                          <p className="text-xs text-gray-500 mt-3 pt-3 border-t border-sand-100">
+                            {stats.completedThisMonth} RDV ce mois
+                            {' · '}{stats.rating === null ? 'pas d\'avis' : `${stats.rating.toString().replace('.', ',')} ★ (${stats.reviewCount})`}
+                            {' · '}{m.doctors?.consultation_price ? `${m.doctors.consultation_price} €` : 'tarif non renseigné'}
+                          </p>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
+            {cabinetSection === 'secretariat' && isClinicAdmin && (<>
             {/* Secrétariat */}
             {isClinicAdmin && (
               <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
@@ -2028,6 +1990,9 @@ export default function DoctorDashboard() {
               </div>
             )}
 
+            </>)}
+
+            {cabinetSection === 'stats' && (<>
             {/* Statistiques — déplacées ici depuis l'onglet Statistiques
                 (masqué de la barre quand il y a un cabinet, retour d'Anaïs
                 du 07/09/2026). Le créateur voit le détail de chaque
@@ -2094,6 +2059,80 @@ export default function DoctorDashboard() {
               )}
             </div>
 
+            </>)}
+
+            {cabinetSection === 'reglages' && isClinicAdmin && (<>
+              {/* Profil du cabinet : nom, adresse, téléphone, logo — réservé au créateur. */}
+              <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                <div className="flex items-center justify-between mb-5">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">Profil du cabinet</h3>
+                    <p className="text-sm text-gray-500 mt-0.5">Visible par les patients sur la fiche du cabinet</p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-xs text-gray-400 mb-1">Code d'invitation</p>
+                    <span className="font-mono font-bold text-sage-600 bg-sage-50 px-3 py-1 rounded-lg text-sm tracking-widest">
+                      {clinic.invite_code}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 mb-5">
+                  <div className="relative w-16 h-16 flex-shrink-0 group">
+                    <div className="w-16 h-16 rounded-2xl bg-sage-100 flex items-center justify-center text-2xl overflow-hidden">
+                      {clinic.logo_url
+                        ? <img src={clinic.logo_url} className="w-full h-full object-cover" alt={clinic.name} loading="lazy" />
+                        : '🏥'}
+                    </div>
+                    <label className="absolute inset-0 rounded-2xl bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
+                      <span className="text-white text-xs font-medium">{clinicLogoUploading ? '...' : '📷'}</span>
+                      <input type="file" accept="image/*" className="hidden"
+                        onChange={e => { const f = e.target.files?.[0]; if (f) handleClinicLogoUpload(f); e.target.value = '' }} />
+                    </label>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Logo du cabinet</p>
+                    <p className="text-xs text-gray-400">Survolez la photo pour la changer</p>
+                    {clinicLogoError && <p className="text-red-500 text-xs mt-1">{clinicLogoError}</p>}
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="clinic-name" className="block text-sm font-medium text-gray-700 mb-1">Nom du cabinet</label>
+                    <input className="input" defaultValue={clinic.name} id="clinic-name" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Ville</label>
+                      <input className="input" defaultValue={clinic.city ?? ''} id="clinic-city" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
+                      <input className="input" defaultValue={clinic.address ?? ''} id="clinic-address" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone du cabinet</label>
+                    <input className="input" defaultValue={clinic.phone ?? ''} id="clinic-phone" />
+                  </div>
+                  {clinicInfoError && <p className="text-red-500 text-sm">{clinicInfoError}</p>}
+                  <button onClick={async () => {
+                    setClinicInfoError('')
+                    const name    = (document.getElementById('clinic-name') as HTMLInputElement).value
+                    const city    = (document.getElementById('clinic-city') as HTMLInputElement).value
+                    const address = (document.getElementById('clinic-address') as HTMLInputElement).value
+                    const phone   = (document.getElementById('clinic-phone') as HTMLInputElement).value
+                    try {
+                      await updateClinic.mutateAsync({ id: clinic.id, name, city, address, phone })
+                      showToast('✓ Cabinet mis à jour avec succès !')
+                    } catch (e: any) {
+                      setClinicInfoError(e?.message ?? "Erreur lors de l'enregistrement, réessaie.")
+                    }
+                  }} disabled={updateClinic.isPending} className="btn-primary w-full">
+                    {updateClinic.isPending ? 'Enregistrement...' : 'Enregistrer les modifications du cabinet'}
+                  </button>
+                </div>
+              </div>
+
             {/* Zone dangereuse — réservée au créateur. Fermer le cabinet ne
                 supprime aucune donnée patient/RDV (seuls doctor_id/patient_id
                 y sont rattachés, pas clinic_id) : seules l'identité du
@@ -2145,6 +2184,7 @@ export default function DoctorDashboard() {
                 )}
               </div>
             )}
+            </>)}
           </div>
         )}
 
@@ -2227,13 +2267,13 @@ export default function DoctorDashboard() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Prénom</label>
-                    <input className="input" value={profileForm.first_name}
+                    <label htmlFor="profile-first-name" className="block text-sm font-medium text-gray-700 mb-1">Prénom</label>
+                    <input id="profile-first-name" className="input" value={profileForm.first_name}
                       onChange={e => setProfileForm(f => ({ ...f, first_name: e.target.value }))} />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
-                    <input className="input" value={profileForm.last_name}
+                    <label htmlFor="profile-last-name" className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
+                    <input id="profile-last-name" className="input" value={profileForm.last_name}
                       onChange={e => setProfileForm(f => ({ ...f, last_name: e.target.value }))} />
                   </div>
                 </div>
@@ -2259,27 +2299,27 @@ export default function DoctorDashboard() {
               <h2 className="font-semibold text-gray-900 mb-3">Coordonnées</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
-                  <input className="input" value={profileForm.phone}
+                  <label htmlFor="profile-phone" className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
+                  <input id="profile-phone" className="input" value={profileForm.phone}
                     onChange={e => setProfileForm(f => ({ ...f, phone: e.target.value }))} />
                 </div>
                 {!clinic && (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Ville</label>
-                      <input className="input" value={profileForm.city}
+                      <label htmlFor="profile-city" className="block text-sm font-medium text-gray-700 mb-1">Ville</label>
+                      <input id="profile-city" className="input" value={profileForm.city}
                         onChange={e => setProfileForm(f => ({ ...f, city: e.target.value }))} />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
-                      <input className="input" value={profileForm.address}
+                      <label htmlFor="profile-address" className="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
+                      <input id="profile-address" className="input" value={profileForm.address}
                         onChange={e => setProfileForm(f => ({ ...f, address: e.target.value }))} />
                     </div>
                   </div>
                 )}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Adresse postale</label>
-                  <input className="input" value={profileForm.home_address}
+                  <label htmlFor="profile-home-address" className="block text-sm font-medium text-gray-700 mb-1">Adresse postale</label>
+                  <input id="profile-home-address" className="input" value={profileForm.home_address}
                     onChange={e => setProfileForm(f => ({ ...f, home_address: e.target.value }))}
                     placeholder="12 rue des Lilas, 75001 Paris" />
                 </div>

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
-  memberName, clinicPrices, filterByDoctor, reviewSummary, clinicStatsTable, type ClinicMemberForStats,
+  memberName, clinicPrices, filterByDoctor, reviewSummary, clinicStatsTable, clinicMonthlyTotals, unclosedPastCount,
+  type ClinicMemberForStats,
 } from './clinicStats'
 import { computeDoctorStats, computeMonthlyComparison, priceByDoctor, priceResolver } from './doctorStats'
 import { buildAccountingCsv, buildAccountingRows } from './accountingExport'
@@ -114,5 +115,34 @@ describe('clinicStatsTable', () => {
     const empty = clinicStatsTable(members, [], [], [], NOW)
     expect(empty.total).toMatchObject({ completedThisMonth: 0, revenueThisMonth: 0, noShowRate: null, cancellationRate: null, fillRate: null, rating: null })
     expect(clinicStatsTable([], [], [], [], NOW).rows).toEqual([])
+  })
+})
+
+describe('clinicMonthlyTotals', () => {
+  it("donne le mois en cours et le précédent pour tout le cabinet, au tarif de chaque praticien", () => {
+    const t = clinicMonthlyTotals(members, appointments, NOW)
+    // octobre : d1 2 × 50 + d2 1 × 80 + d3 1 × 0 ; septembre : d1 1 × 50
+    expect(t.current).toMatchObject({ completed: 4, revenue: 180 })
+    expect(t.previous).toMatchObject({ completed: 1, revenue: 50 })
+  })
+  it("un cabinet sans rendez-vous donne des zéros", () => {
+    expect(clinicMonthlyTotals(members, [], NOW).current).toMatchObject({ completed: 0, revenue: 0, noShowRate: null })
+  })
+})
+
+describe('unclosedPastCount', () => {
+  const list = [
+    { start_at: '2026-10-01T09:00:00Z', status: 'confirmed' },
+    { start_at: '2026-10-02T09:00:00Z', status: 'pending' },
+    { start_at: '2026-10-03T09:00:00Z', status: 'completed' },
+    { start_at: '2026-10-04T09:00:00Z', status: 'no_show' },
+    { start_at: '2026-10-05T09:00:00Z', status: 'cancelled' },
+    { start_at: '2026-10-20T09:00:00Z', status: 'confirmed' }, // à venir
+  ]
+  it("ne compte que les rendez-vous passés encore confirmés ou en attente", () => {
+    expect(unclosedPastCount(list, NOW)).toBe(2)
+  })
+  it("renvoie 0 sans rendez-vous", () => {
+    expect(unclosedPastCount([], NOW)).toBe(0)
   })
 })

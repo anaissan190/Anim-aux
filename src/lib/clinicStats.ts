@@ -5,7 +5,7 @@
 // sont dans components/doctor/ClinicStatsPanel.tsx.
 import {
   computeDoctorStats, computeMonthlyComparison, priceByDoctor,
-  type DoctorAvailabilityRule, type ExtendedStatsAppointment, type ReviewForStats,
+  type DoctorAvailabilityRule, type ExtendedStatsAppointment, type MonthlyComparison, type ReviewForStats,
 } from './doctorStats'
 
 export interface ClinicMemberForStats {
@@ -98,4 +98,20 @@ export function clinicStatsTable(
     rows: members.map(m => build(m.doctor_id, memberName(m))),
     total: build(null, 'Tout le cabinet'),
   }
+}
+
+// Mois en cours et mois précédent pour TOUT le cabinet (revenu au tarif de chaque praticien) :
+// les indicateurs de la vue d'ensemble, avec leur évolution.
+export function clinicMonthlyTotals(
+  members: ClinicMemberForStats[],
+  appointments: ClinicAppointmentForStats[],
+  now: Date = new Date(),
+): MonthlyComparison {
+  return computeMonthlyComparison(appointments, priceByDoctor(clinicPrices(members)), now)
+}
+
+// Rendez-vous passés jamais clôturés (ni « Terminé » ni « Absent » ni annulés) : tant qu'ils
+// traînent, les statistiques de revenu et d'absence sont faussées.
+export function unclosedPastCount(appointments: { start_at: string; status: string }[], now: Date = new Date()): number {
+  return appointments.filter(a => new Date(a.start_at) < now && (a.status === 'pending' || a.status === 'confirmed')).length
 }
