@@ -8,10 +8,11 @@
 // (STRIPE_PRICE_PRO / STRIPE_PRICE_CABINET) — les deux doivent rester identiques.
 
 export interface PlanOffer {
-  id: 'free' | 'pro' | 'cabinet'
+  id: 'free' | 'pro' | 'cabinet' | 'custom'
   name: string
   tagline: string
-  priceHt: string | null // null = gratuit
+  priceHt: string | null // null = gratuit, sauf si priceLabel est renseigné
+  priceLabel?: string // remplace le prix quand il n'y en a pas d'affiché (offre sur mesure)
   features: { label: string; included: boolean }[]
 }
 
@@ -44,6 +45,15 @@ export const PLAN_OFFERS: Record<PlanOffer['id'], PlanOffer> = {
       { label: "Jusqu'à 5 praticiens dans le cabinet", included: true },
       { label: 'Agenda partagé et statistiques du cabinet', included: true },
       { label: 'Accès dédié pour votre secrétariat', included: true },
+    ],
+  },
+  // Plus de 5 praticiens : pas de tarif publié, le prix est fixé avec chaque cabinet (15/10/2026).
+  custom: {
+    id: 'custom', name: 'Grand cabinet', tagline: 'Plus de 5 praticiens', priceHt: null, priceLabel: 'Sur mesure',
+    features: [
+      { label: "Toutes les fonctions de l'abonnement cabinet", included: true },
+      { label: 'Plus de 5 praticiens dans le même cabinet', included: true },
+      { label: "Un prix fixé avec vous, selon la taille de l'équipe", included: true },
     ],
   },
 }

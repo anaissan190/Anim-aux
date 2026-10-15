@@ -46,11 +46,15 @@ beforeEach(() => {
 })
 
 describe('SubscriptionPage', () => {
-  it('affiche les trois offres avec leurs prix hors taxe', () => {
+  it('affiche les quatre offres : gratuite, abonnement, cabinet et grand cabinet sur mesure', () => {
     renderPage()
     expect(screen.getByText('Gratuite')).toBeInTheDocument()
     expect(screen.getByText(/39,90 €/)).toBeInTheDocument()
     expect(screen.getByText(/95,90 €/)).toBeInTheDocument()
+    expect(document.querySelectorAll('[data-plan]')).toHaveLength(4)
+    // Grand cabinet : pas de prix publié
+    expect(screen.getByText('Grand cabinet')).toBeInTheDocument()
+    expect(screen.getByText('Sur mesure')).toBeInTheDocument()
     // Aucune offre n'est « recommandée » : on ne connaît pas la situation du praticien.
     expect(screen.queryByText(/recommand/i)).not.toBeInTheDocument()
     expect(screen.getByText(/Prix mensuels hors taxes/)).toBeInTheDocument()
@@ -101,11 +105,14 @@ describe('SubscriptionPage', () => {
     expect(mutatePortal).toHaveBeenCalledTimes(1)
   })
 
-  it("propose une offre sur mesure pour plus de 5 praticiens, par email", () => {
+  it("l'offre grand cabinet (plus de 5 praticiens) renvoie vers un email, sans paiement", () => {
     renderPage()
-    const link = screen.getByRole('link', { name: 'Écrivez-nous' })
+    const link = screen.getByRole('link', { name: 'Nous contacter' })
     expect(link.getAttribute('href')).toMatch(/^mailto:contact@monanimeaux\.fr\?subject=/)
-    expect(screen.getByText(/Plus de 5 praticiens \?/)).toBeInTheDocument()
+    // pas de paiement en ligne pour cette offre, même conditions cochées
+    fireEvent.click(screen.getByRole('checkbox'))
+    fireEvent.click(link)
+    expect(mutateCheckout).not.toHaveBeenCalled()
   })
 
   it("un abonné peut revenir à l'offre gratuite : le bouton ouvre le portail de résiliation", () => {

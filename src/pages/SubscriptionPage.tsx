@@ -9,7 +9,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import Navbar from '@/components/ui/Navbar'
 import BackButton from '@/components/ui/BackButton'
 import { useAuthStore } from '@/lib/authStore'
-import { LARGE_CABINET_MAILTO, MAX_CLINIC_PRACTITIONERS } from '@/lib/doctorPlan'
+import { LARGE_CABINET_MAILTO } from '@/lib/doctorPlan'
 import {
   useCurrentDoctor, useMyClinic, useDoctorHasPro, useMySubscriptions, useStartCheckout, useOpenBillingPortal,
 } from '@/hooks/useData'
@@ -49,7 +49,7 @@ function PlanCard({ offer, highlighted, onActivate, children }: {
           <p className={`text-sm font-medium ${highlighted ? '' : 'text-gray-500'}`}>{offer.name}</p>
         </div>
         <p className="font-serif text-3xl font-bold mt-2 leading-none">
-          {offer.priceHt ? <>{offer.priceHt} €<span className="font-sans text-sm font-normal"> HT / mois</span></> : '0 €'}
+          {offer.priceLabel ?? (offer.priceHt ? <>{offer.priceHt} €<span className="font-sans text-sm font-normal"> HT / mois</span></> : '0 €')}
         </p>
         <p className={`text-xs mt-2 ${highlighted ? 'opacity-90' : 'text-gray-500'}`}>{offer.tagline}</p>
       </div>
@@ -90,7 +90,7 @@ export default function SubscriptionPage() {
   const [termsError, setTermsError] = useState(false)
   const termsRef = useRef<HTMLInputElement>(null)
   // Offre payante survolée / sélectionnée : seule celle-là passe en orange.
-  const [active, setActive] = useState<'pro' | 'cabinet' | null>(null)
+  const [active, setActive] = useState<'pro' | 'cabinet' | 'custom' | null>(null)
   const [showCabinetForm, setShowCabinetForm] = useState(false)
   const [clinicName, setClinicName] = useState('')
   const [clinicCity, setClinicCity] = useState('')
@@ -127,7 +127,7 @@ export default function SubscriptionPage() {
   return (
     <div className="min-h-screen bg-[#FFFAF0]">
       <Navbar />
-      <div className="max-w-5xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-4 py-8">
         <BackButton fallback="/dashboard/doctor" />
 
         <div className="text-center mb-8">
@@ -179,7 +179,7 @@ export default function SubscriptionPage() {
           </div>
         )}
 
-        <div className="grid md:grid-cols-3 gap-5 items-stretch">
+        <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-5 items-stretch">
           <PlanCard offer={PLAN_OFFERS.free}>
             {freeState.kind === 'current' && <p className="text-center text-sm text-gray-400 py-2.5">Votre offre actuelle</p>}
             {freeState.kind === 'granted' && <p className="text-center text-sm text-gray-400 py-2.5">Offre de départ</p>}
@@ -242,11 +242,14 @@ export default function SubscriptionPage() {
                 {startCheckout.isPending ? 'Redirection…' : "Choisir l'abonnement cabinet"}
               </button>
             )}
-            <p className="text-xs text-gray-500 text-center mt-3">
-              Plus de {MAX_CLINIC_PRACTITIONERS} praticiens ?{' '}
-              <a href={LARGE_CABINET_MAILTO} className="text-sage-600 font-medium hover:underline">Écrivez-nous</a>
-              {' '}: nous étudions une offre sur mesure.
-            </p>
+          </PlanCard>
+
+          <PlanCard offer={PLAN_OFFERS.custom} highlighted={active === 'custom'} onActivate={() => setActive('custom')}>
+            <a href={LARGE_CABINET_MAILTO}
+              className={`${active === 'custom' ? 'btn-primary' : 'btn-secondary'} block w-full text-center`}>
+              Nous contacter
+            </a>
+            <p className="text-xs text-gray-500 text-center mt-2">Écrivez-nous : nous fixons le prix ensemble.</p>
           </PlanCard>
         </div>
 
