@@ -12,7 +12,7 @@ import {
   computeDoctorStats, computeMonthlyComparison, monthlyBreakdown, busiestWeekdays, appointmentsByHour,
   newVsReturningPatients, topReasons, speciesBreakdown, averageBookingLeadTimeDays, lateCancellationRate,
   presenceConfirmationRate, computeReviewStats, patientsToReengage, patientReturnRate, percentDelta,
-  type DoctorAvailabilityRule, type ExtendedStatsAppointment, type ReviewForStats,
+  type DoctorAvailabilityRule, type ExtendedStatsAppointment, type PriceSpec, type ReviewForStats,
 } from '@/lib/doctorStats'
 
 import { parisMonthKey, shiftMonthKey } from '@/lib/parisTime'
@@ -31,7 +31,8 @@ interface Props {
   appointments: AppointmentWithPatient[]
   availabilities: DoctorAvailabilityRule[]
   reviews: ReviewForStats[]
-  consultationPrice: number
+  // Un tarif unique (praticien seul) ou le tarif de chaque RDV (cabinet : un tarif par praticien).
+  consultationPrice: PriceSpec
   averageRating: number
   reviewCount: number
   waitlistCount?: number

@@ -8,6 +8,7 @@ import { formatInTimeZone } from 'date-fns-tz'
 import { PARIS_TZ, parisMonthKey } from './parisTime'
 
 export interface ExportAppointment {
+  doctor_id?: string
   start_at: string
   status: string
   reason?: string
@@ -28,10 +29,21 @@ export function csvCell(value: string): string {
 
 const euros = (n: number) => n.toFixed(2).replace('.', ',')
 
-export function buildAccountingRows(appointments: ExportAppointment[], monthKey: string, price: number): string[][] {
+// `price` : un tarif unique, ou le tarif de chaque RDV (cabinet : un tarif par praticien).
+type ExportPrice = number | ((appointment: { doctor_id?: string }) => number)
+
+function priceOf(price: ExportPrice, a: ExportAppointment): number {
+  return (typeof price === 'function' ? price(a) : price) || 0
+}
+
+function completedInMonth(appointments: ExportAppointment[], monthKey: string): ExportAppointment[] {
   return appointments
     .filter(a => a.status === 'completed' && parisMonthKey(new Date(a.start_at)) === monthKey)
     .sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime())
+}
+
+export function buildAccountingRows(appointments: ExportAppointment[], monthKey: string, price: ExportPrice): string[][] {
+  return completedInMonth(appointments, monthKey)
     .map(a => {
       const d = new Date(a.start_at)
       return [
@@ -40,14 +52,15 @@ export function buildAccountingRows(appointments: ExportAppointment[], monthKey:
         `${a.profiles?.first_name ?? ''} ${a.profiles?.last_name ?? ''}`.trim(),
         (a.animals ?? []).map(an => an.name).filter(Boolean).join(', '),
         a.reason?.split(' — ')[0].trim() ?? '',
-        euros(price),
+        euros(priceOf(price, a)),
       ]
     })
 }
 
-export function buildAccountingCsv(appointments: ExportAppointment[], monthKey: string, price: number): string {
+export function buildAccountingCsv(appointments: ExportAppointment[], monthKey: string, price: ExportPrice): string {
   const rows = buildAccountingRows(appointments, monthKey, price)
-  const total = ['TOTAL', '', '', '', `${rows.length} consultation(s)`, euros(rows.length * price)]
+  const sum = completedInMonth(appointments, monthKey).reduce((t, a) => t + priceOf(price, a), 0)
+  const total = ['TOTAL', '', '', '', `${rows.length} consultation(s)`, euros(sum)]
   const lines = [EXPORT_HEADERS, ...rows, total].map(r => r.map(csvCell).join(';'))
   return '﻿' + lines.join('\r\n')
 }

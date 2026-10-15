@@ -2240,7 +2240,7 @@ export function useClinicAppointments(clinicId?: string) {
       // même raison (notes verrouillée en lecture, migration 080).
       const { data, error } = await supabase
         .from('appointments')
-        .select(`id, patient_id, doctor_id, start_at, end_at, status, reason, confirmed_by_patient_at,
+        .select(`id, patient_id, doctor_id, start_at, end_at, status, reason, created_at, updated_at, confirmed_by_patient_at,
           doctors!inner(specialties, user_id, profiles!doctors_user_id_profiles_fkey(first_name, last_name)),
           appointment_animals(animals(id, name, species))
         `)
@@ -2270,6 +2270,23 @@ export function useClinicAppointments(clinicId?: string) {
     // l'agenda partagé sans que le praticien qui regarde le calendrier
     // ait besoin de recharger la page.
     refetchInterval: 10000,
+  })
+}
+
+// Avis de tous les praticiens d'un cabinet (lecture publique), pour les statistiques du créateur.
+export function useClinicReviews(doctorIds: string[]) {
+  const sortedIds = [...doctorIds].sort()
+  return useQuery({
+    queryKey: ['clinic_reviews', sortedIds],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('reviews')
+        .select('doctor_id, rating, created_at, doctor_reply')
+        .in('doctor_id', sortedIds)
+      if (error) throw error
+      return (data ?? []) as { doctor_id: string; rating: number; created_at: string; doctor_reply: string | null }[]
+    },
+    enabled: sortedIds.length > 0,
   })
 }
 

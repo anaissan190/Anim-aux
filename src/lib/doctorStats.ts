@@ -7,7 +7,28 @@ import { parisDateKey, parisDayOfWeek, parisHour, parisMonthKey, shiftMonthKey }
 export interface DoctorStatsAppointment {
   start_at: string
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'no_show'
+  // Présent sur les RDV d'un cabinet : sert à appliquer le tarif de CHAQUE praticien (voir PriceSpec).
+  doctor_id?: string
 }
+
+// Tarif d'une consultation : un prix unique (praticien seul) ou une fonction qui donne le prix de
+// chaque rendez-vous (cabinet : chaque praticien a son tarif). Un nombre se comporte exactement
+// comme avant ; la fonction n'est utilisée que pour les statistiques d'un cabinet.
+export type PriceSpec = number | ((appointment: { doctor_id?: string }) => number)
+
+export function priceResolver(spec: PriceSpec): (appointment: { doctor_id?: string }) => number {
+  if (typeof spec === 'function') return a => spec(a) || 0
+  const price = spec || 0
+  return () => price
+}
+
+// Tarif de chaque praticien d'un cabinet, retrouvé par l'identifiant porté par le RDV.
+export function priceByDoctor(prices: Record<string, number | null | undefined>): PriceSpec {
+  return a => (a.doctor_id ? prices[a.doctor_id] ?? 0 : 0) || 0
+}
+
+const sumPrices = (appts: DoctorStatsAppointment[], priceOf: (a: { doctor_id?: string }) => number) =>
+  appts.reduce((total, a) => total + priceOf(a), 0)
 
 export interface DoctorAvailabilityRule {
   day_of_week: number
@@ -28,10 +49,10 @@ export interface DoctorStats {
 export function computeDoctorStats(
   appointments: DoctorStatsAppointment[],
   availabilities: DoctorAvailabilityRule[],
-  consultationPrice: number,
+  consultationPrice: PriceSpec,
   now: Date = new Date()
 ): DoctorStats {
-  const price = consultationPrice || 0
+  const priceOf = priceResolver(consultationPrice)
   const pastAppts = appointments.filter(a => new Date(a.start_at) < now)
   const completedAppts = pastAppts.filter(a => a.status === 'completed')
   const noShowAppts = pastAppts.filter(a => a.status === 'no_show')
@@ -43,13 +64,14 @@ export function computeDoctorStats(
   const cancellationRate = pastAppts.length > 0
     ? Math.round((cancelledAppts.length / pastAppts.length) * 100)
     : null
-  const totalRevenue = completedAppts.length * price
+  const totalRevenue = sumPrices(completedAppts, priceOf)
 
   const thirtyDaysAgo = new Date(now)
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-  const revenueLast30Days = completedAppts
-    .filter(a => new Date(a.start_at) >= thirtyDaysAgo).length * price
+  const revenueLast30Days = sumPrices(
+    completedAppts.filter(a => new Date(a.start_at) >= thirtyDaysAgo), priceOf,
+  )
 
   const bookedLast30Days = appointments.filter(a => {
     const d = new Date(a.start_at)
@@ -167,10 +189,10 @@ export interface MonthlyComparison {
 // remplissage (dépend des disponibilités, pas du mois calendaire).
 export function computeMonthlyComparison(
   appointments: ExtendedStatsAppointment[],
-  consultationPrice: number,
+  consultationPrice: PriceSpec,
   now: Date = new Date()
 ): MonthlyComparison {
-  const price = consultationPrice || 0
+  const priceOf = priceResolver(consultationPrice)
   const kpiFor = (monthKey: string): MonthlyKpi => {
     const inMonth = appointments.filter(a => parisMonthKey(new Date(a.start_at)) === monthKey)
     const completed = inMonth.filter(a => a.status === 'completed')
@@ -179,7 +201,7 @@ export function computeMonthlyComparison(
     const closedOrNoShow = completed.length + noShow.length
     return {
       completed: completed.length,
-      revenue: completed.length * price,
+      revenue: sumPrices(completed, priceOf),
       noShowRate: closedOrNoShow > 0 ? Math.round((noShow.length / closedOrNoShow) * 100) : null,
       cancellationRate: inMonth.length > 0 ? Math.round((cancelled.length / inMonth.length) * 100) : null,
     }

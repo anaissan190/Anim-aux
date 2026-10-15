@@ -10,7 +10,7 @@ import DoctorMobileTabBar from '@/components/mobile/DoctorMobileTabBar'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 import { supabase } from '@/lib/supabase'
 import AppointmentCard from '@/components/appointment/AppointmentCard'
-import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useReplyToReview, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useDoctorServices, useAddDoctorService, useDeleteDoctorService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments, useInviteClinicSecretary, useClinicStaffList, useExportMyData, useMyWaitlistCount, useDeleteClinic, useRemoveClinicSecretary, useSignedDocumentUrls, useDoctorHasPro, useMySubscriptions,
+import { useCurrentDoctor, useDoctorAppointments, useAvailabilities, useDoctorReviews, useReplyToReview, useMyClinic, useClinicMembers, useClinicAppointments, useCreateClinic, useJoinClinic, useClinicServices, useAddClinicService, useDeleteClinicService, useDoctorServices, useAddDoctorService, useDeleteDoctorService, useUpdateClinic, useConversation, useSendMessage, useConversationPartners, useMarkConversationRead, useDoctorPatientAnimals, useCreateAvailability, useDeleteAvailability, useBlockedSlots, useCreateBlockedSlot, useDeleteBlockedSlot, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useRemoveClinicMember, useClinicAvailabilities, useClinicBlockedSlotsAll, useAppointmentDocuments, useInviteClinicSecretary, useClinicStaffList, useExportMyData, useMyWaitlistCount, useDeleteClinic, useRemoveClinicSecretary, useSignedDocumentUrls, useDoctorHasPro, useMySubscriptions, useClinicReviews,
   useDoctorVerificationDocuments, useUploadVerificationDocument, useDeleteVerificationDocument, useMyVerificationRejectedReason, useAcceptEthicsCharter,
   usePushSubscriptionStatus, useEnablePushNotifications, useDisablePushNotifications, useMessagingRealtime,
   useCalendarFeedToken, useRegenerateCalendarFeedToken, useReceivedReferrals } from '@/hooks/useData'
@@ -22,6 +22,7 @@ import { type DoctorTab as Tab, ALL_DOCTOR_TAB_IDS as ALL_TAB_IDS } from '@/lib/
 import { computeDoctorStats } from '@/lib/doctorStats'
 import { removeStoredFiles } from '@/lib/storageCleanup'
 import DoctorStatsPanel from '@/components/doctor/DoctorStatsPanel'
+import ClinicStatsPanel from '@/components/doctor/ClinicStatsPanel'
 import AnimatedBar from '@/components/ui/AnimatedBar'
 import AnimatedCounter from '@/components/ui/AnimatedCounter'
 import { showToast } from '@/lib/toast'
@@ -181,6 +182,8 @@ export default function DoctorDashboard() {
   const { user, signOut } = useAuthStore()
   const navigate = useNavigate()
   const isClinicAdmin = clinic?.owner_id === user?.id
+  // Avis de tous les praticiens du cabinet : seulement pour son créateur (statistiques du cabinet).
+  const { data: clinicReviews = [] } = useClinicReviews(isClinicAdmin ? clinicMembers.map((m: any) => m.doctor_id) : [])
   const deleteAccount = useDeleteAccount()
   const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false)
   const [deleteAccountError, setDeleteAccountError] = useState('')
@@ -2022,43 +2025,13 @@ export default function DoctorDashboard() {
               </p>
 
               {isClinicAdmin ? (
-                <div className="space-y-3">
-                  {clinicMembers.map((m: any) => {
-                    const memberAppts = clinicAppts.filter((a: any) => a.doctor_id === m.doctor_id)
-                    const memberAvail = clinicAvailabilities.filter((a: any) => a.doctor_id === m.doctor_id)
-                    const s = computeDoctorStats(memberAppts, memberAvail, m.doctors?.consultation_price ?? 0, now)
-                    const memberName = `${m.doctors?.profiles?.first_name ?? ''} ${m.doctors?.profiles?.last_name ?? ''}`.trim() || 'Praticien'
-                    return (
-                      <div key={m.id} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-                        <p className="text-sm font-semibold text-gray-900 mb-3">{memberName}</p>
-                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
-                          <div>
-                            <p className="text-lg font-bold text-sage-600"><AnimatedCounter target={s.totalRevenue} suffix=" €" /></p>
-                            <p className="text-[11px] text-gray-500 mt-0.5">Revenu total</p>
-                          </div>
-                          <div>
-                            <p className="text-lg font-bold text-sage-600"><AnimatedCounter target={s.revenueLast30Days} suffix=" €" /></p>
-                            <p className="text-[11px] text-gray-500 mt-0.5">30 derniers jours</p>
-                          </div>
-                          <div>
-                            <p className={`text-lg font-bold ${s.noShowRate !== null && s.noShowRate > 15 ? 'text-red-500' : 'text-sage-600'}`}>
-                              {s.noShowRate !== null ? `${s.noShowRate}%` : '—'}
-                            </p>
-                            <p className="text-[11px] text-gray-500 mt-0.5">No-show</p>
-                          </div>
-                          <div>
-                            <p className="text-lg font-bold text-sage-600">{s.cancellationRate !== null ? `${s.cancellationRate}%` : '—'}</p>
-                            <p className="text-[11px] text-gray-500 mt-0.5">Annulation</p>
-                          </div>
-                          <div>
-                            <p className="text-lg font-bold text-sage-600">{s.fillRate !== null ? `${s.fillRate}%` : '—'}</p>
-                            <p className="text-[11px] text-gray-500 mt-0.5">Remplissage</p>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
+                <ClinicStatsPanel
+                  members={clinicMembers as any}
+                  appointments={clinicAppts as any}
+                  availabilities={clinicAvailabilities as any}
+                  reviews={clinicReviews}
+                  now={now}
+                />
               ) : (
                 <>
                   {hasUnclosedPastAppts && (
