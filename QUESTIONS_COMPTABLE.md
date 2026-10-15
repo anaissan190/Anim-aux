@@ -1,44 +1,48 @@
-# Questions à poser au comptable — abonnements Animéaux
+# Mes questions avant de lancer les abonnements d'Animéaux
 
-À envoyer par email avant d'ouvrir les abonnements. Les réponses décident des prix affichés, des factures et des textes légaux.
+Bientôt, les professionnels qui utilisent mon site (vétérinaires, toiletteurs, comportementalistes…) pourront souscrire un abonnement payant. Avant de l'ouvrir, je veux être sûre d'être en règle. Voici mes questions, des plus importantes aux moins urgentes. Les réponses vont me servir à régler les prix, les factures et les textes légaux du site.
 
-## Pièces jointes à envoyer avec cet email
-1. **Extrait Kbis** (du 31/08/2026) : activité déclarée, SIRET, date de début d'activité.
-2. **Exemple de facture générée par Stripe** (test du 14/10/2026) : pour montrer le format et les mentions actuelles.
+## Les documents joints
+1. Mon **extrait Kbis** (celui du 31/08/2026).
+2. Un **exemple de facture** envoyée automatiquement par Stripe (c'est un essai que j'ai fait le 14/10/2026).
 
-## Le contexte à lui donner
-Animéaux est une plateforme web de mise en relation entre propriétaires d'animaux et praticiens (vétérinaires, ostéopathes animaliers, comportementalistes…). Les propriétaires ne paient rien. Les praticiens paient un **abonnement mensuel**, par carte, via **Stripe** :
-- individuel : **39,90 € HT / mois** ;
-- cabinet (jusqu'à 5 praticiens) : **95,90 € HT / mois**.
-Les clients sont des professionnels, en France surtout. Le paiement est prélevé chaque mois, à l'avance, et l'abonné peut résilier à tout moment (accès jusqu'à la fin de la période payée, pas de remboursement au prorata).
+## Comment ça marche, en bref
+- Mon site met en relation des propriétaires d'animaux et des professionnels. **Les propriétaires ne paient rien.**
+- Les **professionnels paient un abonnement chaque mois**, par carte bancaire :
+  - abonnement seul : **39,90 € HT par mois** ;
+  - abonnement pour un cabinet (jusqu'à 5 professionnels) : **95,90 € HT par mois**.
+  (« HT » veut dire hors taxes, donc sans la TVA.)
+- Le paiement passe par **Stripe**, un service de paiement en ligne : il encaisse la carte, garde ses frais, puis vire le reste sur mon compte bancaire.
+- Le professionnel peut arrêter quand il veut : il garde l'accès jusqu'à la fin du mois déjà payé. Je ne rembourse pas un mois commencé.
+- Mes clients sont des professionnels, surtout en France.
 
-## Les 5 questions essentielles (à poser en premier)
-1. **TVA : suis-je en franchise en base (art. 293 B du CGI) ou assujettie ?** Si assujettie, le taux est-il bien de 20 % sur ces abonnements ? (Les prix actuels sont affichés hors taxes : 39,90 € HT = 47,88 € TTC et 95,90 € HT = 115,08 € TTC à 20 %.)
-2. **Si je suis en franchise : à partir de quel chiffre d'affaires je deviens redevable de la TVA, et que se passe-t-il en cours d'année si je dépasse le seuil ?** Dois-je alors facturer 20 % en plus de mes prix, ou absorber la TVA dans le prix ?
-3. **Mon activité déclarée au Kbis couvre-t-elle la vente d'abonnements aux praticiens ?** Faut-il déposer une modification d'activité avant d'encaisser le premier abonnement ?
-   - Statut : **entrepreneur individuel** (pas de société : ni objet social ni capital), immatriculée au **RCS de Bobigny le 29/07/2026**, **SIRET 107 512 907 00018**, nom commercial **Animéaux**, début d'activité le **01/08/2026**, exploitation directe, création.
-   - **Code APE / NAF : 63.12Z — « Portails Internet »** (répertoire Sirene public).
-   - **Activité déclarée, mot pour mot sur le Kbis :** « Édition et exploitation d'une plateforme numérique de mise en relation entre propriétaires d'animaux et praticiens du secteur animalier (vétérinaires, toiletteurs, comportementalistes, etc.), permettant la recherche de praticiens et la prise de rendez-vous en ligne. »
-   - **Ce que je constate :** cette formulation décrit la mise en relation et la prise de rendez-vous, mais **ne mentionne pas la vente d'un abonnement** aux praticiens ni les outils inclus (agenda, réservation en ligne, messagerie avec les patients, dossiers des animaux, statistiques). Les propriétaires d'animaux ne paient rien ; seuls les praticiens paient.
-   - **Ce que je voudrais savoir :**
-     a. La formulation actuelle suffit-elle pour facturer un abonnement aux praticiens, ou faut-il la modifier (déclaration de modification au guichet unique) ?
-     b. Si oui, est-ce à faire **avant** le premier encaissement, et la rédaction suivante convient-elle : « …, et commercialisation auprès des praticiens d'abonnements donnant accès à des services de gestion en ligne (agenda, réservation, messagerie, statistiques). » ?
-     c. Le code APE 63.12Z reste-t-il le bon, ou en faut-il un autre ?
-4. **Les factures générées par Stripe (envoyées automatiquement à chaque paiement) suffisent-elles, ou dois-je émettre mes propres factures ?** Quelles mentions obligatoires faut-il y faire figurer (SIRET, RCS, adresse, capital, numéro de TVA ou mention de franchise, numérotation) ?
-   - **Exemple joint** (essai du 14/10/2026, numéro AEPSSOIX-0001) : on y voit la numérotation, la période facturée (14 oct.–14 nov.), la ligne « Abonnement Animéaux », le montant 39,90 € et le client facturé.
-   - **Ce qui manque, à ce stade :** mon **SIRET / RCS**, mon **adresse**, la **mention de TVA** (franchise ou taux), le **statut d'entrepreneur individuel** ; l'en-tête indique encore « environnement de test » (normal en essai).
-   - La facture affiche « **Montant dû** » et un lien « Payer en ligne » : une facture déjà réglée par carte doit-elle porter une mention « payée » / « acquittée » ? Dois-je régler ce point dans Stripe avant l'ouverture ?
-5. **Comment comptabiliser les encaissements Stripe ?** Les virements arrivent nets des frais de Stripe : comment enregistrer le chiffre d'affaires brut, les frais et le virement ? Quel compte bancaire professionnel doit recevoir les virements ?
+## Les 5 questions les plus importantes
+1. **La TVA.** Est-ce que je dois facturer la TVA à mes clients, ou est-ce que je suis en « franchise en base » (c'est-à-dire que je ne facture pas de TVA parce que mon chiffre d'affaires est encore petit) ? Si je dois en facturer, est-ce bien 20 % ? Pour info, à 20 % : 39,90 € HT feraient 47,88 € TTC, et 95,90 € HT feraient 115,08 € TTC.
+2. **Si je ne facture pas de TVA :** à partir de quel chiffre d'affaires je devrai commencer ? Et si je dépasse ce montant en cours d'année, qu'est-ce qui se passe ? Est-ce que je devrai ajouter 20 % au prix de mes clients, ou garder le même prix en prenant la TVA sur ma marge ?
+3. **Mon activité sur le Kbis.** Est-ce que ce qui est écrit sur mon Kbis me permet de faire payer un abonnement aux professionnels ? Faut-il que je fasse modifier mon activité avant de recevoir le premier paiement ?
+   - Ma situation : entrepreneur individuel (pas de société), inscrite au registre du commerce de Bobigny le 29/07/2026, SIRET 107 512 907 00018, nom commercial « Animéaux », début d'activité le 01/08/2026.
+   - Mon code d'activité (APE) est le **63.12Z, « Portails Internet »**.
+   - Ce qui est écrit sur mon Kbis comme activité : « Édition et exploitation d'une plateforme numérique de mise en relation entre propriétaires d'animaux et praticiens du secteur animalier (vétérinaires, toiletteurs, comportementalistes, etc.), permettant la recherche de praticiens et la prise de rendez-vous en ligne. »
+   - Ce que je remarque : cette phrase parle de mise en relation et de prise de rendez-vous, mais **pas du tout d'un abonnement payé par les professionnels**, ni des outils qu'ils y trouvent (agenda, réservation en ligne, messagerie avec leurs clients, dossiers des animaux, statistiques).
+   - Mes questions précises :
+     a. La phrase actuelle suffit-elle, ou faut-il la modifier (une démarche en ligne auprès du guichet unique des entreprises) ?
+     b. Si oui, est-ce à faire avant le premier paiement ? Et cette formulation conviendrait-elle : « …, et vente aux praticiens d'abonnements donnant accès à des services de gestion en ligne (agenda, réservation, messagerie, statistiques). » ?
+     c. Mon code d'activité 63.12Z est-il toujours le bon, ou en faut-il un autre ?
+4. **Les factures.** Stripe envoie automatiquement une facture à chaque paiement. Est-ce que ça suffit, ou est-ce que je dois faire mes propres factures ? Quelles informations doivent obligatoirement y figurer ?
+   - Sur l'exemple joint (essai du 14/10/2026), on voit : un numéro de facture, la période payée (14 octobre au 14 novembre), la ligne « Abonnement Animéaux », 39,90 € et le nom du client.
+   - Ce qui manque pour l'instant : mon numéro SIRET, mon adresse, la mention sur la TVA (soit « TVA non applicable », soit le taux) et mon statut d'entrepreneur individuel. Tout en haut, il est écrit « environnement de test » : c'est normal, c'était un essai.
+   - La facture indique « Montant dû » avec un lien « Payer en ligne », alors qu'elle est déjà payée par carte. Est-ce qu'elle doit afficher « payée » ? Est-ce que je dois régler ça dans Stripe avant de commencer pour de vrai ?
+5. **Ma comptabilité.** Comment enregistrer ce que Stripe m'envoie ? Le virement que je reçois est plus petit que ce que les clients ont payé, parce que Stripe garde ses frais. Comment noter le montant total payé par les clients, les frais de Stripe et le virement reçu ? Sur quel compte bancaire professionnel Stripe doit-il virer l'argent ?
 
-## Les points complémentaires
-6. **Clients professionnels étrangers** (Belgique, Suisse, autres pays de l'UE) : TVA, autoliquidation, numéro de TVA intracommunautaire à demander ? Dois-je m'en occuper dès le départ ou refuser ces clients pour l'instant ?
-7. **Praticiens eux-mêmes en franchise de TVA ou exonérés** : cela change-t-il ma facturation ?
-8. **Impayés et remboursements** : si un praticien conteste un prélèvement ou si j'accorde un geste commercial, comment établir l'avoir ? La TVA est-elle récupérable sur une créance impayée ?
-9. **Abonnement payé d'avance** : à quelle date reconnaître le chiffre d'affaires (mois encaissé ou mois consommé) ?
-10. **Durée de conservation** des factures et données de paiement (obligations comptables), à mettre en regard de la suppression de compte à la demande de l'utilisateur.
-11. **Déclarations** : y a-t-il une démarche à faire à l'ouverture de ce nouveau flux de revenus (déclaration d'activité, changement de régime, acomptes) ?
-12. **Si le chiffre d'affaires devient significatif** : quel seuil devrais-je surveiller pour changer de régime (TVA, impôts, cotisations) ?
+## Les autres questions
+6. **Clients à l'étranger** (Belgique, Suisse, autres pays d'Europe) : comment ça se passe pour la TVA ? Dois-je leur demander un numéro de TVA ? Est-ce que je les accepte dès le début, ou seulement les clients en France pour commencer ?
+7. **Clients eux-mêmes sans TVA** (certains professionnels en sont dispensés) : est-ce que ça change quelque chose pour mes factures ?
+8. **Paiement refusé ou remboursement :** si un client conteste un prélèvement, ou si je décide de lui rembourser un mois, comment je le note ? Est-ce que je récupère la TVA si le client n'a finalement pas payé ?
+9. **Paiement à l'avance :** le client paie le mois à l'avance. À quelle date je compte cet argent dans mon chiffre d'affaires : le mois où il est encaissé, ou le mois où il est utilisé ?
+10. **Combien de temps garder** les factures et les informations de paiement ? Sur mon site, chacun peut supprimer son compte quand il veut : comment concilier les deux ?
+11. **Démarches :** y a-t-il autre chose à déclarer quand je commence à encaisser cet argent (changement de régime, acomptes…) ?
+12. **Plus tard, si ça marche bien :** quels seuils dois-je surveiller pour savoir quand mon statut, mes impôts ou mes cotisations vont changer ?
 
-## Ce que je ferai selon sa réponse
-- **Franchise en base** : afficher « TVA non applicable, art. 293 B du CGI » sur les factures ; prix identiques en HT et TTC ; les CGU disent déjà « TVA applicable le cas échéant ».
-- **Assujettie à 20 %** : activer le calcul automatique de la TVA dans Stripe, ajouter la collecte du numéro de TVA des praticiens, mettre à jour les textes légaux.
+## À quoi vont servir les réponses
+- **Si je suis en franchise de TVA :** j'ajouterai « TVA non applicable » sur les factures, et les prix seront les mêmes avec ou sans taxes.
+- **Si je dois facturer 20 % de TVA :** je ferai calculer la TVA automatiquement par Stripe, je demanderai le numéro de TVA des professionnels, et je mettrai à jour les textes légaux du site.
