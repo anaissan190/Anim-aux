@@ -50,7 +50,7 @@ describe('ClinicOverview — créateur', () => {
     expect(screen.getByText('RDV terminés ce mois').closest('div')).toHaveTextContent('42')
     expect(screen.getByText('Revenu estimé').closest('div')).toHaveTextContent('2890 €')
     expect(screen.getAllByText(/vs mois précédent/).length).toBe(2)
-    expect(screen.getByText('Remplissage (30 jours)').closest('div')).toHaveTextContent('71 %')
+    expect(screen.getByText('Remplissage 30 j').closest('div')).toHaveTextContent('71 %')
   })
 
   it("montre l'activité de l'équipe, le plus actif en premier", () => {

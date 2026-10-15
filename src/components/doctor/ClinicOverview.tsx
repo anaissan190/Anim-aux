@@ -106,7 +106,7 @@ export default function ClinicOverview({
           <>
             <Tile label="RDV terminés ce mois" value={monthly.current.completed} delta={deltaLabel(monthly.current.completed, monthly.previous.completed)} />
             <Tile label="Revenu estimé" value={`${monthly.current.revenue} €`} delta={deltaLabel(monthly.current.revenue, monthly.previous.revenue)} />
-            <Tile label="Remplissage (30 jours)" value={fillRate === null || fillRate === undefined ? '—' : `${fillRate} %`}>
+            <Tile label="Remplissage 30 j" value={fillRate === null || fillRate === undefined ? '—' : `${fillRate} %`}>
               {fillRate !== null && fillRate !== undefined && (
                 <div className="h-1.5 rounded-full bg-sand-100 mt-2 overflow-hidden">
                   <div className="h-full bg-sage-500 rounded-full" style={{ width: `${fillRate}%` }} />
@@ -117,7 +117,7 @@ export default function ClinicOverview({
         )}
       </div>
 
-      <div className={`grid gap-5 ${showStats ? 'lg:grid-cols-5' : ''}`}>
+      <div className={`grid gap-5 items-start ${showStats ? 'lg:grid-cols-5' : ''}`}>
         {showStats && (
           <div className="lg:col-span-3 bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
             <h3 className="font-semibold text-gray-900 mb-3">Activité de l&apos;équipe ce mois-ci</h3>

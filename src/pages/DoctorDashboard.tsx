@@ -1774,7 +1774,7 @@ export default function DoctorDashboard() {
             avant dispersé entre RDV (infos/membres/secrétariat) et Profil
             (profil du cabinet) — retour d'Anaïs du 07/09/2026. */}
         {tab === 'cabinet' && clinic && (
-          <div className="max-w-2xl space-y-5 animate-rise-in">
+          <div className="max-w-5xl space-y-5 animate-rise-in">
             <Link to="/dashboard/doctor?tab=home"
               className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors">
               ← Mon espace
@@ -1822,7 +1822,7 @@ export default function DoctorDashboard() {
                   {clinicStatus?.active && <p className="text-xs text-gray-500">{clinicStatus.text}</p>}
                 </div>
                 {removeMemberError && <p className="text-red-500 text-sm">{removeMemberError}</p>}
-                <div className="grid sm:grid-cols-2 gap-3">
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {clinicMembers.map((m: any) => {
                     const stats = clinicTable?.rows.find(r => r.doctorId === m.doctor_id)
                     return (
@@ -1887,7 +1887,7 @@ export default function DoctorDashboard() {
               </div>
             )}
 
-            {cabinetSection === 'secretariat' && isClinicAdmin && (<>
+            {cabinetSection === 'secretariat' && isClinicAdmin && (<div className="max-w-2xl space-y-5">
             {/* Secrétariat */}
             {isClinicAdmin && (
               <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
@@ -1990,7 +1990,7 @@ export default function DoctorDashboard() {
               </div>
             )}
 
-            </>)}
+            </div>)}
 
             {cabinetSection === 'stats' && (<>
             {/* Statistiques — déplacées ici depuis l'onglet Statistiques
@@ -2061,7 +2061,7 @@ export default function DoctorDashboard() {
 
             </>)}
 
-            {cabinetSection === 'reglages' && isClinicAdmin && (<>
+            {cabinetSection === 'reglages' && isClinicAdmin && (<div className="max-w-2xl space-y-5">
               {/* Profil du cabinet : nom, adresse, téléphone, logo — réservé au créateur. */}
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                 <div className="flex items-center justify-between mb-5">
@@ -2184,13 +2184,13 @@ export default function DoctorDashboard() {
                 )}
               </div>
             )}
-            </>)}
+            </div>)}
           </div>
         )}
 
         {/* ── MON PROFIL ── */}
         {tab === 'profil' && (
-          <div className="max-w-2xl space-y-6 animate-rise-in">
+          <div className="max-w-5xl space-y-6 animate-rise-in">
             <Link to="/dashboard/doctor?tab=home"
               className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-sage-600 transition-colors">
               ← Mon espace
@@ -2214,7 +2214,7 @@ export default function DoctorDashboard() {
                 invite-clinic-secretary). */}
             {clinic && (
               <Link to="/login"
-                className="flex items-center gap-3 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+                className="max-w-2xl flex items-center gap-3 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
                 <span className="text-xl">🏥</span>
                 <span>
                   <span className="block font-medium text-gray-800">Espace secrétariat</span>
@@ -2227,7 +2227,7 @@ export default function DoctorDashboard() {
                 enfoui dans RDV > Agenda partagé (demande d'Anaïs, 05/10/2026). */}
             {!clinic && !clinicLoading && (
               <Link to="/dashboard/doctor?tab=disponibilites&view=shared"
-                className="flex items-center gap-3 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+                className="max-w-2xl flex items-center gap-3 bg-white rounded-2xl p-4 shadow-sm border border-gray-100 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
                 <span className="text-xl">🏥</span>
                 <span>
                   <span className="block font-medium text-gray-800">Créer ou rejoindre un cabinet</span>
@@ -2236,8 +2236,10 @@ export default function DoctorDashboard() {
               </Link>
             )}
 
-            {/* Profil personnel — en cartes (identité, présentation, coordonnées, ce que voient les patients) ;
-                UN SEUL bouton Enregistrer, tout en bas : il enregistre tout le formulaire, interrupteurs compris. */}
+            {/* Profil personnel — en cartes (identité, présentation, coordonnées, ce que voient les patients),
+                sur deux colonnes à partir de la taille tablette ; UN SEUL bouton Enregistrer, tout en bas : il
+                enregistre tout le formulaire, interrupteurs compris. */}
+            <div className="md:columns-2 md:gap-5 [&>*]:mb-5 [&>*]:break-inside-avoid">
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
               <div className="mb-5">
                 <h2 className="text-lg font-bold text-gray-900">Identité</h2>
@@ -2373,9 +2375,11 @@ export default function DoctorDashboard() {
               </div>
             </div>
 
+            </div>
+
             {/* UN SEUL enregistrement, tout en bas : couvre l'identité, la présentation, les
                 coordonnées et ce que voient les patients. */}
-            <div>
+            <div className="max-w-md mx-auto">
               {profileError && <p className="text-red-500 text-sm mb-2">{profileError}</p>}
               {profileSaved && <p className="text-sage-600 text-sm mb-2">✓ Informations enregistrées.</p>}
               <button onClick={submitProfile} disabled={updateProfile.isPending || updateDoctorInfo.isPending} className="btn-primary w-full">
@@ -2385,7 +2389,7 @@ export default function DoctorDashboard() {
             </div>
             </>)}
 
-            {profileSection === 'abonnement' && (<>
+            {profileSection === 'abonnement' && (<div className="max-w-2xl space-y-6">
             {/* ABONNEMENT — offre, paiement et résiliation (voir /abonnement) */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -2470,9 +2474,9 @@ export default function DoctorDashboard() {
               )}
             </div>
 
-            </>)}
+            </div>)}
 
-            {profileSection === 'notifications' && (<>
+            {profileSection === 'notifications' && (<div className="max-w-2xl space-y-6">
             {/* NOTIFICATIONS PUSH */}
             {pushStatus?.supported && (
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -2543,9 +2547,9 @@ export default function DoctorDashboard() {
               )}
             </div>
 
-            </>)}
+            </div>)}
 
-            {profileSection === 'donnees' && (<>
+            {profileSection === 'donnees' && (<div className="max-w-2xl space-y-6">
             {/* EXPORT DES DONNÉES — droit à la portabilité (RGPD art. 20) */}
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
               <h2 className="font-semibold text-gray-900 mb-1">Mes données</h2>
@@ -2615,7 +2619,7 @@ export default function DoctorDashboard() {
               className="md:hidden w-full flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-2xl shadow-sm text-sm text-red-500 font-medium py-3.5">
               🚪 Déconnexion
             </button>
-            </>)}
+            </div>)}
           </div>
         )}
 
