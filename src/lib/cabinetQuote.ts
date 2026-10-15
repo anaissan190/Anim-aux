@@ -34,8 +34,15 @@ export type QuoteStatus = 'new' | 'quote_sent' | 'accepted' | 'declined'
 export const QUOTE_STATUS_LABEL: Record<QuoteStatus, string> = {
   new: 'Nouvelle',
   quote_sent: 'Devis envoyé',
-  accepted: 'Acceptée',
-  declined: 'Refusée',
+  accepted: 'Devis accepté',
+  declined: 'Sans suite',
 }
 
 export const QUOTE_STATUS_ORDER: QuoteStatus[] = ['new', 'quote_sent', 'accepted', 'declined']
+
+// Les demandes à traiter : tant que le devis n'est ni accepté ni abandonné.
+export const OPEN_QUOTE_STATUSES: QuoteStatus[] = ['new', 'quote_sent']
+
+export function isOpenQuote(status: QuoteStatus): boolean {
+  return OPEN_QUOTE_STATUSES.includes(status)
+}

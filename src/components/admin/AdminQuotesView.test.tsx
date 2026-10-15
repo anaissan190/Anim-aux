@@ -51,6 +51,39 @@ describe('AdminQuotesView', () => {
     await waitFor(() => expect(mutateAsync).toHaveBeenCalledWith({ id: 'q1', status: 'quote_sent' }))
   })
 
+  it("quand une demande quitte « À traiter », dit où elle est passée et permet d'annuler", async () => {
+    state.quotes = [quote()]
+    render(<AdminQuotesView onBack={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Devis accepté' }))
+
+    const notice = await screen.findByRole('status')
+    expect(notice).toHaveTextContent(/« Clinique des Lilas » est passée en « Devis accepté »/)
+    expect(notice).toHaveTextContent(/retrouve-la dans « Toutes »/)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Annuler' }))
+    await waitFor(() => expect(mutateAsync).toHaveBeenLastCalledWith({ id: 'q1', status: 'new' }))
+    await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument())
+  })
+
+  it("un changement de statut qui laisse la demande dans « À traiter » ne parle pas de la liste", async () => {
+    state.quotes = [quote()]
+    render(<AdminQuotesView onBack={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Devis envoyé' }))
+    const notice = await screen.findByRole('status')
+    expect(notice).toHaveTextContent(/« Devis envoyé »/)
+    expect(notice).not.toHaveTextContent(/retrouve-la/)
+  })
+
+  it("si l'annulation échoue, le dit", async () => {
+    state.quotes = [quote()]
+    render(<AdminQuotesView onBack={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Sans suite' }))
+    await screen.findByRole('status')
+    mutateAsync.mockRejectedValueOnce(new Error('Réseau coupé'))
+    fireEvent.click(screen.getByRole('button', { name: 'Annuler' }))
+    expect(await screen.findByText('Réseau coupé')).toBeInTheDocument()
+  })
+
   it('enregistre la note en quittant le champ, seulement si elle a changé', async () => {
     state.quotes = [quote()]
     render(<AdminQuotesView onBack={() => {}} />)

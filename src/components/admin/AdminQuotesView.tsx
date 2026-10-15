@@ -7,7 +7,7 @@
 import { useState } from 'react'
 import Navbar from '@/components/ui/Navbar'
 import { useAdminQuoteRequests, useAdminUpdateQuoteRequest, type QuoteRequestRow } from '@/hooks/useData'
-import { QUOTE_STATUS_LABEL, QUOTE_STATUS_ORDER, type QuoteStatus } from '@/lib/cabinetQuote'
+import { QUOTE_STATUS_LABEL, QUOTE_STATUS_ORDER, isOpenQuote, type QuoteStatus } from '@/lib/cabinetQuote'
 import { fr } from 'date-fns/locale'
 import { formatInTimeZone } from 'date-fns-tz'
 import { PARIS_TZ } from '@/lib/parisTime'
@@ -19,7 +19,7 @@ const STATUS_BADGE: Record<QuoteStatus, string> = {
   declined: 'badge bg-gray-100 text-gray-600',
 }
 
-function QuoteCard({ q }: { q: QuoteRequestRow }) {
+function QuoteCard({ q, onStatusChanged }: { q: QuoteRequestRow; onStatusChanged: (q: QuoteRequestRow, to: QuoteStatus) => void }) {
   const update = useAdminUpdateQuoteRequest()
   const [note, setNote] = useState(q.admin_note ?? '')
   const [error, setError] = useState('')
@@ -28,6 +28,7 @@ function QuoteCard({ q }: { q: QuoteRequestRow }) {
     setError('')
     try {
       await update.mutateAsync({ id: q.id, ...patch })
+      if (patch.status) onStatusChanged(q, patch.status)
     } catch (e: any) {
       setError(e.message ?? 'Erreur lors de la mise à jour.')
     }
@@ -85,7 +86,11 @@ function QuoteCard({ q }: { q: QuoteRequestRow }) {
 export default function AdminQuotesView({ onBack }: { onBack: () => void }) {
   const { data: quotes = [], isLoading, error } = useAdminQuoteRequests()
   const [filter, setFilter] = useState<'open' | 'all'>('open')
-  const list = filter === 'open' ? quotes.filter(q => q.status === 'new' || q.status === 'quote_sent') : quotes
+  const update = useAdminUpdateQuoteRequest()
+  // Dit où est passée une demande quand elle quitte la liste « À traiter », et permet d'annuler.
+  const [notice, setNotice] = useState<{ id: string; name: string; from: QuoteStatus; to: QuoteStatus } | null>(null)
+  const [undoError, setUndoError] = useState('')
+  const list = filter === 'open' ? quotes.filter(q => isOpenQuote(q.status)) : quotes
   const newCount = quotes.filter(q => q.status === 'new').length
 
   return (
@@ -109,6 +114,28 @@ export default function AdminQuotesView({ onBack }: { onBack: () => void }) {
           </button>
         </div>
 
+        {notice && (
+          <div role="status" className="flex flex-wrap items-center justify-between gap-2 bg-sage-50 border border-sage-100 text-sage-800 text-sm rounded-xl px-4 py-3 mb-4">
+            <span>
+              « {notice.name} » est passée en « {QUOTE_STATUS_LABEL[notice.to]} ».
+              {filter === 'open' && !isOpenQuote(notice.to) ? ' Elle n\u2019apparaît plus dans « À traiter » : retrouve-la dans « Toutes ».' : ''}
+            </span>
+            <button className="btn-secondary text-xs px-3 py-1.5" disabled={update.isPending}
+              onClick={async () => {
+                setUndoError('')
+                try {
+                  await update.mutateAsync({ id: notice.id, status: notice.from })
+                  setNotice(null)
+                } catch (e: any) {
+                  setUndoError(e.message ?? "Impossible d'annuler.")
+                }
+              }}>
+              Annuler
+            </button>
+          </div>
+        )}
+        {undoError && <p className="text-red-500 text-xs mb-3">{undoError}</p>}
+
         {isLoading ? (
           <p className="text-sm text-gray-400">Chargement...</p>
         ) : error ? (
@@ -116,7 +143,10 @@ export default function AdminQuotesView({ onBack }: { onBack: () => void }) {
         ) : list.length === 0 ? (
           <p className="text-sm text-gray-400">{filter === 'open' ? 'Aucune demande à traiter.' : 'Aucune demande pour le moment.'}</p>
         ) : (
-          <div className="space-y-4">{list.map(q => <QuoteCard key={q.id} q={q} />)}</div>
+          <div className="space-y-4">{list.map(q => (
+            <QuoteCard key={q.id} q={q}
+              onStatusChanged={(row, to) => setNotice({ id: row.id, name: row.clinic_name, from: row.status, to })} />
+          ))}</div>
         )}
       </div>
     </div>
