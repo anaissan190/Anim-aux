@@ -36,7 +36,7 @@ describe('CGU — abonnement des praticiens', () => {
 
   it("prévoit une offre sur mesure au-delà de 5 praticiens, avec l'adresse de contact", () => {
     renderCgu()
-    expect(document.body.textContent).toMatch(/Au-delà de 5 praticiens, une offre sur mesure est étudiée au cas par cas : une demande de devis se fait depuis la page « Mon abonnement » ou par email à contact@monanimeaux\.fr/)
+    expect(document.body.textContent).toMatch(/Au-delà de 5 praticiens, une offre sur mesure est étudiée au cas par cas : une demande de devis se fait depuis la page « Mon abonnement » ou par email à contact\.animeaux@gmail\.com/)
   })
 
   it("numérote les articles des CGU sans trou ni doublon", () => {

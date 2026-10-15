@@ -16,7 +16,7 @@ const supabase = createClient(
 )
 
 webpush.setVapidDetails(
-  Deno.env.get('VAPID_SUBJECT') ?? 'mailto:contact@monanimeaux.fr',
+  Deno.env.get('VAPID_SUBJECT') ?? 'mailto:contact.animeaux@gmail.com',
   Deno.env.get('VAPID_PUBLIC_KEY')!,
   Deno.env.get('VAPID_PRIVATE_KEY')!
 )

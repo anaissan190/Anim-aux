@@ -51,7 +51,7 @@ export default function LegalPage() {
             <strong className="text-gray-900">Éditeur du site</strong><br />
             Anaïs SAN BIAGIO, entrepreneur individuelle — SIRET 107 512 907 00018<br />
             169 avenue Vauban, 93190 Livry-Gargan<br />
-            Contact : <a href="mailto:contact@monanimeaux.fr" className="text-sage-600 hover:underline">contact@monanimeaux.fr</a>
+            Contact : <a href={`mailto:${CONTACT_EMAIL}`} className="text-sage-600 hover:underline">{CONTACT_EMAIL}</a>
           </p>
           <p>
             <strong className="text-gray-900">Directrice de la publication</strong><br />
@@ -208,7 +208,7 @@ export default function LegalPage() {
           <section>
             <h2 className="font-semibold text-gray-900 mb-2">1. Responsable du traitement</h2>
             <p className="text-sm text-gray-600 leading-relaxed">
-              Le responsable du traitement des données à caractère personnel collectées sur Animéaux est Anaïs SAN BIAGIO (entrepreneur individuel, SIRET 107 512 907 00018), 169 avenue Vauban, 93190 Livry-Gargan, contactable à contact@monanimeaux.fr.
+              Le responsable du traitement des données à caractère personnel collectées sur Animéaux est Anaïs SAN BIAGIO (entrepreneur individuel, SIRET 107 512 907 00018), 169 avenue Vauban, 93190 Livry-Gargan, contactable à {CONTACT_EMAIL}.
             </p>
           </section>
 
@@ -298,7 +298,7 @@ export default function LegalPage() {
               <li><strong>Droit d'opposition et de limitation</strong> du traitement.</li>
             </ul>
             <p className="text-sm text-gray-600 leading-relaxed mt-2">
-              Ces droits peuvent être exercés en écrivant à contact@monanimeaux.fr. En cas de réponse insatisfaisante, réclamation possible auprès de la CNIL (www.cnil.fr).
+              Ces droits peuvent être exercés en écrivant à {CONTACT_EMAIL}. En cas de réponse insatisfaisante, réclamation possible auprès de la CNIL (www.cnil.fr).
             </p>
           </section>
 

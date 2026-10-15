@@ -17,7 +17,9 @@ export const MAX_CLINIC_PRACTITIONERS = 5
 // Au-delà de MAX_CLINIC_PRACTITIONERS, pas de tarif affiché : questionnaire de devis
 // (/devis-cabinet), prix fixé au cas par cas (décision d'Anaïs, 15/10/2026). Un supplément
 // par praticien viendra si la demande se confirme.
-export const CONTACT_EMAIL = 'contact@monanimeaux.fr'
+// Boîte professionnelle créée pour l'application (Anaïs, 15/10/2026) : mentions légales,
+// droits RGPD, offre sur mesure et réception des demandes de devis.
+export const CONTACT_EMAIL = 'contact.animeaux@gmail.com'
 
 export const PLAN_LABEL: Record<DoctorPlan, string> = {
   free: 'Offre gratuite',

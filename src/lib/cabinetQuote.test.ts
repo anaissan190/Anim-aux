@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest'
+import { CONTACT_EMAIL } from './doctorPlan'
+import { NOTIFY_EMAIL_DEFAULT } from '../../supabase/functions/request-cabinet-quote/quote'
 import { QUOTE_ERRORS, quoteErrorMessage, validateQuoteRequest, QUOTE_STATUS_LABEL, QUOTE_STATUS_ORDER } from './cabinetQuote'
 
 describe('cabinetQuote', () => {
@@ -23,5 +25,9 @@ describe('cabinetQuote', () => {
   it('tous les statuts ont un libellé et un ordre', () => {
     expect(QUOTE_STATUS_ORDER).toEqual(['new', 'quote_sent', 'accepted', 'declined'])
     for (const s of QUOTE_STATUS_ORDER) expect(QUOTE_STATUS_LABEL[s]).toBeTruthy()
+  })
+
+  it("l'adresse affichée dans l'application est celle où arrivent les demandes de devis", () => {
+    expect(CONTACT_EMAIL).toBe(NOTIFY_EMAIL_DEFAULT)
   })
 })
