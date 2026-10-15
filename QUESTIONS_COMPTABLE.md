@@ -42,7 +42,7 @@ Bientôt, les professionnels qui utilisent mon site (vétérinaires, toiletteurs
 9. **Paiement à l'avance :** le client paie le mois à l'avance. À quelle date je compte cet argent dans mon chiffre d'affaires : le mois où il est encaissé, ou le mois où il est utilisé ?
 10. **Combien de temps garder** les factures et les informations de paiement ? Sur mon site, chacun peut supprimer son compte quand il veut : comment concilier les deux ?
 11. **Démarches :** y a-t-il autre chose à déclarer quand je commence à encaisser cet argent (changement de régime, acomptes…) ?
-12. **Cabinets de plus de 5 professionnels :** pour l'instant je fixe un prix sur mesure avec chaque gros cabinet. Si plus tard je facture un petit supplément par professionnel en plus (par exemple 15 à 19 € HT par mois), est-ce que ça complique mes factures ou ma comptabilité ? Et pour un prix négocié au cas par cas, y a-t-il une démarche particulière (devis, contrat) ?
+12. **Cabinets de plus de 5 professionnels :** pour l'instant je fixe un prix sur mesure avec chaque gros cabinet. Si plus tard je facture un petit supplément par professionnel en plus (19,90 € HT par mois), est-ce que ça complique mes factures ou ma comptabilité ? Et pour un prix négocié au cas par cas, y a-t-il une démarche particulière (devis, contrat) ?
 13. **Plus tard, si ça marche bien :** quels seuils dois-je surveiller pour savoir quand mon statut, mes impôts ou mes cotisations vont changer ?
 
 ## À quoi vont servir les réponses
