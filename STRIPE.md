@@ -4,7 +4,7 @@ Guide à suivre **une fois**, dans cet ordre. Tout se fait en **mode test** d'ab
 Ne jamais coller une clé Stripe dans une conversation, un fichier du projet ou un email : elles ne se posent que dans Supabase (étape 5).
 
 ## Ce que le code fait déjà
-- L'écran **/abonnement** présente les offres (39,90 € HT/mois, cabinet 95,90 € HT/mois) et envoie vers la page de paiement sécurisée de Stripe.
+- L'écran **/abonnement** présente les offres (39,90 €/mois, cabinet 95,90 €/mois, **TVA non applicable** : franchise en base, décidé le 15/10/2026) et envoie vers la page de paiement sécurisée de Stripe.
 - Au retour, l'offre n'est activée **que par la confirmation signée de Stripe** (fonction `stripe-webhook`), jamais par la simple redirection du navigateur.
 - Le praticien gère carte, factures et résiliation sur le **portail client Stripe** (bouton « Gérer mon abonnement »).
 - Personne ne paie avant la **validation de son dossier** par l'admin.
@@ -64,3 +64,9 @@ Quand tout est bon en test et que la TVA est confirmée : désactiver le mode te
 - Webhook en **400** dans Stripe (Workbench → Webhooks → la destination → Événements envoyés) : le secret de signature `STRIPE_WEBHOOK_SECRET` n'est pas celui de cette destination (à copier dans l'onglet **Aperçu** de la destination, « Secret de signature », `whsec_…`). Après correction, « Renvoyer » l'événement : l'offre s'active sans repayer. Les secrets sont lus sans les espaces autour.
 - Ne pas recliquer sur « Choisir l'abonnement » pendant que l'activation est en attente : l'application ne sait pas encore que le paiement existe et en ouvrirait un second.
 - Les journaux de fonctions Supabase peuvent rester vides pendant un incident Supabase : le Workbench de Stripe garde de toute façon la trace de chaque requête et de chaque envoi webhook.
+
+## Facturation (à régler au passage en réel)
+- **Franchise en base de TVA** : dans Stripe → Paramètres → Facturation → Factures, mettre dans le **pied de page** « TVA non applicable, art. 293 B du CGI », ainsi que le SIRET 107 512 907 00018 et « RCS Bobigny ». Ne pas activer Stripe Tax (`STRIPE_AUTOMATIC_TAX` reste absent).
+- **Numérotation** : continue, sans trou ; ne jamais supprimer une facture réelle. Un remboursement passe par une **note de crédit** (avoir), jamais par une suppression.
+- **Conservation** : 10 ans (à vérifier avec le comptable). Les factures de test (mode test) n'ont aucune valeur comptable.
+- **Si le seuil de franchise est dépassé** : TVA à 20 % à appliquer, Stripe Tax à configurer et `STRIPE_AUTOMATIC_TAX=true` ; prix, CGU, devis à revoir (voir LANCEMENT.md).
