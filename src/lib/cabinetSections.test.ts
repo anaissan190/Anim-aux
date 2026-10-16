@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { cabinetSections, parseCabinetSection } from './cabinetSections'
 
 describe('cabinetSections', () => {
-  it('le créateur a cinq sous-onglets, dans cet ordre', () => {
-    expect(cabinetSections(true).map(s => s.id)).toEqual(['apercu', 'equipe', 'stats', 'secretariat', 'reglages'])
+  it('le créateur a cinq sous-onglets, les statistiques en dernier', () => {
+    expect(cabinetSections(true).map(s => s.id)).toEqual(['apercu', 'equipe', 'secretariat', 'reglages', 'stats'])
   })
   it("un simple membre n'a ni secrétariat ni réglages", () => {
     expect(cabinetSections(false).map(s => s.id)).toEqual(['apercu', 'equipe', 'stats'])

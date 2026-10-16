@@ -84,7 +84,7 @@ describe('Mon cabinet — créateur', () => {
     renderAt('/dashboard/doctor?tab=cabinet')
     expect(screen.getByRole('heading', { name: 'Clinique des Lilas' })).toBeInTheDocument()
     const names = within(screen.getByRole('tablist', { name: 'Sections du cabinet' })).getAllByRole('tab').map(t => t.textContent)
-    expect(names).toEqual(["Vue d'ensemble", 'Équipe2', 'Statistiques', 'Secrétariat1', 'Réglages'])
+    expect(names).toEqual(["Vue d'ensemble", 'Équipe2', 'Secrétariat1', 'Réglages', 'Statistiques'])
     expect(tab("Vue d'ensemble")).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByText("Activité de l'équipe ce mois-ci")).toBeInTheDocument()
     expect(screen.getByText('À regarder')).toBeInTheDocument()

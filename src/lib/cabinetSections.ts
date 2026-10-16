@@ -7,9 +7,10 @@ export type CabinetSection = 'apercu' | 'equipe' | 'stats' | 'secretariat' | 're
 const ALL: { id: CabinetSection; label: string; adminOnly: boolean }[] = [
   { id: 'apercu', label: "Vue d'ensemble", adminOnly: false },
   { id: 'equipe', label: 'Équipe', adminOnly: false },
-  { id: 'stats', label: 'Statistiques', adminOnly: false },
   { id: 'secretariat', label: 'Secrétariat', adminOnly: true },
   { id: 'reglages', label: 'Réglages', adminOnly: true },
+  // Les statistiques viennent en dernier (demande d'Anaïs, 16/10/2026).
+  { id: 'stats', label: 'Statistiques', adminOnly: false },
 ]
 
 export function cabinetSections(isAdmin: boolean): { id: CabinetSection; label: string }[] {
