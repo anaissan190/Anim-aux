@@ -6,9 +6,12 @@
 // de lib/clinicStats.ts.
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import type { MonthlyComparison } from '@/lib/doctorStats'
+import { fr } from 'date-fns/locale'
+import { formatInTimeZone } from 'date-fns-tz'
+import { PARIS_TZ } from '@/lib/parisTime'
+import type { MonthlyComparison, MonthBreakdown } from '@/lib/doctorStats'
 import { percentDelta } from '@/lib/doctorStats'
-import type { ClinicStatsRow } from '@/lib/clinicStats'
+import type { ClinicStatsRow, UpcomingAppointment } from '@/lib/clinicStats'
 
 interface HeaderProps {
   name: string
@@ -71,6 +74,8 @@ interface Props {
   toReengage?: number
   unclosed?: number
   rating?: { average: number; count: number } | null
+  upcoming?: UpcomingAppointment[]
+  months?: MonthBreakdown[]
   onGoTo?: (section: 'equipe' | 'stats') => void
 }
 
@@ -78,7 +83,7 @@ const MAX_BARS = 6
 
 export default function ClinicOverview({
   isAdmin, memberCount, maxMembers, seatsLeft, inviteCode, calendarHref,
-  monthly, fillRate, activity = [], toReengage = 0, unclosed = 0, rating, onGoTo,
+  monthly, fillRate, activity = [], toReengage = 0, unclosed = 0, rating, upcoming = [], months = [], onGoTo,
 }: Props) {
   const [copied, setCopied] = useState(false)
   async function copyInvite() {
@@ -93,6 +98,8 @@ export default function ClinicOverview({
   const others = sorted.slice(MAX_BARS)
   const maxCount = Math.max(1, ...sorted.map(r => r.completedThisMonth))
   const showStats = isAdmin && monthly
+  const maxMonth = Math.max(1, ...months.map(m => m.completed))
+  const currentMonthKey = months.length > 0 ? months[months.length - 1].monthKey : ''
 
   return (
     <div className="space-y-5">
@@ -119,7 +126,8 @@ export default function ClinicOverview({
 
       <div className={`grid gap-5 items-start ${showStats ? 'lg:grid-cols-5' : ''}`}>
         {showStats && (
-          <div className="lg:col-span-3 bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+          <div className="lg:col-span-3 space-y-5">
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
             <h3 className="font-semibold text-gray-900 mb-3">Activité de l&apos;équipe ce mois-ci</h3>
             {sorted.length === 0 ? (
               <p className="text-sm text-gray-400">Aucun praticien dans le cabinet.</p>
@@ -147,6 +155,54 @@ export default function ClinicOverview({
               Rendez-vous terminés.{' '}
               <button type="button" onClick={() => onGoTo?.('stats')} className="text-sage-600 hover:underline">Voir le détail</button>
             </p>
+          </div>
+
+          <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+            <h3 className="font-semibold text-gray-900 mb-3">Prochains rendez-vous</h3>
+            {upcoming.length === 0 ? (
+              <p className="text-sm text-gray-400">Aucun rendez-vous à venir.</p>
+            ) : (
+              <ul className="divide-y divide-sand-100">
+                {upcoming.map(a => (
+                  <li key={a.id} className="py-2.5 flex items-center gap-3 text-sm">
+                    <span className="w-36 flex-shrink-0 text-gray-900 font-medium capitalize">
+                      {formatInTimeZone(new Date(a.startAt), PARIS_TZ, "EEE d MMM · HH:mm", { locale: fr })}
+                    </span>
+                    <span className="flex-1 min-w-0 truncate text-gray-700">
+                      {a.label || 'Rendez-vous'}{a.patientName ? <span className="text-gray-400"> · {a.patientName}</span> : null}
+                    </span>
+                    <span className="text-xs text-gray-500 flex-shrink-0">{a.doctorName}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="text-xs text-gray-400 mt-3">
+              <Link to={calendarHref} className="text-sage-600 hover:underline">Voir tous les rendez-vous</Link>
+            </p>
+          </div>
+
+          {months.length > 0 && (
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+              <h3 className="font-semibold text-gray-900 mb-3">Rendez-vous terminés sur 6 mois</h3>
+              <div className="flex items-end gap-3 h-28" role="img"
+                aria-label={`Rendez-vous terminés par mois : ${months.map(m => m.completed).join(', ')}`}>
+                {months.map(m => (
+                  <div key={m.monthKey} className="flex-1 flex flex-col items-center justify-end h-full gap-1">
+                    <span className="text-xs text-gray-500 tabular-nums">{m.completed}</span>
+                    <div className={`w-full rounded-t-md ${m.monthKey === currentMonthKey ? 'bg-sage-500' : 'bg-sage-200'}`}
+                      style={{ height: `${Math.max(4, Math.round((m.completed / maxMonth) * 100))}%` }} />
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-3 mt-1">
+                {months.map(m => (
+                  <span key={m.monthKey} className={`flex-1 text-center text-xs ${m.monthKey === currentMonthKey ? 'text-gray-900 font-medium' : 'text-gray-400'}`}>
+                    {new Date(`${m.monthKey}-01T12:00:00Z`).toLocaleDateString('fr-FR', { month: 'short', timeZone: 'UTC' })}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
           </div>
         )}
 

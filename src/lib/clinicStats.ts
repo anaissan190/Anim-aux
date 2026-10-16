@@ -115,3 +115,42 @@ export function clinicMonthlyTotals(
 export function unclosedPastCount(appointments: { start_at: string; status: string }[], now: Date = new Date()): number {
   return appointments.filter(a => new Date(a.start_at) < now && (a.status === 'pending' || a.status === 'confirmed')).length
 }
+
+export interface UpcomingAppointment {
+  id: string
+  startAt: string
+  doctorName: string
+  // Animaux concernés, sinon le motif ; vide s'il n'y a ni l'un ni l'autre
+  label: string
+  patientName: string
+}
+
+// Les prochains rendez-vous de tout le cabinet (confirmés ou en attente), du plus proche au plus
+// lointain : de quoi voir d'un coup d'œil ce qui arrive sans ouvrir le calendrier.
+export function upcomingAppointments(
+  appointments: {
+    id?: string; start_at: string; status: string; doctor_id?: string; reason?: string
+    animals?: { name?: string }[]
+    patientProfile?: { first_name?: string | null; last_name?: string | null } | null
+  }[],
+  members: ClinicMemberForStats[],
+  now: Date = new Date(),
+  limit = 5,
+): UpcomingAppointment[] {
+  const nameById = new Map(members.map(m => [m.doctor_id, memberName(m)]))
+  return appointments
+    .filter(a => new Date(a.start_at) >= now && (a.status === 'pending' || a.status === 'confirmed'))
+    .sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime())
+    .slice(0, limit)
+    .map((a, i) => {
+      const animals = (a.animals ?? []).map(x => x.name).filter(Boolean).join(', ')
+      const p = a.patientProfile
+      return {
+        id: a.id ?? `${a.start_at}-${i}`,
+        startAt: a.start_at,
+        doctorName: (a.doctor_id && nameById.get(a.doctor_id)) || 'Praticien',
+        label: animals || (a.reason ?? '').split(' — ')[0].trim(),
+        patientName: [p?.first_name, p?.last_name].filter(Boolean).join(' '),
+      }
+    })
+}

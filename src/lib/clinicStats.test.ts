@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  memberName, clinicPrices, filterByDoctor, reviewSummary, clinicStatsTable, clinicMonthlyTotals, unclosedPastCount,
+  memberName, clinicPrices, filterByDoctor, reviewSummary, clinicStatsTable, clinicMonthlyTotals, unclosedPastCount, upcomingAppointments,
   type ClinicMemberForStats,
 } from './clinicStats'
 import { computeDoctorStats, computeMonthlyComparison, priceByDoctor, priceResolver } from './doctorStats'
@@ -144,5 +144,32 @@ describe('unclosedPastCount', () => {
   })
   it("renvoie 0 sans rendez-vous", () => {
     expect(unclosedPastCount([], NOW)).toBe(0)
+  })
+})
+
+describe('upcomingAppointments', () => {
+  const list = [
+    { id: 'a3', start_at: '2026-10-22T09:00:00Z', status: 'confirmed', doctor_id: 'd2', animals: [{ name: 'Rex' }, { name: 'Mia' }], patientProfile: { first_name: 'Paul', last_name: 'Durand' } },
+    { id: 'a1', start_at: '2026-10-16T09:00:00Z', status: 'pending', doctor_id: 'd1', reason: 'Vaccin — rappel annuel', animals: [], patientProfile: null },
+    { id: 'a2', start_at: '2026-10-20T09:00:00Z', status: 'cancelled', doctor_id: 'd1' }, // annulé : exclu
+    { id: 'a0', start_at: '2026-10-10T09:00:00Z', status: 'confirmed', doctor_id: 'd1' }, // passé : exclu
+    { id: 'a4', start_at: '2026-10-25T09:00:00Z', status: 'completed', doctor_id: 'd1' }, // pas « à venir »
+    { id: 'a5', start_at: '2026-10-30T09:00:00Z', status: 'confirmed', doctor_id: 'inconnu' },
+  ]
+  const result = upcomingAppointments(list as any, members, NOW)
+
+  it("ne garde que les rendez-vous à venir, confirmés ou en attente, du plus proche au plus lointain", () => {
+    expect(result.map(r => r.id)).toEqual(['a1', 'a3', 'a5'])
+  })
+  it("nomme le praticien, les animaux (sinon le motif) et le propriétaire", () => {
+    expect(result[0]).toMatchObject({ doctorName: 'Léa Martin', label: 'Vaccin', patientName: '' })
+    expect(result[1]).toMatchObject({ doctorName: 'Karim Ben', label: 'Rex, Mia', patientName: 'Paul Durand' })
+  })
+  it("un praticien inconnu s'appelle « Praticien », sans planter", () => {
+    expect(result[2].doctorName).toBe('Praticien')
+  })
+  it("limite le nombre de lignes et accepte une liste vide", () => {
+    expect(upcomingAppointments(list as any, members, NOW, 2)).toHaveLength(2)
+    expect(upcomingAppointments([], members, NOW)).toEqual([])
   })
 })

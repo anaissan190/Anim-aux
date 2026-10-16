@@ -19,8 +19,8 @@ import { PRACTITIONER_TYPES, getPractitionerType, getPractitionerTypesBySpecialt
 import PractitionerTypePicker from '@/components/doctor/PractitionerTypePicker'
 import { SPECIES_EMOJI, PRACTICE_SPECIES_OPTIONS } from '@/lib/animalSpecies'
 import { type DoctorTab as Tab, ALL_DOCTOR_TAB_IDS as ALL_TAB_IDS } from '@/lib/doctorDashboardTabs'
-import { computeDoctorStats, patientsToReengage } from '@/lib/doctorStats'
-import { clinicStatsTable, clinicMonthlyTotals, unclosedPastCount, reviewSummary } from '@/lib/clinicStats'
+import { computeDoctorStats, patientsToReengage, monthlyBreakdown } from '@/lib/doctorStats'
+import { clinicStatsTable, clinicMonthlyTotals, unclosedPastCount, reviewSummary, upcomingAppointments } from '@/lib/clinicStats'
 import { cabinetSections, parseCabinetSection, type CabinetSection } from '@/lib/cabinetSections'
 import ClinicOverview, { ClinicHeader } from '@/components/doctor/ClinicOverview'
 import { removeStoredFiles } from '@/lib/storageCleanup'
@@ -1811,6 +1811,8 @@ export default function DoctorDashboard() {
                 toReengage={isClinicAdmin ? patientsToReengage(clinicAppts as any, now).length : 0}
                 unclosed={isClinicAdmin ? unclosedPastCount(clinicAppts as any, now) : 0}
                 rating={isClinicAdmin ? reviewSummary(clinicReviews) : null}
+                upcoming={isClinicAdmin ? upcomingAppointments(clinicAppts as any, clinicMembers as any, now) : []}
+                months={isClinicAdmin ? monthlyBreakdown(clinicAppts as any, now, 6) : []}
                 onGoTo={id => setCabinetSectionRaw(id === 'stats' ? 'stats' : 'equipe')}
               />
             )}

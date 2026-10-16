@@ -88,6 +88,8 @@ describe('Mon cabinet — créateur', () => {
     expect(tab("Vue d'ensemble")).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByText("Activité de l'équipe ce mois-ci")).toBeInTheDocument()
     expect(screen.getByText('À regarder')).toBeInTheDocument()
+    expect(screen.getByText('Prochains rendez-vous')).toBeInTheDocument()
+    expect(screen.getByText('Rendez-vous terminés sur 6 mois')).toBeInTheDocument()
     expect(screen.getByText('AB7K9Q2M')).toBeInTheDocument()
   })
 

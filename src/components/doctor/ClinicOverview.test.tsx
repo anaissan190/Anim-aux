@@ -132,3 +132,47 @@ describe('ClinicOverview — simple membre', () => {
     expect(screen.queryByText(/Activité de l/)).not.toBeInTheDocument()
   })
 })
+
+describe('ClinicOverview — prochains rendez-vous et histogramme', () => {
+  const upcoming = [
+    { id: 'a1', startAt: '2026-10-16T12:30:00Z', doctorName: 'Léa Martin', label: 'Rex', patientName: 'Paul Durand' },
+    { id: 'a2', startAt: '2026-10-17T08:00:00Z', doctorName: 'Karim Ben', label: '', patientName: '' },
+  ]
+  const months = [
+    { monthKey: '2026-05', completed: 10, cancelled: 0, noShow: 0 },
+    { monthKey: '2026-06', completed: 20, cancelled: 0, noShow: 0 },
+    { monthKey: '2026-10', completed: 42, cancelled: 0, noShow: 0 },
+  ]
+
+  it("liste les prochains rendez-vous : date à l'heure de Paris, animal, propriétaire et praticien", () => {
+    renderOverview({ upcoming })
+    const card = screen.getByText('Prochains rendez-vous').closest('div')!
+    expect(card).toHaveTextContent(/ven\. 16 oct\. · 14:30/i)
+    expect(card).toHaveTextContent('Rex')
+    expect(card).toHaveTextContent('Paul Durand')
+    expect(card).toHaveTextContent('Léa Martin')
+    // sans animal ni motif : un libellé neutre plutôt qu'une ligne vide
+    expect(card).toHaveTextContent('Rendez-vous')
+    expect(screen.getByRole('link', { name: 'Voir tous les rendez-vous' })).toHaveAttribute('href', baseProps.calendarHref)
+  })
+
+  it("dit quand il n'y a aucun rendez-vous à venir", () => {
+    renderOverview({ upcoming: [] })
+    expect(screen.getByText('Aucun rendez-vous à venir.')).toBeInTheDocument()
+  })
+
+  it("affiche l'histogramme des rendez-vous terminés, le mois courant mis en avant", () => {
+    renderOverview({ months })
+    expect(screen.getByText('Rendez-vous terminés sur 6 mois')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'Rendez-vous terminés par mois : 10, 20, 42' })).toBeInTheDocument()
+    expect(screen.getByText('oct.')).toHaveClass('font-medium')
+  })
+
+  it("n'affiche pas d'histogramme sans données, ni ces cartes pour un simple membre", () => {
+    const { rerender } = renderOverview({ months: [] })
+    expect(screen.queryByText('Rendez-vous terminés sur 6 mois')).not.toBeInTheDocument()
+    rerender(<MemoryRouter><ClinicOverview {...baseProps} isAdmin={false} monthly={null} upcoming={upcoming} months={months} /></MemoryRouter>)
+    expect(screen.queryByText('Prochains rendez-vous')).not.toBeInTheDocument()
+    expect(screen.queryByText('Rendez-vous terminés sur 6 mois')).not.toBeInTheDocument()
+  })
+})
