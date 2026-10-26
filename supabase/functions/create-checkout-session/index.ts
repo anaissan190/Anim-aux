@@ -14,7 +14,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { buildCheckoutParams, checkBillingConfig, kindForPlan, type PaidPlan } from '../_shared/billing.ts'
-import { ensureOwnedClinic, ensureStripeCustomer, hasPaidSubscription, stripePost } from '../_shared/billingDb.ts'
+import { ensureOwnedClinic, ensureStripeCustomer, hasPaidSubscription, isPrelaunch, stripePost } from '../_shared/billingDb.ts'
 
 const supabaseAdmin = createClient(
   Deno.env.get('SUPABASE_URL')!,
@@ -35,6 +35,8 @@ Deno.serve(async (req) => {
     const jwt = (req.headers.get('Authorization') ?? '').replace('Bearer ', '')
     const { data: { user }, error: authErr } = await supabaseAdmin.auth.getUser(jwt)
     if (authErr || !user) return json({ ok: false, error: 'unauthorized' }, 401)
+
+    if (await isPrelaunch(supabaseAdmin)) return json({ ok: false, error: 'prelaunch' }, 403)
 
     const { plan, clinicName, clinicCity } = await req.json()
     if (plan !== 'pro' && plan !== 'cabinet') return json({ ok: false, error: 'invalid_plan' }, 400)

@@ -4,6 +4,8 @@ import Navbar from '@/components/ui/Navbar'
 import Footer from '@/components/ui/Footer'
 import SearchBar from '@/components/search/SearchBar'
 import { useAuthStore } from '@/lib/authStore'
+import { useLaunchSettings } from '@/hooks/useData'
+import PrelaunchLanding from '@/components/landing/PrelaunchLanding'
 import { PRACTITIONER_TYPES } from '@/lib/practitionerTypes'
 import logoNavbar from '@/assets/logo-navbar.webp'
 
@@ -28,6 +30,13 @@ const STEPS_DOCTOR = [
 
 export default function LandingPage() {
   const { user } = useAuthStore()
+  const { data: launch, isLoading: launchLoading } = useLaunchSettings()
+
+  // Pré-lancement : les visiteurs voient la page des praticiens. Un compte connecté (praticien ou
+  // administrateur) garde l'accueil habituel. Fond neutre pendant la lecture du réglage, pour ne pas
+  // montrer la recherche une seconde avant de la remplacer.
+  if (!user && launchLoading) return <div className="min-h-screen bg-sage-50" />
+  if (!user && launch?.phase === 'prelaunch') return <PrelaunchLanding launchDate={launch.publicLaunchDate} />
 
   const steps = user?.role === 'doctor' ? STEPS_DOCTOR : STEPS_PATIENT
 

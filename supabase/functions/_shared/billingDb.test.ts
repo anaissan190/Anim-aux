@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { ensureOwnedClinic, ensureStripeCustomer, hasPaidSubscription, inviteCode } from './billingDb'
+import { ensureOwnedClinic, ensureStripeCustomer, hasPaidSubscription, inviteCode, isPrelaunch } from './billingDb'
 
 interface Op { table: string; kind: 'select' | 'insert'; payload?: any; filters: Record<string, unknown> }
 type Result = { data?: any; error?: any }
@@ -123,5 +123,22 @@ describe('ensureStripeCustomer', () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ error: { message: 'nope' } }), { status: 401 }))
     const { db } = fakeDb(() => ({ data: null }))
     expect(await ensureStripeCustomer(db, 'sk_test_x', { userId: 'u1', log: 'test' })).toEqual({ ok: false })
+  })
+})
+
+describe('isPrelaunch', () => {
+  it('est vrai pendant le pré-lancement et lit le bon réglage', () => {
+    const { db, seen } = fakeDb(() => ({ data: { value: 'prelaunch' } }))
+    return isPrelaunch(db).then(v => {
+      expect(v).toBe(true)
+      expect(seen[0]).toMatchObject({ table: 'app_settings', filters: { key: 'launch_phase' } })
+    })
+  })
+  it('est faux quand le site est ouvert ou quand le réglage est absent', async () => {
+    expect(await isPrelaunch(fakeDb(() => ({ data: { value: 'open' } })).db)).toBe(false)
+    expect(await isPrelaunch(fakeDb(() => ({ data: null })).db)).toBe(false)
+  })
+  it("lève l'erreur si la lecture échoue (aucun paiement par défaut)", async () => {
+    await expect(isPrelaunch(fakeDb(() => ({ error: { message: 'boom' } })).db)).rejects.toThrow('launch_phase')
   })
 })

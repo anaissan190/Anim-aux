@@ -30,7 +30,7 @@ Dans le menu de gauche : **Authentication**.
 - [ ] **Confirmer la TVA avec le comptable** (franchise en base ou TVA à 20 %) avant de publier un prix.
 - [x] Cabinets (13/10/2026) : secrétariat réservé aux cabinets abonnés, messages clairs (cabinet non activé / complet), bandeau d'état dans l'espace praticien, page publique sans membres masqués, pastilles dans l'administration (migration 132).
 - [x] **Étape 3** (13/10/2026) : espace du praticien en offre gratuite (onglets verrouillés par un cadenas, page d'explication, bandeau sur Mon espace). Le bouton « Passer à l'abonnement » ouvre un email pré-rempli vers l'équipe tant que Stripe n'est pas branché.
-- [ ] **Étape 4** : écran « Choisissez votre formule » à l'inscription praticien (maquette validée le 11/10).
+- [x] **Étape 4** : écran « Choisissez votre formule » à l'inscription praticien, livré le 26/10/2026 dans la phase de pré-lancement (voir 3 quater).
 - [x] **Paiement Stripe, code livré le 13/10/2026** : écran `/abonnement`, paiement sécurisé, activation par la confirmation signée de Stripe, portail de gestion, garde-fous (suppression de compte, fermeture de cabinet). Migration 134 + fonctions `create-checkout-session`, `create-portal-session`, `stripe-webhook`.
 - [x] **Stripe branché et testé en mode test le 14/10/2026** (compte, 2 produits, portail, webhook, 4 secrets) : paiement avec la carte de test, activation par le webhook, retour à l'offre gratuite par résiliation, visite guidée lancée à l'activation. Pièges rencontrés : identifiant de **produit** (`prod_…`) collé à la place de celui du **tarif** (`price_…`), et secret de signature du webhook (`whsec_…`) pas celui de la destination → 400 sur tous les envois.
 - [ ] **Passer Stripe en mode réel** : recréer les 2 produits/tarifs, le portail et le webhook en mode réel, puis remplacer les 4 secrets Supabase (`sk_live_…`, `whsec_…`, 2 × `price_…`). Identifiants et coordonnées bancaires saisis par Anaïs, jamais par Claude.
@@ -59,6 +59,16 @@ Dans le menu de gauche : **Authentication**.
 - [ ] **Activité déclarée au Kbis** : elle décrit la mise en relation et la prise de rendez-vous, pas la vente d'abonnements aux praticiens. Voir avec la comptable s'il faut déposer une modification au guichet unique **avant le premier encaissement** (question 3 du fichier ci-dessous).
 - [ ] **Envoyer les questions à la comptable** : `QUESTIONS_COMPTABLE.md`, avec le Kbis et l'exemple de facture Stripe (dossier « Questions comptable » sur le Bureau, hors dépôt car le Kbis contient des données personnelles) (franchise de TVA ou 20 %, factures Stripe, comptabilisation, clients étrangers…). Remplace la ligne « Confirmer la TVA » ci-dessus.
 - [x] Gary et Lina : abonnement fondateur, masqués de la recherche (interrupteur « Apparaître dans la recherche »).
+
+## 3 quater. Pré-lancement praticiens (migration 137, 26/10/2026)
+
+Avant d'ouvrir aux propriétaires, les praticiens créent un compte et indiquent la formule qui les intéresse, **sans paiement**. Toutes les dates annoncées sont **fictives** tant qu'elles ne sont pas décidées : rien n'est codé en dur, tout se règle dans Administration → Pré-lancement.
+
+- [ ] Appliquer la migration `137_prelaunch.sql` dans le SQL Editor **avant** de pousser le code (les fonctions de paiement lisent `app_settings`).
+- Le site est **ouvert** par défaut (comportement actuel). Le basculer en pré-lancement se fait avec l'interrupteur « Ouverture au public » (confirmation demandée) ; le remettre sur ouvert ouvre l'accueil, la recherche, l'inscription propriétaire et les paiements.
+- Date d'ouverture : vide = le site affiche « Ouverture bientôt ». Seuil de praticiens : visible de l'admin seul, sert à la jauge.
+- Pendant le pré-lancement, `create-checkout-session` et `create-quote-checkout` refusent tout paiement (code `prelaunch`).
+- À faire plus tard : email d'invitation à l'ouverture et écriture groupée aux pré-inscrits ; liste d'attente des propriétaires.
 
 ## 4. Juridique
 - [ ] Faire relire **CGU, politique de confidentialité et mentions légales** par un professionnel du droit (ou un service juridique en ligne).

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import Navbar from '@/components/ui/Navbar'
 import AdminQuotesView from '@/components/admin/AdminQuotesView'
+import PrelaunchPanel from '@/components/admin/PrelaunchPanel'
 import {
   useAdminPendingDoctors, useAdminReviewDoctor, useAdminDoctorPlan, useAdminSetDoctorPlan, useAdminClinicPlan, useAdminSetClinicPlan, useAdminDoctorFlags, useAdminClinicFlags, useAdminPlatformStats, useAdminDoctorsByStatus,
   useAdminDoctorDetail, useAdminReviews, useAdminPatients, useAdminPatientDetail,
@@ -80,6 +81,9 @@ export default function AdminDashboard() {
   if (view === 'appointments') {
     return <AdminAppointmentsView onBack={() => setSearchParams({})} initialFilter={searchParams.get('filter') === 'upcoming' ? 'upcoming' : 'all'} />
   }
+  if (view === 'prelaunch') {
+    return <PrelaunchPanel onBack={() => setSearchParams({})} />
+  }
   if (view === 'reports') {
     return <AdminReportsView onBack={() => setSearchParams({})} onSelectDoctor={id => setSearchParams({ doctor: id })} />
   }
@@ -100,6 +104,7 @@ export default function AdminDashboard() {
       onViewReports={() => setSearchParams({ view: 'reports' })}
       onViewQuotes={() => setSearchParams({ view: 'quotes' })}
       onViewLog={() => setSearchParams({ view: 'log' })}
+      onViewPrelaunch={() => setSearchParams({ view: 'prelaunch' })}
     />
   )
 }
@@ -117,10 +122,10 @@ function DoctorFlagBadges({ flags }: { flags?: { plan?: string; is_listed?: bool
   )
 }
 
-function AdminOverview({ onSelectDoctor, onViewReviews, onViewPatients, onViewClinics, onViewSecretaries, onViewAppointments, onViewReports, onViewQuotes, onViewLog }: {
+function AdminOverview({ onSelectDoctor, onViewReviews, onViewPatients, onViewClinics, onViewSecretaries, onViewAppointments, onViewReports, onViewQuotes, onViewLog, onViewPrelaunch }: {
   onSelectDoctor: (id: string) => void; onViewReviews: () => void; onViewPatients: () => void; onViewClinics: () => void
   onViewSecretaries: () => void; onViewAppointments: (filter: 'upcoming' | 'all') => void
-  onViewReports: () => void; onViewQuotes: () => void; onViewLog: () => void
+  onViewReports: () => void; onViewQuotes: () => void; onViewLog: () => void; onViewPrelaunch: () => void
 }) {
   const { data: stats } = useAdminPlatformStats()
   const { data: quoteRequests = [] } = useAdminQuoteRequests()
@@ -233,9 +238,14 @@ function AdminOverview({ onSelectDoctor, onViewReviews, onViewPatients, onViewCl
           ))}
         </div>
 
-        <button onClick={onViewLog} className="text-xs text-gray-400 hover:text-sage-600 transition-colors mb-6 inline-block">
-          📜 Journal d'actions admin →
-        </button>
+        <div className="flex flex-wrap gap-x-5 gap-y-1 mb-6">
+          <button onClick={onViewPrelaunch} className="text-xs text-gray-400 hover:text-sage-600 transition-colors inline-block">
+            🚀 Pré-lancement →
+          </button>
+          <button onClick={onViewLog} className="text-xs text-gray-400 hover:text-sage-600 transition-colors inline-block">
+            📜 Journal d'actions admin →
+          </button>
+        </div>
 
         {/* Vue d'ensemble — graphiques */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-6">
@@ -1539,10 +1549,10 @@ function AdminReportsView({ onBack, onSelectDoctor }: { onBack: () => void; onSe
 
 const LOG_ACTION_LABEL: Record<string, string> = {
   delete_review: 'Avis supprimé', suspend_user: 'Compte suspendu', unsuspend_user: 'Compte réactivé',
-  resolve_report: 'Signalement traité',
+  resolve_report: 'Signalement traité', set_setting: 'Réglage du site modifié',
 }
 const LOG_ACTION_ICON: Record<string, string> = {
-  delete_review: '🗑️', suspend_user: '⛔', unsuspend_user: '✓', resolve_report: '🚩',
+  delete_review: '🗑️', suspend_user: '⛔', unsuspend_user: '✓', resolve_report: '🚩', set_setting: '🚀',
 }
 
 function AdminActionsLogView({ onBack }: { onBack: () => void }) {

@@ -6,6 +6,7 @@ import { formatInTimeZone } from 'date-fns-tz'
 import { parisDateKey, parisDayOfWeek, parisTimeToUtc, parisStartOfWeekKey, addDaysToDateKey, parisMinutesOfDay, PARIS_TZ } from '@/lib/parisTime'
 import Navbar from '@/components/ui/Navbar'
 import PushNotificationBanner from '@/components/ui/PushNotificationBanner'
+import PrelaunchPlanBanner from '@/components/doctor/PrelaunchPlanBanner'
 import DoctorMobileTabBar from '@/components/mobile/DoctorMobileTabBar'
 import RichTextEditor from '@/components/ui/RichTextEditor'
 import { supabase } from '@/lib/supabase'
@@ -842,6 +843,7 @@ export default function DoctorDashboard() {
             {/* Les alertes promises (rendez-vous, messages) n'existent pas en offre
                 gratuite : la bannière ne lui est pas proposée. La cloche reste, elle
                 porte le résultat de la vérification du dossier et les nouveaux avis. */}
+            <PrelaunchPlanBanner />
             {hasPro !== false && <PushNotificationBanner />}
 
             {nextAppt && (

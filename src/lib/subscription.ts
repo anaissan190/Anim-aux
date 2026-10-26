@@ -67,6 +67,7 @@ export const PRICE_FOOTNOTE = `Prix mensuels, ${VAT_NOTE}. Paiement sécurisé p
 
 // Codes d'erreur renvoyés par les fonctions de paiement, en français.
 export const BILLING_ERRORS: Record<string, string> = {
+  prelaunch: "Les abonnements ouvriront avec le lancement : vous pouvez dès maintenant indiquer la formule qui vous intéresse, sans payer.",
   billing_not_configured: "Le paiement en ligne n'est pas encore ouvert. Réessayez bientôt.",
   billing_misconfigured: "Le paiement en ligne n'est pas disponible pour le moment. Réessayez plus tard.",
   not_verified: "L'abonnement est proposé dès que votre dossier est validé par notre équipe.",

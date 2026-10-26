@@ -9,8 +9,11 @@ const state = {
   clinic: null as any,
   hasPro: false as boolean | undefined,
   subscriptions: [] as any[],
+  launch: { phase: 'open', publicLaunchDate: null } as any,
+  intended: null as any,
 }
 const mutateCheckout = vi.fn()
+const mutateIntended = vi.fn()
 const mutatePortal = vi.fn()
 
 vi.mock('@/hooks/useData', () => ({
@@ -20,6 +23,9 @@ vi.mock('@/hooks/useData', () => ({
   useMySubscriptions: () => ({ data: state.subscriptions }),
   useStartCheckout: () => ({ mutate: mutateCheckout, isPending: false, error: null }),
   useOpenBillingPortal: () => ({ mutate: mutatePortal, isPending: false, error: null }),
+  useLaunchSettings: () => ({ data: state.launch }),
+  useMyIntendedPlan: () => ({ data: state.intended }),
+  useSetMyIntendedPlan: () => ({ mutate: mutateIntended, isPending: false, error: null }),
 }))
 vi.mock('@/components/ui/Navbar', () => ({ default: () => null }))
 vi.mock('@/components/ui/BackButton', () => ({ default: () => null }))
@@ -42,6 +48,8 @@ beforeEach(() => {
   state.clinic = null
   state.hasPro = false
   state.subscriptions = []
+  state.launch = { phase: 'open', publicLaunchDate: null }
+  state.intended = null
   useAuthStore.setState({ user: { id: 'u1', email: 'a@a.fr', role: 'doctor', is_admin: false, created_at: '' } as any, profile: null, loading: false })
 })
 
@@ -214,5 +222,37 @@ describe('SubscriptionPage', () => {
     state.clinic = { id: 'c1', owner_id: 'autre', plan: 'free' }
     renderPage()
     expect(screen.getByText(/Seul le créateur du cabinet peut activer/)).toBeInTheDocument()
+  })
+
+  describe('pendant le pré-lancement', () => {
+    beforeEach(() => { state.launch = { phase: 'prelaunch', publicLaunchDate: '2027-01-15' } })
+
+    it("annonce qu'aucun paiement n'est possible et affiche la date d'ouverture", () => {
+      renderPage()
+      const banner = screen.getByTestId('prelaunch-banner')
+      expect(banner).toHaveTextContent(/aucun paiement/i)
+      expect(banner).toHaveTextContent(/15 janvier/)
+    })
+
+    it('remplace les boutons de paiement par un choix de formule, sans jamais lancer le paiement', () => {
+      renderPage()
+      expect(screen.queryByText("Choisir l'abonnement")).not.toBeInTheDocument()
+      expect(screen.queryByText("Choisir l'abonnement cabinet")).not.toBeInTheDocument()
+      fireEvent.click(screen.getAllByText('Je choisis cette formule')[1])
+      expect(mutateIntended).toHaveBeenCalledWith('pro')
+      expect(mutateCheckout).not.toHaveBeenCalled()
+    })
+
+    it('marque la formule déjà choisie', () => {
+      state.intended = 'cabinet'
+      renderPage()
+      expect(screen.getByText('✓ Formule choisie')).toBeInTheDocument()
+      expect(screen.getByTestId('prelaunch-banner')).toHaveTextContent('Votre choix actuel : Abonnement cabinet')
+    })
+
+    it("ne demande pas d'accepter les conditions d'un abonnement qu'on ne paie pas", () => {
+      renderPage()
+      expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+    })
   })
 })

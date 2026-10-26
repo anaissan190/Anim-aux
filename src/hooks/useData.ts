@@ -10,6 +10,10 @@ import type { SearchFilters, AppointmentStatus } from '@/types'
 import { addMinutes } from 'date-fns'
 import { geocodeAddress } from '@/lib/geo'
 import { generateAvailableSlots } from '@/lib/slots'
+import {
+  DEFAULT_LAUNCH_SETTINGS, parseLaunchSettings, parseThreshold, isIntendedPlan,
+  type LaunchSettings, type IntendedPlan, type PrelaunchRow,
+} from '@/lib/prelaunch'
 import { findNextAvailableSlot } from '@/lib/nextSlot'
 import { urlBase64ToUint8Array } from '@/lib/pushNotifications'
 import { matchesAnySpecialty } from '@/lib/doctorSearch'
@@ -3432,4 +3436,97 @@ export function useMySubscriptions() {
     },
     enabled: !!user && user.role === 'doctor',
   })
+}
+
+// ── Pré-lancement (migration 137) ───────────────────────────────────────────────────────────
+// Phase du site et date d'ouverture : lisibles par tous (même non connectés). En cas d'erreur de
+// lecture on retombe sur « ouvert » : un incident ne doit jamais fermer le site aux propriétaires.
+export function useLaunchSettings() {
+  return useQuery({
+    queryKey: ['launch_settings'],
+    queryFn: async (): Promise<LaunchSettings> => {
+      const { data, error } = await supabase.from('app_settings').select('key, value')
+      if (error) return DEFAULT_LAUNCH_SETTINGS
+      return parseLaunchSettings(data)
+    },
+    staleTime: 60_000,
+  })
+}
+
+// Formule souhaitée du praticien connecté (null = pas encore choisie).
+export function useMyIntendedPlan() {
+  const { user } = useAuthStore()
+  return useQuery({
+    queryKey: ['my-intended-plan', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('doctor_intended_plans').select('intended_plan').eq('user_id', user!.id).maybeSingle()
+      if (error) throw error
+      return isIntendedPlan(data?.intended_plan) ? data!.intended_plan as IntendedPlan : null
+    },
+    enabled: !!user && user.role === 'doctor',
+  })
+}
+
+export function useSetMyIntendedPlan() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (plan: IntendedPlan) => {
+      const { error } = await supabase.rpc('set_my_intended_plan', { p_plan: plan })
+      if (error) throw error
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['my-intended-plan'] }) },
+  })
+}
+
+// Réglages réservés à l'admin (seuil inclus).
+export function useAdminSettings() {
+  return useQuery({
+    queryKey: ['admin_settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('app_settings').select('key, value')
+      if (error) throw error
+      const map = new Map((data ?? []).map(r => [r.key as string, r.value as string]))
+      return { threshold: parseThreshold(map.get('prelaunch_threshold')) }
+    },
+  })
+}
+
+export function useAdminSetSetting() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ key, value }: { key: 'launch_phase' | 'public_launch_date' | 'prelaunch_threshold'; value: string }) => {
+      const { error } = await supabase.rpc('admin_set_setting', { p_key: key, p_value: value })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['launch_settings'] })
+      qc.invalidateQueries({ queryKey: ['admin_settings'] })
+    },
+  })
+}
+
+export interface PrelaunchStats {
+  total: number; verified: number; pending: number; rejected: number; last_7_days: number
+  by_plan: { free: number; pro: number; cabinet: number; none: number }
+  by_specialty: { name: string; count: number }[]
+  weekly: { week_start: string; count: number }[]
+}
+
+export function useAdminPrelaunchStats() {
+  return useQuery({
+    queryKey: ['admin_prelaunch_stats'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('admin_prelaunch_stats')
+      if (error) throw error
+      return data as PrelaunchStats
+    },
+  })
+}
+
+// Liste complète pour l'export : demandée au clic seulement, pas à l'ouverture de l'écran.
+export async function fetchAdminPrelaunchList(): Promise<PrelaunchRow[]> {
+  const { data, error } = await supabase.rpc('admin_prelaunch_list')
+  if (error) throw error
+  return (data ?? []) as PrelaunchRow[]
 }

@@ -20,6 +20,15 @@ export async function stripePost(key: string, path: string, params: URLSearchPar
   return { ok: res.ok, status: res.status, body }
 }
 
+// Phase de pré-lancement (migration 137) : tant qu'elle dure, aucun paiement ne s'ouvre, quel que
+// soit l'écran appelant. Une lecture impossible lève l'erreur : l'appelant répond « internal » et
+// rien n'est payé, plutôt que d'ouvrir un paiement par défaut.
+export async function isPrelaunch(db: Db): Promise<boolean> {
+  const { data, error } = await db.from('app_settings').select('value').eq('key', 'launch_phase').maybeSingle()
+  if (error) throw new Error(`lecture de launch_phase impossible : ${error.message ?? error}`)
+  return data?.value === 'prelaunch'
+}
+
 // Même alphabet que le code d'invitation créé côté application (useCreateClinic).
 export function inviteCode(random: () => number = Math.random): string {
   const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'

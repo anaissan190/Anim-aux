@@ -11,7 +11,9 @@ import BackButton from '@/components/ui/BackButton'
 import { useAuthStore } from '@/lib/authStore'
 import {
   useCurrentDoctor, useMyClinic, useDoctorHasPro, useMySubscriptions, useStartCheckout, useOpenBillingPortal,
+  useLaunchSettings, useMyIntendedPlan, useSetMyIntendedPlan,
 } from '@/hooks/useData'
+import { launchLabel, INTENDED_PLAN_LABEL, type IntendedPlan } from '@/lib/prelaunch'
 import {
   PLAN_OFFERS, PRICE_FOOTNOTE, TERMS_REQUIRED_MESSAGE, currentSubscription, describeSubscription, freePlanState, paymentReturnFromSearch, type PlanOffer,
 } from '@/lib/subscription'
@@ -82,6 +84,25 @@ export default function SubscriptionPage() {
     return () => clearTimeout(t)
   }, [waiting, hasPro, qc])
 
+  // Pré-lancement : on enregistre seulement la formule souhaitée, aucun paiement n'est possible
+  // (la fonction de paiement le refuse aussi côté serveur).
+  const { data: launch } = useLaunchSettings()
+  const prelaunch = launch?.phase === 'prelaunch'
+  const { data: intendedPlan } = useMyIntendedPlan()
+  const setIntended = useSetMyIntendedPlan()
+
+  function intentButton(id: IntendedPlan) {
+    const chosen = intendedPlan === id
+    return (
+      <>
+        <button className={`${chosen ? 'btn-primary' : 'btn-secondary'} w-full`} disabled={setIntended.isPending}
+          aria-pressed={chosen} onClick={() => setIntended.mutate(id)}>
+          {chosen ? '✓ Formule choisie' : 'Je choisis cette formule'}
+        </button>
+      </>
+    )
+  }
+
   const startCheckout = useStartCheckout()
   const openPortal = useOpenBillingPortal()
   const [accepted, setAccepted] = useState(false)
@@ -134,6 +155,18 @@ export default function SubscriptionPage() {
           <p className="text-sm text-gray-500 mt-1">Choisissez la formule qui correspond à votre activité. Vous pouvez en changer à tout moment.</p>
         </div>
 
+        {prelaunch && (
+          <div className="rounded-2xl border border-sage-100 bg-sage-50 p-4 text-sm text-sage-800 mb-6" data-testid="prelaunch-banner">
+            <p className="font-semibold">{launchLabel(launch?.publicLaunchDate ?? null)}</p>
+            <p>
+              Les abonnements ne sont pas encore ouverts : aucun paiement aujourd&apos;hui.
+              Indiquez la formule qui vous intéresse, vous pourrez la changer jusqu&apos;à l&apos;ouverture.
+            </p>
+            {intendedPlan && <p className="mt-1 font-medium">Votre choix actuel : {INTENDED_PLAN_LABEL[intendedPlan]}.</p>}
+            {setIntended.error && <p className="text-red-600 mt-1">{(setIntended.error as Error).message}</p>}
+          </div>
+        )}
+
         {returned === 'success' && (
           <div className={`rounded-2xl border p-4 text-sm mb-6 ${hasPro ? 'bg-moss-50 border-moss-100 text-moss-800' : 'bg-sage-50 border-sage-100 text-sage-800'}`}>
             {hasPro
@@ -172,7 +205,7 @@ export default function SubscriptionPage() {
           </div>
         )}
 
-        {doctor && !verified && (
+        {doctor && !verified && !prelaunch && (
           <div className="rounded-2xl border border-sage-100 bg-sage-50 p-4 text-sm text-sage-800 mb-6">
             L&apos;abonnement est proposé dès que votre dossier est validé par notre équipe : vous ne payez jamais avant.
           </div>
@@ -180,6 +213,7 @@ export default function SubscriptionPage() {
 
         <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-5 items-stretch">
           <PlanCard offer={PLAN_OFFERS.free}>
+            {prelaunch ? intentButton('free') : <>
             {freeState.kind === 'current' && <p className="text-center text-sm text-gray-400 py-2.5">Votre offre actuelle</p>}
             {freeState.kind === 'granted' && <p className="text-center text-sm text-gray-400 py-2.5">Offre de départ</p>}
             {freeState.kind === 'downgrade' && (
@@ -198,10 +232,11 @@ export default function SubscriptionPage() {
                 Retour à l&apos;offre gratuite prévu{freeState.until ? ` le ${freeState.until}` : ' à la fin de la période payée'}.
               </p>
             )}
+            </>}
           </PlanCard>
 
           <PlanCard offer={PLAN_OFFERS.pro} highlighted={active === 'pro'} onActivate={() => setActive('pro')}>
-            {individualActive ? (
+            {prelaunch ? intentButton('pro') : individualActive ? (
               <p className="text-center text-sm font-medium text-moss-700 py-2.5">✓ Votre offre actuelle</p>
             ) : (
               <button className={`${active === 'pro' ? 'btn-primary' : 'btn-secondary'} w-full disabled:opacity-50 disabled:cursor-not-allowed`}
@@ -216,7 +251,7 @@ export default function SubscriptionPage() {
           </PlanCard>
 
           <PlanCard offer={PLAN_OFFERS.cabinet} highlighted={active === 'cabinet'} onActivate={() => setActive('cabinet')}>
-            {clinicActive ? (
+            {prelaunch ? intentButton('cabinet') : clinicActive ? (
               <p className="text-center text-sm font-medium text-moss-700 py-2.5">✓ Offre actuelle de votre cabinet</p>
             ) : clinic && !isClinicOwner ? (
               <p className="text-xs text-gray-500 text-center">Seul le créateur du cabinet peut activer l&apos;abonnement cabinet.</p>
@@ -253,7 +288,7 @@ export default function SubscriptionPage() {
         </div>
 
         <div className="max-w-xl mx-auto mt-6">
-          <label className="flex items-start gap-2 text-sm text-gray-600 cursor-pointer">
+          {!prelaunch && <label className="flex items-start gap-2 text-sm text-gray-600 cursor-pointer">
             <input ref={termsRef} type="checkbox" checked={accepted}
               onChange={e => { setAccepted(e.target.checked); if (e.target.checked) setTermsError(false) }}
               aria-invalid={termsError && !accepted} aria-describedby={termsError && !accepted ? 'terms-error' : undefined}
@@ -263,8 +298,8 @@ export default function SubscriptionPage() {
               <Link to="/cgu" target="_blank" className="text-sage-600 font-medium hover:underline">conditions générales</Link>{' '}
               applicables à l&apos;abonnement.
             </span>
-          </label>
-          {termsError && !accepted && (
+          </label>}
+          {!prelaunch && termsError && !accepted && (
             <p id="terms-error" role="alert" className="text-sm text-red-600 mt-2">{TERMS_REQUIRED_MESSAGE}</p>
           )}
           {startCheckout.error && <p className="text-sm text-red-600 mt-3">{(startCheckout.error as Error).message}</p>}

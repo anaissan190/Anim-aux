@@ -9,6 +9,9 @@ import logoNavbar from '@/assets/logo-navbar.webp'
 import PasswordInput from '@/components/ui/PasswordInput'
 import Turnstile from '@/components/ui/Turnstile'
 import PractitionerTypePicker from '@/components/doctor/PractitionerTypePicker'
+import IntendedPlanPicker from '@/components/ui/IntendedPlanPicker'
+import { useLaunchSettings } from '@/hooks/useData'
+import { isIntendedPlan, launchLabel, type IntendedPlan } from '@/lib/prelaunch'
 
 const schema = z.object({
   first_name:        z.string().min(2, 'Prénom requis'),
@@ -44,7 +47,7 @@ const REGISTER_DRAFT_KEY = 'animeaux_register_draft'
 function loadRegisterDraft(): Partial<{
   first_name: string; last_name: string; email: string
   role: 'patient' | 'doctor'; practitioner_types: string[]; otherProfession: string
-  acceptedTerms: boolean; acceptedEthicsCharter: boolean
+  acceptedTerms: boolean; acceptedEthicsCharter: boolean; intendedPlan: IntendedPlan | null
 }> {
   try {
     const raw = localStorage.getItem(REGISTER_DRAFT_KEY)
@@ -57,6 +60,9 @@ function loadRegisterDraft(): Partial<{
 export default function RegisterPage() {
   const [params]   = useSearchParams()
   const draft = loadRegisterDraft()
+  const { data: launch } = useLaunchSettings()
+  // Pré-lancement : seuls les praticiens s'inscrivent, et ils choisissent la formule qui les intéresse.
+  const prelaunch = launch?.phase === 'prelaunch'
   const defaultRole = draft.role ?? (params.get('role') === 'doctor' ? 'doctor' : 'patient')
 
   const [form, setForm] = useState({
@@ -68,6 +74,7 @@ export default function RegisterPage() {
   const [otherProfession, setOtherProfession] = useState(draft.otherProfession ?? '')
   const [acceptedTerms, setAcceptedTerms] = useState(draft.acceptedTerms ?? false)
   const [acceptedEthicsCharter, setAcceptedEthicsCharter] = useState(draft.acceptedEthicsCharter ?? false)
+  const [intendedPlan, setIntendedPlan] = useState<IntendedPlan | null>(isIntendedPlan(draft.intendedPlan) ? draft.intendedPlan : null)
   const [captchaToken, setCaptchaToken] = useState('')
   const [turnstileKey, setTurnstileKey] = useState(0)
   const [errors, setErrors]       = useState<Record<string, string>>({})
@@ -77,18 +84,22 @@ export default function RegisterPage() {
   const [showCharterModal, setShowCharterModal] = useState(false)
 
   useEffect(() => {
+    if (prelaunch) setForm(f => f.role === 'doctor' ? f : { ...f, role: 'doctor', practitioner_types: [] })
+  }, [prelaunch])
+
+  useEffect(() => {
     try {
       localStorage.setItem(REGISTER_DRAFT_KEY, JSON.stringify({
         first_name: form.first_name, last_name: form.last_name, email: form.email,
         role: form.role, practitioner_types: form.practitioner_types, otherProfession,
-        acceptedTerms, acceptedEthicsCharter,
+        acceptedTerms, acceptedEthicsCharter, intendedPlan,
       }))
     } catch {
       // localStorage indisponible (navigation privée stricte...) : le
       // brouillon ne survivra pas à une navigation, mais le formulaire
       // reste utilisable normalement — best-effort, pas bloquant.
     }
-  }, [form.first_name, form.last_name, form.email, form.role, form.practitioner_types, otherProfession, acceptedTerms, acceptedEthicsCharter])
+  }, [form.first_name, form.last_name, form.email, form.role, form.practitioner_types, otherProfession, acceptedTerms, acceptedEthicsCharter, intendedPlan])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -101,6 +112,11 @@ export default function RegisterPage() {
 
     if (form.role === 'doctor' && form.practitioner_types.includes('autre') && !otherProfession.trim()) {
       setErrors({ practitioner_type: 'Veuillez préciser votre profession' })
+      return
+    }
+
+    if (prelaunch && form.role === 'doctor' && !intendedPlan) {
+      setErrors({ plan: 'Indiquez la formule qui vous intéresse (aucun paiement aujourd\'hui)' })
       return
     }
 
@@ -152,6 +168,7 @@ export default function RegisterPage() {
             specialties,
             terms_accepted:    acceptedTerms,
             ethics_charter_accepted: form.role === 'doctor' ? acceptedEthicsCharter : undefined,
+            intended_plan:     form.role === 'doctor' && prelaunch ? intendedPlan : undefined,
           }
         }
       }))
@@ -215,12 +232,13 @@ export default function RegisterPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex"><img src={logoNavbar} alt="Animéaux" className="h-10 w-auto" /></Link>
-          <h1 className="text-xl font-bold text-gray-900 mt-4">Créer un compte</h1>
+          <h1 className="text-xl font-bold text-gray-900 mt-4">{prelaunch ? 'Pré-inscription praticien' : 'Créer un compte'}</h1>
+          {prelaunch && <p className="text-sm text-gray-500 mt-1">{launchLabel(launch?.publicLaunchDate ?? null)} · gratuit, sans engagement</p>}
         </div>
         <div className="card p-8">
 
           {/* Type de compte */}
-          <div className="flex gap-2 mb-6 p-1 bg-gray-100 rounded-xl">
+          {!prelaunch && <div className="flex gap-2 mb-6 p-1 bg-gray-100 rounded-xl">
             {(['patient', 'doctor'] as const).map(r => (
               <button key={r} type="button"
                 onClick={() => setForm(f => ({ ...f, role: r, practitioner_types: [] }))}
@@ -229,7 +247,7 @@ export default function RegisterPage() {
                 {r === 'patient' ? '🙋 Propriétaire' : '🩺 Praticien'}
               </button>
             ))}
-          </div>
+          </div>}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
@@ -258,6 +276,11 @@ export default function RegisterPage() {
                 onOtherTextChange={text => { setOtherProfession(text); setErrors(errs => ({ ...errs, practitioner_type: '' })) }}
                 error={errors.practitioner_type}
               />
+            )}
+
+            {prelaunch && form.role === 'doctor' && (
+              <IntendedPlanPicker value={intendedPlan} error={errors.plan}
+                onChange={plan => { setIntendedPlan(plan); setErrors(errs => ({ ...errs, plan: '' })) }} />
             )}
 
             <div>
