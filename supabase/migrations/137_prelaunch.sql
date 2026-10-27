@@ -16,9 +16,11 @@
 --     par tous ; ici le praticien ne lit que la sienne et l'admin tout.
 --   * admin_set_setting / admin_prelaunch_stats / admin_prelaunch_list : voies réservées à
 --     l'admin pour régler la phase, lire les compteurs et exporter la liste.
+--   * prelaunch_excluded : comptes de démonstration (Gary, Lina) à ne pas compter parmi les
+--     praticiens. Table réservée au serveur (aucune policy), lue par les fonctions admin.
 --   * handle_new_user reprend la formule choisie à l'inscription (métadonnée intended_plan).
 --
--- Retour arrière : drop table public.doctor_intended_plans, public.app_settings cascade ;
+-- Retour arrière : drop table public.doctor_intended_plans, public.app_settings, public.prelaunch_excluded cascade ;
 -- drop function public.admin_set_setting(text, text), public.admin_prelaunch_stats(),
 -- public.admin_prelaunch_list(), public.set_my_intended_plan(text) ; puis recréer
 -- handle_new_user depuis la migration 107.
@@ -168,7 +170,25 @@ begin
 end;
 $$;
 
--- ── Compteurs admin (les comptes administrateurs ne comptent pas comme praticiens) ──
+-- ── Comptes exclus du comptage (démonstration) ──
+create table if not exists public.prelaunch_excluded (
+  user_id uuid primary key references public.users(id) on delete cascade,
+  note text
+);
+alter table public.prelaunch_excluded enable row level security;
+-- Aucune policy : seules les fonctions SECURITY DEFINER ci-dessous et le SQL Editor y accèdent.
+
+-- Gary et Lina (praticiens de démonstration, identifiants connus par leur début). Un compte déjà
+-- supprimé n'est simplement pas trouvé. Ajouter un autre compte plus tard :
+--   insert into public.prelaunch_excluded (user_id, note) values ('<id utilisateur>', 'test');
+insert into public.prelaunch_excluded (user_id, note)
+select d.user_id, 'compte de démonstration'
+from public.doctors d
+where d.id::text like '01e29b5f%' or d.user_id::text like '01e29b5f%'
+   or d.id::text like 'ea2b9bdb%' or d.user_id::text like 'ea2b9bdb%'
+on conflict (user_id) do nothing;
+
+-- ── Compteurs admin (les comptes administrateurs et les comptes exclus ne comptent pas) ──
 create or replace function public.admin_prelaunch_stats()
 returns jsonb
 language plpgsql
@@ -188,6 +208,7 @@ begin
     from public.doctors d
     join public.users u on u.id = d.user_id and not u.is_admin
     left join public.doctor_intended_plans ip on ip.user_id = d.user_id
+    where not exists (select 1 from public.prelaunch_excluded x where x.user_id = d.user_id)
   )
   select jsonb_build_object(
     'total', (select count(*) from base),
@@ -241,7 +262,14 @@ begin
     join public.users u on u.id = d.user_id and not u.is_admin
     left join public.profiles p on p.user_id = d.user_id
     left join public.doctor_intended_plans ip on ip.user_id = d.user_id
+    where not exists (select 1 from public.prelaunch_excluded x where x.user_id = d.user_id)
     order by d.created_at desc;
 end;
 $$;
 grant execute on function public.admin_prelaunch_list() to authenticated;
+
+-- Dernier résultat affiché par le SQL Editor : les comptes effectivement exclus du comptage.
+select p.first_name, p.last_name, u.email, x.note
+from public.prelaunch_excluded x
+join public.users u on u.id = x.user_id
+left join public.profiles p on p.user_id = x.user_id;

@@ -67,6 +67,7 @@ Avant d'ouvrir aux propriétaires, les praticiens créent un compte et indiquent
 - [ ] Appliquer la migration `137_prelaunch.sql` dans le SQL Editor **avant** de pousser le code (les fonctions de paiement lisent `app_settings`).
 - Le site est **ouvert** par défaut (comportement actuel). Le basculer en pré-lancement se fait avec l'interrupteur « Ouverture au public » (confirmation demandée) ; le remettre sur ouvert ouvre l'accueil, la recherche, l'inscription propriétaire et les paiements.
 - Date d'ouverture : vide = le site affiche « Ouverture bientôt ». Seuil de praticiens : visible de l'admin seul, sert à la jauge.
+- Les comptes de démonstration (Gary, Lina) sont exclus du comptage via la table `prelaunch_excluded` ; pour en exclure un autre : `insert into public.prelaunch_excluded (user_id, note) values ('<id utilisateur>', 'test');`. L'inscription propriétaire est fermée dans l'interface pendant le pré-lancement.
 - Pendant le pré-lancement, `create-checkout-session` et `create-quote-checkout` refusent tout paiement (code `prelaunch`).
 - À faire plus tard : email d'invitation à l'ouverture et écriture groupée aux pré-inscrits ; liste d'attente des propriétaires.
 
