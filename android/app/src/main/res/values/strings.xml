@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Animéaux</string>
+    <string name="title_activity_main">Animéaux</string>
+    <string name="package_name">fr.monanimeaux.app</string>
+    <string name="custom_url_scheme">fr.monanimeaux.app</string>
+</resources>
