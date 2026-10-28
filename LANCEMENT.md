@@ -4,8 +4,8 @@ Ce qui reste à faire **en dehors du code** pour ouvrir l'application au public,
 À cocher au fur et à mesure. Dernière mise à jour : 14/10/2026.
 
 ## 1. Abonnements (les deux sont indispensables dès que de vrais utilisateurs arrivent)
-- [ ] **Supabase → offre Pro** (~25 $/mois) : Organisation → Billing. Sans elle, le projet est **mis en pause après 7 jours sans activité** et il n'y a pas de sauvegardes automatiques.
-- [ ] **Vercel → offre Pro** (~20 $/mois) : l'offre gratuite (« Hobby ») interdit l'usage commercial.
+- [ ] **Supabase → offre Pro** (~25 $/mois) : Organisation → Billing. Sans elle, le projet est **mis en pause après 7 jours sans activité** et il n'y a pas de sauvegardes automatiques. **Décidé le 28/10/2026 : à souscrire le plus tard possible, vers le 02-03/11/2026 (après versement du chômage), au plus tard avant le premier encaissement réel / l'ouverture au public.**
+- [ ] **Vercel → offre Pro** (~20 $/mois) : l'offre gratuite (« Hobby ») interdit l'usage commercial. **Décidé le 28/10/2026 : à souscrire le plus tard possible, vers le 02-03/11/2026 (après versement du chômage), au plus tard avant le premier encaissement réel / l'ouverture au public.**
 - [ ] Après le passage en Pro : Supabase → Database → **Backups** : vérifier qu'une sauvegarde quotidienne apparaît.
 
 ## 2. Réglages Supabase (Authentication)
