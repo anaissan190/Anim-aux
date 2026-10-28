@@ -27,7 +27,7 @@ Dans le menu de gauche : **Authentication**.
 
 ## 3 ter. Offres et paiement (décidé le 11-12/10/2026)
 - Prix : individuel **39,90 €/mois** ; cabinet **95,90 €/mois**, jusqu'à 5 praticiens (secrétariats non comptés). **TVA NON APPLICABLE (franchise en base, micro-entreprise) — décidé le 15/10/2026** : les prix affichés sont ceux que le client paie, sans mention « HT ». Mention légale : « TVA non applicable, art. 293 B du CGI » (`VAT_NOTE`).
-- [ ] **Confirmer la TVA avec le comptable** (franchise en base ou TVA à 20 %) avant de publier un prix.
+- [x] **TVA** : réponses de la belle-mère d'Anaïs reçues le 15/10/2026, franchise en base décidée (voir ci-dessous). Plus rien à envoyer à la comptable.
 - [x] Cabinets (13/10/2026) : secrétariat réservé aux cabinets abonnés, messages clairs (cabinet non activé / complet), bandeau d'état dans l'espace praticien, page publique sans membres masqués, pastilles dans l'administration (migration 132).
 - [x] **Étape 3** (13/10/2026) : espace du praticien en offre gratuite (onglets verrouillés par un cadenas, page d'explication, bandeau sur Mon espace). Le bouton « Passer à l'abonnement » ouvre un email pré-rempli vers l'équipe tant que Stripe n'est pas branché.
 - [x] **Étape 4** : écran « Choisissez votre formule » à l'inscription praticien, livré le 26/10/2026 dans la phase de pré-lancement (voir 3 quater).
@@ -57,7 +57,7 @@ Dans le menu de gauche : **Authentication**.
 - [ ] **Suivre le chiffre d'affaires de l'année par rapport au seuil de la franchise** (aujourd'hui rien ne l'alerte) : à faire avec le cahier de recettes ; une alerte dans l'administration à ~30 000 € est possible.
 - [ ] **Réglages de facturation de Stripe, au passage en réel** (Paramètres → Facturation → Factures) : pied de page « TVA non applicable, art. 293 B du CGI », SIRET 107 512 907 00018, RCS Bobigny, adresse ; ne jamais supprimer ni sauter un numéro de facture ; remboursement = avoir (Stripe « note de crédit »).
 - [ ] **Activité déclarée au Kbis** : modification **signée le 28/10/2026** au guichet unique (formalité J00295818470, ajout de l'activité n°2 « vente aux praticiens d'abonnements à des services de gestion en ligne », l'activité 1 reste inchangée). **Reste à faire : attendre le traitement par le greffe et l'INSEE, demander un nouvel extrait Kbis et vérifier que la nouvelle activité y figure, AVANT le premier encaissement réel Stripe.**
-- [ ] **Envoyer les questions à la comptable** : `QUESTIONS_COMPTABLE.md`, avec le Kbis et l'exemple de facture Stripe (dossier « Questions comptable » sur le Bureau, hors dépôt car le Kbis contient des données personnelles) (franchise de TVA ou 20 %, factures Stripe, comptabilisation, clients étrangers…). Remplace la ligne « Confirmer la TVA » ci-dessus.
+- [x] **Questions à la comptable** : déjà posées et répondues le 15/10/2026 (réponses résumées plus haut). `QUESTIONS_COMPTABLE.md` n'est plus à envoyer ; à ne rouvrir que si le chiffre d'affaires approche le seuil de la franchise.
 - [x] Gary et Lina : abonnement fondateur, masqués de la recherche (interrupteur « Apparaître dans la recherche »).
 
 ## 3 quater. Pré-lancement praticiens (migration 137, 26/10/2026)
