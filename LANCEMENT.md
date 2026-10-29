@@ -118,3 +118,13 @@ Avant d'ouvrir aux propriétaires, les praticiens créent un compte et indiquent
 
 ## 7. Nettoyage automatique des fichiers
 Une fonction (`purge-orphan-files`) supprime chaque dimanche les fichiers de stockage que plus rien ne référence. À activer une fois (voir la migration 125).
+
+## 8. Application native (App Store / Google Play, décidé le 29/10/2026)
+- [x] **Compte Apple Developer payé le 29/10/2026** (99 €/an, type « Individual / Sole Proprietor », identifiant Apple propre à Animéaux, commande W1498536204, e-mail de confirmation reçu). Activation en attente (jusqu'à 48 h). Le nom légal d'Anaïs San Biagio sera le nom du vendeur sur l'App Store. Renouvellement automatique à vérifier dans le compte.
+- [ ] Après activation : vérification d'identité si Apple la demande, puis créer l'identifiant `fr.monanimeaux.app` et la fiche de l'app dans App Store Connect.
+- [ ] Déclarer le statut de « professionnel » (adresse, téléphone, e-mail publics sur l'App Store européen) : choisir quelle adresse afficher.
+- [ ] Compte Google Play Console (≈ 25 $, une fois). Compte personnel : test fermé de 12 testeurs (adresse Gmail) pendant 14 jours avant la publication ; l'application Android doit exister avant (Android Studio à installer).
+- [ ] Textes de fiche des deux stores, politique de confidentialité vérifiée, compte de test pour le relecteur Apple, captures d'écran des écrans définitifs.
+- [ ] Notifications push natives (clés Apple APNs / Google Firebase) après ouverture des comptes.
+- [ ] Charte graphique et pack community manager : dossier `Bureau/ANIMÉAUX/Pack community manager` (logo du site et icône en PNG transparent et SVG, charte importable dans Canva).
+
