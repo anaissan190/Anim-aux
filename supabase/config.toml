@@ -457,6 +457,8 @@ verify_jwt = false
 verify_jwt = false
 [functions.create-quote-checkout]
 verify_jwt = false
+[functions.delete-my-account]
+verify_jwt = false
 # Appelée par Stripe, qui n'envoie pas de JWT : l'authenticité vient de la signature.
 [functions.stripe-webhook]
 verify_jwt = false

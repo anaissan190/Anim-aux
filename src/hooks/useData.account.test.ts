@@ -119,6 +119,27 @@ describe('useDeleteAccount', () => {
     const { result } = renderHook(() => useDeleteAccount(), { wrapper })
     await expect(result.current.mutateAsync()).rejects.toThrow('RDV en cours')
   })
+
+  it('avec un abonnement en cours, passe par la fonction Edge (qui arrête l\'abonnement) et non par la RPC', async () => {
+    vi.mocked(supabase.rpc).mockClear()
+    vi.mocked(supabase.functions.invoke).mockResolvedValue({ data: { ok: true, cancelled: 1 }, error: null } as any)
+    const { result } = renderHook(() => useDeleteAccount(), { wrapper })
+    await result.current.mutateAsync({ endSubscription: true })
+    expect(supabase.functions.invoke).toHaveBeenCalledWith('delete-my-account', { body: {} })
+    expect(supabase.rpc).not.toHaveBeenCalled()
+  })
+
+  it('affiche en français l\'échec de l\'arrêt de l\'abonnement, sans rien dire de technique', async () => {
+    vi.mocked(supabase.functions.invoke).mockResolvedValue({ data: { ok: false, error: 'stripe_error' }, error: null } as any)
+    const { result } = renderHook(() => useDeleteAccount(), { wrapper })
+    await expect(result.current.mutateAsync({ endSubscription: true })).rejects.toThrow(/service de paiement/)
+  })
+
+  it('remonte le message de la base quand la suppression elle-même échoue', async () => {
+    vi.mocked(supabase.functions.invoke).mockResolvedValue({ data: { ok: false, error: 'delete_failed', message: 'RDV en cours' }, error: null } as any)
+    const { result } = renderHook(() => useDeleteAccount(), { wrapper })
+    await expect(result.current.mutateAsync({ endSubscription: true })).rejects.toThrow('RDV en cours')
+  })
 })
 
 describe('useExportMyData', () => {

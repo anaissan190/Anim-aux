@@ -22,6 +22,18 @@ export function isPaidStatus(status: string | null | undefined): boolean {
   return (PAID_STATUSES as readonly string[]).includes(status ?? '')
 }
 
+// Abonnements à arrêter avant de supprimer un compte : ceux qui donnent accès et dont la
+// résiliation n'est pas déjà programmée (même règle que delete_my_account, migration 134).
+// Renvoie les identifiants Stripe, sans doublon.
+export function subscriptionsToCancel(
+  rows: { stripe_subscription_id: string; status: string; cancel_at_period_end: boolean }[] | null | undefined,
+): string[] {
+  const ids = (rows ?? [])
+    .filter(r => isPaidStatus(r.status) && !r.cancel_at_period_end)
+    .map(r => r.stripe_subscription_id)
+  return [...new Set(ids)]
+}
+
 export function kindForPlan(plan: PaidPlan): SubscriptionKind {
   return plan === 'pro' ? 'doctor' : 'clinic'
 }

@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 import {
   isPaidStatus, kindForPlan, priceIdForPlan, extractSubscriptionState, buildCheckoutParams,
   verifyStripeSignature, SUBSCRIPTION_EVENTS, checkBillingConfig, checkStripeSecret, parseMaxPractitioners,
-  buildQuoteCheckoutParams, checkQuoteLink, isQuoteToken,
+  buildQuoteCheckoutParams, checkQuoteLink, isQuoteToken, subscriptionsToCancel,
 } from './billing'
 
 describe('isPaidStatus', () => {
@@ -303,5 +303,22 @@ describe('checkQuoteLink', () => {
     for (const bad of ['', 'a'.repeat(63), 'A'.repeat(64), 'g'.repeat(64), `${'a'.repeat(63)}'`, null, undefined, 12]) {
       expect(isQuoteToken(bad)).toBe(false)
     }
+  })
+})
+
+describe('subscriptionsToCancel', () => {
+  const row = (id: string, status: string, cancel = false) => ({ stripe_subscription_id: id, status, cancel_at_period_end: cancel })
+
+  it("garde les abonnements qui donnent accès et dont la résiliation n'est pas programmée", () => {
+    expect(subscriptionsToCancel([row('sub_1', 'active'), row('sub_2', 'trialing'), row('sub_3', 'past_due')]))
+      .toEqual(['sub_1', 'sub_2', 'sub_3'])
+  })
+  it('ignore ce qui est déjà résilié, programmé pour finir, ou jamais finalisé', () => {
+    expect(subscriptionsToCancel([row('a', 'canceled'), row('b', 'active', true), row('c', 'incomplete'), row('d', 'unpaid')])).toEqual([])
+  })
+  it('ne renvoie pas deux fois le même abonnement et supporte une liste vide', () => {
+    expect(subscriptionsToCancel([row('sub_1', 'active'), row('sub_1', 'active')])).toEqual(['sub_1'])
+    expect(subscriptionsToCancel([])).toEqual([])
+    expect(subscriptionsToCancel(null)).toEqual([])
   })
 })

@@ -155,8 +155,9 @@ export function freePlanState(hasPro: boolean | undefined, sub: SubscriptionRow 
   return { kind: 'downgrade' }
 }
 
-// Un abonnement dont la résiliation est programmée ne bloque plus la suppression du
-// compte (miroir de delete_my_account, migration 134).
-export function blocksAccountDeletion(rows: SubscriptionRow[] | null | undefined): boolean {
+// Vrai quand un abonnement en cours (résiliation non programmée) doit être arrêté pour pouvoir
+// supprimer le compte (miroir de delete_my_account, migration 134) : la suppression passe alors
+// par la fonction Edge delete-my-account, qui l'arrête puis supprime, sans quitter l'écran.
+export function hasSubscriptionToEnd(rows: SubscriptionRow[] | null | undefined): boolean {
   return (rows ?? []).some(r => PAID.includes(r.status) && !r.cancel_at_period_end)
 }

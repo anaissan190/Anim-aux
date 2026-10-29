@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { canSellSubscriptions } from '@/lib/nativeApp'
-import { blocksAccountDeletion } from '@/lib/subscription'
+import { hasSubscriptionToEnd } from '@/lib/subscription'
 import { useAuthStore } from '@/lib/authStore'
 import { useCurrentDoctor, useMyClinic, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useExportMyData, usePushSubscriptionStatus, useEnablePushNotifications, useDisablePushNotifications, useDoctorHasPro, useMySubscriptions } from '@/hooks/useData'
 import { supabase } from '@/lib/supabase'
@@ -72,7 +72,7 @@ export default function ProfilPage() {
   async function handleDeleteAccount() {
     setDeleteError('')
     try {
-      await deleteAccount.mutateAsync()
+      await deleteAccount.mutateAsync({ endSubscription: hasSubscriptionToEnd(mySubscriptions) })
       await signOut()
       navigate('/')
     } catch (e: any) {
@@ -513,14 +513,14 @@ export default function ProfilPage() {
             La suppression de votre compte est définitive : profil, rendez-vous, animaux et dossiers de santé,
             messages, avis{isDoctor ? ', cabinet dont vous êtes le créateur' : ''} — tout sera effacé sans possibilité de retour en arrière.
           </p>
-          {blocksAccountDeletion(mySubscriptions) && (
+          {hasSubscriptionToEnd(mySubscriptions) && (
             <p className="text-sm text-amber-800 bg-amber-50 rounded-xl p-3 mb-4">
-              Vous avez un abonnement en cours : résiliez-le d&apos;abord, puis vous pourrez supprimer votre compte.{' '}
-              {canSellSubscriptions() && <Link to="/abonnement" className="font-medium underline">Gérer mon abonnement</Link>}
+              Vous avez un abonnement en cours : il sera arrêté en même temps que votre compte, sans nouveau prélèvement.
+              La période déjà réglée n&apos;est pas remboursée.
             </p>
           )}
-          <button onClick={() => setConfirmDelete(true)} disabled={blocksAccountDeletion(mySubscriptions)}
-            className="text-sm text-red-500 hover:underline font-medium disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed">
+          <button onClick={() => setConfirmDelete(true)}
+            className="text-sm text-red-500 hover:underline font-medium">
             Supprimer mon compte
           </button>
         </div>

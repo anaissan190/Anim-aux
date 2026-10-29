@@ -186,11 +186,28 @@ describe('Profil patient — cas particuliers', () => {
     expect(screen.getByText('Chargement...')).toBeInTheDocument()
   })
 
-  it("bloque la suppression du compte tant qu'un abonnement est en cours", () => {
+  it("avec un abonnement en cours, prévient qu'il sera arrêté et supprime le compte par la fonction qui l'arrête", async () => {
+    h.deleteAccount.mockResolvedValue(undefined)
     setup({ subscriptions: [{ status: 'active', current_period_end: null, cancel_at_period_end: false }] })
     renderAt('/profil?section=donnees')
-    expect(screen.getByText(/Vous avez un abonnement en cours/)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Supprimer mon compte' })).toBeDisabled()
+    expect(screen.getByText(/sera arrêté en même temps que votre compte/)).toBeInTheDocument()
+    const open = screen.getByRole('button', { name: 'Supprimer mon compte' })
+    expect(open).toBeEnabled()
+    fireEvent.click(open)
+    fireEvent.change(screen.getByPlaceholderText('SUPPRIMER'), { target: { value: 'SUPPRIMER' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Supprimer définitivement' }))
+    await waitFor(() => expect(h.deleteAccount).toHaveBeenCalledWith({ endSubscription: true }))
+  })
+
+  it("sans abonnement, aucun avertissement et la suppression ne touche pas à Stripe", async () => {
+    h.deleteAccount.mockResolvedValue(undefined)
+    setup()
+    renderAt('/profil?section=donnees')
+    expect(screen.queryByText(/Vous avez un abonnement en cours/)).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Supprimer mon compte' }))
+    fireEvent.change(screen.getByPlaceholderText('SUPPRIMER'), { target: { value: 'SUPPRIMER' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Supprimer définitivement' }))
+    await waitFor(() => expect(h.deleteAccount).toHaveBeenCalledWith({ endSubscription: false }))
   })
 
   it("un administrateur est annoncé comme tel", () => {

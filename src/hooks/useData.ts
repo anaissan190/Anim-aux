@@ -2617,9 +2617,24 @@ export function useUpdateDoctor() {
 // nécessaire car le client ne peut pas supprimer une ligne auth.users, et
 // certaines tables (appointments) ont une contrainte "on delete restrict"
 // qui bloquerait sinon toute suppression dès qu'un RDV existe.
+//
+// Avec un abonnement en cours (`endSubscription`), la fonction Edge delete-my-account
+// programme d'abord la fin de l'abonnement chez Stripe puis supprime le compte : la
+// personne n'a pas à passer par un écran de résiliation (indispensable dans l'application
+// native, où aucun écran de paiement n'existe). Sans abonnement, appel direct de la RPC.
 export function useDeleteAccount() {
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (opts?: { endSubscription?: boolean }) => {
+      if (opts?.endSubscription) {
+        const { data, error } = await supabase.functions.invoke('delete-my-account', { body: {} })
+        if (error) {
+          let body: { error?: string; message?: string } | undefined
+          try { body = await (error as any).context?.json() } catch { /* corps illisible */ }
+          throw new Error(body?.error === 'delete_failed' && body.message ? body.message : billingErrorMessage(body?.error))
+        }
+        if (!data?.ok) throw new Error(data?.error === 'delete_failed' && data.message ? data.message : billingErrorMessage(data?.error))
+        return
+      }
       const { error } = await supabase.rpc('delete_my_account')
       if (error) throw new Error(error.message)
     },

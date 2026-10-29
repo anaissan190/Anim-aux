@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   PLAN_OFFERS, billingErrorMessage, BILLING_ERRORS, paymentReturnFromSearch, currentSubscription,
-  describeSubscription, blocksAccountDeletion, TERMS_REQUIRED_MESSAGE, freePlanState,
+  describeSubscription, hasSubscriptionToEnd, TERMS_REQUIRED_MESSAGE, freePlanState,
 } from './subscription'
 
 describe('PLAN_OFFERS', () => {
@@ -97,16 +97,16 @@ describe('describeSubscription', () => {
   })
 })
 
-describe('blocksAccountDeletion', () => {
+describe('hasSubscriptionToEnd', () => {
   it('bloque tant qu\'un abonnement actif n\'est pas résilié', () => {
-    expect(blocksAccountDeletion([{ status: 'active', current_period_end: null, cancel_at_period_end: false }])).toBe(true)
-    expect(blocksAccountDeletion([{ status: 'past_due', current_period_end: null, cancel_at_period_end: false }])).toBe(true)
+    expect(hasSubscriptionToEnd([{ status: 'active', current_period_end: null, cancel_at_period_end: false }])).toBe(true)
+    expect(hasSubscriptionToEnd([{ status: 'past_due', current_period_end: null, cancel_at_period_end: false }])).toBe(true)
   })
   it('ne bloque plus une fois la résiliation programmée, ni sans abonnement', () => {
-    expect(blocksAccountDeletion([{ status: 'active', current_period_end: null, cancel_at_period_end: true }])).toBe(false)
-    expect(blocksAccountDeletion([{ status: 'canceled', current_period_end: null, cancel_at_period_end: false }])).toBe(false)
-    expect(blocksAccountDeletion([])).toBe(false)
-    expect(blocksAccountDeletion(null)).toBe(false)
+    expect(hasSubscriptionToEnd([{ status: 'active', current_period_end: null, cancel_at_period_end: true }])).toBe(false)
+    expect(hasSubscriptionToEnd([{ status: 'canceled', current_period_end: null, cancel_at_period_end: false }])).toBe(false)
+    expect(hasSubscriptionToEnd([])).toBe(false)
+    expect(hasSubscriptionToEnd(null)).toBe(false)
   })
 })
 

@@ -41,7 +41,7 @@ import { compressImage } from '@/lib/compressImage'
 import ReportButton from '@/components/ui/ReportButton'
 import { clinicStatusText, clinicSeatsLeft, MAX_CLINIC_PRACTITIONERS, PLAN_LABEL, CLINIC_PLAN_LABEL } from '@/lib/doctorPlan'
 import UpgradePanel from '@/components/doctor/UpgradePanel'
-import { blocksAccountDeletion } from '@/lib/subscription'
+import { hasSubscriptionToEnd } from '@/lib/subscription'
 import { isTabLocked, LOCKED_TAB_PITCH } from '@/lib/doctorDashboardTabs'
 
 // La barre d'onglets (Accueil, Mes patients, Tarifs, Disponibilités, Avis)
@@ -293,7 +293,7 @@ export default function DoctorDashboard() {
   async function handleDeleteAccount() {
     setDeleteAccountError('')
     try {
-      await deleteAccount.mutateAsync()
+      await deleteAccount.mutateAsync({ endSubscription: hasSubscriptionToEnd(mySubscriptions) })
       await signOut()
       navigate('/')
     } catch (e: any) {
@@ -2584,16 +2584,16 @@ export default function DoctorDashboard() {
                 La suppression de votre compte est définitive : profil, rendez-vous, disponibilités,
                 messages, avis{clinic ? (isClinicAdmin ? ', votre cabinet (les autres membres perdront l\'accès à l\'agenda partagé)' : ', votre adhésion au cabinet') : ''} — tout sera effacé sans possibilité de retour en arrière.
               </p>
-              {blocksAccountDeletion(mySubscriptions) && (
-                    <p className="text-sm text-amber-800 bg-amber-50 rounded-xl p-3 mb-4">
-                      Vous avez un abonnement en cours : résiliez-le d&apos;abord, puis vous pourrez supprimer votre compte.{' '}
-                      {canSellSubscriptions() && <Link to="/abonnement" className="font-medium underline">Gérer mon abonnement</Link>}
-                    </p>
-                  )}
+              {hasSubscriptionToEnd(mySubscriptions) && (
+                <p className="text-sm text-amber-800 bg-amber-50 rounded-xl p-3 mb-4">
+                  Vous avez un abonnement en cours : il sera arrêté en même temps que votre compte, sans nouveau prélèvement.
+                  La période déjà réglée n&apos;est pas remboursée.
+                </p>
+              )}
               {deleteAccountError && <p className="text-red-500 text-sm mb-3">{deleteAccountError}</p>}
               {!confirmDeleteAccount ? (
-                <button onClick={() => setConfirmDeleteAccount(true)} disabled={blocksAccountDeletion(mySubscriptions)}
-                  className="text-sm text-red-500 hover:underline font-medium disabled:opacity-40 disabled:no-underline disabled:cursor-not-allowed">
+                <button onClick={() => setConfirmDeleteAccount(true)}
+                  className="text-sm text-red-500 hover:underline font-medium">
                   Supprimer mon compte
                 </button>
               ) : (

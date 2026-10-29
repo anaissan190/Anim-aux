@@ -8,7 +8,7 @@ Ne jamais coller une clé Stripe dans une conversation, un fichier du projet ou 
 - Au retour, l'offre n'est activée **que par la confirmation signée de Stripe** (fonction `stripe-webhook`), jamais par la simple redirection du navigateur.
 - Le praticien gère carte, factures et résiliation sur le **portail client Stripe** (bouton « Gérer mon abonnement »).
 - Personne ne paie avant la **validation de son dossier** par l'admin.
-- Un abonnement actif empêche de supprimer son compte ou de fermer son cabinet tant qu'il n'est pas résilié.
+- Fermer un cabinet abonné reste bloqué tant que l'abonnement n'est pas résilié. Supprimer SON COMPTE, en revanche, passe par la fonction Edge `delete-my-account` : elle programme d'abord la fin de l'abonnement chez Stripe (pas de nouveau prélèvement, période payée non remboursée), puis supprime le compte. C'est ce qui permet la suppression depuis l'application native, sans écran de résiliation. À déployer comme les autres fonctions (JWT désactivé dans `config.toml`).
 
 ## 1. Créer le compte Stripe
 1. Va sur **stripe.com** et crée un compte (email + mot de passe de ton choix).
