@@ -36,3 +36,11 @@ export function shouldOfferOpenInApp(o: { search: string; hash: string; userAgen
   if (!isMobileBrowser(o.userAgent)) return false
   return o.hash.includes('access_token=') || o.hash.includes('error=')
 }
+
+// Les règles d'Apple et de Google interdisent, dans une application des stores, les boutons, liens et
+// appels à l'action qui mènent à un autre moyen de paiement que le leur (sauf programmes spéciaux selon
+// le pays). L'abonnement des praticiens se prend sur le site : dans l'application, aucun écran de
+// tarification ni de paiement, aucun bouton « Passer à l'abonnement ». Le site, lui, reste inchangé.
+export function canSellSubscriptions(native: boolean = isNativeApp()): boolean {
+  return !native
+}

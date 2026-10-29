@@ -3,7 +3,10 @@
 //   variant="banner" : bandeau orange en haut de « Mon espace » ;
 //   variant="page"   : page affichée à la place d'un onglet verrouillé.
 // Le bouton ouvre l'écran de tarification (/abonnement), d'où part le paiement.
+// Dans l'application native : aucune invitation ni bouton d'achat (règles des stores, voir
+// canSellSubscriptions) — la page verrouillée dit seulement que la fonction n'est pas disponible.
 import { Link } from 'react-router-dom'
+import { canSellSubscriptions } from '@/lib/nativeApp'
 
 interface Props {
   title: string
@@ -12,14 +15,22 @@ interface Props {
 }
 
 export default function UpgradePanel({ title, body, variant = 'banner' }: Props) {
+  const canSell = canSellSubscriptions()
+
   if (variant === 'page') {
     return (
       <div className="max-w-xl mx-auto bg-white rounded-3xl p-8 shadow-sm border border-sand-200 text-center animate-rise-in">
         <div className="text-4xl mb-3" aria-hidden="true">🔒</div>
         <h2 className="text-xl font-bold text-gray-900 mb-2">{title}</h2>
-        <p className="text-sm text-gray-600 leading-relaxed mb-1">{body}</p>
-        <p className="text-xs text-gray-400 mb-6">Cette fonctionnalité fait partie de l&apos;abonnement.</p>
-        <Link to="/abonnement" className="btn-primary inline-block">Passer à l&apos;abonnement</Link>
+        {canSell ? (
+          <>
+            <p className="text-sm text-gray-600 leading-relaxed mb-1">{body}</p>
+            <p className="text-xs text-gray-400 mb-6">Cette fonctionnalité fait partie de l&apos;abonnement.</p>
+            <Link to="/abonnement" className="btn-primary inline-block">Passer à l&apos;abonnement</Link>
+          </>
+        ) : (
+          <p className="text-sm text-gray-600 leading-relaxed mb-6">Cette fonctionnalité n&apos;est pas disponible avec votre offre actuelle.</p>
+        )}
         <div className="mt-4">
           <Link to="/dashboard/doctor?tab=home" className="text-sm text-gray-400 hover:text-sage-600 transition-colors">
             ← Retour à Mon espace
@@ -28,6 +39,8 @@ export default function UpgradePanel({ title, body, variant = 'banner' }: Props)
       </div>
     )
   }
+
+  if (!canSell) return null
 
   return (
     <div className="rounded-3xl p-5 sm:p-6 mb-6 bg-sage-600 text-white flex flex-wrap items-center gap-4">

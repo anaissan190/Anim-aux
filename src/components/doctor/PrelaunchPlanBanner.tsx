@@ -5,12 +5,13 @@
 import { Link } from 'react-router-dom'
 import { useLaunchSettings, useMyIntendedPlan } from '@/hooks/useData'
 import { launchLabel } from '@/lib/prelaunch'
+import { canSellSubscriptions } from '@/lib/nativeApp'
 
 export default function PrelaunchPlanBanner() {
   const { data: launch } = useLaunchSettings()
   const { data: intendedPlan } = useMyIntendedPlan()
   // `undefined` = lecture en cours : on n'affiche rien plutôt que de clignoter.
-  if (launch?.phase !== 'prelaunch' || intendedPlan !== null) return null
+  if (!canSellSubscriptions() || launch?.phase !== 'prelaunch' || intendedPlan !== null) return null
   return (
     <div className="rounded-2xl border border-sage-100 bg-sage-50 p-4 mb-6 flex flex-wrap items-center justify-between gap-3" data-testid="prelaunch-plan-banner">
       <div className="text-sm text-sage-800">

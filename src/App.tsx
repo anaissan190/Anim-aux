@@ -7,6 +7,7 @@ import ToastContainer from '@/components/ui/ToastContainer'
 import UpdateBanner from '@/components/ui/UpdateBanner'
 import OnboardingTour from '@/components/onboarding/OnboardingTour'
 import DeepLinkHandler from '@/components/auth/DeepLinkHandler'
+import { canSellSubscriptions } from '@/lib/nativeApp'
 
 // Chaque page est chargée à la demande (React.lazy) plutôt qu'incluse dans le
 // bundle principal : sans ça, un visiteur qui arrive sur la page de connexion
@@ -262,15 +263,16 @@ export default function App() {
         <Route path="/dashboard/doctor" element={
           <ProtectedRoute role="doctor"><DoctorDashboard /></ProtectedRoute>
         } />
-        <Route path="/abonnement" element={
-          <ProtectedRoute role="doctor"><SubscriptionPage /></ProtectedRoute>
-        } />
-        <Route path="/devis-cabinet" element={
-          <ProtectedRoute role="doctor"><CabinetQuotePage /></ProtectedRoute>
-        } />
-        <Route path="/paiement-devis/:token" element={
-          <ProtectedRoute role="doctor"><QuotePaymentPage /></ProtectedRoute>
-        } />
+        {/* Tarifs et paiement : site seulement (règles des stores, voir canSellSubscriptions). */}
+        <Route path="/abonnement" element={canSellSubscriptions()
+          ? <ProtectedRoute role="doctor"><SubscriptionPage /></ProtectedRoute>
+          : <Navigate to="/dashboard/doctor" replace />} />
+        <Route path="/devis-cabinet" element={canSellSubscriptions()
+          ? <ProtectedRoute role="doctor"><CabinetQuotePage /></ProtectedRoute>
+          : <Navigate to="/dashboard/doctor" replace />} />
+        <Route path="/paiement-devis/:token" element={canSellSubscriptions()
+          ? <ProtectedRoute role="doctor"><QuotePaymentPage /></ProtectedRoute>
+          : <Navigate to="/dashboard/doctor" replace />} />
         <Route path="/dashboard/admin" element={
           <ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>
         } />

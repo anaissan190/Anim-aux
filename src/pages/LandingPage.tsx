@@ -1,4 +1,5 @@
 // src/pages/LandingPage.tsx
+import { isNativeApp } from '@/lib/nativeApp'
 import { Link } from 'react-router-dom'
 import Navbar from '@/components/ui/Navbar'
 import Footer from '@/components/ui/Footer'
@@ -36,7 +37,7 @@ export default function LandingPage() {
   // administrateur) garde l'accueil habituel. Fond neutre pendant la lecture du réglage, pour ne pas
   // montrer la recherche une seconde avant de la remplacer.
   if (!user && launchLoading) return <div className="min-h-screen bg-sage-50" />
-  if (!user && launch?.phase === 'prelaunch') return <PrelaunchLanding launchDate={launch.publicLaunchDate} />
+  if (!user && launch?.phase === 'prelaunch' && !isNativeApp()) return <PrelaunchLanding launchDate={launch.publicLaunchDate} />
 
   const steps = user?.role === 'doctor' ? STEPS_DOCTOR : STEPS_PATIENT
 

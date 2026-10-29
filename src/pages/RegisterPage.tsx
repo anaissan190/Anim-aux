@@ -63,7 +63,8 @@ export default function RegisterPage() {
   const draft = loadRegisterDraft()
   const { data: launch } = useLaunchSettings()
   // Pré-lancement : seuls les praticiens s'inscrivent, et ils choisissent la formule qui les intéresse.
-  const prelaunch = launch?.phase === 'prelaunch'
+  // Dans l'application native : jamais de formules ni de prix (règles des stores), donc pas de parcours de pré-inscription.
+  const prelaunch = launch?.phase === 'prelaunch' && !isNativeApp()
   const defaultRole = draft.role ?? (params.get('role') === 'doctor' ? 'doctor' : 'patient')
 
   const [form, setForm] = useState({

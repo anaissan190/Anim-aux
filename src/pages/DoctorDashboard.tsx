@@ -1,6 +1,7 @@
 // src/pages/DoctorDashboard.tsx
 import { useState, useEffect, useRef } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
+import { canSellSubscriptions } from '@/lib/nativeApp'
 import { fr } from 'date-fns/locale'
 import { formatInTimeZone } from 'date-fns-tz'
 import { parisDateKey, parisDayOfWeek, parisTimeToUtc, parisStartOfWeekKey, addDaysToDateKey, parisMinutesOfDay, PARIS_TZ } from '@/lib/parisTime'
@@ -1904,7 +1905,9 @@ export default function DoctorDashboard() {
 
                 {clinicStatus && !clinicStatus.active && (
                   <p className="text-sm text-sage-800 bg-sage-50 rounded-xl p-3 mb-4">
-                    Le secrétariat est réservé aux cabinets abonnés : activez l&apos;abonnement cabinet pour inviter un accès dédié.
+                    {canSellSubscriptions()
+                      ? 'Le secrétariat est réservé aux cabinets abonnés : activez l’abonnement cabinet pour inviter un accès dédié.'
+                      : 'Le secrétariat n’est pas disponible pour ce cabinet.'}
                   </p>
                 )}
                 <div className="flex gap-2 mb-4">
@@ -2348,7 +2351,9 @@ export default function DoctorDashboard() {
                     <span className="block">Facultatif : désactivez-la si vous préférez le téléphone.</span>
                     {hasPro === false && (
                       <span className="block mt-1">
-                        La messagerie est réservée à l&apos;abonnement : ce réglage s&apos;appliquera dès que vous y passerez.
+                        {canSellSubscriptions()
+                          ? 'La messagerie est réservée à l’abonnement : ce réglage s’appliquera dès que vous y passerez.'
+                          : 'La messagerie n’est pas disponible avec votre offre actuelle.'}
                       </span>
                     )}
                     {!profileForm.messaging_enabled && (
@@ -2402,12 +2407,16 @@ export default function DoctorDashboard() {
                   <p className="text-xs text-gray-500 mt-0.5">
                     {hasPro === false
                       ? "Vous êtes en offre gratuite : votre fiche est visible, sans réservation en ligne."
-                      : "Consultez votre offre, vos factures et gérez votre abonnement."}
+                      : canSellSubscriptions()
+                        ? "Consultez votre offre, vos factures et gérez votre abonnement."
+                        : "Votre abonnement est actif."}
                   </p>
                 </div>
-                <Link to="/abonnement" className="btn-secondary text-sm">
-                  {hasPro === false ? 'Voir les offres' : 'Gérer mon abonnement'}
-                </Link>
+                {canSellSubscriptions() && (
+                  <Link to="/abonnement" className="btn-secondary text-sm">
+                    {hasPro === false ? 'Voir les offres' : 'Gérer mon abonnement'}
+                  </Link>
+                )}
               </div>
             </div>
 
@@ -2578,7 +2587,7 @@ export default function DoctorDashboard() {
               {blocksAccountDeletion(mySubscriptions) && (
                     <p className="text-sm text-amber-800 bg-amber-50 rounded-xl p-3 mb-4">
                       Vous avez un abonnement en cours : résiliez-le d&apos;abord, puis vous pourrez supprimer votre compte.{' '}
-                      <Link to="/abonnement" className="font-medium underline">Gérer mon abonnement</Link>
+                      {canSellSubscriptions() && <Link to="/abonnement" className="font-medium underline">Gérer mon abonnement</Link>}
                     </p>
                   )}
               {deleteAccountError && <p className="text-red-500 text-sm mb-3">{deleteAccountError}</p>}

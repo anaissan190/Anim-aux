@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { canSellSubscriptions } from '@/lib/nativeApp'
 import { blocksAccountDeletion } from '@/lib/subscription'
 import { useAuthStore } from '@/lib/authStore'
 import { useCurrentDoctor, useMyClinic, useUpdateProfile, useUpdateDoctor, useDeleteAccount, useExportMyData, usePushSubscriptionStatus, useEnablePushNotifications, useDisablePushNotifications, useDoctorHasPro, useMySubscriptions } from '@/hooks/useData'
@@ -419,14 +420,18 @@ export default function ProfilPage() {
               </label>
               {hasPro === false && (
                 <p className="text-xs text-gray-400 mt-1">
-                  La messagerie est réservée à l&apos;abonnement : ce réglage s&apos;appliquera dès que vous y passerez.
+                  {canSellSubscriptions()
+                    ? 'La messagerie est réservée à l’abonnement : ce réglage s’appliquera dès que vous y passerez.'
+                    : 'La messagerie n’est pas disponible avec votre offre actuelle.'}
                 </p>
               )}
-              <p className="mt-4 text-sm text-gray-500">
-                <Link to="/abonnement" className="text-sage-600 font-medium hover:underline">
-                  {hasPro === false ? 'Voir les offres et passer à l’abonnement' : 'Mon abonnement'}
-                </Link>
-              </p>
+              {canSellSubscriptions() && (
+                <p className="mt-4 text-sm text-gray-500">
+                  <Link to="/abonnement" className="text-sage-600 font-medium hover:underline">
+                    {hasPro === false ? 'Voir les offres et passer à l’abonnement' : 'Mon abonnement'}
+                  </Link>
+                </p>
+              )}
               {!messagingEnabled && (
                 <p className="text-xs text-gray-400 mt-1">
                   Les patients ne pourront plus vous envoyer de nouveaux messages. Vos conversations déjà en cours restent visibles.
@@ -511,7 +516,7 @@ export default function ProfilPage() {
           {blocksAccountDeletion(mySubscriptions) && (
             <p className="text-sm text-amber-800 bg-amber-50 rounded-xl p-3 mb-4">
               Vous avez un abonnement en cours : résiliez-le d&apos;abord, puis vous pourrez supprimer votre compte.{' '}
-              <Link to="/abonnement" className="font-medium underline">Gérer mon abonnement</Link>
+              {canSellSubscriptions() && <Link to="/abonnement" className="font-medium underline">Gérer mon abonnement</Link>}
             </p>
           )}
           <button onClick={() => setConfirmDelete(true)} disabled={blocksAccountDeletion(mySubscriptions)}
