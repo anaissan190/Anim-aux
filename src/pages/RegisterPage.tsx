@@ -162,7 +162,7 @@ export default function RegisterPage() {
         options: {
           captchaToken,
           // Dans l'application, le lien de l'email la rouvre ; sur le web, adresse du site (inchangé).
-          emailRedirectTo: isNativeApp() ? authRedirectUrl('/auth') : undefined,
+          emailRedirectTo: isNativeApp() ? authRedirectUrl('/auth/confirm') : undefined,
           data: {
             first_name:        form.first_name,
             last_name:         form.last_name,

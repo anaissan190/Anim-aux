@@ -22,6 +22,7 @@ const LoginPage = lazy(() => import('@/pages/LoginPage'))
 const RegisterPage = lazy(() => import('@/pages/RegisterPage'))
 const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'))
 const ResetPassword = lazy(() => import('@/pages/ResetPassword'))
+const AuthConfirmPage = lazy(() => import('@/pages/AuthConfirmPage'))
 const PatientDashboard = lazy(() => import('@/pages/PatientDashboard'))
 const DoctorDashboard = lazy(() => import('@/pages/DoctorDashboard'))
 const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'))
@@ -246,6 +247,7 @@ export default function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/auth/confirm" element={<AuthConfirmPage />} />
         <Route path="/confirmer-presence/:id" element={<ConfirmPresencePage />} />
         <Route path="/cgu" element={<LegalPage />} />
         <Route path="/confidentialite" element={<LegalPage />} />

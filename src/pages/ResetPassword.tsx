@@ -1,4 +1,5 @@
 // src/pages/ResetPassword.tsx
+import OpenInAppBanner from '@/components/auth/OpenInAppBanner'
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
@@ -73,6 +74,7 @@ export default function ResetPassword() {
               <p className="text-sm text-gray-500 mb-6">
                 Choisissez un nouveau mot de passe pour votre compte.
               </p>
+              <OpenInAppBanner path="reset-password" />
               <form onSubmit={handleSubmit} className="space-y-4">
                 <PasswordInput
                   value={password}

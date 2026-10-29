@@ -9,6 +9,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Variables VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY manquantes dans .env.local')
 }
 
+// Fragment de l'adresse (#access_token=…) lu AVANT la création du client : Supabase
+// le retire de l'adresse dès qu'il a établi la session. Sert à proposer, depuis un
+// téléphone, d'ouvrir l'application avec ce même lien (OpenInAppBanner).
+export const initialUrlHash: string = typeof window !== 'undefined' ? window.location.hash : ''
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
