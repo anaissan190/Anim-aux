@@ -5,6 +5,11 @@ const config: CapacitorConfig = {
   appId: 'fr.monanimeaux.app',
   appName: 'Animéaux',
   webDir: 'dist',
+  ios: {
+    // Sans cela, le contenu passe sous l'heure et l'encoche de l'iPhone.
+    contentInset: 'automatic',
+    backgroundColor: '#FFFAF0',
+  },
 }
 
 export default config
