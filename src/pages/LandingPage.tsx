@@ -58,7 +58,7 @@ export default function LandingPage() {
                 <span className="text-sage-600">prenez rendez-vous en ligne</span>
               </h1>
               <p className="text-lg text-gray-500 mb-10 max-w-xl mx-auto">
-                Vétérinaires, toiletteurs, comportementalistes…
+                Votre animal mérite le meilleur. Trouvez-le près de chez vous.
                 Consultez les avis, choisissez votre créneau, confirmez en 1 clic.
               </p>
               <div className="flex justify-center">
@@ -159,7 +159,7 @@ export default function LandingPage() {
             Trouvez un praticien,<br /><span className="text-sage-600">prenez RDV en ligne</span>
           </h1>
           <p className="text-sm text-gray-500 mt-3 mb-5 max-w-[280px] mx-auto">
-            Vétérinaires, toiletteurs, comportementalistes… Avis, créneaux, confirmation en 1 clic.
+            Votre animal mérite le meilleur. Trouvez-le près de chez vous. Avis, créneaux, confirmation en 1 clic.
           </p>
 
           <div className="card p-3 text-left">
