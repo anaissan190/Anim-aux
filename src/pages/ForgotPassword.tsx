@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import logoNavbar from '@/assets/logo-navbar.webp'
 import Turnstile from '@/components/ui/Turnstile'
+import { authRedirectUrl } from '@/lib/nativeApp'
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('')
@@ -21,7 +22,7 @@ export default function ForgotPassword() {
     try {
       ({ error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
         captchaToken,
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: authRedirectUrl('/reset-password'),
       }))
     } catch (e: any) {
       // Sans ce try/catch, une coupure réseau/timeout laissait le bouton

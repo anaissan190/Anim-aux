@@ -6,6 +6,7 @@ import SplashScreen from '@/components/ui/SplashScreen'
 import ToastContainer from '@/components/ui/ToastContainer'
 import UpdateBanner from '@/components/ui/UpdateBanner'
 import OnboardingTour from '@/components/onboarding/OnboardingTour'
+import DeepLinkHandler from '@/components/auth/DeepLinkHandler'
 
 // Chaque page est chargée à la demande (React.lazy) plutôt qu'incluse dans le
 // bundle principal : sans ça, un visiteur qui arrive sur la page de connexion
@@ -308,6 +309,7 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       </Suspense>
+      <DeepLinkHandler />
       <ToastContainer />
       <OnboardingTour />
       <UpdateBanner />

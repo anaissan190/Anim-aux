@@ -12,6 +12,7 @@ import PractitionerTypePicker from '@/components/doctor/PractitionerTypePicker'
 import IntendedPlanPicker from '@/components/ui/IntendedPlanPicker'
 import { useLaunchSettings } from '@/hooks/useData'
 import { isIntendedPlan, launchLabel, type IntendedPlan } from '@/lib/prelaunch'
+import { authRedirectUrl, isNativeApp } from '@/lib/nativeApp'
 
 const schema = z.object({
   first_name:        z.string().min(2, 'Prénom requis'),
@@ -160,6 +161,8 @@ export default function RegisterPage() {
         password: form.password,
         options: {
           captchaToken,
+          // Dans l'application, le lien de l'email la rouvre ; sur le web, adresse du site (inchangé).
+          emailRedirectTo: isNativeApp() ? authRedirectUrl('/auth') : undefined,
           data: {
             first_name:        form.first_name,
             last_name:         form.last_name,

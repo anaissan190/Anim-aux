@@ -6,5 +6,7 @@
 		"contentInset": "automatic",
 		"backgroundColor": "#FFFAF0"
 	},
-	"packageClassList": []
+	"packageClassList": [
+		"AppPlugin"
+	]
 }
