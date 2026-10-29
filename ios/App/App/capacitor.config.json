@@ -1,0 +1,10 @@
+{
+	"appId": "fr.monanimeaux.app",
+	"appName": "Animéaux",
+	"webDir": "dist",
+	"ios": {
+		"contentInset": "automatic",
+		"backgroundColor": "#FFFAF0"
+	},
+	"packageClassList": []
+}
